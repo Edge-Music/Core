@@ -36,6 +36,11 @@ struct Playing {
   @State isWideScreen: boolean = false // 是否为宽屏
   @State currentIndex: number = -1
   // 独立的按钮动画状态
+  @State swipeOffset: number = 0; // 滑动偏移量
+  @State isSwipingActive: boolean = false; // 是否正在滑动中
+  @State swipeDirection: string = ''; // 滑动方向
+  private readonly SWIPE_THRESHOLD: number = 80; // 触发切换的阈值
+  @State img_playing_ctrl:string=  PreferencesCache.getUserPreference('img_playing_ctrl','0')
   @State isPrevButtonPressed: boolean = false
   @State isPlayButtonPressed: boolean = false
   @State isNextButtonPressed: boolean = false
@@ -97,7 +102,30 @@ struct Playing {
     .transition({ type: TransitionType.Insert, scale: { y: 0.8, x: 1.0 }, opacity: 0.0 })
     .transition({ type: TransitionType.Delete, scale: { y: 0.8, x: 1.0 }, opacity: 0.0 })
   }
-
+  handleSongChange(direction: 'next' | 'prev') {
+    animateTo({
+      duration: 350,
+      curve: Curve.EaseInOut,
+      delay: 0,
+      onFinish: () => {
+        this.swipeOffset = 0;
+        this.isSwipingActive = false;
+        this.swipeDirection = '';
+      }
+    }, () => {
+      if (direction === 'next') {
+        const nextSong = PlaylistManager.playNext();
+        if (nextSong) {
+          PlaylistManager.playSong(nextSong);
+        }
+      } else {
+        const prevSong = PlaylistManager.playPrevious();
+        if (prevSong) {
+          PlaylistManager.playSong(prevSong);
+        }
+      }
+    });
+  }
   @Builder
   //————————————————————————
   // 函数名：Playing_HorizontalMode()
@@ -114,11 +142,68 @@ struct Playing {
             .transition(TransitionEffect.OPACITY)
             .width('100%')
             .aspectRatio(1)
-            .borderRadius(24)
-            .onClick(()=>{
-              animateTo({ duration: 300 }, () => {
-                this.swiperController.showNext()
-              })
+            .clip(true)
+            .shadow({
+              radius: 0,
+              color: 'rgba(0, 0, 0, 0.15)',
+              offsetX: 0,
+              offsetY: 2
+            })
+            .borderRadius(this.img_playing_ctrl==='1'?0:24)
+            .gesture(
+              PanGesture({ direction: PanDirection.Horizontal })
+                .onActionStart(() => {
+                  this.isSwipingActive = true;
+                })
+                .onActionUpdate((event) => {
+                  // 更新滑动偏移量
+                  this.swipeOffset = event.offsetX;
+
+                  // 确定滑动方向
+                  if (event.offsetX > 10 &&this.img_playing_ctrl==='1') {
+                    this.swipeDirection = 'right'; // 向右滑动，上一首
+                  } else if (event.offsetX < -10) {
+                    this.swipeDirection = 'left'; // 向左滑动，下一首
+                  } else {
+                    this.swipeDirection = '';
+                  }
+                })
+                .onActionEnd(() => {
+                  // 根据最终偏移量决定是切换歌曲还是回弹
+                  if (this.swipeOffset > this.SWIPE_THRESHOLD &&this.img_playing_ctrl==='1') {
+                    // 向右滑动超过阈值，切换到上一首
+                    this.handleSongChange('prev');
+                  }   else if (this.swipeOffset < -this.SWIPE_THRESHOLD &&this.img_playing_ctrl==='0') {
+                      this.swiperController.showNext()
+                  }else if (this.swipeOffset < -this.SWIPE_THRESHOLD&&this.img_playing_ctrl==='1') {
+                    // 向左滑动超过阈值，切换到下一首
+                    this.handleSongChange('next');
+                  } else {
+                    // 未达到阈值，回弹
+                    animateTo({
+                      duration: 250,
+                      curve: Curve.EaseOut,
+                      delay: 0,
+                      onFinish: () => {
+                        this.isSwipingActive = false;
+                        this.swipeDirection = '';
+                      }
+                    }, () => {
+                      this.swipeOffset = 0;
+                    });
+                  }
+                })
+            )
+            .borderImage({
+              source: {
+                angle: 90,
+                direction: GradientDirection.Left,
+                colors: [[0xAEE1E1, 0.0], [0xD3E0DC, 0.3], [0xFCD1D1, 1.0]]
+              },
+              slice: { top: this.img_playing_ctrl==='1'?10:0, bottom: this.img_playing_ctrl==='1'?10:0, left: this.img_playing_ctrl==='1'?10:0, right: this.img_playing_ctrl==='1'?10:0 },
+              width: { top:this.img_playing_ctrl==='1'? "10px":"0px", bottom: this.img_playing_ctrl==='1'? "10px":"0px", left: this.img_playing_ctrl==='1'? "10px":"0px", right: this.img_playing_ctrl==='1'? "10px":"0px" },
+              repeat: RepeatMode.Stretch,
+              fill: false
             })
         }
         .padding({
@@ -163,14 +248,70 @@ struct Playing {
           Image(cover(this.song?.album?.cover ?? "", 512))
             .width('60%')
             .aspectRatio(1)
-            .borderRadius(24)
+            .borderRadius(this.img_playing_ctrl==='1'?0: 24)
+            .borderImage({
+              source: {
+                angle: 90,
+                direction: GradientDirection.Left,
+                colors: [[0xAEE1E1, 0.0], [0xD3E0DC, 0.3], [0xFCD1D1, 1.0]]
+              },
+              slice: { top: this.img_playing_ctrl==='1'?10:0, bottom: this.img_playing_ctrl==='1'?10:0, left: this.img_playing_ctrl==='1'?10:0, right: this.img_playing_ctrl==='1'?10:0 },
+              width: { top:this.img_playing_ctrl==='1'? "10px":"0px", bottom: this.img_playing_ctrl==='1'? "10px":"0px", left: this.img_playing_ctrl==='1'? "10px":"0px", right: this.img_playing_ctrl==='1'? "10px":"0px" },
+              repeat: RepeatMode.Stretch,
+              fill: false
+            })
+            .gesture(
+              PanGesture({ direction: PanDirection.Horizontal })
+                .onActionStart(() => {
+                  this.isSwipingActive = true;
+                })
+                .onActionUpdate((event) => {
+                  // 更新滑动偏移量
+                  this.swipeOffset = event.offsetX;
+
+                  // 确定滑动方向
+                  if (event.offsetX > 10 &&this.img_playing_ctrl==='1') {
+                    this.swipeDirection = 'right'; // 向右滑动，上一首
+                  } else if (event.offsetX < -10) {
+                    this.swipeDirection = 'left'; // 向左滑动，下一首
+                  } else {
+                    this.swipeDirection = '';
+                  }
+                })
+                .onActionEnd(() => {
+                  // 根据最终偏移量决定是切换歌曲还是回弹
+                  if (this.swipeOffset > this.SWIPE_THRESHOLD &&this.img_playing_ctrl==='1') {
+                    // 向右滑动超过阈值，切换到上一首
+                    this.handleSongChange('prev');
+                  }                else  if (this.swipeOffset > this.SWIPE_THRESHOLD &&this.img_playing_ctrl==='0') {
+                    // 向右滑动超过阈值，切换到上一首
+                    this.swiperController.showPrevious()
+                  }  else if (this.swipeOffset < -this.SWIPE_THRESHOLD&&this.img_playing_ctrl==='1') {
+                    // 向左滑动超过阈值，切换到下一首
+                    this.handleSongChange('next');
+                  } else {
+                    // 未达到阈值，回弹
+                    animateTo({
+                      duration: 250,
+                      curve: Curve.EaseOut,
+                      delay: 0,
+                      onFinish: () => {
+                        this.isSwipingActive = false;
+                        this.swipeDirection = '';
+                      }
+                    }, () => {
+                      this.swipeOffset = 0;
+                    });
+                  }
+                })
+            )
             .geometryTransition("picture", { follow: false })
             .transition(TransitionEffect.OPACITY)
             .margin({bottom:5,top:20})
             .onClick(()=>{
-              animateTo({ duration: 300 }, () => {
+
                 this.swiperController.showPrevious()
-              })
+
             })
           this.ProgressBar(false)
 
@@ -206,6 +347,9 @@ struct Playing {
         .width('65%')
       }.alignItems(VerticalAlign.Top).justifyContent(FlexAlign.SpaceBetween)
     }.loop(false)
+    .onAppear(()=>{
+      this.img_playing_ctrl=  PreferencesCache.getUserPreference('img_playing_ctrl','0')
+    })
     .effectMode(EdgeEffect.None)
     .curve(Curve.Smooth)
     .onChange((index:number)=>{
@@ -818,12 +962,67 @@ struct Playing {
         .aspectRatio(1)
         .borderRadius(24)
         .margin({ top: 36 })
-        .geometryTransition('song-cover', { follow: false })
+        .geometryTransition('song-cover', { follow: true })
+        .transition(TransitionEffect.OPACITY)
         .onClick(() => {
           if (!this.isWideScreen) {
             this.controller.changeIndex(1)
           }
         }) //点击图片切换到歌词页面
+        .borderRadius(this.img_playing_ctrl==='1'?0:24)
+        .gesture(
+          PanGesture({ direction: PanDirection.Horizontal })
+            .onActionStart(() => {
+              this.isSwipingActive = true;
+            })
+            .onActionUpdate((event) => {
+              // 更新滑动偏移量
+              this.swipeOffset = event.offsetX;
+
+              // 确定滑动方向
+              if (event.offsetX > 10 &&this.img_playing_ctrl==='1') {
+                this.swipeDirection = 'right'; // 向右滑动，上一首
+              } else if (event.offsetX < -10) {
+                this.swipeDirection = 'left'; // 向左滑动，下一首
+              } else {
+                this.swipeDirection = '';
+              }
+            })
+            .onActionEnd(() => {
+              // 根据最终偏移量决定是切换歌曲还是回弹
+              if (this.swipeOffset > this.SWIPE_THRESHOLD &&this.img_playing_ctrl==='1') {
+                // 向右滑动超过阈值，切换到上一首
+                this.handleSongChange('prev');
+              } else if (this.swipeOffset < -this.SWIPE_THRESHOLD&&this.img_playing_ctrl==='1') {
+                // 向左滑动超过阈值，切换到下一首
+                this.handleSongChange('next');
+              } else {
+                // 未达到阈值，回弹
+                animateTo({
+                  duration: 250,
+                  curve: Curve.EaseOut,
+                  delay: 0,
+                  onFinish: () => {
+                    this.isSwipingActive = false;
+                    this.swipeDirection = '';
+                  }
+                }, () => {
+                  this.swipeOffset = 0;
+                });
+              }
+            })
+        )
+        .borderImage({
+          source: {
+            angle: 90,
+            direction: GradientDirection.Left,
+            colors: [[0xAEE1E1, 0.0], [0xD3E0DC, 0.3], [0xFCD1D1, 1.0]]
+          },
+          slice: { top: this.img_playing_ctrl==='1'?10:0, bottom: this.img_playing_ctrl==='1'?10:0, left: this.img_playing_ctrl==='1'?10:0, right: this.img_playing_ctrl==='1'?10:0 },
+          width: { top:this.img_playing_ctrl==='1'? "10px":"0px", bottom: this.img_playing_ctrl==='1'? "10px":"0px", left: this.img_playing_ctrl==='1'? "10px":"0px", right: this.img_playing_ctrl==='1'? "10px":"0px" },
+          repeat: RepeatMode.Stretch,
+          fill: false
+        })
       // 进度条
       this.ProgressBar()
 
@@ -996,21 +1195,25 @@ struct Playing {
       .height(StyleConstants.FULL_HEIGHT)
       .expandSafeArea()
     }
-    .systemTransition(NavigationSystemTransitionType.SLIDE_BOTTOM)
+    .systemTransition(NavigationSystemTransitionType.FADE)
     .hideToolBar(true)
     .hideTitleBar(true)
     .backgroundColor($r('app.color.page_background'))
     .mode(NavDestinationMode.STANDARD)
     .expandSafeArea()
+    .onAppear(()=>{
+      this.img_playing_ctrl=  PreferencesCache.getUserPreference('img_playing_ctrl','0')
+    })
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
     // .onBackPressed(()=> {
     //   animateTo({
-    //     duration: 500,
+    //     duration: 100,
     //     // 构造插值器弹簧曲线对象，生成一条从0到1的动画曲线
     //     curve: curves.interpolatingSpring(0, 1, 324, 38),
+    //     // curve:Curve.Linear
     //   }, () => {
-    //     this.pageStack.pop(false)
+    //     this.pageStack.pop()
     //   })
     //   return true
     // })

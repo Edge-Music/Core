@@ -174,7 +174,8 @@ export struct MiniPlaybackControl {
               .width(42)
               .height(42)
               .borderRadius(8)
-              .geometryTransition('song-cover', { follow: false })
+              .geometryTransition('song-cover', { follow: true })
+              .transition(TransitionEffect.OPACITY)
           }
           .margin({ left: 16 })
 
@@ -352,7 +353,7 @@ export struct MiniPlaybackControl {
         //   // 构造插值器弹簧曲线对象，生成一条从0到1的动画曲线
         //   curve: curves.interpolatingSpring(0, 1, 324, 38),
         // }, () => {
-        //   this.pageStack.pushPath({ name: 'Playing' }, false)
+        //   this.pageStack.pushPath({ name: 'Playing' },{launchMode:LaunchMode.MOVE_TO_TOP_SINGLETON,animated:true} )
         // })
         this.pageStack.pushPath({ name: 'Playing' },{launchMode:LaunchMode.MOVE_TO_TOP_SINGLETON,animated:true} )
       }
