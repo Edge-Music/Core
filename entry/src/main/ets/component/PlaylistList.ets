@@ -1,5 +1,5 @@
 import { LazyData } from "@pie/lazy-data";
-import { Playlist, SourceConfig } from "../type/Adapter";
+import { ID, Playlist, SourceConfig } from "../type/Adapter";
 import { ToastUtil } from '@pura/harmony-utils';
 import { SourceAdapter } from '../adapter';
 import { StyleConstants } from '../constants/StyleConstants';
@@ -18,6 +18,7 @@ export struct PlaylistList {
   @State dataSource: LazyData<Playlist> = new LazyData<Playlist>(this.playlists);
   @Prop adapters: SourceConfig[] = []
   @Link sIndex: number
+  @Link subTitleIndex: number
 
   build() {
     Column() {
@@ -32,14 +33,32 @@ export struct PlaylistList {
         .height(StyleConstants.FULL_HEIGHT)
         .justifyContent(FlexAlign.Center)
       } else {
-        LazyForEach(this.dataSource, (playlist: Playlist, pIndex) => {
-          if(this.judgeSourceByDataSourceId(playlist)){
-            ListItem(){
-              this.PlaylistItem(playlist)
-            }
+        // 版本三：歌单分类项
+        Tabs({ index: this.subTitleIndex }) {
+          TabContent(){
+            this.TabContentList(this.playlists, 0)
           }
-        })
-        // 歌单列表展示
+          TabContent(){
+            this.TabContentList(this.playlists, 1)
+          }
+          TabContent(){
+            this.TabContentList(this.playlists, 2)
+          }
+        }
+        .scrollable(false)
+        .edgeEffect(EdgeEffect.Spring)
+        .barHeight(0)
+
+        // 版本二：不包含歌单分类项（暂不删除，万一以后用的上）
+        // LazyForEach(this.dataSource, (playlist: Playlist, pIndex) => {
+        //   if(this.judgeSourceByDataSourceId(playlist)){
+        //     ListItem(){
+        //       this.PlaylistItem(playlist)
+        //     }
+        //   }
+        // })
+
+        // 版本一：歌单列表展示（暂不删除，万一以后用的上）
         // Tabs({ index: this.sIndex }){
         //   ForEach(this.adapters, (adapter: SourceConfig, SIndex) => {
         //     TabContent(){
@@ -81,8 +100,22 @@ export struct PlaylistList {
     .expandSafeArea()
   }
 
-  judgeSourceByDataSourceId(playlist: Playlist): boolean {
-    const exists = this.showAdapters.some(adapter => adapter.id === playlist.source?.id)
+  judgeSourceByDataSourceId(playlist: Playlist, index: number): boolean {
+    let exists: boolean = false
+    const showAdapterIDs: ID[] = this.showAdapters.map(adapter => adapter.id)
+    if(showAdapterIDs.includes(playlist.source?.id as ID)){
+      switch(index){
+        case 0:
+          exists = true
+          break
+        case 1:
+          exists = playlist.creator?.id === playlist.source?.auth?.user?.id
+          break
+        case 2:
+          exists = playlist.creator?.id !== playlist.source?.auth?.user?.id
+          break
+      }
+    }
     return exists
   }
 
@@ -93,6 +126,33 @@ export struct PlaylistList {
       }
     }
     return false
+  }
+
+  @Builder
+  TabContentList(playLists: Playlist[], index: number){
+    List(){
+      ListItem(){
+        Row().height(12)
+      }
+      ForEach(playLists, (playlist: Playlist) => {
+        if(this.judgeSourceByDataSourceId(playlist, index)){
+          ListItem(){
+            this.PlaylistItem(playlist)
+          }
+        }
+      })
+      ListItem(){
+        Column()
+          .height(StyleConstants.PLAYER_CONTROL_HEIGHT + 32 + px2vp(this.bottomRect))
+      }
+    }
+    .nestedScroll({ scrollForward: NestedScrollMode.SELF_ONLY, scrollBackward: NestedScrollMode.SELF_FIRST})
+    .width('100%')
+    .height('100%')
+    .listDirection(Axis.Vertical)
+    .edgeEffect(EdgeEffect.Spring)
+    .scrollBar(BarState.Off)
+    .backgroundColor($r('app.color.page_background'))
   }
 
   @Builder
@@ -202,4 +262,5 @@ export struct PlaylistList {
       }
     ]
   }
+
 }

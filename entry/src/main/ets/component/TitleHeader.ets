@@ -5,6 +5,7 @@ export struct TitleHeader {
   @Consume('NavPathStack') pageStack: NavPathStack;
   @Prop title: ResourceStr = $r("app.string.homepage")
   @BuilderParam rightContent: () => void;
+  @BuilderParam midContent: () => void;
   @State isFirstPage: boolean = true
   @Prop backActive: boolean = false
 
@@ -57,7 +58,12 @@ export struct TitleHeader {
             .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
             .fontSize($r('app.float.title_font_size'))
             .maxLines(1)
-          // 占位，把“返回”挤出屏幕
+
+          // 自定义左侧
+          if(this.midContent){
+            this.midContent()
+          }
+          // 自定义右侧
           if (this.rightContent) {
             this.rightContent()
           }

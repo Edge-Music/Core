@@ -6,12 +6,12 @@ import { SourceAdapter } from "../adapter";
 import { PlaylistList } from "../component/PlaylistList";
 import { SlideDownControl } from "../util/SlideDownController";
 import { MiniPlaybackControl } from "../component/MiniPlaybackControl";
-import { LogUtil } from "@pura/harmony-utils";
 import FormUtils from "../util/FormUtils"
 import { cover } from "../util/AdapterHelper";
 import { promptAction } from "@kit.ArkUI";
 import { PreferencesCache } from "../util/PreferenceCache";
-import { ToastUtil } from "@pura/harmony-utils";
+
+const subTitles: string[] = ['所有', '自建', '收藏']
 
 @Builder
 export function LibraryBuilder(){
@@ -33,7 +33,18 @@ struct Library {
   @StorageProp("user_data_source") adapters: SourceConfig[] = []
   @StorageLink("show_user_data_source") showAdapters: SourceConfig[] = PreferencesCache.getShowUserDataSource()
   @State sIndex: number = 0
+  @State @Watch('onChangeSubTitleIndex') subTitleIndex: number = 0
   @State isExpanded: boolean = false
+  @State capsuleOffset: number = 0
+  @State capsuleWidth: number = 0
+  @State titleWidths: number[] = []
+  private readonly BUTTON_GAP: number = 15
+  @State scaleX: number = 0.9
+  @State scaleY: number = 1.0
+
+  onChangeSubTitleIndex(){
+    this.updateCapsulePosition(this.subTitleIndex)
+  }
 
   onMenuIconClick(index: number) {
     if (index === 0) {
@@ -66,8 +77,57 @@ struct Library {
       backActive: this.currentIndex === 0,
       rightContent: () => {
         this.ButtonS()
+      },
+      midContent: () => {
+        this.TabsTitles()
       }
     })
+  }
+
+  @Builder
+  TabsTitles(){
+    Stack(){
+      Row(){
+        Row()
+          .width(this.capsuleWidth)
+          .height(10)
+          .backgroundColor($r('app.color.title_emphasis_color'))
+          .borderRadius(5)
+          .margin({ bottom: -20})
+          .scale({ x: this.scaleX, y: this.scaleY })
+          .shadow(ShadowStyle.OUTER_DEFAULT_XS)
+      }
+      .height(35)
+      .layoutWeight(1)
+      .align(Alignment.BottomStart)
+      .padding({ left: this.capsuleOffset })
+      .animation({ duration: 500, curve: Curve.FastOutSlowIn })
+
+      Row({ space: 15 }){
+        ForEach(subTitles, (str: string, index: number) => {
+          Text(str)
+            .fontColor($r('app.color.text_secondary'))
+            .fontWeight(FontWeight.Bold)
+            .fontSize('20fp')
+            .backgroundColor('transparent')
+            .onClick(() => this.updateCapsulePosition(index))
+            .onAreaChange((_, area) => {
+              this.titleWidths[index] = area.width as number
+              if (index === this.subTitleIndex) {
+                this.capsuleWidth = area.width as number
+              }
+            })
+            .margin({ bottom: -5 })
+        })
+      }
+      .height(35)
+      .align(Alignment.BottomStart)
+      .layoutWeight(1)
+    }
+    .height(35)
+    .layoutWeight(1)
+    .padding({ left: 20 })
+    .align(Alignment.BottomStart)
   }
 
   @Builder
@@ -139,6 +199,29 @@ struct Library {
       bottom: 5
     })
     .height(40)
+  }
+
+  private updateCapsulePosition(index: number) {
+    let offset = 0
+    for (let i = 0; i < index; i++) {
+      offset += (this.titleWidths[i] || 0) + this.BUTTON_GAP
+    }
+
+    animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+      this.scaleX = 0.4
+      this.scaleY = 1.3
+    })
+
+    animateTo({ duration: 200, curve: Curve.EaseInOut }, () => {
+      this.capsuleOffset = offset
+    })
+
+    animateTo({ duration: 150, curve: Curve.EaseIn }, () => {
+      this.scaleX = 0.9
+      this.scaleY = 1
+      this.capsuleWidth = this.titleWidths[index]
+      this.subTitleIndex = index
+    })
   }
 
   private getBackgroundColor(sourceConfig: SourceConfig) {
@@ -267,6 +350,7 @@ struct Library {
                 PlaylistList({
                   playlists: [...this.playlists],
                   sIndex: this.sIndex,
+                  subTitleIndex: this.subTitleIndex,
                   adapters: this.adapters,
                   onPlaylistSelected: (item: Playlist) => {
                     PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {

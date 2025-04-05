@@ -996,7 +996,7 @@ struct Playing {
       .height(StyleConstants.FULL_HEIGHT)
       .expandSafeArea()
     }
-    .systemTransition(NavigationSystemTransitionType.SLIDE_BOTTOM)
+    .systemTransition(NavigationSystemTransitionType.FADE)
     .hideToolBar(true)
     .hideTitleBar(true)
     .backgroundColor($r('app.color.page_background'))

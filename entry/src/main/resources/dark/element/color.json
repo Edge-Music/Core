@@ -119,6 +119,10 @@
     {
       "name": "card_background_two",
       "value": "#242424"
+    },
+    {
+      "name": "title_emphasis_color",
+      "value": "#fecc11"
     }
   ]
 }
