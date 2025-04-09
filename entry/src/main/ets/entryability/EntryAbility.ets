@@ -13,6 +13,7 @@ import { backgroundRunningManager } from '../util/BackgroundRunningManager';
 import app from '@system.app';
 import FormUtils from '../util/FormUtils';
 import { CallMethod } from '../widget/model/FormCardConstant';
+import { SongDownloadManager } from '../util/SongDownloadManager';
 
 export default class EntryAbility extends UIAbility {
 
@@ -33,6 +34,7 @@ export default class EntryAbility extends UIAbility {
     }) // 初始化对话框工具类
     LogUtil.init(0x2003, 'Edge Music', true); // 初始化日志工具类
     SongCacheManager.initialize() // 初始化歌曲缓存管理器
+    SongDownloadManager.init(this.context) // 初始化歌曲下载管理器
     CrashUtil.onError(); // 注册错误处理
     ContextHelper.init(this.context) // 初始化上下文工具类
     DownloadManager.init(this.context) // 初始化下载工具类

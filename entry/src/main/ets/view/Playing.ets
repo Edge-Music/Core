@@ -6,7 +6,7 @@ import { BreakPointType } from '../component/BreakpointSystem'
 import { PlaylistManager } from '../util/PlaylistManager'
 import { EventHelper } from '../util/EventHelper'
 import { avPlayerManager } from '../util/AVPlayerManager'
-import { ClickUtil } from '@pura/harmony-utils'
+import { ClickUtil, ToastUtil } from '@pura/harmony-utils'
 import { LyricsView } from '../component/LyricsView'
 import { PlaylistView } from '../component/PlaylistView'
 import { PreferencesCache } from '../util/PreferenceCache'
@@ -14,7 +14,8 @@ import { SourceAdapter } from '../adapter'
 import { TimerSelector } from '../component/TimerSelector'
 import { isHorizontalMode } from '../util/HorizontalCheck'
 import { screen_on } from '../util/On_screen_control'
-import { curves } from '@kit.ArkUI';
+import { SongDownloadManager } from '../util/SongDownloadManager'
+
 @Builder
 export function PlayingBuilder() {
   Playing()
@@ -214,7 +215,7 @@ struct Playing {
                 .format('HH:mm')
                 .blendMode(BlendMode.PLUS, BlendApplyType.OFFSCREEN)
                 .margin(12)
-                // .backgroundBlurStyle(BlurStyle.Thin)
+              // .backgroundBlurStyle(BlurStyle.Thin)
             }.alignContent(Alignment.BottomEnd)
 
           }
@@ -322,7 +323,7 @@ struct Playing {
             )
             .margin({bottom:5,top:20})
             .onClick(()=>{
-                this.swiperController.showPrevious()
+              this.swiperController.showPrevious()
             })
           this.ProgressBar(false)
 
@@ -523,28 +524,28 @@ struct Playing {
     Column() {
       if (judge&&judge_time_area){
         Row() {
-        Text(this.formatTime(this.currentTime))
-          .fontSize(12)
-          .fontColor('rgba(255, 255, 255, 0.6)')
-          .height(16)// 固定高度以保持布局稳定
-          .animation({
-            duration: 500,
-            curve: Curve.Linear,
-            iterations: 1,
-            playMode: PlayMode.Normal
-          })
+          Text(this.formatTime(this.currentTime))
+            .fontSize(12)
+            .fontColor('rgba(255, 255, 255, 0.6)')
+            .height(16)// 固定高度以保持布局稳定
+            .animation({
+              duration: 500,
+              curve: Curve.Linear,
+              iterations: 1,
+              playMode: PlayMode.Normal
+            })
 
-        Blank()
+          Blank()
 
-        Text(this.formatTime(this.song?.duration || 0))
-          .fontSize(12)
-          .fontColor('rgba(255, 255, 255, 0.6)')
-          .height(16) // 固定高度以保持布局稳定
-      }
-          .width(StyleConstants.FULL_WIDTH)
-          .padding({ left: 8, right: 8 })
-          .height(20) // 固定高度以保持布局稳定
+          Text(this.formatTime(this.song?.duration || 0))
+            .fontSize(12)
+            .fontColor('rgba(255, 255, 255, 0.6)')
+            .height(16) // 固定高度以保持布局稳定
         }
+        .width(StyleConstants.FULL_WIDTH)
+        .padding({ left: 8, right: 8 })
+        .height(20) // 固定高度以保持布局稳定
+      }
 
 
       Slider({
@@ -809,6 +810,21 @@ struct Playing {
     .height(80) // Fixed height
   }
 
+  // 下载歌曲
+  async downloadSong() {
+    if (this.song) {
+      ToastUtil.showShort("已添加到下载队列")
+      SongDownloadManager.downloadSong(
+        this.song.id.toString(),
+        this.song,
+        undefined,
+        () => {
+          ToastUtil.showShort("下载完成")
+        },
+      )
+    }
+  }
+
   getWideScreenMenu(): MenuElement[] {
     return [
       {
@@ -820,18 +836,20 @@ struct Playing {
           })
         }
       },
-      // {
-      //   value: '收藏该歌曲',
-      //   action: () => {
-      //     // 收藏逻辑
-      //   }
-      // },
+      {
+        value: '下载歌曲',
+        action: () => {
+          animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
+            this.downloadSong()
+          })
+        }
+      },
       {
         value: '定时关闭',
         action: () => {
           animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
-            this.sheetType = "timer"; // 设置当前类型为定时关闭
-            this.showPlaylist = true; // 显示定时关闭选项
+            this.sheetType = "timer";
+            this.showPlaylist = true;
           })
         }
       },
@@ -840,18 +858,20 @@ struct Playing {
 
   getNarrowScreenMenu(): MenuElement[] {
     return [
-    // {
-    //   value: '收藏该歌曲',
-    //   action: () => {
-    //     // 收藏逻辑
-    //   }
-    // },
+      {
+        value: '下载歌曲',
+        action: () => {
+          animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
+            this.downloadSong()
+          })
+        }
+      },
       {
         value: '定时关闭',
         action: () => {
           animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
-            this.sheetType = "timer"; // 设置当前类型为定时关闭
-            this.showPlaylist = true; // 显示定时关闭选项
+            this.sheetType = "timer";
+            this.showPlaylist = true;
           })
         }
       },
@@ -973,7 +993,7 @@ struct Playing {
         .aspectRatio(1)
         .borderRadius(24)
         .margin({ top: 36 })
-        // .geometryTransition('song-cover', { follow: true })
+          // .geometryTransition('song-cover', { follow: true })
         .transition(TransitionEffect.OPACITY)
         .onClick(() => {
           if (!this.isWideScreen) {

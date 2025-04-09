@@ -1,9 +1,13 @@
 import { fileUri, picker } from '@kit.CoreFileKit';
 import { fileIo as fs } from '@kit.CoreFileKit';
 import { common } from '@kit.AbilityKit';
-import { Song } from '../type/Adapter';
-import { LogUtil, PreferencesUtil } from '@pura/harmony-utils';
+import { ID, Song } from '../type/Adapter';
+import { LogUtil, PreferencesUtil, ToastUtil } from '@pura/harmony-utils';
 import { DownloadManager } from './DownloadUtils';
+import { ContextHelper } from './ContextHelper';
+import { getFileExtension } from './String';
+import { PreferencesCache } from './PreferenceCache';
+import { SourceAdapter } from '../adapter';
 
 // 下载配置接口
 interface DownloadConfig {
@@ -18,6 +22,17 @@ export interface SongDownloadItem {
   downloadTime: number;
   lastPlayTime: number;
   size: number;
+}
+
+export interface  DownloadProgress {
+  song: Song;
+  progress: number;
+}
+
+// 下载队列项
+interface DownloadQueueItem {
+  song: Song;
+  url: string;
 }
 
 // 默认配置
@@ -36,6 +51,26 @@ class SongDownloadManagerClass {
   private initialized: boolean = false;
   private documentViewPicker: picker.DocumentViewPicker | null = null;
   private baseUri: string = '';
+  private downloadQueue: Map<ID, DownloadProgress> = new Map();
+
+  private setQueue(songId: ID, progress: DownloadProgress): void {
+    // 如果队列中已经存在该歌曲，则更新进度
+    if (this.downloadQueue.has(songId)) {
+      const existingItem = this.downloadQueue.get(songId);
+      if (existingItem) {
+        existingItem.progress = progress.progress;
+      }
+    } else {
+      // 否则添加新的歌曲到队列
+      this.downloadQueue.set(songId, progress);
+    }
+    AppStorage.setOrCreate('download_queue', this.downloadQueue);
+  }
+
+  private removeQueue(songId: ID): void {
+    this.downloadQueue.delete(songId);
+    AppStorage.setOrCreate('download_queue', this.downloadQueue);
+  }
 
   private constructor() {
   }
@@ -112,14 +147,15 @@ class SongDownloadManagerClass {
    * @param fileName 文件名（完整文件名，包括扩展名）
    * @param song 歌曲数据
    * @param onProgress 进度回调函数
+   * @param onComplete 完成回调函数
    * @returns Promise<boolean> 是否下载成功
    */
   public async downloadSong(
-    songId: string,
-    url: string,
-    fileName: string,
+    songId: ID,
     song: Song,
-    onProgress?: (progress: number) => void
+    onProgress?: (progress: number) => void,
+    onComplete?: () => void,
+    background = false
   ): Promise<boolean> {
     this.checkInitialized();
 
@@ -132,54 +168,123 @@ class SongDownloadManagerClass {
         }
       }
 
+      LogUtil.info('SongDownloadManager ', 'Base URI: ', this.baseUri);
+
       // 创建音乐目录
       const musicDir = await this.createDirectory('Music');
+      const cacheDir = ContextHelper.getContext()?.cacheDir;
+      if (!cacheDir) {
+        return false;
+      }
+      LogUtil.info('SongDownloadManager ', 'Music Directory: ', musicDir);
       if (!musicDir) {
         return false;
       }
 
-      // 完整文件路径
-      const filePath = musicDir + '/' + fileName;
-
-      // 使用下载工具类下载文件
-      const downloadedPath = await DownloadManager.downloadFile({
-        url: url,
-        fileName: filePath,
-        onProgress: onProgress,
-        onComplete: () => {
-          // 下载完成回调可以留空，我们在Promise中处理
-        },
-        onError: () => {
-          // 错误回调可以留空，我们在catch中处理
-        }
-      });
-
-      if (!downloadedPath) {
+      // 获取歌曲下载URL
+      const br = PreferencesCache.downloadLevel()
+      const downloadSong = await SourceAdapter.getSongDetail(song, br)
+      const url = downloadSong?.meta?.url || '';
+      if (!url) {
+        ToastUtil.showShort("没有找到下载链接")
         return false;
       }
 
-      // 获取文件大小
-      const filePathObj = new fileUri.FileUri(downloadedPath as string).path;
-      const stat = fs.statSync(filePathObj);
+      const ext = getFileExtension(url)
+      const fileName = `${song.name}-${song.artists.map(item => item.name).join("、")}${ext}`
+
+      // 完整文件路径
+      const uri = musicDir + '/' + fileName;
+      const filePath = new fileUri.FileUri(uri).path;
+      const tempFilePath = cacheDir + '/' + fileName;
+
+      LogUtil.info('SongDownloadManager ', 'Downloading song: ', tempFilePath, ' from URL: ', url);
+
+      // 先删除临时文件
+      try {
+        await fs.unlink(tempFilePath);
+      } catch (e) {
+        // 忽略删除文件错误
+      }
+
+      // 使用下载工具类下载文件
+      this.setQueue(songId, {
+        song: song,
+        progress: 0
+      });
+
+      await DownloadManager.downloadFile({
+        url: url,
+        fileName: tempFilePath,
+        background: background,
+        onProgress: (progress) => {
+          // 调用进度回调
+          if (onProgress) {
+            onProgress(progress);
+          }
+          // 触发进度回调
+          this.setQueue(songId, {
+            song: song,
+            progress: progress
+          });
+        },
+        onComplete: async () => {
+          try {
+            // 移动文件到目标目录
+            await fs.moveFile(tempFilePath, filePath);
+            const lyricContent = song.meta?.lyric?.normal;
+            if (lyricContent) {
+              const lyricFilePath = filePath.replace(/\.[^/.]+$/, '.lrc');
+              // 创建歌词文件
+              LogUtil.info('SongDownloadManager ', 'Creating lyric file: ', lyricFilePath);
+              const lyric = await fs.open(lyricFilePath, fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE);
+              await fs.write(lyric.fd, lyricContent);
+            }
+            LogUtil.info('SongDownloadManager ', 'File moved to: ', filePath);
+            // 调用完成回调
+            if (onComplete) {
+              onComplete();
+            }
+            // 触发完成回调
+            this.removeQueue(songId);
+          } catch (error) {
+            LogUtil.error('SongDownloadManager ', 'Error moving file: ', error.message);
+            if (onComplete) {
+              onComplete();
+            }
+            // 触发完成回调
+            this.removeQueue(songId);
+          }
+        },
+        onError: () => {
+          LogUtil.error('SongDownloadManager ', 'Error downloading song: ', fileName);
+          if (onComplete) {
+            onComplete();
+          }
+          // 触发完成回调
+          this.removeQueue(songId);
+        }
+      });
 
       // 创建下载项
       const downloadItem: SongDownloadItem = {
         song,
-        path: filePathObj,
+        path: filePath,
         downloadTime: Date.now(),
         lastPlayTime: Date.now(),
-        size: stat.size
+        size: song.meta?.size || 0
       };
 
       // 保存到偏好设置
       await PreferencesUtil.put(
-        this.getFullKey(songId),
+        this.getFullKey(songId.toString()),
         JSON.stringify(downloadItem),
         this.config.preferenceName
       );
 
       return true;
     } catch (error) {
+      LogUtil.error('SongDownloadManager ', 'Error downloading song: ', error.message);
       return false;
     }
   }
@@ -196,13 +301,24 @@ class SongDownloadManagerClass {
       }
 
       const dirPath = new fileUri.FileUri(this.baseUri + '/' + dirName).path;
-      try {
+      // try {
+      //   fs.mkdirSync(dirPath);
+      // } catch (err) {
+      //   // 如果目录已存在，则忽略错误 (17是目录已存在的错误码)
+      //   if (err.code !== 17) {
+      //     return '';
+      //   }
+      // }
+
+      // 首先判断目录是否存在
+      // try {
+      //   fs.accessSync(dirPath);
+      // } catch (err) {
+      //   // 如果目录不存在，则创建目录
+      //   fs.mkdirSync(dirPath);
+      // }
+      if (!fs.accessSync(dirPath)) {
         fs.mkdirSync(dirPath);
-      } catch (err) {
-        // 如果目录已存在，则忽略错误 (17是目录已存在的错误码)
-        if (err.code !== 17) {
-          return '';
-        }
       }
 
       return this.baseUri + '/' + dirName;
@@ -441,6 +557,47 @@ class SongDownloadManagerClass {
    */
   public getBaseUri(): string {
     return this.baseUri;
+  }
+
+  /**
+   * 批量下载歌曲
+   * @param songs 歌曲列表
+   * @returns Promise<boolean> 是否成功开始下载
+   */
+  public async batchDownloadSongs(
+    songs: Song[]
+  ): Promise<boolean> {
+    this.checkInitialized();
+
+    // 先创建下载队列
+    for (const song of songs) {
+      const songId = song.id.toString();
+      this.setQueue(songId, {
+        song: song,
+        progress: 0
+      });
+    }
+
+    // 按顺序下载
+    for (const song of songs) {
+      const songId = song.id.toString();
+      try {
+        await this.downloadSong(
+          songId,
+          song,
+          undefined,
+          undefined,
+          true
+        );
+      } catch (error) {
+        LogUtil.error('SongDownloadManager', `Error downloading song ${song.name}:`, error.message);
+        // 下载失败时从队列中移除
+        this.removeQueue(songId);
+        continue;
+      }
+    }
+
+    return true;
   }
 }
 

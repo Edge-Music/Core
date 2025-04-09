@@ -439,7 +439,7 @@ export class SourceAdapter {
       const res = (await request.get(`/playlist/detail?id=${playlist.id}`, {
         headers: {
           // TODO:这种逻辑应该是服务端发送，后续要进行优化
-          'X-Cache': playlist.id !== "daily_songs" ? 'true' : 'false'
+          'X-Cache': playlist.id.toString().startsWith("key_") ? 'false' : 'true'
         }
       })).data as BaseResponse<Playlist>;
 

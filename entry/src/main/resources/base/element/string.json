@@ -143,6 +143,14 @@
     {
       "name": "my_playlist",
       "value": "我的歌单"
+    },
+    {
+      "name": "reason_read_write_download_directory",
+      "value": "浏览和写入下载目录"
+    },
+    {
+      "name": "download",
+      "value": "下载"
     }
   ]
 }

@@ -12,6 +12,8 @@ import { PushPathHelper } from "../util/PushPathHelper";
 import { PlaylistManager, PlayMode } from "../util/PlaylistManager";
 import { SlideDownControl } from "../util/SlideDownController";
 import { MiniPlaybackControl } from "../component/MiniPlaybackControl";
+import { DownloadManager } from "../util/DownloadUtils";
+import { SongDownloadManager } from "../util/SongDownloadManager";
 
 @Component
 export struct PlayList {
@@ -78,7 +80,7 @@ export struct PlayList {
 
   @Builder
   PlayListAction() {
-    Stack(){
+    Stack() {
       // Column()
       //   .width(StyleConstants.FULL_WIDTH)
       //   .height(54)
@@ -133,10 +135,15 @@ export struct PlayList {
         .shadow(ShadowStyle.OUTER_DEFAULT_XS)
         .backgroundColor($r('app.color.setting_item_background'))
         .justifyContent(FlexAlign.Center)
-        .onClick(() => {
-          // 显示更多选项的逻辑
-          ToastUtil.showShort('即将支持更多操作')
-        })
+        .bindMenu([{
+          value: '下载全部歌曲',
+          action: () => {
+            if (this.playlist?.songs && this.playlist.songs.length > 0) {
+              const songs = this.playlist.songs.filter(song => song.privilege.playable)
+              SongDownloadManager.batchDownloadSongs(songs)
+            }
+          }
+        }])
       }
       .backgroundColor('transparent')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -155,7 +162,7 @@ export struct PlayList {
   // 歌曲列表逻辑
   @Builder
   SongListSection() {
-    Column(){
+    Column() {
       // Row() {
       //   Column() {
       //     Text('歌曲列表')
@@ -193,12 +200,12 @@ export struct PlayList {
           this.HeaderAnimation()
         }
 
-        ListItem(){
+        ListItem() {
           // 轮播图部分（如果符合条件）
           this.AlbumCoversSection()
         }
 
-        ListItemGroup({ header: this.ListHeader() }){
+        ListItemGroup({ header: this.ListHeader() }) {
           if (this.isSearching) {
             ForEach(this.filteredSongs, (song: Song, index: number) => {
               ListItem() {
@@ -235,14 +242,14 @@ export struct PlayList {
           this.groupHeight = newValue.height as number
         })
 
-        ListItem(){
-          Row(){
+        ListItem() {
+          Row() {
             Blank().height(this.countSubVp())
           }
         }
 
         ListItem() {
-          Row(){
+          Row() {
             // 底部避让空间，高度为播控高度(64) + 播控底部padding高度(16)
             Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + 16)
           }
@@ -309,7 +316,7 @@ export struct PlayList {
     // this.scrollController.scrollToIndex(index, true);
     // 使用ListItemGroup之后会导致scrollToIndex方法失效，无法穿透滚动，使用scrollTo滚动指定距离
     // 滚动位置为每个歌曲卡片高度(68) + 上下padding距离(2*4)，并向上便宜3个卡片的距离，使后面的滚动可以屏幕居中
-    this.scrollController.scrollTo({ xOffset: 0, yOffset: (68+8)*(index-3), animation: true })
+    this.scrollController.scrollTo({ xOffset: 0, yOffset: (68 + 8) * (index - 3), animation: true })
     // 设置高亮效果
     this.billingIndex = index;
 
@@ -404,7 +411,8 @@ export struct PlayList {
                   .fontColor($r('app.color.text_primary'))
                   .margin({ top: 8, bottom: 4 })
 
-                Text(this.playlist.description.length > 50 ? `${this.playlist.description.slice(0, 50)}...` : this.playlist.description)
+                Text(this.playlist.description.length > 50 ? `${this.playlist.description.slice(0, 50)}...` :
+                this.playlist.description)
                   .fontSize(14)
                   .fontColor($r('app.color.text_secondary'))
                   .width('90%')
@@ -495,7 +503,7 @@ export struct PlayList {
           // 标题区域
           this.Title()
 
-          Column(){
+          Column() {
             if (this.playlist && this.playlist.songs && this.playlist.songs.length > 0) {
               // 根据屏幕宽度选择布局
               if (this.isWideScreen) {
@@ -507,12 +515,13 @@ export struct PlayList {
               }
             } else {
               // 显示空状态
-              List({ scroller: this.scrollController }){
+              List({ scroller: this.scrollController }) {
                 ListItem() {
                   // 下拉提示动画
                   this.HeaderAnimation()
                 }
-                ListItem(){
+
+                ListItem() {
                   Column() {
                     Text('暂无歌曲')
                       .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
@@ -523,8 +532,9 @@ export struct PlayList {
                   .height(StyleConstants.FULL_HEIGHT)
                   .justifyContent(FlexAlign.Center)
                 }
-                ListItem(){
-                  Column(){
+
+                ListItem() {
+                  Column() {
                     // 底部避让空间，高度为播控高度(64) + 播控底部padding高度(16)
                     Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + 16)
                   }
@@ -534,7 +544,8 @@ export struct PlayList {
                 if (scrollState === ScrollState.Scroll) {
                   const positionY = this.scrollController.currentOffset().yOffset
                   if (positionY < 0) {
-                    const index = SlideDownControl.calculateCurrentIndex(this.scrollController.currentOffset().yOffset, 0)
+                    const index =
+                      SlideDownControl.calculateCurrentIndex(this.scrollController.currentOffset().yOffset, 0)
                     this.currentIndex = index
                   } else {
                     this.currentIndex = -1
@@ -584,7 +595,7 @@ export struct PlayList {
   }
 
   @Builder
-  ListHeader(){
+  ListHeader() {
     if (this.isWideScreen) {
       // 宽屏布局：一行显示所有元素
       Row() {
@@ -644,11 +655,22 @@ export struct PlayList {
         .backgroundColor($r('app.color.setting_item_background'))
         .justifyContent(FlexAlign.Center)
         .margin({ left: 8 })
-        .onClick(() => {
-          ToastUtil.showShort('即将支持更多操作')
-        })
+        .bindMenu([{
+          value: '下载全部歌曲',
+          action: () => {
+            if (this.playlist?.songs && this.playlist.songs.length > 0) {
+              const songs = this.playlist.songs.filter(song => song.privilege.playable)
+              SongDownloadManager.batchDownloadSongs(songs)
+            }
+          }
+        }])
       }
-      .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+      .padding({
+        left: 8,
+        right: 8,
+        top: 4,
+        bottom: 4
+      })
       .backgroundColor($r('app.color.card_background'))
       .borderRadius(8)
     } else {
@@ -712,23 +734,33 @@ export struct PlayList {
         .backgroundColor($r('app.color.setting_item_background'))
         .justifyContent(FlexAlign.Center)
         .margin({ left: 8 })
-        .onClick(() => {
-          ToastUtil.showShort('即将支持更多操作')
-        })
+        .bindMenu([{
+          value: '下载全部歌曲',
+          action: () => {
+            if (this.playlist?.songs && this.playlist.songs.length > 0) {
+              const songs = this.playlist.songs.filter(song => song.privilege.playable)
+              SongDownloadManager.batchDownloadSongs(songs)
+            }
+          }
+        }])
       }
-      .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+      .padding({
+        left: 8,
+        right: 8,
+        top: 4,
+        bottom: 4
+      })
       .backgroundColor($r('app.color.card_background'))
       .borderRadius(8)
     }
   }
 
   @Builder
-  HeaderAnimation(){
+  HeaderAnimation() {
     Row() {
       Text(SlideDownControl.getReturnActionText(this.currentIndex))
         .fontColor($r('app.color.text_secondary'))
-        .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
-          // .margin({ left: 8 })
+        .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)// .margin({ left: 8 })
         .opacity(this.currentIndex >= 0 ? 1 : 0)
         .translate({ y: this.currentIndex >= 0 ? 0 : -20 })
         .animation({
@@ -751,7 +783,7 @@ export struct PlayList {
   }
 
   countSubVp(): number {
-    let sub: number = px2vp(this.winHeight) - 50 - this.groupHeight - (this.bottomRect+this.topRect)
+    let sub: number = px2vp(this.winHeight) - 50 - this.groupHeight - (this.bottomRect + this.topRect)
     // if(this.songDataSource.totalCount() <= 15){
     //   // 填补高度=屏幕高度 - title高度50 - (播放组件高度40+上下padding高度2*4) - 状态栏高度 - 导航栏高度
     //   sub = px2vp(this.winHeight) - (50+40+12*2+(68+2*4)*this.songDataSource.totalCount()) - px2vp(this.topRect) - px2vp(this.bottomRect)
@@ -760,8 +792,10 @@ export struct PlayList {
   }
 
   private filterSongs() {
-    if (!this.playlist?.songs) return
-    
+    if (!this.playlist?.songs) {
+      return
+    }
+
     if (!this.searchKeywords.trim()) {
       this.filteredSongs = this.playlist.songs
       this.isSearching = false
@@ -769,10 +803,10 @@ export struct PlayList {
     }
 
     const keywords = this.searchKeywords.toLowerCase().trim()
-    this.filteredSongs = this.playlist.songs.filter(song => 
-      song.name.toLowerCase().includes(keywords) ||
-      song.artists.some(artist => artist.name.toLowerCase().includes(keywords)) ||
-      song.album.name.toLowerCase().includes(keywords)
+    this.filteredSongs = this.playlist.songs.filter(song =>
+    song.name.toLowerCase().includes(keywords) ||
+    song.artists.some(artist => artist.name.toLowerCase().includes(keywords)) ||
+    song.album.name.toLowerCase().includes(keywords)
     )
     this.isSearching = true
   }

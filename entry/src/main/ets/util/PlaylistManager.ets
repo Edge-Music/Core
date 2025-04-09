@@ -283,8 +283,13 @@ export class PlaylistManager {
    */
   public static loadPlaylist(playlist: Array<Song>, song?: Song) {
     const instance = PlaylistManager.getInstance()
-    instance._playlist = playlist
     instance._rawPlaylist = playlist
+    // 如果当前播放模式是随机播放，那么需要打乱播放列表
+    if (instance._playMode === PlayMode.RANDOM) {
+      instance._playlist = PlaylistManager.shuffle(playlist)
+    } else {
+      instance._playlist = playlist
+    }
     AppStorage.setOrCreate("current_playing_playlist", playlist)
     PreferencesCache.playlist(playlist)
     if (song) {

@@ -178,34 +178,11 @@ export struct PlaylistList {
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
 
-        // 创建人信息
-        if (playlist.creator) {
-          Row({ space: 4 }) {
-            Image(cover(playlist?.creator?.avatar || '', 40))
-              .width(12)
-              .height(12)
-              .borderRadius(8)
-              .backgroundColor($r('app.color.tag_background'))
-
-            Text(playlist?.creator?.name || '未知用户')
-              .fontSize(12)
-              .fontColor($r('app.color.text_secondary'))
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-            if (playlist?.size) {
-
-              Text('·')
-                .fontSize(12)
-                .fontColor($r('app.color.text_secondary'))
-                .maxLines(1)
-                .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-              Text(`${playlist.size}首`)
-                .fontSize(12)
-                .fontColor($r('app.color.text_secondary'))
-            }
-          }
+        // 歌曲信息
+        if (playlist?.size) {
+          Text(`${playlist.size}首`)
+            .fontSize(12)
+            .fontColor($r('app.color.text_secondary'))
         }
       }
       .layoutWeight(1)
