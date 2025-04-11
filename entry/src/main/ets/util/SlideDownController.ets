@@ -2,6 +2,31 @@ import { VibrationControl } from './DeviceController'
 
 const _promptString: string[] = ["", "释放→设置", "释放→搜索", "下拉→刷新", "释放→刷新", "释放→上一页"]
 const promptString: string[] = ["", "设置←释放", "搜索←释放", "刷新←下拉", "刷新←释放", "上一页←释放"]
+type SlideTypeByTagConfigMap = Record<string, TagConfig>
+
+class TagConfig {
+  tag: string
+  computeFunction: (offset: number) => number
+  getActionText: (index: number) => string
+
+  constructor(tag: string, computeFunction: (offsetY: number) => number, getFunction: (index: number) => string) {
+    this.tag = tag
+    this.computeFunction = computeFunction
+    this.getActionText = getFunction
+  }
+}
+
+class SlideTypeByTagConfig {
+  static readonly LIBRARY = new TagConfig('Library', (offsetY: number) => SlideDownControl.calculateCurrentIndex(offsetY, 2), (index: number) => SlideDownControl.getLibraryActionText(index))
+  static readonly INDEX = new TagConfig('Index', (offsetY: number) => SlideDownControl.calculateCurrentIndex(offsetY, 2), (index: number) => SlideDownControl.getIndexActionText(index))
+  static readonly RETURN = new TagConfig('Return', (offsetY: number) => SlideDownControl.calculateCurrentIndex(offsetY, 0), (index: number) => SlideDownControl.getReturnActionText(index))
+}
+
+export const slideTypeByTagConfigMap: SlideTypeByTagConfigMap = {
+  'Library': SlideTypeByTagConfig.LIBRARY,
+  'Index': SlideTypeByTagConfig.INDEX,
+  'Return': SlideTypeByTagConfig.RETURN
+}
 
 export class SlideDownControl {
 
@@ -11,7 +36,7 @@ export class SlideDownControl {
    * @param maxIndex
    * @returns
    */
-  public static calculateCurrentIndex(offset: number, maxIndex: number = 3): number {
+  public static calculateCurrentIndex(offset: number, maxIndex: number): number {
     offset = Math.abs(offset)
     if (offset < 40) {
       return -1
@@ -25,7 +50,7 @@ export class SlideDownControl {
    * @param index
    * @returns
    */
-  public static getIndexActionText(index: number) {
+  public static getIndexActionText(index: number): string {
     switch (index) {
       case 0:
         VibrationControl.handlePresetVibration()
@@ -57,7 +82,7 @@ export class SlideDownControl {
         VibrationControl.handlePresetVibration()
         return promptString[4];
       default:
-        return '';
+        return promptString[0];
     }
   }
 
@@ -72,7 +97,7 @@ export class SlideDownControl {
         VibrationControl.handlePresetVibration()
         return promptString[5];
       default:
-        return '';
+        return promptString[0];
     }
   }
 }

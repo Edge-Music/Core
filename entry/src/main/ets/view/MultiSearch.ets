@@ -1,6 +1,7 @@
 import { ToastUtil } from "@pura/harmony-utils";
 import { SourceAdapter } from "../adapter";
 import { Cover } from "../component/Cover";
+import { HeaderAnimation } from "../component/HeaderAnimation";
 import { MiniPlaybackControl } from "../component/MiniPlaybackControl";
 import { Segment } from "../component/Segment";
 import { TitleHeader } from "../component/TitleHeader";
@@ -9,7 +10,9 @@ import { Album, Artist, Playlist, SearchResult, Song } from "../type/Adapter";
 import { cover } from "../util/AdapterHelper";
 import { PlaylistManager } from "../util/PlaylistManager";
 import { PushPathHelper } from "../util/PushPathHelper";
-import { SlideDownControl } from "../util/SlideDownController";
+import { ScrollIndexHandler } from "../util/ScrollIndexHandler";
+
+const TAG = 'MultiSearch'
 
 @Component
 export struct MultiSearch {
@@ -18,11 +21,14 @@ export struct MultiSearch {
   @State keywords: string = '';
   @State result: SearchResult | null = null;
   @State loading: boolean = false;
-  @State currentIndex: number = -1;
   @StorageProp('bottomRect') bottomRect: number = 0
   @StorageProp('topRect') topRect: number = 0
   @StorageProp('winHeight') winHeight: number = 0
   private scrollController: Scroller = new Scroller();
+  @State scrollIndexHandler: ScrollIndexHandler = new ScrollIndexHandler({
+    onIndexChange: (index): void => this.onMenuIconClick(index),
+    componentTag: TAG
+  }).linkController(this.scrollController)
 
   private generatePlaylistMenu(playlist: Playlist) {
     return [
@@ -79,10 +85,10 @@ export struct MultiSearch {
           List({ scroller: this.scrollController}){
 
             ListItem(){
-              this.HeaderAnimation()
+              HeaderAnimation({ scrollIndexHandler: this.scrollIndexHandler })
             }
 
-            ListItemGroup({ header: this.SearchComponent()}){
+            ListItemGroup({ header: this.SearchComponent() }){
               if(this.result && this.result.songs && this.result.playlists && this.result.artists && this.result.albums){
                 if(this.result.songs.length > 0 && this.result.playlists.length > 0 && this.result.artists.length > 0 && this.result.albums.length > 0){
                   ListItem(){
@@ -192,7 +198,6 @@ export struct MultiSearch {
             .onAreaChange((oldValue: Area, newValue: Area) => {
               this.groupHeight = newValue.height as number
             })
-            .expandSafeArea()
 
             ListItem(){
               Row(){
@@ -214,21 +219,8 @@ export struct MultiSearch {
           .height(StyleConstants.FULL_HEIGHT)
           .width(StyleConstants.FULL_WIDTH)
           .sticky(StickyStyle.Header | StickyStyle.Footer)
-          .onWillScroll((scrollOffset: number, scrollState: ScrollState, scrollSource: ScrollSource) => {
-            if (scrollState === ScrollState.Scroll) {
-              const positionY = this.scrollController.currentOffset().yOffset;
-              if (positionY < 0) {
-                const index = SlideDownControl.calculateCurrentIndex(this.scrollController.currentOffset().yOffset, 0);
-                this.currentIndex = index;
-              } else {
-                this.currentIndex = -1;
-              }
-            }
-          })
-          .onScrollStop(() => {
-            this.onMenuIconClick(this.currentIndex);
-            this.currentIndex = -1;
-          })
+          .onWillScroll(this.scrollIndexHandler.scrollHandlers.onWillScroll)
+          .onScrollStop(this.scrollIndexHandler.scrollHandlers.onScrollStop)
           .scrollBar(BarState.Off)
           .edgeEffect(EdgeEffect.Spring)
         }
@@ -267,33 +259,6 @@ export struct MultiSearch {
   }
 
   @Builder
-  HeaderAnimation(){
-    Row() {
-      Text(SlideDownControl.getReturnActionText(this.currentIndex))
-        .fontColor($r('app.color.text_secondary'))
-        .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
-        .opacity(this.currentIndex >= 0 ? 1 : 0)
-        .translate({ y: this.currentIndex >= 0 ? 0 : -20 })
-        .animation({
-          duration: 250,
-          curve: Curve.FastOutSlowIn
-        })
-    }
-    .height(this.currentIndex >= 0 ? 40 : 0)
-    .animation({
-      duration: 250,
-      curve: Curve.FastOutSlowIn
-    })
-    .alignItems(VerticalAlign.Center)
-    .justifyContent(FlexAlign.Center)
-    .width(StyleConstants.FULL_WIDTH)
-    .padding({
-      left: 16,
-      right: 16
-    })
-  }
-
-  @Builder
   SearchComponent() {
     Column(){
       Search({ value: this.keywords, placeholder: '搜索你想要的...' })
@@ -313,7 +278,7 @@ export struct MultiSearch {
   Title() {
     TitleHeader({
       title: $r('app.string.search'),
-      backActive: this.currentIndex === 0
+      backActive: this.scrollIndexHandler.currentIndex === 0
     })
   }
 

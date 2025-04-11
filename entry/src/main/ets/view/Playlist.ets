@@ -1,4 +1,3 @@
-import { ToastUtil } from "@pura/harmony-utils";
 import { AlbumCoversCarousel } from "../component/AlbumCoversCarousel";
 import { SongInfo } from "../component/SongInfo";
 import { TitleHeader } from "../component/TitleHeader";
@@ -10,16 +9,17 @@ import { BreakpointConstants } from "../constants/BreakpointConstants";
 import { cover } from "../util/AdapterHelper";
 import { PushPathHelper } from "../util/PushPathHelper";
 import { PlaylistManager, PlayMode } from "../util/PlaylistManager";
-import { SlideDownControl } from "../util/SlideDownController";
 import { MiniPlaybackControl } from "../component/MiniPlaybackControl";
-import { DownloadManager } from "../util/DownloadUtils";
 import { SongDownloadManager } from "../util/SongDownloadManager";
+import { ScrollIndexHandler } from "../util/ScrollIndexHandler";
+import { HeaderAnimation } from "../component/HeaderAnimation";
+
+const TAG = 'PlayList'
 
 @Component
 export struct PlayList {
   @State groupHeight: number = 0;
   @Consume('NavPathStack') pageStack: NavPathStack;
-  @State currentIndex: number = -1
   @StorageLink("current_playlist_data") playlist: Playlist | null = null
   @Watch('onBreakpointChange') @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
   private songDataSource: SongDataSourcePrefetching = new SongDataSourcePrefetching(null);
@@ -40,12 +40,19 @@ export struct PlayList {
   @State searchKeywords: string = ''
   @State filteredSongs: Song[] = []
   @State isSearching: boolean = false
+  @State scrollIndexHandler: ScrollIndexHandler = new ScrollIndexHandler({
+    onIndexChange: (index) => {
+      console.log("currentIndex:"+index)
+      this.onMenuIconClick(index)
+    },
+    componentTag: TAG
+  }).linkController(this.scrollController)
 
   @Builder
   Title() {
     TitleHeader({
       title: this.playlist?.name,
-      backActive: this.currentIndex === 0,
+      backActive: this.scrollIndexHandler.currentIndex === 0,
     })
   }
 
@@ -197,7 +204,7 @@ export struct PlayList {
       List({ scroller: this.scrollController }) {
         ListItem() {
           // 下拉提示动画
-          this.HeaderAnimation()
+          HeaderAnimation({ scrollIndexHandler: this.scrollIndexHandler })
         }
 
         ListItem() {
@@ -270,21 +277,8 @@ export struct PlayList {
           this.prefetcher.visibleAreaChanged(firstIndex, lastIndex);
         }
       })
-      .onWillScroll((_scrollOffset: number, scrollState: ScrollState, _scrollSource: ScrollSource) => {
-        if (scrollState === ScrollState.Scroll) {
-          const positionY = this.scrollController.currentOffset().yOffset
-          if (positionY < 0) {
-            const index = SlideDownControl.calculateCurrentIndex(this.scrollController.currentOffset().yOffset, 0)
-            this.currentIndex = index
-          } else {
-            this.currentIndex = -1
-          }
-        }
-      })
-      .onScrollStop(() => {
-        this.onMenuIconClick(this.currentIndex)
-        this.currentIndex = -1
-      })
+      .onWillScroll(this.scrollIndexHandler.scrollHandlers.onWillScroll)
+      .onScrollStop(this.scrollIndexHandler.scrollHandlers.onScrollStop)
       .onReachEnd(async () => {
         if (this.isLoading || !this.sourceOk || this.isSearching) {
           return;
@@ -518,7 +512,7 @@ export struct PlayList {
               List({ scroller: this.scrollController }) {
                 ListItem() {
                   // 下拉提示动画
-                  this.HeaderAnimation()
+                  HeaderAnimation({ scrollIndexHandler: this.scrollIndexHandler })
                 }
 
                 ListItem() {
@@ -540,22 +534,8 @@ export struct PlayList {
                   }
                 }
               }
-              .onWillScroll((_scrollOffset: number, scrollState: ScrollState, _scrollSource: ScrollSource) => {
-                if (scrollState === ScrollState.Scroll) {
-                  const positionY = this.scrollController.currentOffset().yOffset
-                  if (positionY < 0) {
-                    const index =
-                      SlideDownControl.calculateCurrentIndex(this.scrollController.currentOffset().yOffset, 0)
-                    this.currentIndex = index
-                  } else {
-                    this.currentIndex = -1
-                  }
-                }
-              })
-              .onScrollStop(() => {
-                this.onMenuIconClick(this.currentIndex)
-                this.currentIndex = -1
-              })
+              .onWillScroll(this.scrollIndexHandler.scrollHandlers.onWillScroll)
+              .onScrollStop(this.scrollIndexHandler.scrollHandlers.onScrollStop)
               .width(StyleConstants.FULL_WIDTH)
               .height(StyleConstants.FULL_HEIGHT)
             }
@@ -753,33 +733,6 @@ export struct PlayList {
       .backgroundColor($r('app.color.card_background'))
       .borderRadius(8)
     }
-  }
-
-  @Builder
-  HeaderAnimation() {
-    Row() {
-      Text(SlideDownControl.getReturnActionText(this.currentIndex))
-        .fontColor($r('app.color.text_secondary'))
-        .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)// .margin({ left: 8 })
-        .opacity(this.currentIndex >= 0 ? 1 : 0)
-        .translate({ y: this.currentIndex >= 0 ? 0 : -20 })
-        .animation({
-          duration: 250,
-          curve: Curve.FastOutSlowIn
-        })
-    }
-    .height(this.currentIndex >= 0 ? 40 : 0)
-    .animation({
-      duration: 250,
-      curve: Curve.FastOutSlowIn
-    })
-    .alignItems(VerticalAlign.Center)
-    .justifyContent(FlexAlign.Center)
-    .width(StyleConstants.FULL_WIDTH)
-    .padding({
-      left: 16,
-      right: 16
-    })
   }
 
   countSubVp(): number {

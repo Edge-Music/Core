@@ -4,14 +4,16 @@ import { Playlist, SourceConfig } from "../type/Adapter";
 import { PushPathHelper } from "../util/PushPathHelper";
 import { SourceAdapter } from "../adapter";
 import { PlaylistList } from "../component/PlaylistList";
-import { SlideDownControl } from "../util/SlideDownController";
 import { MiniPlaybackControl } from "../component/MiniPlaybackControl";
 import FormUtils from "../util/FormUtils"
 import { cover } from "../util/AdapterHelper";
 import { promptAction } from "@kit.ArkUI";
 import { PreferencesCache } from "../util/PreferenceCache";
+import { HeaderAnimation } from "../component/HeaderAnimation";
+import { ScrollIndexHandler } from "../util/ScrollIndexHandler";
 
 const subTitles: string[] = ['所有', '自建', '收藏']
+const TAG = 'Library'
 
 @Builder
 export function LibraryBuilder(){
@@ -22,7 +24,6 @@ export function LibraryBuilder(){
 struct Library {
   @State itemHeight: number = 0
   @Consume('NavPathStack') pageStack: NavPathStack;
-  @State currentIndex: number = -1;
   @StorageLink('user_playlist') playlists: Playlist[] = [];
   @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm';
   @State isLoading: boolean = false;
@@ -41,6 +42,13 @@ struct Library {
   private readonly BUTTON_GAP: number = 15
   @State scaleX: number = 0.9
   @State scaleY: number = 1.0
+  @State scrollIndexHandler: ScrollIndexHandler = new ScrollIndexHandler({
+    onIndexChange: (index) => {
+      console.log("currentIndex:"+index)
+      this.onMenuIconClick(index)
+    },
+    componentTag: TAG
+  }).linkController(this.scrollController)
 
   onChangeSubTitleIndex(){
     this.updateCapsulePosition(this.subTitleIndex)
@@ -74,7 +82,7 @@ struct Library {
   Title() {
     TitleHeader({
       title: $r('app.string.library'),
-      backActive: this.currentIndex === 0,
+      backActive: this.scrollIndexHandler.currentIndex === 0,
       rightContent: () => {
         this.ButtonS()
       },
@@ -288,46 +296,6 @@ struct Library {
     .alignItems(HorizontalAlign.Center)
   }
 
-  @Builder
-  HeaderAnimation() {
-    Row() {
-      if (this.currentIndex >= 1) {
-        LoadingProgress()
-          .width(24)
-          .height(24)
-          .opacity(this.currentIndex >= 1 ? 1 : 0)
-          .scale({ x: this.currentIndex >= 1 ? 1 : 0.5, y: this.currentIndex >= 1 ? 1 : 0.5 })
-          .animation({
-            duration: 250,
-            curve: Curve.FastOutSlowIn
-          })
-          .margin({ right: 8 })
-      }
-
-      Text(SlideDownControl.getLibraryActionText(this.currentIndex))
-        .fontColor($r('app.color.text_secondary'))
-        .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
-        .opacity(this.currentIndex >= 0 ? 1 : 0)
-        .translate({ y: this.currentIndex >= 0 ? 0 : -20 })
-        .animation({
-          duration: 250,
-          curve: Curve.FastOutSlowIn
-        })
-    }
-    .height(this.currentIndex >= 0 ? 40 : 0)
-    .animation({
-      duration: 250,
-      curve: Curve.FastOutSlowIn
-    })
-    .alignItems(VerticalAlign.Center)
-    .justifyContent(FlexAlign.Center)
-    .width(StyleConstants.FULL_WIDTH)
-    .padding({
-      left: 16,
-      right: 16
-    })
-  }
-
   build() {
     NavDestination() {
       Stack({ alignContent: Alignment.Bottom }) {
@@ -337,7 +305,9 @@ struct Library {
           // 主内容
           List({ scroller: this.scrollController }) {
             // 下拉提示动画
-            this.HeaderAnimation()
+            ListItem(){
+              HeaderAnimation({ scrollIndexHandler: this.scrollIndexHandler, isShowLoadingProgress: true })
+            }
             // 如果没有歌单，显示空状态
             if (this.playlists.length === 0) {
               ListItem() {
@@ -390,23 +360,8 @@ struct Library {
           .scrollBar(BarState.Off)
           .expandSafeArea()
           .backToTop(true)
-          // 主页底部避让高度：播控组件高度(60) + 播控组件下方margin值(16)
-          // .padding({ bottom: (StyleConstants.PLAYER_CONTROL_HEIGHT + 16) })
-          .onWillScroll((scrollOffset: number, scrollState: ScrollState, scrollSource: ScrollSource) => {
-            if (scrollState === ScrollState.Scroll) {
-              const positionY = this.scrollController.currentOffset().yOffset;
-              if (positionY < 0) {
-                const index = SlideDownControl.calculateCurrentIndex(this.scrollController.currentOffset().yOffset, 2);
-                this.currentIndex = index;
-              } else {
-                this.currentIndex = -1;
-              }
-            }
-          })
-          .onScrollStop(() => {
-            this.onMenuIconClick(this.currentIndex);
-            this.currentIndex = -1;
-          })
+          .onWillScroll(this.scrollIndexHandler.scrollHandlers.onWillScroll)
+          .onScrollStop(this.scrollIndexHandler.scrollHandlers.onScrollStop)
           .onReachEnd(() => {
             // 到达底部可以加载更多内容
             if (!this.isLoading) {

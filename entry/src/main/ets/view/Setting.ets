@@ -9,10 +9,14 @@ import { StyleConstants } from "../constants/StyleConstants";
 import { SettingItem } from "../model/SettingItem";
 import { SourceConfig } from "../type/Adapter";
 import { PreferencesCache } from "../util/PreferenceCache";
-import { SlideDownControl } from "../util/SlideDownController";
 import { AboutSetting, PlayerSetting, SoftwareSetting } from "../viewmodel/SettingGroupData";
 import { About } from "./About";
 import {Personalized_settings}from '../view/Personalized_settings'
+import { HeaderAnimation } from "../component/HeaderAnimation";
+import { ScrollIndexHandler } from "../util/ScrollIndexHandler";
+
+const TAG = 'Setting'
+
 @Component
 export struct Setting {
   @State translateY: number = 16;
@@ -54,6 +58,10 @@ export struct Setting {
   @StorageProp('bottomRect') bottomRect: number = 0;
   @StorageProp('topRect') topRect: number = 0;
   @State groupHeight: number = 0
+  @State scrollIndexHandler: ScrollIndexHandler = new ScrollIndexHandler({
+    onIndexChange: (index): void => this.onMenuIconClick(index),
+    componentTag: TAG
+  }).linkController(this.scrollController)
 
   calculateCurrentIndex(offset: number): number {
     offset = Math.abs(offset)
@@ -235,7 +243,7 @@ export struct Setting {
   Title() {
     TitleHeader({
       title: $r('app.string.settings'),
-      backActive: this.currentIndex === 0,
+      backActive: this.scrollIndexHandler.currentIndex === 0,
     })
   }
 
@@ -668,30 +676,7 @@ export struct Setting {
 
         List({ scroller: this.scrollController }) {
           ListItem() {
-            Row() {
-              Text(SlideDownControl.getReturnActionText(this.currentIndex))
-                .fontColor($r('app.color.text_secondary'))
-                .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
-                // .margin({ left: 8 })
-                .opacity(this.currentIndex >= 0 ? 1 : 0)
-                .translate({ y: this.currentIndex >= 0 ? 0 : -20 })
-                .animation({
-                  duration: 250,
-                  curve: Curve.FastOutSlowIn
-                })
-            }
-            .height(this.currentIndex >= 0 ? 40 : 0)
-            .animation({
-              duration: 250,
-              curve: Curve.FastOutSlowIn
-            })
-            .alignItems(VerticalAlign.Center)
-            .justifyContent(FlexAlign.Center)
-            .width(StyleConstants.FULL_WIDTH)
-            .padding({
-              left: 16,
-              right: 16
-            })
+            HeaderAnimation({ scrollIndexHandler: this.scrollIndexHandler })
           }
 
           ListItemGroup({ header: this.SourceButton() }) {
@@ -742,20 +727,8 @@ export struct Setting {
         .width(StyleConstants.FULL_WIDTH)
         .height(StyleConstants.FULL_HEIGHT)
         .sticky(StickyStyle.Header | StickyStyle.Footer)
-        .onWillScroll((_scrollOffset: number, scrollState: ScrollState) => {
-          if (scrollState === ScrollState.Scroll) {
-            const positionY = this.scrollController.currentOffset().yOffset
-            if (positionY < 0) {
-              this.currentIndex = SlideDownControl.calculateCurrentIndex(positionY, 0)
-            } else {
-              this.currentIndex = -1
-            }
-          }
-        })
-        .onScrollStop(() => {
-          this.onMenuIconClick(this.currentIndex)
-          this.currentIndex = -1
-        })
+        .onWillScroll(this.scrollIndexHandler.scrollHandlers.onWillScroll)
+        .onScrollStop(this.scrollIndexHandler.scrollHandlers.onScrollStop)
       }
       .width(StyleConstants.FULL_WIDTH)
       .height(StyleConstants.FULL_HEIGHT)

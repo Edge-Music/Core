@@ -18,15 +18,17 @@ import { PushPathHelper } from '../util/PushPathHelper'
 import { PlaylistManager } from '../util/PlaylistManager'
 import { MiniPlaybackControl } from '../component/MiniPlaybackControl'
 import { MultiSearch } from '../view/MultiSearch'
-import { SlideDownControl } from '../util/SlideDownController'
 import { LazyData } from '@pie/lazy-data'
 import { HorizontalMode } from '../util/HorizontalCheck'
 import { Download } from '../view/Download'
+import { ScrollIndexHandler } from '../util/ScrollIndexHandler'
+import { HeaderAnimation } from '../component/HeaderAnimation'
 
 // 缓存常用值以避免重复计算
 const COLUMNS_TEMPLATE_LG = '1fr 1fr 1fr 1fr'
 const COLUMNS_TEMPLATE_SM = '1fr 1fr'
 const DEFAULT_COVER_SIZE = 256
+const TAG = 'Index'
 
 @Entry
 @Component
@@ -72,7 +74,6 @@ struct Index_page {
   private breakpointSystem = new BreakpointSystem()
   private menuItems = HomePageMenuData
   private scrollController: Scroller = new Scroller()
-  @State currentIndex: number = -1
   @StorageLink("user_data_source") adapters: SourceConfig[] = PreferencesCache.getUserDataSource()
   // 使用StorageLink保持数据同步
   @StorageLink("index_recommend_playlist") recommendPlaylist: Playlist[] = []
@@ -88,6 +89,13 @@ struct Index_page {
   // 预先计算并缓存必要的布局值
   private coverWidth: number = 120
   private segmentPadding: number = 4
+  @State scrollIndexHandler: ScrollIndexHandler = new ScrollIndexHandler({
+    onIndexChange: (index) => {
+      console.log("currentIndex:"+index)
+      this.onMenuIconClick(index)
+    },
+    componentTag: TAG
+  }).linkController(this.scrollController)
 
   async aboutToAppear() {
     // 注册断点系统
@@ -162,7 +170,7 @@ struct Index_page {
       Row() {
         MenuIcon({
           icon: $r('app.media.ic_search'),
-          active: this.currentIndex === 1
+          active: this.scrollIndexHandler.currentIndex === 1
         })
           .onClick(() => {
             this.onMenuIconClick(1)
@@ -170,7 +178,7 @@ struct Index_page {
 
         MenuIcon({
           icon: $r('app.media.ic_gearshape'),
-          active: this.currentIndex === 0
+          active: this.scrollIndexHandler.currentIndex === 0
         })
           .onClick(() => {
             this.onMenuIconClick(0)
@@ -220,46 +228,6 @@ struct Index_page {
     .width(StyleConstants.FULL_WIDTH)
     .rowsGap(8)
     .columnsGap(8)
-  }
-
-  @Builder
-  HeaderAnimation() {
-    Row() {
-      if (this.currentIndex >= 2) {
-        LoadingProgress()
-          .width(24)
-          .height(24)
-          .opacity(this.currentIndex >= 1 ? 1 : 0)
-          .scale({ x: this.currentIndex >= 1 ? 1 : 0.5, y: this.currentIndex >= 1 ? 1 : 0.5 })
-          .margin({ right: 8 })
-          .animation({
-            duration: 250,
-            curve: Curve.FastOutSlowIn
-          })
-      }
-
-      Text(SlideDownControl.getIndexActionText(this.currentIndex))
-        .fontColor($r('app.color.text_secondary'))
-        .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)// .margin({ left: 8 })
-        .opacity(this.currentIndex >= 0 ? 1 : 0)
-        .translate({ y: this.currentIndex >= 0 ? 0 : -20 })
-        .animation({
-          duration: 250,
-          curve: Curve.FastOutSlowIn
-        })
-    }
-    .height(this.currentIndex >= 0 ? 40 : 0)
-    .animation({
-      duration: 250,
-      curve: Curve.FastOutSlowIn
-    })
-    .alignItems(VerticalAlign.Center)
-    .justifyContent(FlexAlign.Center)
-    .width(StyleConstants.FULL_WIDTH)
-    .padding({
-      left: 16,
-      right: 16
-    })
   }
 
   @Builder
@@ -443,7 +411,7 @@ struct Index_page {
       Stack({ alignContent: Alignment.Bottom }) {
         List({ scroller: this.scrollController }) {
           ListItem() {
-            this.HeaderAnimation()
+            HeaderAnimation({ scrollIndexHandler: this.scrollIndexHandler, isShowLoadingProgress: true })
           }
 
           if (this.adapters.length > 0) {
@@ -509,25 +477,8 @@ struct Index_page {
         .backToTop(true)
         .scrollBar(BarState.Off)
         .edgeEffect(EdgeEffect.Spring)
-        .onWillScroll((scrollOffset: number, scrollState: ScrollState, scrollSource: ScrollSource) => {
-          // 优化滚动期间的计算频率
-          if (scrollState === ScrollState.Scroll) {
-            const positionY = this.scrollController.currentOffset().yOffset
-
-            // 只有在下拉时才计算索引，减少计算量
-            if (positionY < 0) {
-              this.currentIndex = SlideDownControl.calculateCurrentIndex(positionY, 2)
-            } else if (this.currentIndex !== -1) {
-              this.currentIndex = -1
-            }
-          }
-        })
-        .onScrollStop(() => {
-          if (this.currentIndex >= 0) {
-            this.onMenuIconClick(this.currentIndex)
-            this.currentIndex = -1
-          }
-        })
+        .onWillScroll(this.scrollIndexHandler.scrollHandlers.onWillScroll)
+        .onScrollStop(this.scrollIndexHandler.scrollHandlers.onScrollStop)
         .expandSafeArea()
 
         MiniPlaybackControl()
