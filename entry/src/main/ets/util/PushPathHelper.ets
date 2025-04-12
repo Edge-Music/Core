@@ -1,5 +1,7 @@
 import { DialogHelper } from "@pura/harmony-dialog";
-import { ClickUtil } from "@pura/harmony-utils";
+import { ClickUtil, LogUtil } from "@pura/harmony-utils";
+
+const TAG = "PushPathHelper";
 
 /**
  * 跳转页面辅助类
@@ -27,6 +29,28 @@ export class PushPathHelper {
         afterFn();
       }
     }, 500, name)
+  }
+
+  /**
+   * 跳转优先
+   * @param name 页面名称
+   * @param beforeFn 在跳转之前执行的函数
+   * @param afterFn 在跳转之后执行的函数
+   */
+  static async pushPathImmediately(pathStack: NavPathStack, name: string,
+    beforeFn?: (() => void) | (() => Promise<void>),
+    afterFn?: () => void) {
+    pathStack.pushPath({ name })
+    if (beforeFn) {
+      try {
+        await Promise.resolve(beforeFn());
+      } catch (error) {
+        LogUtil.error(TAG, "pushPathImmediately failed");
+      }
+    }
+    if (afterFn) {
+      afterFn();
+    }
   }
 
   /**

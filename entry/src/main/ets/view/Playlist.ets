@@ -74,10 +74,6 @@ export struct PlayList {
   }
 
   aboutToDisappear(): void {
-    // 清空
-    this.playlist = null;
-    this.prefetcher = null;
-    this.sourceOk = false;
   }
 
   onMenuIconClick(index: number) {
