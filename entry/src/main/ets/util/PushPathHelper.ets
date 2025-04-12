@@ -35,6 +35,27 @@ export class PushPathHelper {
    * @param beforeFn 在跳转之前执行的函数
    * @param afterFn 在跳转之后执行的函数
    */
+  static async pushPathImmediately(pathStack: NavPathStack, name: string, beforeFn?: (() => void) | (() => Promise<void>),
+    afterFn?: () => void) {
+    pathStack.pushPath({ name })
+    if (beforeFn) {
+      try {
+        await Promise.resolve(beforeFn());
+      } catch (error) {
+        console.log("pushPathImmediately: failed");
+      }
+    }
+    if (afterFn) {
+      afterFn();
+    }
+  }
+
+  /**
+   * 跳转页面
+   * @param name 页面名称
+   * @param beforeFn 在跳转之前执行的函数
+   * @param afterFn 在跳转之后执行的函数
+   */
   static async pushPath(pathStack: NavPathStack, name: string, beforeFn?: (() => void) | (() => Promise<void>),
     afterFn?: () => void) {
     ClickUtil.debounce(async () => {

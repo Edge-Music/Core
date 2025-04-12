@@ -128,7 +128,7 @@ export struct MultiSearch {
                           .width(120)
                           .padding(4)
                           .onClick(() => {
-                            PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
+                            PushPathHelper.pushPathImmediately(this.pageStack, "Playlist", async () => {
                               const playlist = await SourceAdapter.getPlaylistDetail(item)
                               AppStorage.setOrCreate('current_playlist_data', playlist)
                             })
@@ -152,7 +152,7 @@ export struct MultiSearch {
                           .width(120)
                           .padding(4)
                           .onClick(() => {
-                            PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
+                            PushPathHelper.pushPathImmediately(this.pageStack, "Playlist", async () => {
                               const artist = await SourceAdapter.getArtistDetail(item)
                               AppStorage.setOrCreate('current_playlist_data', artist)
                             })
@@ -175,7 +175,7 @@ export struct MultiSearch {
                           .width(120)
                           .padding(4)
                           .onClick(() => {
-                            PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
+                            PushPathHelper.pushPathImmediately(this.pageStack, "Playlist", async () => {
                               const album = await SourceAdapter.getAlbumDetail(item)
                               AppStorage.setOrCreate('current_playlist_data', album)
                             })
