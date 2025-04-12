@@ -364,7 +364,6 @@ struct Index_page {
               .onClick(async () => {
                 PushPathHelper.pushPathImmediately(this.pageStack, "Playlist", async () => {
                   const playlist = await SourceAdapter.getPlaylistDetail(item)
-                  console.log("zmhzmh");
                   AppStorage.setOrCreate('current_playlist_data', playlist)
                 })
               })
