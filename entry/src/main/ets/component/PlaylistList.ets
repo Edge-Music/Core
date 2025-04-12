@@ -1,18 +1,24 @@
 import { LazyData } from "@pie/lazy-data";
-import { Playlist } from "../type/Adapter";
+import { ID, Playlist, SourceConfig } from "../type/Adapter";
 import { ToastUtil } from '@pura/harmony-utils';
 import { SourceAdapter } from '../adapter';
 import { StyleConstants } from '../constants/StyleConstants';
 import { cover } from '../util/AdapterHelper';
 import { PlaylistManager } from '../util/PlaylistManager';
 import { PushPathHelper } from '../util/PushPathHelper';
+import { PreferencesCache } from "../util/PreferenceCache";
 
 @Component
 export struct PlaylistList {
+  @StorageProp('bottomRect') bottomRect: number = 0
   @Prop playlists: Playlist[] = [];
   onPlaylistSelected?: (playlist: Playlist) => void;
   @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm';
+  @StorageLink("show_user_data_source") showAdapters: SourceConfig[] = PreferencesCache.getShowUserDataSource()
   @State dataSource: LazyData<Playlist> = new LazyData<Playlist>(this.playlists);
+  @Prop adapters: SourceConfig[] = []
+  @Link sIndex: number
+  @Link subTitleIndex: number
 
   build() {
     Column() {
@@ -23,27 +29,131 @@ export struct PlaylistList {
             .fontSize(16)
             .fontColor($r('app.color.text_secondary'))
         }
-        .width('100%')
-        .height(200)
+        .width(StyleConstants.FULL_WIDTH)
+        .height(StyleConstants.FULL_HEIGHT)
         .justifyContent(FlexAlign.Center)
       } else {
-        // 歌单列表展示
-        List() {
-          LazyForEach(this.dataSource, (playlist: Playlist) => {
-            ListItem() {
-              this.PlaylistItem(playlist)
-            }
-          })
+        // 版本三：歌单分类项
+        Tabs({ index: this.subTitleIndex }) {
+          TabContent(){
+            this.TabContentList(this.playlists, 0)
+          }
+          TabContent(){
+            this.TabContentList(this.playlists, 1)
+          }
+          TabContent(){
+            this.TabContentList(this.playlists, 2)
+          }
         }
-        .width('100%')
-        .listDirection(Axis.Vertical)
-        .divider({ strokeWidth: 0.5, color: $r('app.color.divider'), startMargin: 16, endMargin: 16 })
-        .backgroundColor($r('app.color.page_background'))
+        .scrollable(false)
+        .edgeEffect(EdgeEffect.Spring)
+        .barHeight(0)
+
+        // 版本二：不包含歌单分类项（暂不删除，万一以后用的上）
+        // LazyForEach(this.dataSource, (playlist: Playlist, pIndex) => {
+        //   if(this.judgeSourceByDataSourceId(playlist)){
+        //     ListItem(){
+        //       this.PlaylistItem(playlist)
+        //     }
+        //   }
+        // })
+
+        // 版本一：歌单列表展示（暂不删除，万一以后用的上）
+        // Tabs({ index: this.sIndex }){
+        //   ForEach(this.adapters, (adapter: SourceConfig, SIndex) => {
+        //     TabContent(){
+        //       List() {
+        //         ListItem(){
+        //           Row().height(12)
+        //         }
+        //         ForEach(this.playlists, (playlist: Playlist, pIndex) => {
+        //           if(this.judgeSource(playlist, adapter)){
+        //             ListItem(){
+        //               this.PlaylistItem(playlist)
+        //             }
+        //           }
+        //         })
+        //         ListItem(){
+        //           Column()
+        //             .height(StyleConstants.PLAYER_CONTROL_HEIGHT + 32 + px2vp(this.bottomRect))
+        //         }
+        //       }
+        //       .nestedScroll({ scrollForward: NestedScrollMode.SELF_ONLY, scrollBackward: NestedScrollMode.SELF_FIRST})
+        //       .width('100%')
+        //       .height('100%')
+        //       .listDirection(Axis.Vertical)
+        //       .edgeEffect(EdgeEffect.Spring)
+        //       .scrollBar(BarState.Off)
+        //       // .divider({ strokeWidth: 0.5, color: $r('app.color.divider'), startMargin: 16, endMargin: 16 })
+        //       .backgroundColor($r('app.color.page_background'))
+        //     }
+        //     .tabBar(adapter.name+" "+adapter.auth?.user?.name)
+        //   })
+        // }
+        // .scrollable(false)
+        // .edgeEffect(EdgeEffect.Spring)
+        // .barHeight(0)
       }
     }
     .width('100%')
     .backgroundColor($r('app.color.page_background'))
     .expandSafeArea()
+  }
+
+  judgeSourceByDataSourceId(playlist: Playlist, index: number): boolean {
+    let exists: boolean = false
+    const showAdapterIDs: ID[] = this.showAdapters.map(adapter => adapter.id)
+    if(showAdapterIDs.includes(playlist.source?.id as ID)){
+      console.log("创建者ID："+playlist.creator?.id + " 数据源ID:" + playlist.source?.auth?.user?.id);
+      switch(index){
+        case 0:
+          exists = true
+          break
+        case 1:
+          exists = playlist.creator?.id == playlist.source?.auth?.user?.id
+          break
+        case 2:
+          exists = playlist.creator?.id != playlist.source?.auth?.user?.id
+          break
+      }
+    }
+    return exists
+  }
+
+  judgeSource(playlist: Playlist, sourceConfig: SourceConfig): boolean {
+    if(playlist.source?.auth?.user && sourceConfig.auth?.user){
+      if(playlist.source.auth?.user?.id === sourceConfig.auth?.user?.id){
+        return true
+      }
+    }
+    return false
+  }
+
+  @Builder
+  TabContentList(playLists: Playlist[], index: number){
+    List(){
+      ListItem(){
+        Row().height(12)
+      }
+      ForEach(playLists, (playlist: Playlist) => {
+        if(this.judgeSourceByDataSourceId(playlist, index)){
+          ListItem(){
+            this.PlaylistItem(playlist)
+          }
+        }
+      })
+      ListItem(){
+        Column()
+          .height(StyleConstants.PLAYER_CONTROL_HEIGHT + 32 + px2vp(this.bottomRect))
+      }
+    }
+    .nestedScroll({ scrollForward: NestedScrollMode.SELF_ONLY, scrollBackward: NestedScrollMode.SELF_FIRST})
+    .width('100%')
+    .height('100%')
+    .listDirection(Axis.Vertical)
+    .edgeEffect(EdgeEffect.Spring)
+    .scrollBar(BarState.Off)
+    .backgroundColor($r('app.color.page_background'))
   }
 
   @Builder
@@ -68,34 +178,11 @@ export struct PlaylistList {
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
 
-        // 创建人信息
-        if (playlist.creator) {
-          Row({ space: 4 }) {
-            Image(cover(playlist?.creator?.avatar || '', 40))
-              .width(12)
-              .height(12)
-              .borderRadius(8)
-              .backgroundColor($r('app.color.tag_background'))
-
-            Text(playlist?.creator?.name || '未知用户')
-              .fontSize(12)
-              .fontColor($r('app.color.text_secondary'))
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-            if (playlist?.size) {
-
-              Text('·')
-                .fontSize(12)
-                .fontColor($r('app.color.text_secondary'))
-                .maxLines(1)
-                .textOverflow({ overflow: TextOverflow.Ellipsis })
-
-              Text(`${playlist.size}首`)
-                .fontSize(12)
-                .fontColor($r('app.color.text_secondary'))
-            }
-          }
+        // 歌曲信息
+        if (playlist?.size) {
+          Text(`${playlist.size}首`)
+            .fontSize(12)
+            .fontColor($r('app.color.text_secondary'))
         }
       }
       .layoutWeight(1)
@@ -111,7 +198,7 @@ export struct PlaylistList {
     }
     .width('100%')
     .justifyContent(FlexAlign.SpaceBetween)
-    .padding({ left: 16, right: 16, top: 10, bottom: 10 })
+    .padding({ left: 16, right: 16, top: 0, bottom: 0 })
     .height(74)
     .backgroundColor($r('app.color.card_background'))
     .onClick(() => {
@@ -153,4 +240,5 @@ export struct PlaylistList {
       }
     ]
   }
+
 }

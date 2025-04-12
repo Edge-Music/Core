@@ -12,6 +12,7 @@ interface DownloadConfig {
   fileName: string; // 文件名
   autoRetry?: boolean; // 是否自动重试
   maxRetries?: number; // 最大重试次数
+  background?: boolean; // 是否后台下载
   onProgress?: (progress: number) => void; // 下载进度回调
   onComplete?: (filePath: string) => void; // 下载完成回调
   onError?: (error: BusinessError) => void; // 错误回调
@@ -60,7 +61,8 @@ export class DownloadUtils {
 
         const downloadTask = await request.downloadFile(this.context!, {
           url: config.url,
-          filePath: filePath
+          filePath: filePath,
+          background: config.background,
         });
 
         return new Promise((resolve, _reject) => {
@@ -81,7 +83,7 @@ export class DownloadUtils {
           });
         });
       } catch (error) {
-        LogUtil.error("DownloadUtils", error.message)
+        LogUtil.error("DownloadUtils ", error.message)
       }
     };
 

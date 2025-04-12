@@ -1,0 +1,93 @@
+{
+  "forms": [
+    {
+      "name": "PlayControlCard1x2",
+      "displayName": "$string:widget_display_name_control",
+      "description": "$string:widget_desc_control",
+      "src": "./ets/widget/pages/PlayControlCard1x2.ets",
+      "uiSyntax": "arkts",
+      "window": {
+        "designWidth": 720,
+        "autoDesignWidth": true
+      },
+      "colorMode": "auto",
+      "isDynamic": true,
+      "isDefault": false,
+      "updateEnabled": false,
+      "scheduledUpdateTime": "10:30",
+      "updateDuration": 1,
+      "defaultDimension": "1*2",
+      "supportDimensions": [
+        "1*2"
+      ]
+    },
+    {
+      "name": "PlayControlCard2x2",
+      "displayName": "$string:widget_display_name_control",
+      "description": "$string:widget_desc_control",
+      "src": "./ets/widget/pages/PlayControlCard2x2.ets",
+      "uiSyntax": "arkts",
+      "window": {
+        "designWidth": 720,
+        "autoDesignWidth": true
+      },
+      "colorMode": "auto",
+      "isDynamic": true,
+      "isDefault": false,
+      "updateEnabled": false,
+      "scheduledUpdateTime": "10:30",
+      "updateDuration": 1,
+      "defaultDimension": "2*2",
+      "supportDimensions": [
+        "2*2"
+      ]
+    },
+    {
+      "name": "PlayControlCard2x4",
+      "displayName": "$string:widget_display_name_control",
+      "description": "$string:widget_desc_control",
+      "src": "./ets/widget/pages/PlayControlCard2x4.ets",
+      "uiSyntax": "arkts",
+      "window": {
+        "designWidth": 720,
+        "autoDesignWidth": true
+      },
+      "colorMode": "auto",
+      "isDynamic": true,
+      "isDefault": true,
+      "updateEnabled": false,
+      "scheduledUpdateTime": "10:30",
+      "updateDuration": 1,
+      "defaultDimension": "2*4",
+      "supportDimensions": [
+        "2*4"
+      ]
+    },
+    {
+      "name": "RecommendedMusic1x2",
+      "displayName": "$string:widget_display_name_recommended",
+      "description": "$string:widget_desc_recommended",
+      "src": "./ets/widget/pages/RecommendedMusic1x2.ets",
+      "uiSyntax": "arkts",
+      "window": {
+        "designWidth": 720,
+        "autoDesignWidth": true
+      },
+      "colorMode": "auto",
+      "isDynamic": false,
+      "isDefault": false,
+      "updateEnabled": true,
+      "scheduledUpdateTime": "10:30",
+      "defaultDimension": "1*2",
+      "supportDimensions": [
+        "1*2"
+      ],
+      "metadata": [
+        {
+          "name": "formType",
+          "value": "test"
+        }
+      ]
+    }
+  ]
+}

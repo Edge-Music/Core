@@ -6,7 +6,7 @@ import { cover } from '../util/AdapterHelper';
 import { PlaylistView } from '../component/PlaylistView';
 import { BreakpointConstants } from '../constants/BreakpointConstants';
 import { curves } from '@kit.ArkUI';
-
+import { PreferencesCache } from "../util/PreferenceCache";
 @Component
 export struct MiniPlaybackControl {
   @StorageLink('current_playing_song') currentSong: Song | null = null;
@@ -21,6 +21,7 @@ export struct MiniPlaybackControl {
   @State isSwipingActive: boolean = false; // 是否正在滑动中
   @State swipeDirection: string = ''; // 滑动方向
   @StorageLink('winWidth') winWidth: number = 0
+  @State bottom_judge:string = PreferencesCache.getUserPreference('miniplaying_bottom_judge','0')
   private updateTimer: number = -1;
   private playerManager = avPlayerManager;
   private readonly SWIPE_THRESHOLD: number = 80; // 触发切换的阈值
@@ -102,6 +103,26 @@ export struct MiniPlaybackControl {
     .position({ x: 0, y: 0 })
   }
 
+  @Builder
+  ProgressBarCircle() {
+    Column() {
+      Progress({
+        value: this.currentTimeMs,
+        total: this.durationMs || 100,
+        type: ProgressType.Ring
+      })
+        .height(37)
+        .width(37)
+        .color($r('app.color.text_click'))
+        .style({
+          strokeWidth: 2,
+          shadow: false,
+          status: ProgressStatus.PROGRESSING
+        })
+        .backgroundColor('transparent')
+    }
+  }
+
   // 播放列表弹层构建器
   @Builder
   PlayListBuilder() {
@@ -143,7 +164,7 @@ export struct MiniPlaybackControl {
 
       Row() {
         // 进度条（覆盖在整个组件上方）
-        this.ProgressBar()
+        // this.ProgressBar()
 
         // 主控制栏布局
         Row() {
@@ -153,7 +174,8 @@ export struct MiniPlaybackControl {
               .width(42)
               .height(42)
               .borderRadius(8)
-              .geometryTransition('song-cover', { follow: false })
+              // .geometryTransition('song-cover', { follow: true })
+              // .transition(TransitionEffect.OPACITY)
           }
           .margin({ left: 16 })
 
@@ -181,15 +203,30 @@ export struct MiniPlaybackControl {
           // 控制按钮组
           Row({ space: 8 }) {
             // 播放/暂停按钮
-            Button({ type: ButtonType.Circle }) {
-              Image(this.isPlaying ? $r('app.media.ic_pause') : $r('app.media.ic_play'))
-                .width(20)
-                .height(20)
-                .fillColor($r('app.color.text_primary'))
+            Stack(){
+              Button({ type: ButtonType.Circle }) {
+                if(this.isPlaying){
+                  Image($r('app.media.ic_pause'))
+                    .width(20)
+                    .height(20)
+                    .fillColor($r('app.color.text_primary'))
+                }else{
+                  Image($r('app.media.ic_play'))
+                    .width(16)
+                    .height(16)
+                    .fillColor($r('app.color.text_primary'))
+                    .margin({ left: 2 })
+                }
+              }
+              .width(36)
+              .height(36)
+              .alignSelf(ItemAlign.Center)
+              .backgroundBlurStyle(BlurStyle.Thin)
+              .backgroundColor('rgba(179, 179, 179, 0.10)')
+              .shadow(ShadowStyle.OUTER_DEFAULT_XS)
+
+              this.ProgressBarCircle()
             }
-            .width(36)
-            .height(36)
-            .backgroundColor('rgba(200, 200, 200, 0.1)')
             .onClick(() => {
               if (this.isPlaying) {
                 this.playerManager.pause();
@@ -197,6 +234,7 @@ export struct MiniPlaybackControl {
                 this.playerManager.play();
               }
             })
+
 
             // 下一首按钮
             Button({ type: ButtonType.Circle }) {
@@ -207,7 +245,9 @@ export struct MiniPlaybackControl {
             }
             .width(36)
             .height(36)
+            .backgroundBlurStyle(BlurStyle.Thin)
             .backgroundColor('rgba(200, 200, 200, 0.1)')
+            .shadow(ShadowStyle.OUTER_DEFAULT_XS)
             .onClick(() => {
               const nextSong = PlaylistManager.playNext();
               if (nextSong) {
@@ -224,7 +264,9 @@ export struct MiniPlaybackControl {
             }
             .width(36)
             .height(36)
+            .backgroundBlurStyle(BlurStyle.Thin)
             .backgroundColor('rgba(200, 200, 200, 0.1)')
+            .shadow(ShadowStyle.OUTER_DEFAULT_XS)
             .onClick(() => {
               this.showPlaylist = true;
             })
@@ -236,7 +278,7 @@ export struct MiniPlaybackControl {
         .justifyContent(FlexAlign.SpaceBetween)
         .alignItems(VerticalAlign.Center)
         .translate({ x: this.swipeOffset })
-        .geometryTransition('song-cover', { follow: false })
+        // .geometryTransition('song-cover', { follow: false })
         .opacity(this.isSwipingActive ? (1 - Math.min(0.3, Math.abs(this.swipeOffset) / 300)) : 1)
         .animation({
           duration: 350,
@@ -249,11 +291,12 @@ export struct MiniPlaybackControl {
       .width(StyleConstants.FULL_WIDTH)
       .height(StyleConstants.FULL_HEIGHT)
     }
+    .onVisibleAreaChange([0.0, 1.0], () =>{this.bottom_judge=PreferencesCache.getUserPreference('miniplaying_bottom_judge','0')})
     .width("90%")
     .height(64)
     .borderRadius(12)
     .clip(true)
-    .margin({ left: 16, right: 16, bottom: 16 })
+    .margin({ left: 16, right: 16, bottom:this.bottom_judge==='0'? 16:0 })
     .shadow({
       radius: 8,
       color: 'rgba(0, 0, 0, 0.15)',
@@ -305,13 +348,14 @@ export struct MiniPlaybackControl {
     .onClick(() => {
       // 只有在没有滑动时才响应点击事件
       if (!this.isSwipingActive && this.currentSong) {
-        animateTo({
-          duration: 100,
-          // 构造插值器弹簧曲线对象，生成一条从0到1的动画曲线
-          curve: curves.interpolatingSpring(0, 1, 324, 38),
-        }, () => {
-          this.pageStack.pushPath({ name: 'Playing' }, false)
-        })
+        // animateTo({
+        //   duration: 100,
+        //   // 构造插值器弹簧曲线对象，生成一条从0到1的动画曲线
+        //   curve: curves.interpolatingSpring(0, 1, 324, 38),
+        // }, () => {
+        //   this.pageStack.pushPath({ name: 'Playing' },{launchMode:LaunchMode.MOVE_TO_TOP_SINGLETON,animated:true} )
+        // })
+        this.pageStack.pushPath({ name: 'Playing' },{launchMode:LaunchMode.MOVE_TO_TOP_SINGLETON,animated:true} )
       }
     })
     .bindSheet($$this.showPlaylist, this.PlayListBuilder(), {

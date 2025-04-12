@@ -161,8 +161,9 @@ export struct PlaylistView {
   EmptyState() {
     Column() {
       Text('暂无歌曲')
+        .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
+        .fontColor($r('app.color.text_hint'))
         .fontSize(16)
-        .fontColor($r('app.color.text_secondary'))
         .margin({ bottom: 8 })
 
       Text('点击添加按钮添加歌曲')

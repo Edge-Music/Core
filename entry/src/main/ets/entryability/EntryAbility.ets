@@ -11,13 +11,21 @@ import { DownloadManager } from '../util/DownloadUtils';
 import { avPlayerManager } from '../util/AVPlayerManager';
 import { backgroundRunningManager } from '../util/BackgroundRunningManager';
 import app from '@system.app';
+import FormUtils from '../util/FormUtils';
+import { CallMethod } from '../widget/model/FormCardConstant';
+import { SongDownloadManager } from '../util/SongDownloadManager';
 
 export default class EntryAbility extends UIAbility {
 
   private _pause_timer: number = -1; // 用于存储暂停计时器的ID
+  private page?:string = undefined;
 
   async onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): Promise<void> {
     hilog.info(0x0000, 'testTag', '%{public}s', 'Ability onCreate');
+    if (want?.parameters?.params) {
+      let params: Record<string, Object> = JSON.parse(want.parameters.params as string);
+      this.page = params.type as string;
+    }
     AppUtil.init(this.context); // 初始化应用工具类
     DialogHelper.setDefaultConfig((config) => {
       config.uiAbilityContext = this.context;
@@ -26,10 +34,12 @@ export default class EntryAbility extends UIAbility {
     }) // 初始化对话框工具类
     LogUtil.init(0x2003, 'Edge Music', true); // 初始化日志工具类
     SongCacheManager.initialize() // 初始化歌曲缓存管理器
+    SongDownloadManager.init(this.context) // 初始化歌曲下载管理器
     CrashUtil.onError(); // 注册错误处理
     ContextHelper.init(this.context) // 初始化上下文工具类
     DownloadManager.init(this.context) // 初始化下载工具类
     await avPlayerManager.init(this.context); // 初始化播放器
+    FormUtils.init(this.context) //初始化服务卡片工具
     // 事件监听注册
     EventHelper.subscribePlaySong()
     EventHelper.subscribeInitData()
@@ -51,10 +61,13 @@ export default class EntryAbility extends UIAbility {
       }
     })
     EventHelper.subscribeSongState(async (data) => {
+      hilog.info(0x0000, 'testTag', 'context '+ this.context);
       if (data === 'PLAY') {
-        await backgroundRunningManager.startBackgroundRunning();
+        await backgroundRunningManager.startBackgroundRunning(this.context);
+        FormUtils.updateCardPlayStatus(true);
       } else if (data === 'PAUSE') {
-        await backgroundRunningManager.stopBackgroundRunning();
+        await backgroundRunningManager.stopBackgroundRunning(this.context);
+        FormUtils.updateCardPlayStatus(false);
       }
     })
     EventHelper.subscribeLoopMode((mode) => {
@@ -65,12 +78,17 @@ export default class EntryAbility extends UIAbility {
         })
       }
     })
+    EventHelper.subscribeFormJumpPage()
     await ImageKnife.getInstance().initFileCache(this.context, 256, 256 * 1024 * 1024)
     app.setImageRawDataCacheSize(100 * 1024 * 1024) // 设置解码前图片数据内存缓存上限为100MB
+    this.callee.on(CallMethod.REQUEST_UPDATE_CARD, FormUtils.requestUpdatePlayCard);
+    this.callee.on(CallMethod.PLAY_BY_ACTION, FormUtils.playByActionCall);
+    this.callee.on(CallMethod.COLLECT_ACTION, FormUtils.collectActionCall);
   }
 
   onDestroy(): void {
     hilog.info(0x0000, 'testTag', '%{public}s', 'Ability onDestroy');
+    FormUtils.updateCardPlayStatus(false);
   }
 
   async onWindowStageCreate(windowStage: window.WindowStage): Promise<void> {
@@ -90,7 +108,6 @@ export default class EntryAbility extends UIAbility {
       AppStorage.setOrCreate('bottomRect', windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM).bottomRect.height);
       // 监听避让高度变化
       windowClass.on('avoidAreaChange', (avoidArea) => {
-        console.log("避让高度和宽度："+avoidArea.area.topRect.height+" "+avoidArea.area.bottomRect.height);
         AppStorage.setOrCreate('topRect', avoidArea.area.topRect.height);
         AppStorage.setOrCreate('bottomRect', avoidArea.area.bottomRect.height);
       });
@@ -102,6 +119,12 @@ export default class EntryAbility extends UIAbility {
       }
       hilog.info(0x0000, 'testTag', 'Succeeded in loading the content.');
     });
+    if (this.page){
+      setTimeout((page:string) => {
+        EventHelper.postFormJumpPage(page)
+        hilog.info(0x0000, 'testTag', 'targetPage: '+page);
+      }, 500,this.page);
+    }
   }
 
   onWindowStageDestroy(): void {
@@ -117,5 +140,14 @@ export default class EntryAbility extends UIAbility {
   onBackground(): void {
     // Ability has back to background
     hilog.info(0x0000, 'testTag', '%{public}s', 'Ability onBackground');
+  }
+
+  onNewWant(want: Want, launchParam: AbilityConstant.LaunchParam): void {
+    if (want?.parameters?.params) {
+      let params: Record<string, Object> = JSON.parse(want.parameters.params as string);
+      let type = params.type as string;
+      EventHelper.postFormJumpPage(type)
+      hilog.info(0x0000, 'testTag', 'targetPage: '+type);
+    }
   }
 }

@@ -9,10 +9,14 @@ import { StyleConstants } from "../constants/StyleConstants";
 import { SettingItem } from "../model/SettingItem";
 import { SourceConfig } from "../type/Adapter";
 import { PreferencesCache } from "../util/PreferenceCache";
-import { SlideDownControl } from "../util/SlideDownController";
 import { AboutSetting, PlayerSetting, SoftwareSetting } from "../viewmodel/SettingGroupData";
 import { About } from "./About";
 import {Personalized_settings}from '../view/Personalized_settings'
+import { HeaderAnimation } from "../component/HeaderAnimation";
+import { ScrollIndexHandler } from "../util/ScrollIndexHandler";
+
+const TAG = 'Setting'
+
 @Component
 export struct Setting {
   @State translateY: number = 16;
@@ -50,6 +54,14 @@ export struct Setting {
   @StorageLink("SoftwareSetting") softwareSetting: SettingItem[] = SoftwareSetting
   @StorageLink("about_page_show") aboutPageShow: boolean = false
   @StorageLink("setting_page_sheet_content") nowSheet: string = "form"
+  @StorageProp('winHeight') winHeight: number = 0;
+  @StorageProp('bottomRect') bottomRect: number = 0;
+  @StorageProp('topRect') topRect: number = 0;
+  @State groupHeight: number = 0
+  @State scrollIndexHandler: ScrollIndexHandler = new ScrollIndexHandler({
+    onIndexChange: (index): void => this.onMenuIconClick(index),
+    componentTag: TAG
+  }).linkController(this.scrollController)
 
   calculateCurrentIndex(offset: number): number {
     offset = Math.abs(offset)
@@ -80,10 +92,13 @@ export struct Setting {
         if (this.isEditing) {
           // 编辑现有数据源
           PreferencesCache.updateUserDataSource(source)
+          PreferencesCache.updateShowUserDataSource(source)
           ToastUtil.showShort('数据源已更新')
         } else {
           // 添加新数据源
           PreferencesCache.addUserDataSource(source)
+          // 添加展示数据源
+          PreferencesCache.addShowUserDataSource(source)
           ToastUtil.showShort('数据源已添加')
         }
 
@@ -228,7 +243,7 @@ export struct Setting {
   Title() {
     TitleHeader({
       title: $r('app.string.settings'),
-      backActive: this.currentIndex === 0,
+      backActive: this.scrollIndexHandler.currentIndex === 0,
     })
   }
 
@@ -566,6 +581,7 @@ export struct Setting {
             onAction: (action) => {
               if (action == DialogAction.TWO) {
                 PreferencesCache.deleteUserDataSource(adapter.id)
+                PreferencesCache.deleteShowUserDataSource(adapter.id)
                 ToastUtil.showShort('数据源已删除')
               }
             }
@@ -646,7 +662,7 @@ export struct Setting {
   sheet() {
     if (this.nowSheet === "about") {
       this.AboutPage()
-    }else if (this.nowSheet === "setting"){
+    }else if (this.nowSheet === "form"){
       this.FormContent()
     }else if (this.nowSheet === "Personalized_settings"){
       this.Personalized_Settings()
@@ -660,30 +676,7 @@ export struct Setting {
 
         List({ scroller: this.scrollController }) {
           ListItem() {
-            Row() {
-              Text(SlideDownControl.getReturnActionText(this.currentIndex))
-                .fontColor($r('app.color.text_secondary'))
-                .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
-                // .margin({ left: 8 })
-                .opacity(this.currentIndex >= 0 ? 1 : 0)
-                .translate({ y: this.currentIndex >= 0 ? 0 : -20 })
-                .animation({
-                  duration: 250,
-                  curve: Curve.FastOutSlowIn
-                })
-            }
-            .height(this.currentIndex >= 0 ? 40 : 0)
-            .animation({
-              duration: 250,
-              curve: Curve.FastOutSlowIn
-            })
-            .alignItems(VerticalAlign.Center)
-            .justifyContent(FlexAlign.Center)
-            .width(StyleConstants.FULL_WIDTH)
-            .padding({
-              left: 16,
-              right: 16
-            })
+            HeaderAnimation({ scrollIndexHandler: this.scrollIndexHandler })
           }
 
           ListItemGroup({ header: this.SourceButton() }) {
@@ -709,12 +702,22 @@ export struct Setting {
             }
             ListItem().height(80).backgroundColor('transparent')
           }
+          .onAreaChange((oldValue: Area, newValue: Area) => {
+            this.groupHeight = newValue.height as number
+          })
           .translate({ y: this.translateY })
           .animation({
             duration: 250,
             curve: Curve.LinearOutSlowIn
           })
           .onAppear(() => { this.translateY = 0 })
+
+          ListItem(){
+            Row(){
+              // 监控ListItemGroup高度变化，随时调整List下方补充高度，winHeight - group高度 - 标题高度 - 避让高度
+              Blank().height(this.getBlankHeight())
+            }
+          }
         }
         .borderRadius(8)
         .backToTop(true)
@@ -724,20 +727,8 @@ export struct Setting {
         .width(StyleConstants.FULL_WIDTH)
         .height(StyleConstants.FULL_HEIGHT)
         .sticky(StickyStyle.Header | StickyStyle.Footer)
-        .onWillScroll((_scrollOffset: number, scrollState: ScrollState) => {
-          if (scrollState === ScrollState.Scroll) {
-            const positionY = this.scrollController.currentOffset().yOffset
-            if (positionY < 0) {
-              this.currentIndex = SlideDownControl.calculateCurrentIndex(positionY, 0)
-            } else {
-              this.currentIndex = -1
-            }
-          }
-        })
-        .onScrollStop(() => {
-          this.onMenuIconClick(this.currentIndex)
-          this.currentIndex = -1
-        })
+        .onWillScroll(this.scrollIndexHandler.scrollHandlers.onWillScroll)
+        .onScrollStop(this.scrollIndexHandler.scrollHandlers.onScrollStop)
       }
       .width(StyleConstants.FULL_WIDTH)
       .height(StyleConstants.FULL_HEIGHT)
@@ -765,6 +756,11 @@ export struct Setting {
         }
       })
     )
+  }
+
+  getBlankHeight(): Length {
+    let sub = px2vp(this.winHeight) - this.groupHeight - 50 - px2vp(this.bottomRect+this.topRect)
+    return sub > 0 ? sub : 0
   }
 
   @Builder

@@ -168,10 +168,8 @@ class CacheManager {
     this.checkInitialized();
 
     try {
-      const fullKey = this.getFullKey(key);
-
       // 获取缓存项以便删除文件
-      const data = PreferencesUtil.getStringSync(fullKey, undefined, this.config.preferenceName);
+      const data = PreferencesUtil.getStringSync(key, undefined, this.config.preferenceName);
       if (data) {
         const cacheItem: SongCacheItem = JSON.parse(data);
         // 删除文件
@@ -183,7 +181,7 @@ class CacheManager {
       }
 
       // 删除偏好设置中的条目
-      await PreferencesUtil.delete(fullKey, this.config.preferenceName);
+      await PreferencesUtil.delete(key, this.config.preferenceName);
       return true;
     } catch (error) {
       LogUtil.error(`Failed to remove cache: ${error}`);

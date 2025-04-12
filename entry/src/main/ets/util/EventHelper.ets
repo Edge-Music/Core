@@ -9,6 +9,7 @@ import { util } from "@kit.ArkTS";
 import { DownloadManager } from "./DownloadUtils";
 import { ContextHelper } from "./ContextHelper";
 import { SourceAdapter } from "../adapter";
+import FormUtils from "./FormUtils";
 
 async function checkCacheFileExists(cache: SongCacheItem, key: string) {
   if (!cache || !cache.path) {
@@ -107,6 +108,7 @@ const defaultLoveSongCallback = (_assetId: string) => {
 
 const playSong = async (song: Song, path: string, cached: boolean, pause: boolean) => {
   avPlayerManager.stop().then(async () => {
+    FormUtils.updateMusicControlCards(song,!pause)
     await avPlayerManager.playByPath(path, cached ? undefined : song.meta?.size, pause, {
       assetId: `track-${song.id}-${song.source?.id}`,
       duration: song.duration,
@@ -214,6 +216,19 @@ export class EventHelper {
     });
   }
 
+  public static subscribeFormJumpPage(callback?: (targetPage: string) => void) {
+    EmitterUtil.onSubscribe("on_form_jump", (targetPage: string) => {
+      if (callback) {
+        callback(targetPage);
+      }
+      else{
+        let pageStack = AppStorage.get("pageStack") as NavPathStack
+        pageStack.pushPath({name:targetPage},{launchMode:LaunchMode.MOVE_TO_TOP_SINGLETON})
+
+      }
+    });
+  }
+
   public static postInitData(data: string) {
     EmitterUtil.post("on_init_data", data);
   }
@@ -234,5 +249,9 @@ export class EventHelper {
 
   public static postPauseTimer(pauseAt: number) {
     EmitterUtil.post("on_pause_timer", pauseAt);
+  }
+
+  public static postFormJumpPage(targetPage: string){
+    EmitterUtil.post("on_form_jump", targetPage);
   }
 }

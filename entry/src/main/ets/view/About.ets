@@ -112,7 +112,7 @@ export struct About {
             .fontColor($r('app.color.text_secondary'))
             .width(70)
 
-          Text('祭之时、可以')
+          Text('祭之时、可以、从心')
             .fontSize(14)
             .fontColor($r('app.color.text_primary'))
         }

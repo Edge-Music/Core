@@ -29,6 +29,10 @@
       "value": "Settings"
     },
     {
+      "name": "search",
+      "value": "Search"
+    },
+    {
       "name": "library",
       "value": "Music Library"
     },
@@ -111,6 +115,42 @@
     {
       "name": "setting_clear_cache_request",
       "value": "Clear All Request Cache"
+    },
+    {
+      "name": "EntryFormAbility_desc",
+      "value": "Music Service Widget"
+    },
+    {
+      "name": "EntryFormAbility_label",
+      "value": "Service Widget"
+    },
+    {
+      "name": "widget_display_name_recommended",
+      "value": "Music Recommendations"
+    },
+    {
+      "name": "widget_desc_recommended",
+      "value": "Recommend Music to You"
+    },
+    {
+      "name": "widget_display_name_control",
+      "value": "Music Control"
+    },
+    {
+      "name": "widget_desc_control",
+      "value": "Music Control Widget"
+    },
+    {
+      "name": "my_playlist",
+      "value": "My Playlist"
+    },
+    {
+      "name": "reason_read_write_download_directory",
+      "value": "Read and write to the download directory"
+    },
+    {
+      "name": "download",
+      "value": "Download"
     }
   ]
 }

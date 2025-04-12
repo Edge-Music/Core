@@ -1,4 +1,4 @@
-import { bundleManager, wantAgent } from "@kit.AbilityKit"
+import { bundleManager, Context, wantAgent } from "@kit.AbilityKit"
 import { backgroundTaskManager } from "@kit.BackgroundTasksKit"
 import { LogUtil } from "@pura/harmony-utils";
 
@@ -6,7 +6,7 @@ const TAG = 'BackgroundRunningManager ';
 
 class BackgroundRunningManager {
   // 申请长时任务
-  async startBackgroundRunning() {
+  async startBackgroundRunning(ctx?: Context) {
     try {
       const context = getContext()
 
@@ -42,7 +42,7 @@ class BackgroundRunningManager {
 
       const wantObj = await wantAgent.getWantAgent(wantAgentInfo)
       await backgroundTaskManager.startBackgroundRunning(
-        context,
+        context ? context : ctx,
         backgroundTaskManager.BackgroundMode.AUDIO_PLAYBACK,
         wantObj
       )
@@ -52,10 +52,11 @@ class BackgroundRunningManager {
   }
 
   // 停止后台任务
-  async stopBackgroundRunning() {
+  async stopBackgroundRunning(ctx?: Context) {
     try {
       // 停止后台任务
-      await backgroundTaskManager.stopBackgroundRunning(getContext())
+      const context = getContext()
+      await backgroundTaskManager.stopBackgroundRunning(context ? context : ctx)
     } catch (error) {
       LogUtil.error(TAG, error.message)
     }

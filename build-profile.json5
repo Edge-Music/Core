@@ -5,13 +5,13 @@
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "certpath": "C:\\Users\\lsbnbdz\\.ohos\\config\\default_Core_pvr1lpvHK7Cna0eaPnmBnfTAKmmeZM3rDr4mJEQ2Ow4=.cer",
-          "keyAlias": "debugKey",
-          "keyPassword": "0000001BF8845F416CE5CD52B7E1E2C7E182F556D0CD369C2157A790FBE1BDE86D2F0EF16F750F52A654D7",
-          "profile": "C:\\Users\\lsbnbdz\\.ohos\\config\\default_Core_pvr1lpvHK7Cna0eaPnmBnfTAKmmeZM3rDr4mJEQ2Ow4=.p7b",
+          "storeFile": "C:/Users/10423/Key/SeaMusic.p12",
+          "storePassword": "00000019A4CEF74E507C37FFF4BFA212F6BE4EFDEE50DB297E3CAC18469A83F46187781FA241CB50B5",
+          "keyAlias": "SeaMusic",
+          "keyPassword": "0000001911D6A0ACF76FB1E4820695A7A54588BFA0640056626F67E619B9C62D60531B86A0D9D59EB6",
           "signAlg": "SHA256withECDSA",
-          "storeFile": "C:\\Users\\lsbnbdz\\.ohos\\config\\default_Core_pvr1lpvHK7Cna0eaPnmBnfTAKmmeZM3rDr4mJEQ2Ow4=.p12",
-          "storePassword": "0000001B03F9A14B39827F8AFFFDA38D056BAD5EC490A6BDB790FBAFB9FE9CCCD5046BE127C648C416E5B5"
+          "profile": "C:/Users/10423/Key/云享社Release.p7b",
+          "certpath": "C:/Users/10423/Key/云享社.cer"
         }
       }
     ],

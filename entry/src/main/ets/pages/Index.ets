@@ -18,44 +18,90 @@ import { PushPathHelper } from '../util/PushPathHelper'
 import { PlaylistManager } from '../util/PlaylistManager'
 import { MiniPlaybackControl } from '../component/MiniPlaybackControl'
 import { MultiSearch } from '../view/MultiSearch'
-import { SlideDownControl } from '../util/SlideDownController'
 import { LazyData } from '@pie/lazy-data'
-import {HorizontalMode}from '../util/HorizontalCheck'
+import { HorizontalMode } from '../util/HorizontalCheck'
+import { Download } from '../view/Download'
+import { ScrollIndexHandler } from '../util/ScrollIndexHandler'
+import { HeaderAnimation } from '../component/HeaderAnimation'
 
 // 缓存常用值以避免重复计算
 const COLUMNS_TEMPLATE_LG = '1fr 1fr 1fr 1fr'
 const COLUMNS_TEMPLATE_SM = '1fr 1fr'
 const DEFAULT_COVER_SIZE = 256
+const TAG = 'Index'
 
 @Entry
 @Component
 struct Index {
   @Provide('NavPathStack') pageStack: NavPathStack = new NavPathStack()
+
+  @Builder
+  PageMap(name: string) {
+    if (name === 'ComingSoon') {
+      ComingSoon()
+    } else if (name === 'Setting') {
+      Setting()
+    } else if (name === 'Playlist') {
+      PlayList()
+    } else if (name === 'MultiSearch') {
+      MultiSearch()
+    } else if (name === 'Index_page') {
+      Index_page()
+    } else if (name === 'Download') {
+      Download()
+    }
+  }
+
+  aboutToAppear(): void {
+    this.pageStack.replacePath({ name: 'Index_page' })
+  }
+
+  build() {
+    Navigation(this.pageStack) {
+      // empty
+    }
+    .navDestination(this.PageMap)
+    .hideNavBar(true)
+    .mode(NavigationMode.Stack)
+  }
+}
+
+@Component
+struct Index_page {
+  @State blankHeight: number = 0
+  @Consume('NavPathStack') pageStack: NavPathStack
   @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
   private breakpointSystem = new BreakpointSystem()
   private menuItems = HomePageMenuData
   private scrollController: Scroller = new Scroller()
-  @State currentIndex: number = -1
   @StorageLink("user_data_source") adapters: SourceConfig[] = PreferencesCache.getUserDataSource()
-
   // 使用StorageLink保持数据同步
   @StorageLink("index_recommend_playlist") recommendPlaylist: Playlist[] = []
   @StorageLink("index_recommend_songs") recommendSongs: Song[] = []
   @StorageLink("index_recommend_artists") recommendArtists: Artist[] = []
   @StorageLink("index_recommend_toplist") topList: Playlist[] = []
   @State loading: boolean = true
-
   // 避让导航栏高度
   @StorageProp('bottomRect') bottomRect: number = 0
-  @State HorizontalMode_ctrl:string =  PreferencesCache.getUserPreference('HorizontalMode_ctrl','0')
+  @StorageProp('topRect') topRect: number = 0
+  @StorageProp('winHeight') winHeight: number = 0
+  @State HorizontalMode_ctrl: string = PreferencesCache.getUserPreference('HorizontalMode_ctrl', '0')
   // 预先计算并缓存必要的布局值
   private coverWidth: number = 120
   private segmentPadding: number = 4
+  @State scrollIndexHandler: ScrollIndexHandler = new ScrollIndexHandler({
+    onIndexChange: (index) => {
+      console.log("currentIndex:"+index)
+      this.onMenuIconClick(index)
+    },
+    componentTag: TAG
+  }).linkController(this.scrollController)
 
   async aboutToAppear() {
     // 注册断点系统
     this.breakpointSystem.register()
-    HorizontalMode(this.HorizontalMode_ctrl==='1')
+    HorizontalMode(this.HorizontalMode_ctrl === '1')
+    AppStorage.setOrCreate("pageStack", this.pageStack)
     // 立即初始化数据
     this.initData()
   }
@@ -124,7 +170,7 @@ struct Index {
       Row() {
         MenuIcon({
           icon: $r('app.media.ic_search'),
-          active: this.currentIndex === 1
+          active: this.scrollIndexHandler.currentIndex === 1
         })
           .onClick(() => {
             this.onMenuIconClick(1)
@@ -132,7 +178,7 @@ struct Index {
 
         MenuIcon({
           icon: $r('app.media.ic_gearshape'),
-          active: this.currentIndex === 0
+          active: this.scrollIndexHandler.currentIndex === 0
         })
           .onClick(() => {
             this.onMenuIconClick(0)
@@ -161,19 +207,6 @@ struct Index {
     }
   }
 
-  @Builder
-  PageMap(name: string) {
-    if (name === 'ComingSoon') {
-      ComingSoon()
-    } else if (name === 'Setting') {
-      Setting()
-    } else if (name === 'Playlist') {
-      PlayList()
-    } else if (name === 'MultiSearch') {
-      MultiSearch()
-    }
-  }
-
   // 使用Builder模式优化各个部分的渲染
   @Builder
   MenuGrid() {
@@ -195,47 +228,6 @@ struct Index {
     .width(StyleConstants.FULL_WIDTH)
     .rowsGap(8)
     .columnsGap(8)
-  }
-
-  @Builder
-  HeaderAnimation() {
-    Row() {
-      if(this.currentIndex >= 2){
-        LoadingProgress()
-          .width(24)
-          .height(24)
-          .opacity(this.currentIndex >= 1 ? 1 : 0)
-          .scale({ x: this.currentIndex >= 1 ? 1 : 0.5, y: this.currentIndex >= 1 ? 1 : 0.5 })
-          .margin({ right: 8 })
-          .animation({
-            duration: 250,
-            curve: Curve.FastOutSlowIn
-          })
-      }
-
-      Text(SlideDownControl.getIndexActionText(this.currentIndex))
-        .fontColor($r('app.color.text_secondary'))
-        .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
-        // .margin({ left: 8 })
-        .opacity(this.currentIndex >= 0 ? 1 : 0)
-        .translate({ y: this.currentIndex >= 0 ? 0 : -20 })
-        .animation({
-          duration: 250,
-          curve: Curve.FastOutSlowIn
-        })
-    }
-    .height(this.currentIndex >= 0 ? 40 : 0)
-    .animation({
-      duration: 250,
-      curve: Curve.FastOutSlowIn
-    })
-    .alignItems(VerticalAlign.Center)
-    .justifyContent(FlexAlign.Center)
-    .width(StyleConstants.FULL_WIDTH)
-    .padding({
-      left: 16,
-      right: 16
-    })
   }
 
   @Builder
@@ -296,7 +288,7 @@ struct Index {
               .width(this.coverWidth)
               .padding(this.segmentPadding)
               .onClick(async () => {
-                PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
+                PushPathHelper.pushPathImmediately(this.pageStack, "Playlist", async () => {
                   const playlist = await SourceAdapter.getPlaylistDetail(item)
                   AppStorage.setOrCreate('current_playlist_data', playlist)
                 })
@@ -335,7 +327,7 @@ struct Index {
               .width(this.coverWidth)
               .padding(this.segmentPadding)
               .onClick(() => {
-                PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
+                PushPathHelper.pushPathImmediately(this.pageStack, "Playlist", async () => {
                   // 歌手复用歌单UI
                   const playlist = await SourceAdapter.getArtistDetail(item)
                   AppStorage.setOrCreate('current_playlist_data', playlist)
@@ -370,8 +362,9 @@ struct Index {
               .width(this.coverWidth)
               .padding(this.segmentPadding)
               .onClick(async () => {
-                PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
+                PushPathHelper.pushPathImmediately(this.pageStack, "Playlist", async () => {
                   const playlist = await SourceAdapter.getPlaylistDetail(item)
+                  console.log("zmhzmh");
                   AppStorage.setOrCreate('current_playlist_data', playlist)
                 })
               })
@@ -389,103 +382,125 @@ struct Index {
   @Builder
   EmptyDataSource() {
     Column() {
-      Blank()
       Row() {
-        Text("添加数据源开启云上漫游！")
-          .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-          .fontColor($r('app.color.text_hint'))
-          .fontSize(16)
-          .margin({ right: 8 })
-
-        Text("点击添加")
+        Text("添加数据源")
           .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
           .fontColor($r('app.color.text_click'))
-          .fontSize(14)
+          .fontSize(16)
+          .margin({ right: 2 })
           .onClick(() => {
             this.pageStack.pushPath({ name: 'Setting' })
           })
+        Text("开启云上漫游！")
+          .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
+          .fontColor($r('app.color.text_hint'))
+          .fontSize(15)
       }
+      .width(StyleConstants.FULL_WIDTH)
+      .height(StyleConstants.FULL_HEIGHT)
       .alignItems(VerticalAlign.Center)
       .justifyContent(FlexAlign.Center)
     }
     .width(StyleConstants.FULL_WIDTH)
-    .layoutWeight(1)
+    .height(StyleConstants.FULL_HEIGHT)
     .alignItems(HorizontalAlign.Center)
     .justifyContent(FlexAlign.SpaceBetween)
   }
 
   build() {
-    Column() {
-      Navigation(this.pageStack) {
-        Stack({ alignContent: Alignment.Bottom }){
-          Scroll(this.scrollController) {
-            Column() {
-              this.HeaderAnimation()
-              this.MenuGrid()
-
-              if (this.adapters.length > 0) {
-                this.RecommendedSongs()
-                this.RecommendedPlaylists()
-                this.RecommendedArtists()
-                this.TopLists()
-              } else {
-                this.EmptyDataSource()
-              }
-
-              // 底部填充高度 播控组件+底部导航栏避让高度
-              // Blank()
-              //   .height(StyleConstants.PLAYER_CONTROL_HEIGHT + px2vp(this.bottomRect))
-              //   .backgroundColor('transparent')
-            }
-            .layoutWeight(1)
-            .alignItems(HorizontalAlign.Center)  // 确保内容居中对齐
+    NavDestination() {
+      Stack({ alignContent: Alignment.Bottom }) {
+        List({ scroller: this.scrollController }) {
+          ListItem() {
+            HeaderAnimation({ scrollIndexHandler: this.scrollIndexHandler, isShowLoadingProgress: true })
           }
-          .width(StyleConstants.FULL_WIDTH)
-          .layoutWeight(1)
-          .backToTop(true)
-          .scrollBar(BarState.Off)
-          .edgeEffect(EdgeEffect.Spring)
-          .onWillScroll((_xOffset: number, _yOffset: number, scrollState: ScrollState, _scrollSource: ScrollSource)=>{
-            // 优化滚动期间的计算频率
-            if (scrollState === ScrollState.Scroll) {
-              const positionY = this.scrollController.currentOffset().yOffset
 
-              // 只有在下拉时才计算索引，减少计算量
-              if (positionY < 0) {
-                this.currentIndex = SlideDownControl.calculateCurrentIndex(positionY, 2)
-              } else if (this.currentIndex !== -1) {
-                this.currentIndex = -1
+          if (this.adapters.length > 0) {
+            if (this.recommendPlaylist.length > 0 && this.recommendSongs.length > 0
+              && this.recommendArtists.length > 0 && this.topList.length > 0) {
+              ListItem() {
+                this.MenuGrid()
+              }
+
+              ListItem() {
+                this.RecommendedSongs()
+              }
+
+              ListItem() {
+                this.RecommendedPlaylists()
+              }
+
+              ListItem() {
+                this.RecommendedArtists()
+              }
+
+              ListItem() {
+                this.TopLists()
+              }
+            } else {
+              ListItem() {
+                this.MenuGrid()
+              }
+              .onAreaChange((oldValue: Area, newValue: Area) => {
+                this.blankHeight = newValue.height as number
+              })
+
+              ListItem() {
+                Row() {
+                  Column() {
+                    Text('当前音源暂无推荐！')
+                      .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
+                      .fontColor($r('app.color.text_hint'))
+                      .fontSize(16)
+                  }
+                  .width(StyleConstants.FULL_WIDTH)
+                  .height(StyleConstants.FULL_HEIGHT)
+                  .justifyContent(FlexAlign.Center)
+                }
+                .height(this.getBlankHeight())
               }
             }
-          })
-          .onScrollStop(() => {
-            if (this.currentIndex >= 0) {
-              this.onMenuIconClick(this.currentIndex)
-              this.currentIndex = -1
+          } else {
+            ListItem() {
+              this.EmptyDataSource()
             }
-          })
-          .expandSafeArea()
-          // 主页底部避让高度：播控组件高度(60) + 播控组件下方margin值(16)
-          .padding({ bottom: (StyleConstants.PLAYER_CONTROL_HEIGHT + 16) })
+          }
 
-          MiniPlaybackControl()
+          ListItem() {
+            Row() {
+              Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + 16)
+            }
+          }
         }
-        .height(StyleConstants.FULL_HEIGHT)
         .width(StyleConstants.FULL_WIDTH)
+        .height(StyleConstants.FULL_HEIGHT)
+        .layoutWeight(1)
+        .backToTop(true)
+        .scrollBar(BarState.Off)
+        .edgeEffect(EdgeEffect.Spring)
+        .onWillScroll(this.scrollIndexHandler.scrollHandlers.onWillScroll)
+        .onScrollStop(this.scrollIndexHandler.scrollHandlers.onScrollStop)
+        .expandSafeArea()
+
+        MiniPlaybackControl()
       }
       .height(StyleConstants.FULL_HEIGHT)
       .width(StyleConstants.FULL_WIDTH)
-      .mode(NavigationMode.Stack)
-      .navDestination(this.PageMap)
-      .hideToolBar(true)
-      .hideBackButton(true)
-      .title({
-        builder: this.Title(),
-        height: 50,
-      })
-      .backgroundColor($r('app.color.page_background'))
     }
     .height(StyleConstants.FULL_HEIGHT)
     .width(StyleConstants.FULL_WIDTH)
+    .systemTransition(NavigationSystemTransitionType.SLIDE_RIGHT)
+    .hideToolBar(true)
+    .hideBackButton(true)
+    .title({
+      builder: this.Title(),
+      height: 50,
+    })
+    .backgroundColor($r('app.color.page_background'))
+  }
+
+  getBlankHeight(): number {
+    let sub = px2vp(this.winHeight) - this.blankHeight - 50 - px2vp(this.bottomRect + this.topRect)
+    return sub > 0 ? sub : 0
   }
 }

@@ -50,26 +50,12 @@ export struct Cover {
             errorholderSrc: $r("app.media.icon"),
             objectFit: ImageFit.Fill,
           }
-        })
+        }).hoverEffect(HoverEffect.Scale)
           .width(StyleConstants.FULL_WIDTH)
           .aspectRatio(1)
           .borderRadius(this.radius)
           .clip(true)
-          .onHover((isHover: boolean) => {
-            this.isOverlayVisible = isHover
-          })
 
-        if (this.isOverlayVisible) {
-          Column()
-            .width(StyleConstants.FULL_WIDTH)
-            .height(StyleConstants.FULL_HEIGHT)
-            .borderRadius(this.radius)
-            .backgroundColor('rgba(0, 0, 0, 0.12)')
-            .animation({
-              duration: 250,
-              curve: Curve.EaseInOut
-            })
-        }
 
         this.MoreButton()
       }

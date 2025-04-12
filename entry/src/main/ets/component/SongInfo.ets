@@ -12,7 +12,7 @@ export struct SongInfo {
   @Prop showIndex: boolean = true;
   @Watch('updateHighlightState') @Prop highlight: boolean = false; // 新增高亮参数
   @BuilderParam rightSlot?: () => void;
-
+  @State On_Mouse:boolean =false
   // 用于高亮动画的状态变量
   @State private isHighlighting: boolean = false;
 
@@ -120,7 +120,10 @@ export struct SongInfo {
       .height(68)
       .padding({ left: 16, right: 16 })
       .borderRadius(10)
-      .backgroundColor(this.getBackgroundColor())
+      .onHover((isHover: boolean, event: HoverEvent)=>{
+          this.On_Mouse =isHover
+      })
+      .backgroundColor(this.On_Mouse? 'rgba(100, 149, 237, 0.15)':this.getBackgroundColor())
       // .border({
       //   width: 1,
       //   color: this.getBorderColor(),
@@ -138,6 +141,7 @@ export struct SongInfo {
         }
       })
     }
+
     .width(StyleConstants.FULL_WIDTH)
     .padding({ left: 12, right: 12, top: 4, bottom: 4 })
     .expandSafeArea()

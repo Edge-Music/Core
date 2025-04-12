@@ -1,6 +1,7 @@
 import { ToastUtil } from "@pura/harmony-utils";
 import { SourceAdapter } from "../adapter";
 import { Cover } from "../component/Cover";
+import { HeaderAnimation } from "../component/HeaderAnimation";
 import { MiniPlaybackControl } from "../component/MiniPlaybackControl";
 import { Segment } from "../component/Segment";
 import { TitleHeader } from "../component/TitleHeader";
@@ -9,17 +10,25 @@ import { Album, Artist, Playlist, SearchResult, Song } from "../type/Adapter";
 import { cover } from "../util/AdapterHelper";
 import { PlaylistManager } from "../util/PlaylistManager";
 import { PushPathHelper } from "../util/PushPathHelper";
-import { SlideDownControl } from "../util/SlideDownController";
+import { ScrollIndexHandler } from "../util/ScrollIndexHandler";
+
+const TAG = 'MultiSearch'
 
 @Component
 export struct MultiSearch {
+  @State groupHeight: number = 0
   @Consume('NavPathStack') pageStack: NavPathStack;
   @State keywords: string = '';
   @State result: SearchResult | null = null;
   @State loading: boolean = false;
-  @State currentIndex: number = -1;
   @StorageProp('bottomRect') bottomRect: number = 0
+  @StorageProp('topRect') topRect: number = 0
+  @StorageProp('winHeight') winHeight: number = 0
   private scrollController: Scroller = new Scroller();
+  @State scrollIndexHandler: ScrollIndexHandler = new ScrollIndexHandler({
+    onIndexChange: (index): void => this.onMenuIconClick(index),
+    componentTag: TAG
+  }).linkController(this.scrollController)
 
   private generatePlaylistMenu(playlist: Playlist) {
     return [
@@ -76,35 +85,13 @@ export struct MultiSearch {
           List({ scroller: this.scrollController}){
 
             ListItem(){
-              Row() {
-                Text(SlideDownControl.getReturnActionText(this.currentIndex))
-                  .fontColor($r('app.color.text_secondary'))
-                  .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
-                  .opacity(this.currentIndex >= 0 ? 1 : 0)
-                  .translate({ y: this.currentIndex >= 0 ? 0 : -20 })
-                  .animation({
-                    duration: 250,
-                    curve: Curve.FastOutSlowIn
-                  })
-              }
-              .height(this.currentIndex >= 0 ? 40 : 0)
-              .animation({
-                duration: 250,
-                curve: Curve.FastOutSlowIn
-              })
-              .alignItems(VerticalAlign.Center)
-              .justifyContent(FlexAlign.Center)
-              .width(StyleConstants.FULL_WIDTH)
-              .padding({
-                left: 16,
-                right: 16
-              })
+              HeaderAnimation({ scrollIndexHandler: this.scrollIndexHandler })
             }
 
-            ListItemGroup({ header: this.SearchComponent()}){
-              if(this.result){
-                ListItem(){
-                  if (this.result && this.result.songs) {
+            ListItemGroup({ header: this.SearchComponent() }){
+              if(this.result && this.result.songs && this.result.playlists && this.result.artists && this.result.albums){
+                if(this.result.songs.length > 0 && this.result.playlists.length > 0 && this.result.artists.length > 0 && this.result.albums.length > 0){
+                  ListItem(){
                     Segment({
                       title: "歌曲",
                       loading: this.loading,
@@ -126,10 +113,8 @@ export struct MultiSearch {
                       })
                     }
                   }
-                }
 
-                ListItem(){
-                  if (this.result && this.result.playlists) {
+                  ListItem(){
                     Segment({
                       title: "歌单",
                       loading: this.loading,
@@ -143,7 +128,7 @@ export struct MultiSearch {
                           .width(120)
                           .padding(4)
                           .onClick(() => {
-                            PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
+                            PushPathHelper.pushPathImmediately(this.pageStack, "Playlist", async () => {
                               const playlist = await SourceAdapter.getPlaylistDetail(item)
                               AppStorage.setOrCreate('current_playlist_data', playlist)
                             })
@@ -151,10 +136,8 @@ export struct MultiSearch {
                       })
                     }
                   }
-                }
 
-                ListItem(){
-                  if (this.result && this.result.artists) {
+                  ListItem(){
                     Segment({
                       title: "歌手",
                       loading: this.loading,
@@ -169,7 +152,7 @@ export struct MultiSearch {
                           .width(120)
                           .padding(4)
                           .onClick(() => {
-                            PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
+                            PushPathHelper.pushPathImmediately(this.pageStack, "Playlist", async () => {
                               const artist = await SourceAdapter.getArtistDetail(item)
                               AppStorage.setOrCreate('current_playlist_data', artist)
                             })
@@ -177,10 +160,8 @@ export struct MultiSearch {
                       })
                     }
                   }
-                }
 
-                ListItem(){
-                  if (this.result && this.result.albums) {
+                  ListItem(){
                     Segment({
                       title: "专辑",
                       loading: this.loading,
@@ -194,7 +175,7 @@ export struct MultiSearch {
                           .width(120)
                           .padding(4)
                           .onClick(() => {
-                            PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
+                            PushPathHelper.pushPathImmediately(this.pageStack, "Playlist", async () => {
                               const album = await SourceAdapter.getAlbumDetail(item)
                               AppStorage.setOrCreate('current_playlist_data', album)
                             })
@@ -202,25 +183,35 @@ export struct MultiSearch {
                       })
                     }
                   }
+                } else {
+                  ListItem(){
+                    this.EmptySearchResult('白给了呀！莫结果！')
+                  }
                 }
               } else {
                 ListItem(){
-                  // 占满剩余空间,以便在未搜索时可以滚动
-                  Row(){
-                    Blank().height('100%').layoutWeight(1)
-                      .expandSafeArea()
-                  }
+                  this.EmptySearchResult('愣着干啥？开搜啊！')
                 }
               }
 
-              ListItem(){
-                Row(){
-                  // 搜索页底部避让高度：播控组件高度(64) + 导航栏避让高度 + 播控组件下方margin值(16)
-                  Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + 16).layoutWeight(1)
-                }
+            }
+            .onAreaChange((oldValue: Area, newValue: Area) => {
+              this.groupHeight = newValue.height as number
+            })
+
+            ListItem(){
+              Row(){
+                // 监控ListItemGroup高度变化，随时调整List下方补充高度，winHeight - group高度 - 标题高度 - 避让高度
+                Blank().height(this.getBlankHeight())
               }
             }
-            .expandSafeArea()
+
+            ListItem(){
+              Row(){
+                // 搜索页底部避让高度：播控组件高度(64) + 导航栏避让高度 + 播控组件下方margin值(16)
+                Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + 16).layoutWeight(1)
+              }
+            }
           }
           .expandSafeArea()
           .backToTop(true)
@@ -228,21 +219,8 @@ export struct MultiSearch {
           .height(StyleConstants.FULL_HEIGHT)
           .width(StyleConstants.FULL_WIDTH)
           .sticky(StickyStyle.Header | StickyStyle.Footer)
-          .onWillScroll((scrollOffset: number, scrollState: ScrollState, scrollSource: ScrollSource) => {
-            if (scrollState === ScrollState.Scroll) {
-              const positionY = this.scrollController.currentOffset().yOffset;
-              if (positionY < 0) {
-                const index = SlideDownControl.calculateCurrentIndex(this.scrollController.currentOffset().yOffset, 0);
-                this.currentIndex = index;
-              } else {
-                this.currentIndex = -1;
-              }
-            }
-          })
-          .onScrollStop(() => {
-            this.onMenuIconClick(this.currentIndex);
-            this.currentIndex = -1;
-          })
+          .onWillScroll(this.scrollIndexHandler.scrollHandlers.onWillScroll)
+          .onScrollStop(this.scrollIndexHandler.scrollHandlers.onScrollStop)
           .scrollBar(BarState.Off)
           .edgeEffect(EdgeEffect.Spring)
         }
@@ -263,6 +241,7 @@ export struct MultiSearch {
     .expandSafeArea()
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
+    .systemTransition(NavigationSystemTransitionType.SLIDE_RIGHT)
     .gesture(
       SwipeGesture({
         direction: SwipeDirection.Vertical,
@@ -272,6 +251,11 @@ export struct MultiSearch {
         }
       })
     )
+  }
+
+  getBlankHeight(): Length {
+    let sub = px2vp(this.winHeight) - this.groupHeight - 50 - px2vp(this.bottomRect+this.topRect)
+    return sub > 0 ? sub : 0
   }
 
   @Builder
@@ -286,7 +270,7 @@ export struct MultiSearch {
         .margin(0)
         .backgroundBlurStyle(BlurStyle.Regular)
     }
-    .padding(16)
+    .padding(12)
 
   }
 
@@ -294,8 +278,28 @@ export struct MultiSearch {
   Title() {
     TitleHeader({
       title: $r('app.string.search'),
-      backActive: this.currentIndex === 0
+      backActive: this.scrollIndexHandler.currentIndex === 0
     })
+  }
+
+  @Builder
+  EmptySearchResult(reason: string) {
+    Column() {
+      Row() {
+        Text(reason)
+          .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
+          .fontColor($r('app.color.text_hint'))
+          .fontSize(16)
+      }
+      .width(StyleConstants.FULL_WIDTH)
+      .height(StyleConstants.FULL_HEIGHT)
+      .alignItems(VerticalAlign.Center)
+      .justifyContent(FlexAlign.Center)
+    }
+    .width(StyleConstants.FULL_WIDTH)
+    .height(StyleConstants.FULL_HEIGHT)
+    .alignItems(HorizontalAlign.Center)
+    .justifyContent(FlexAlign.SpaceBetween)
   }
 
   onMenuIconClick(index: number) {

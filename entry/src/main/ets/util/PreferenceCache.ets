@@ -103,6 +103,55 @@ export class PreferencesCache {
   }
 
   /**
+   * 获取展示用户数据源
+   */
+  static getShowUserDataSource(): SourceConfig[] {
+    const sourceConfig = PreferencesCache.getCache('show_user_data_source', '[]');
+    return JSON.parse(sourceConfig);
+  }
+
+  /**
+   * 设置展示用户数据源
+   */
+  static setShowUserDataSource(sourceConfig: SourceConfig[]): void {
+    PreferencesCache.setCache('show_user_data_source', JSON.stringify(sourceConfig));
+    AppStorage.set('show_user_data_source', sourceConfig);
+  }
+
+  /**
+   * 添加展示用户数据源
+   */
+  static addShowUserDataSource(sourceConfig: SourceConfig): void {
+    const sourceList = PreferencesCache.getShowUserDataSource();
+    sourceList.push(sourceConfig);
+    PreferencesCache.setShowUserDataSource(sourceList);
+  }
+
+  /**
+   * 更新展示指定用户数据源
+   */
+  static updateShowUserDataSource(sourceConfig: SourceConfig): void {
+    const sourceList = PreferencesCache.getShowUserDataSource();
+    const index = sourceList.findIndex(item => item.id === sourceConfig.id);
+    if (index !== -1) {
+      sourceList[index] = sourceConfig;
+      PreferencesCache.setShowUserDataSource(sourceList);
+    }
+  }
+
+  /**
+   * 删除展示指定用户数据源
+   */
+  static deleteShowUserDataSource(sourceId: ID): void {
+    const sourceList = PreferencesCache.getShowUserDataSource();
+    const index = sourceList.findIndex(item => item.id === sourceId);
+    if (index !== -1) {
+      sourceList.splice(index, 1);
+      PreferencesCache.setShowUserDataSource(sourceList);
+    }
+  }
+
+  /**
    * 获取用户偏好
    * @param key 偏好键
    * @param defaultValue 默认值
