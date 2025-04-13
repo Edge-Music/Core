@@ -5,8 +5,8 @@ import { HorizontalScroll } from "./HorizontalScroll"
 @Component
 export struct Segment {
   @Prop loading: boolean = false
-  title: string = ''
-  actionText: string | undefined = undefined
+  title: string | Resource = ''
+  actionText: string | undefined | Resource = undefined
   onActionClick?: () => void
   radius: string | number = 8
 

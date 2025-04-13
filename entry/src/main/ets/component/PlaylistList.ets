@@ -211,7 +211,7 @@ export struct PlaylistList {
   private generatePlaylistMenu(playlist: Playlist): Array<MenuElement> {
     return [
       {
-        value: '播放此歌单',
+        value: $r('app.string.play_this_playlist'),
         action: () => {
           PushPathHelper.loading("Playing", async () => {
             const playlistDetail = await SourceAdapter.getPlaylistDetail(playlist)
@@ -225,7 +225,7 @@ export struct PlaylistList {
         }
       },
       {
-        value: '添加到下一首播放',
+        value: $r('app.string.add_to_play_next'),
         action: () => {
           PushPathHelper.loading("Playing", async () => {
             const playlistDetail = await SourceAdapter.getPlaylistDetail(playlist)

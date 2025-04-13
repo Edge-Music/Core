@@ -10,6 +10,7 @@ import { Album, Artist, Playlist, SearchResult, Song } from "../type/Adapter";
 import { cover } from "../util/AdapterHelper";
 import { PlaylistManager } from "../util/PlaylistManager";
 import { PushPathHelper } from "../util/PushPathHelper";
+import { ResourceManager } from "../util/ResourceManager";
 import { ScrollIndexHandler } from "../util/ScrollIndexHandler";
 
 const TAG = 'MultiSearch'
@@ -33,7 +34,7 @@ export struct MultiSearch {
   private generatePlaylistMenu(playlist: Playlist) {
     return [
       {
-        value: '播放此歌单',
+        value: $r('app.string.play_this_playlist'),
         action: () => {
           PushPathHelper.loading("Playing", async () => {
             const playlistDetail = await SourceAdapter.getPlaylistDetail(playlist)
@@ -57,7 +58,7 @@ export struct MultiSearch {
   private generateSongMenu(song: Song) {
     return [
       {
-        value: '添加到下一首播放',
+        value: $r('app.string.add_to_play_next'),
         action: () => {
           PlaylistManager.insertSongs([song])
         }
@@ -185,12 +186,12 @@ export struct MultiSearch {
                   }
                 } else {
                   ListItem(){
-                    this.EmptySearchResult('白给了呀！莫结果！')
+                    this.EmptySearchResult(ResourceManager.getStringValueSync($r('app.string.search_no_result')))
                   }
                 }
               } else {
                 ListItem(){
-                  this.EmptySearchResult('愣着干啥？开搜啊！')
+                  this.EmptySearchResult(ResourceManager.getStringValueSync($r('app.string.start_search')))
                 }
               }
 
@@ -261,8 +262,8 @@ export struct MultiSearch {
   @Builder
   SearchComponent() {
     Column(){
-      Search({ value: this.keywords, placeholder: '搜索你想要的...' })
-        .searchButton('搜索')
+      Search({ value: this.keywords, placeholder: $r('app.string.search_what_you_want') })
+        .searchButton(ResourceManager.getStringValueSync($r('app.string.search')))
         .onSubmit(async (value: string) => {
           this.keywords = value
           await this.search()

@@ -72,7 +72,7 @@ struct Playing {
   PlayListBuilder() {
     Column() {
       // 播放列表内容
-      Text("播放列表")
+      Text($r('app.string.playing_list'))
         .fontSize(18)
         .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
         .fontColor($r('app.color.text_title'))
@@ -90,7 +90,7 @@ struct Playing {
   @Builder
   Timer() {
     Column() {
-      Text("定时关闭")
+      Text($r('app.string.scheduled_shutdown'))
         .fontSize(18)
         .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
         .fontColor($r('app.color.text_title'))
@@ -813,13 +813,13 @@ struct Playing {
   // 下载歌曲
   async downloadSong() {
     if (this.song) {
-      ToastUtil.showShort("已添加到下载队列")
+      ToastUtil.showShort($r('app.string.added_to_the_download_queue'))
       SongDownloadManager.downloadSong(
         this.song.id.toString(),
         this.song,
         undefined,
         () => {
-          ToastUtil.showShort("下载完成")
+          ToastUtil.showShort($r('app.string.download_successful'))
         },
       )
     }
@@ -837,7 +837,7 @@ struct Playing {
         }
       },
       {
-        value: '下载歌曲',
+        value: $r('app.string.download_this_song'),
         action: () => {
           animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
             this.downloadSong()
@@ -845,7 +845,7 @@ struct Playing {
         }
       },
       {
-        value: '定时关闭',
+        value: $r('app.string.scheduled_shutdown'),
         action: () => {
           animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
             this.sheetType = "timer";
@@ -859,7 +859,7 @@ struct Playing {
   getNarrowScreenMenu(): MenuElement[] {
     return [
       {
-        value: '下载歌曲',
+        value: $r('app.string.download_this_song'),
         action: () => {
           animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
             this.downloadSong()
@@ -867,7 +867,7 @@ struct Playing {
         }
       },
       {
-        value: '定时关闭',
+        value: $r('app.string.scheduled_shutdown'),
         action: () => {
           animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
             this.sheetType = "timer";

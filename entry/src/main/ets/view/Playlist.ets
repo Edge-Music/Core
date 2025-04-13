@@ -13,11 +13,13 @@ import { MiniPlaybackControl } from "../component/MiniPlaybackControl";
 import { SongDownloadManager } from "../util/SongDownloadManager";
 import { ScrollIndexHandler } from "../util/ScrollIndexHandler";
 import { HeaderAnimation } from "../component/HeaderAnimation";
+import { ResourceManager } from "../util/ResourceManager";
 
 const TAG = 'PlayList'
 
 @Component
 export struct PlayList {
+  @State searchContext: string = ResourceManager.getStringValueSync($r('app.string.search'))
   @State groupHeight: number = 0;
   @Consume('NavPathStack') pageStack: NavPathStack;
   @StorageLink("current_playlist_data") playlist: Playlist | null = null
@@ -107,7 +109,7 @@ export struct PlayList {
             .width(22)
             .height(22)
             .fillColor($r('app.color.text_primary'))
-          Text('播放全部')
+          Text($r('app.string.play_all'))
             .fontSize(18)
             .fontWeight(FontWeight.Medium)
             .fontColor($r('app.color.text_primary'))
@@ -143,7 +145,7 @@ export struct PlayList {
         .backgroundColor($r('app.color.setting_item_background'))
         .justifyContent(FlexAlign.Center)
         .bindMenu([{
-          value: '下载全部歌曲',
+          value: $r('app.string.download_all_songs'),
           action: () => {
             if (this.playlist?.songs && this.playlist.songs.length > 0) {
               const songs = this.playlist.songs.filter(song => song.privilege.playable)
@@ -517,7 +519,7 @@ export struct PlayList {
 
                 ListItem() {
                   Column() {
-                    Text('暂无歌曲')
+                    Text($r('app.string.no_songs_available'))
                       .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
                       .fontColor($r('app.color.text_hint'))
                       .fontSize(16)
@@ -580,8 +582,8 @@ export struct PlayList {
       // 宽屏布局：一行显示所有元素
       Row() {
         // 搜索框
-        Search({ value: this.searchKeywords, placeholder: '搜索歌单内歌曲...' })
-          .searchButton('搜索')
+        Search({ value: this.searchKeywords, placeholder: $r('app.string.search_songs') })
+          .searchButton(ResourceManager.getStringValueSync($r('app.string.search')))
           .onSubmit((value: string) => {
             this.searchKeywords = value
             this.filterSongs()
@@ -600,7 +602,7 @@ export struct PlayList {
             .width(20)
             .height(20)
             .fillColor($r('app.color.text_primary'))
-          Text('播放全部')
+          Text($r('app.string.play_all'))
             .fontSize(14)
             .fontWeight(FontWeight.Medium)
             .fontColor($r('app.color.text_primary'))
@@ -636,7 +638,7 @@ export struct PlayList {
         .justifyContent(FlexAlign.Center)
         .margin({ left: 8 })
         .bindMenu([{
-          value: '下载全部歌曲',
+          value: $r('app.string.download_all_songs'),
           action: () => {
             if (this.playlist?.songs && this.playlist.songs.length > 0) {
               const songs = this.playlist.songs.filter(song => song.privilege.playable)
@@ -657,8 +659,8 @@ export struct PlayList {
       // 小屏幕布局：搜索框和按钮一行显示
       Row() {
         // 搜索框
-        Search({ value: this.searchKeywords, placeholder: '搜索歌单内歌曲...' })
-          .searchButton('搜索')
+        Search({ value: this.searchKeywords, placeholder: $r('app.string.search_songs') })
+          .searchButton(ResourceManager.getStringValueSync($r('app.string.search')))
           .onSubmit((value: string) => {
             this.searchKeywords = value
             this.filterSongs()
@@ -679,7 +681,7 @@ export struct PlayList {
             .width(20)
             .height(20)
             .fillColor($r('app.color.text_primary'))
-          Text('播放全部')
+          Text($r('app.string.play_all'))
             .fontSize(14)
             .fontWeight(FontWeight.Medium)
             .fontColor($r('app.color.text_primary'))
@@ -715,7 +717,7 @@ export struct PlayList {
         .justifyContent(FlexAlign.Center)
         .margin({ left: 8 })
         .bindMenu([{
-          value: '下载全部歌曲',
+          value: $r('app.string.download_all_songs'),
           action: () => {
             if (this.playlist?.songs && this.playlist.songs.length > 0) {
               const songs = this.playlist.songs.filter(song => song.privilege.playable)

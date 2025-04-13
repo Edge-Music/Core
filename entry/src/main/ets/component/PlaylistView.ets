@@ -104,7 +104,7 @@ export struct PlaylistView {
     this.songDataSource.removeData(song);
 
     // 显示删除成功提示
-    ToastUtil.showShort('已从播放列表中删除');
+    ToastUtil.showShort($r('app.string.removed_from_the_playlist'));
   }
 
   // 滚动到当前播放的歌曲
