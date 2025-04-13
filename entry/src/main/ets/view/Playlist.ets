@@ -14,6 +14,7 @@ import { SongDownloadManager } from "../util/SongDownloadManager";
 import { ScrollIndexHandler } from "../util/ScrollIndexHandler";
 import { HeaderAnimation } from "../component/HeaderAnimation";
 import { ResourceManager } from "../util/ResourceManager";
+import { ToastUtil } from "@pura/harmony-utils";
 
 const TAG = 'PlayList'
 
@@ -641,6 +642,7 @@ export struct PlayList {
           value: $r('app.string.download_all_songs'),
           action: () => {
             if (this.playlist?.songs && this.playlist.songs.length > 0) {
+              ToastUtil.showToast("开始下载全部歌曲")
               const songs = this.playlist.songs.filter(song => song.privilege.playable)
               SongDownloadManager.batchDownloadSongs(songs)
             }
@@ -720,6 +722,7 @@ export struct PlayList {
           value: $r('app.string.download_all_songs'),
           action: () => {
             if (this.playlist?.songs && this.playlist.songs.length > 0) {
+              ToastUtil.showToast("开始下载全部歌曲")
               const songs = this.playlist.songs.filter(song => song.privilege.playable)
               SongDownloadManager.batchDownloadSongs(songs)
             }
