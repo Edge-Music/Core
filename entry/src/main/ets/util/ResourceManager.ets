@@ -8,12 +8,7 @@ export class ResourceManager {
     let result: string[] = []
     try {
       const context = getContext() as common.UIAbilityContext
-      let resource: resourceManager.Resource = {
-        bundleName: "zone.yby.seamusic",
-        moduleName: "entry",
-        id: res.id
-      };
-      result = context.resourceManager.getStringArrayValueSync(resource);
+      result = context.resourceManager.getStringArrayValueSync(res.id);
     } catch (error) {
       let code = (error as BusinessError).code;
       let message = (error as BusinessError).message;
