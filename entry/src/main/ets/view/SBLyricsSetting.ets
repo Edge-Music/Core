@@ -1,7 +1,9 @@
 import { StyleConstants } from "../constants/StyleConstants";
 import { PreferencesCache, SBLyricsPre } from "../util/PreferenceCache";
-import { ItemRestriction, SegmentButton, SegmentButtonOptions, SegmentButtonTextItem } from "@kit.ArkUI";
+import { display, ItemRestriction, SegmentButton, SegmentButtonOptions, SegmentButtonTextItem } from "@kit.ArkUI";
 import { LogUtil } from "@pura/harmony-utils";
+import WindowUtils from "../util/WindowUtils";
+import { window } from '@kit.ArkUI';
 
 @Component
 export struct SBLyricsSetting{
@@ -19,9 +21,11 @@ export struct SBLyricsSetting{
     fontSize:12
   })
   @State alignIndex:number[] = [this.settingData.alignment]
+  display = display.getDefaultDisplaySync();
   onChangeSetting(){
     LogUtil.info('SBLSetting '+ JSON.stringify(this.settingData))
     PreferencesCache.statusBarLyricsSetting(this.settingData)
+    AppStorage.setOrCreate('SBLyricsSetting',JSON.stringify(this.settingData))
   }
   build() {
     NavDestination(){
@@ -36,6 +40,11 @@ export struct SBLyricsSetting{
             Toggle({ type: ToggleType.Switch, isOn: this.settingData.open })
               .onChange((isOn:boolean)=>{
                 this.settingData.open = isOn
+                if (isOn){
+                  WindowUtils.createLyricsFloatWindow()
+                }else{
+                  window.findWindow('SBLyrics')?.destroyWindow();
+                }
               })
           }
           .width(StyleConstants.FULL_WIDTH)
@@ -108,7 +117,7 @@ export struct SBLyricsSetting{
             Slider({
               value:this.settingData.x,
               min: 0,
-              max: 100,
+              max: this.display.width,
               style: SliderStyle.InSet
             })
               .layoutWeight(1)
@@ -126,7 +135,7 @@ export struct SBLyricsSetting{
             Slider({
               value:this.settingData.y,
               min: 0,
-              max: 100,
+              max: this.display.height,
               style: SliderStyle.InSet
             })
               .layoutWeight(1)
@@ -143,7 +152,7 @@ export struct SBLyricsSetting{
             Blank()
             Slider({
               value:this.settingData.width,
-              min: 0,
+              min: 10,
               max: 100,
               style: SliderStyle.InSet
             })
@@ -162,7 +171,7 @@ export struct SBLyricsSetting{
             Slider({
               value:this.settingData.transparency,
               min: 0,
-              max: 100,
+              max: 1,
               style: SliderStyle.InSet
             })
               .layoutWeight(1)
@@ -178,8 +187,8 @@ export struct SBLyricsSetting{
               .fontWeight(FontWeight.Medium)
             Slider({
               value:this.settingData.fontSize,
-              min: 0,
-              max: 100,
+              min: 12,
+              max: 24,
               style: SliderStyle.InSet
             })
               .layoutWeight(1)

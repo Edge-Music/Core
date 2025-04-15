@@ -1,5 +1,6 @@
 import { ID, Song, SourceConfig } from "../type/Adapter";
 import { PreferencesUtil } from '@pura/harmony-utils';
+import { display } from "@kit.ArkUI";
 
 // 比特率类型
 export type BitrateType = 128000 | 192000 | 320000 | 350000 | 999000;
@@ -343,7 +344,7 @@ export class PreferencesCache {
         alignment: 0,
         x: 0,
         y: 0,
-        width: 0,
+        width: display.getDefaultDisplaySync().width/2,
         transparency: 0,
         fontSize: 0,
         fontColor: Color.Red
