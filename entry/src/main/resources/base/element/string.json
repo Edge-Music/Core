@@ -151,6 +151,10 @@
     {
       "name": "download",
       "value": "下载"
+    },
+    {
+      "name": "lyrics_status_bar",
+      "value": "状态栏歌词"
     }
   ]
 }

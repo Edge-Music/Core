@@ -12,6 +12,7 @@ import { PreferencesCache } from "../util/PreferenceCache";
 import { AboutSetting, PlayerSetting, SoftwareSetting } from "../viewmodel/SettingGroupData";
 import { About } from "./About";
 import {Personalized_settings}from '../view/Personalized_settings'
+import { SBLyricsSetting } from  '../view/SBLyricsSetting'
 import { HeaderAnimation } from "../component/HeaderAnimation";
 import { ScrollIndexHandler } from "../util/ScrollIndexHandler";
 
@@ -563,6 +564,10 @@ export struct Setting {
   Personalized_Settings(){
     Personalized_settings()
   }
+  @Builder
+  SBLyricsSettingBuild(){
+    SBLyricsSetting()
+  }
   // 修改：AdapterItem 添加长按菜单
   @Builder
   AdapterItemMenu(adapter: SourceConfig) {
@@ -666,6 +671,8 @@ export struct Setting {
       this.FormContent()
     }else if (this.nowSheet === "Personalized_settings"){
       this.Personalized_Settings()
+    }else if (this.nowSheet === "SBLyricsSetting"){
+      this.SBLyricsSettingBuild()
     }
   }
   build() {
