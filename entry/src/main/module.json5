@@ -30,6 +30,15 @@
       {
         "name": "ohos.permission.VIBRATE"
       },
+      {
+        "name" : "ohos.permission.SYSTEM_FLOAT_WINDOW",
+        "usedScene": {
+          "abilities": [
+            "EntryAbility"
+          ],
+          "when":"inuse"
+        }
+      },
 //      {
 //        "name": "ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY",
 //        "reason": "$string:reason_read_write_download_directory",
