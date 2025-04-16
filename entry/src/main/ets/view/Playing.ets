@@ -58,7 +58,7 @@ struct Playing {
   private swiperController: SwiperController = new SwiperController()
   // 歌曲封面-歌词翻转
   @State flipCoverLyric: boolean = PreferencesCache.flipCoverLyric()
-
+  @State  Pura_X:string =  PreferencesCache.getUserPreference('is_Pura_X', '0')//pura_x尝试适配
   // 监听屏幕断点变化
   onBreakpointChange() {
     this.isWideScreen = this.currentBreakpoint !== BreakpointConstants.BREAKPOINT_SM;
@@ -248,7 +248,7 @@ struct Playing {
             .textOverflow({ overflow: TextOverflow.Ellipsis })
             .fontColor('rgba(255, 255, 255, 0.6)')
             .height(24) // 固定高度确保布局稳定
-          Column(){this.PlayerControls()}.width('50%')
+          Column(){this.PlayerControls(this.Pura_X==='1'?false:true)}.width('50%')
           Column(){
             this.ProgressBar(true,4,false)
           }.width('65%')
@@ -1132,6 +1132,72 @@ struct Playing {
           this.isBackButtonPressed = true
           this.pageStack.pop()
         })
+      if (this.Pura_X==='1'){
+        Blank().layoutWeight(1)
+        Button({ type: ButtonType.Circle }) {
+          Image(this.isFavorite ? $r('app.media.ic_heart_fill') : $r('app.media.ic_heart'))
+            .width(24)
+            .height(24)
+            .fillColor(this.isFavorite ? '#FF4081' : Color.White)
+            .animation({
+              duration: 300,
+              curve: Curve.EaseOut,
+              iterations: 1,
+              playMode: PlayMode.Normal
+            })
+        }
+        .width(this.buttonSize)
+        .height(this.buttonSize)
+        .backgroundColor(Color.Transparent)
+        .scale({ x: this.isHeartButtonPressed ? 1.3 : 1.0, y: this.isHeartButtonPressed ? 1.3 : 1.0 })
+        .animation({
+          duration: 300,
+          curve: Curve.EaseOut,
+          iterations: 1,
+          playMode: PlayMode.Normal
+        })
+        .onClick(() => {
+          this.isHeartButtonPressed = true
+          animateTo({ duration: 400, curve: Curve.EaseOut }, () => {
+            if (this.song) {
+              SourceAdapter.likeSong(this.song, !this.isFavorite)
+            }
+            EventHelper.postFavoriteToggle("")
+
+            // 重置按钮状态
+            setTimeout(() => {
+              this.isHeartButtonPressed = false
+            }, 400)
+          })
+        })
+
+        // 更多菜单按钮
+        Button({ type: ButtonType.Circle }) {
+          Image($r('app.media.ic_more'))
+            .width(24)
+            .height(24)
+            .fillColor(Color.White)
+        }
+        .width(this.buttonSize)
+        .height(this.buttonSize)
+        .backgroundColor(Color.Transparent)
+        .rotate({ angle: this.isMoreButtonPressed ? 90 : 0 })
+        .animation({
+          duration: 300,
+          curve: Curve.EaseInOut,
+          iterations: 1,
+          playMode: PlayMode.Normal
+        })
+        .onClick(() => {
+          this.isMoreButtonPressed = true
+
+          // 重置按钮状态
+          setTimeout(() => {
+            this.isMoreButtonPressed = false
+          }, 300)
+        })
+        .bindMenu(this.isWideScreen ? this.getWideScreenMenu() : this.getNarrowScreenMenu())
+      }
     }
     .width(StyleConstants.FULL_WIDTH)
     .alignItems(VerticalAlign.Center)
