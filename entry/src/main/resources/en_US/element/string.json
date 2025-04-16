@@ -151,6 +151,10 @@
     {
       "name": "download",
       "value": "Download"
+    },
+    {
+      "name": "lyrics_status_bar",
+      "value": "Lyrics status bar"
     }
   ]
 }

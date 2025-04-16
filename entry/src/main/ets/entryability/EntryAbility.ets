@@ -14,6 +14,7 @@ import app from '@system.app';
 import FormUtils from '../util/FormUtils';
 import { CallMethod } from '../widget/model/FormCardConstant';
 import { SongDownloadManager } from '../util/SongDownloadManager';
+import windowUtils from '../util/WindowUtils';
 
 export default class EntryAbility extends UIAbility {
 
@@ -89,6 +90,7 @@ export default class EntryAbility extends UIAbility {
   onDestroy(): void {
     hilog.info(0x0000, 'testTag', '%{public}s', 'Ability onDestroy');
     FormUtils.updateCardPlayStatus(false);
+    window.findWindow('SBLyrics')?.destroyWindow();
   }
 
   async onWindowStageCreate(windowStage: window.WindowStage): Promise<void> {
@@ -117,6 +119,8 @@ export default class EntryAbility extends UIAbility {
         hilog.error(0x0000, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err) ?? '');
         return;
       }
+      let windowClass: window.Window = windowStage.getMainWindowSync()
+      windowUtils.init(windowClass)
       hilog.info(0x0000, 'testTag', 'Succeeded in loading the content.');
     });
     if (this.page){

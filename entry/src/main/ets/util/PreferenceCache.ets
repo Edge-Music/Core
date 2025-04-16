@@ -1,5 +1,6 @@
 import { ID, Song, SourceConfig } from "../type/Adapter";
 import { PreferencesUtil } from '@pura/harmony-utils';
+import { display } from "@kit.ArkUI";
 
 // 比特率类型
 export type BitrateType = 128000 | 192000 | 320000 | 350000 | 999000;
@@ -17,6 +18,18 @@ export const qualityLevels: QualityLevel[] = [
   { level: 'lossless', description: '无损', bitrate: 350000 },
   { level: 'hires', description: 'Hi-Res', bitrate: 999000 }
 ];
+
+export interface SBLyricsPre{
+  open:boolean;
+  lines:number;
+  alignment:number;
+  x: number;
+  y: number;
+  width: number;
+  transparency: number;
+  fontSize: number;
+  fontColor: Color
+}
 
 /**
  * 根据比特率获取音质等级
@@ -314,5 +327,31 @@ export class PreferencesCache {
       PreferencesCache.setUserPreference('show_translation_lyric', value ? '1' : '0');
     }
     return PreferencesCache.getUserPreference('show_translation_lyric') === '1';
+  }
+
+  /**
+   * 状态栏歌词设置
+   */
+  static statusBarLyricsSetting(value?: SBLyricsPre):SBLyricsPre {
+    if (value !== undefined) {
+      PreferencesCache.setUserPreference('status_bar_lyrics_setting',JSON.stringify(value));
+    }
+    let output  = PreferencesCache.getUserPreference('status_bar_lyrics_setting')
+    if (!output){
+      const data: SBLyricsPre = {
+        open: false,
+        lines: 0,
+        alignment: 0,
+        x: 0,
+        y: 0,
+        width: display.getDefaultDisplaySync().width/2,
+        transparency: 0,
+        fontSize: 0,
+        fontColor: Color.Red
+      }
+      PreferencesCache.setUserPreference('status_bar_lyrics_setting',JSON.stringify(data));
+      output = JSON.stringify(data)
+    }
+    return JSON.parse(output) as SBLyricsPre
   }
 }

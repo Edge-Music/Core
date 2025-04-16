@@ -79,7 +79,11 @@ export const PlayerSetting = [
           }
         }
       })
-    })
+    }),
+  new SettingItem("button",$r('app.string.lyrics_status_bar'),undefined,undefined,()=>{
+    AppStorage.setOrCreate("setting_page_sheet_content", "SBLyricsSetting")
+    AppStorage.setOrCreate("setting_page_sheet_show", true)
+  })
 ]
 
 // 软件设置组

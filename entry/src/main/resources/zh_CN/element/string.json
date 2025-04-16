@@ -143,6 +143,10 @@
     {
       "name": "my_playlist",
       "value": "我的歌单"
+    },
+    {
+      "name": "lyrics_status_bar",
+      "value": "状态栏歌词"
     }
   ]
 }
