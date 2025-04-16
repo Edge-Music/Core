@@ -414,19 +414,19 @@
     },
     {
       "name": "system_rotary_switch",
-      "value": "Controlled by system rotary switch"
+      "value": "Controlled By System Rotary Switch"
     },
     {
       "name": "custom_settings",
-      "value": "Custom settings"
+      "value": "Custom Settings"
     },
     {
       "name": "mini_music_control_bottom",
-      "value": "Mini Music Control at bottom"
+      "value": "Mini Music Control At Bottom"
     },
     {
       "name": "swipe_cover_switch_songs",
-      "value": "Swipe cover to switch songs"
+      "value": "Swipe Cover To Switch Songs"
     },
     {
       "name": "no_download_link_found",
