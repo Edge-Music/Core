@@ -160,7 +160,7 @@ export struct PlaylistView {
   @Builder
   EmptyState() {
     Column() {
-      Text('暂无歌曲')
+      Text($r('app.string.no_songs_available'))
         .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
         .fontColor($r('app.color.text_hint'))
         .fontSize(16)

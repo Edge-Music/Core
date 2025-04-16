@@ -22,6 +22,7 @@ export struct MultiSearch {
   @State keywords: string = '';
   @State result: SearchResult | null = null;
   @State loading: boolean = false;
+  @State nullResultFlag: boolean = true
   @StorageProp('bottomRect') bottomRect: number = 0
   @StorageProp('topRect') topRect: number = 0
   @StorageProp('winHeight') winHeight: number = 0
@@ -73,6 +74,7 @@ export struct MultiSearch {
 
   async search() {
     this.loading = true
+    this.nullResultFlag = true
     this.result = await SourceAdapter.search(this.keywords)
     this.loading = false
   }
@@ -90,8 +92,9 @@ export struct MultiSearch {
             }
 
             ListItemGroup({ header: this.SearchComponent() }){
-              if(this.result && this.result.songs && this.result.playlists && this.result.artists && this.result.albums){
-                if(this.result.songs.length > 0 && this.result.playlists.length > 0 && this.result.artists.length > 0 && this.result.albums.length > 0){
+              if(this.result){
+                // 歌曲
+                if(this.isNullResult(this.result.songs)){
                   ListItem(){
                     Segment({
                       title: "歌曲",
@@ -114,7 +117,9 @@ export struct MultiSearch {
                       })
                     }
                   }
-
+                }
+                // 歌单
+                if(this.isNullResult(this.result.playlists)){
                   ListItem(){
                     Segment({
                       title: "歌单",
@@ -137,7 +142,9 @@ export struct MultiSearch {
                       })
                     }
                   }
-
+                }
+                // 艺人
+                if(this.isNullResult(this.result.artists)){
                   ListItem(){
                     Segment({
                       title: "歌手",
@@ -161,7 +168,9 @@ export struct MultiSearch {
                       })
                     }
                   }
-
+                }
+                // 专辑
+                if(this.isNullResult(this.result.albums)){
                   ListItem(){
                     Segment({
                       title: "专辑",
@@ -184,7 +193,9 @@ export struct MultiSearch {
                       })
                     }
                   }
-                } else {
+                }
+                // 如果结果为空
+                if(this.nullResultFlag){
                   ListItem(){
                     this.EmptySearchResult(ResourceManager.getStringValueSync($r('app.string.search_no_result')))
                   }
@@ -252,6 +263,19 @@ export struct MultiSearch {
         }
       })
     )
+  }
+
+  /**
+   * 判断结果非空公共方法
+   * @param list
+   * @returns
+   */
+  isNullResult(list: Song[] | Playlist[] | Artist[] | Album[] | undefined) {
+    if(list && list.length > 0){
+      this.nullResultFlag = false
+      return true
+    }
+    return false
   }
 
   getBlankHeight(): Length {

@@ -266,6 +266,10 @@
       "value": "暂无歌曲"
     },
     {
+      "name": "no_lyric_available",
+      "value": "暂无歌词"
+    },
+    {
       "name": "no_playback_available",
       "value": "暂无播放"
     },
