@@ -417,7 +417,7 @@ struct Playing {
     .linearGradient({
       direction: GradientDirection.Bottom,
       repeating: false,
-      colors: [[`#ff${this.imageColorHex}`, 0.0], [`#aa${this.imageColorHex}`, 0.3], [`#ff${this.imageColorHex}`, 1.0]]
+      colors: [[`#ff${this.imageColorHex}`, 0.0], [`#aa${this.imageColorHex}`, 0.3], [`#cc${this.imageColorHex}`, 0.5], [`#ff${this.imageColorHex}`, 1.0]]
     })
     .backgroundColor($r('sys.color.ohos_id_color_background'))
     .animation({
