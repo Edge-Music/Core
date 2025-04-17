@@ -15,7 +15,10 @@ import { TimerSelector } from '../component/TimerSelector'
 import { isHorizontalMode } from '../util/HorizontalCheck'
 import { screen_on } from '../util/On_screen_control'
 import { SongDownloadManager } from '../util/SongDownloadManager'
-
+import { hilog } from '@kit.PerformanceAnalysisKit';
+import { resourceManager } from '@kit.LocalizationKit';
+import { http } from '@kit.NetworkKit';
+import ImageUtils from '../util/ImageUtils';
 @Builder
 export function PlayingBuilder() {
   Playing()
@@ -33,8 +36,9 @@ struct Playing {
   @State isFavorite: boolean = false
   @State playMode: number = PlaylistManager.getPlayMode()
   @State showPlaylist: boolean = false
-  @StorageLink("current_playing_song") song: Song | null = null
+  @Watch('onplaying_change')@StorageLink("current_playing_song") song: Song | null = null
   @State isWideScreen: boolean = false // 是否为宽屏
+  @State imageColorHex:string='1a2a3a'
   @State currentIndex: number = -1
   // 独立的按钮动画状态
   @State swipeOffset: number = 0; // 滑动偏移量
@@ -52,6 +56,7 @@ struct Playing {
   @State isBackButtonPressed: boolean = false
   @State Playing_Next: boolean = true
   @State Fold_judge: boolean = true
+  @State is_backblur: boolean = true
   private updateTimer: number = -1
   //TAB,swiper控制
   private controller: TabsController = new TabsController()
@@ -66,6 +71,20 @@ struct Playing {
     console.info('Succeeded in obtaining fold status.judge: ' + this.Playing_Next);
   }
 
+  async onplaying_change(){
+    try {
+      const context = getContext(this);
+      let netFile = this.song?.album?.cover + "?param=64y64" ?? "";
+      let httpRequest = http.createHttp()
+      let data = await httpRequest.request(netFile);
+      const resourceMgr: resourceManager.ResourceManager = context.resourceManager;
+      let imageDealData = await ImageUtils.getImageDealDataByArr(data.result as ArrayBuffer);//imageDealData.imageColorHex.length
+      this.imageColorHex=imageDealData.imageColorHex
+    } catch (e) {
+      hilog.error(0x0000, 'TestTag', 'Failed error.code is %{public}d,error.message is %{public}s', e.code,
+        e.message);
+    }
+  }
   @State sheetType: "playlist" | "timer" = "playlist" // 用于控制底部弹出表单的类型，默认为播放列表
 
   @Builder
@@ -154,6 +173,20 @@ struct Playing {
                   offsetX: 0,
                   offsetY: 2
                 })
+                .onAppear(async ()=>{
+                  try {
+                    const context = getContext(this);
+                    const resourceMgr: resourceManager.ResourceManager = context.resourceManager;
+                    let netFile = this.song?.album?.cover + "?param=64y64" ?? "";
+                    let httpRequest = http.createHttp()
+                    let data = await httpRequest.request(netFile);
+                    let imageDealData = await ImageUtils.getImageDealDataByArr(data.result as ArrayBuffer);//imageDealData.imageColorHex.length
+                    this.imageColorHex=imageDealData.imageColorHex
+                  } catch (e) {
+                    hilog.error(0x0000, 'TestTag', 'Failed error.code is %{public}d,error.message is %{public}s', e.code,
+                      e.message);
+                  }
+                })
                 .borderRadius(this.img_playing_ctrl==='1'?0:24)
                 .gesture(
                   PanGesture({ direction: PanDirection.Horizontal })
@@ -211,7 +244,7 @@ struct Playing {
                   fill: false
                 })
               TextClock()
-                .fontColor("#23E421")
+                .fontColor(`#ff${this.imageColorHex}`)
                 .format('HH:mm')
                 .blendMode(BlendMode.PLUS, BlendApplyType.OFFSCREEN)
                 .margin(12)
@@ -275,6 +308,20 @@ struct Playing {
               width: { top:this.img_playing_ctrl==='1'? "10px":"0px", bottom: this.img_playing_ctrl==='1'? "10px":"0px", left: this.img_playing_ctrl==='1'? "10px":"0px", right: this.img_playing_ctrl==='1'? "10px":"0px" },
               repeat: RepeatMode.Stretch,
               fill: false
+            })
+            .onAppear(async ()=>{
+              try {
+                const context = getContext(this);
+                const resourceMgr: resourceManager.ResourceManager = context.resourceManager;
+                let netFile = this.song?.album?.cover + "?param=64y64" ?? "";
+                let httpRequest = http.createHttp()
+                let data = await httpRequest.request(netFile);
+                let imageDealData = await ImageUtils.getImageDealDataByArr(data.result as ArrayBuffer);//imageDealData.imageColorHex.length
+                this.imageColorHex=imageDealData.imageColorHex
+              } catch (e) {
+                hilog.error(0x0000, 'TestTag', 'Failed error.code is %{public}d,error.message is %{public}s', e.code,
+                  e.message);
+              }
             })
             .gesture(
               PanGesture({ direction: PanDirection.Horizontal })
@@ -359,8 +406,24 @@ struct Playing {
         .width('65%')
       }.alignItems(VerticalAlign.Top).justifyContent(FlexAlign.SpaceBetween)
     }.loop(false)
-    .onAppear(()=>{
+    .onAppear( ()=>{
       this.img_playing_ctrl=  PreferencesCache.getUserPreference('img_playing_ctrl','0')
+      this.is_backblur=false
+
+    })
+    .onDisAppear(()=>{
+      this.is_backblur=true
+    })
+    .linearGradient({
+      direction: GradientDirection.Bottom,
+      repeating: false,
+      colors: [[`#ff${this.imageColorHex}`, 0.0], [`#cc${this.imageColorHex}`, 0.5], [`#ff${this.imageColorHex}`, 1.0]]
+    })
+    .animation({
+      duration: 300,
+      curve: Curve.Friction,
+      iterations: 1,
+      playMode: PlayMode.Normal
     })
     .effectMode(EdgeEffect.None)
     .curve(Curve.Smooth)
@@ -382,6 +445,7 @@ struct Playing {
         .color(Color.Gray)
         .selectedColor(Color.White)
     )
+    .expandSafeArea()
     .onAppear(() => {
       if (PreferencesCache.getUserPreference('Playing_HorizontalMode_index')==='1') {
         this.swiperController.changeIndex(1)
@@ -494,7 +558,7 @@ struct Playing {
   }
 
   @Builder
-  BlurBackground() {
+  BlurBackground(judge:boolean = true) {
     Stack() {
       Image(cover(this.song?.album?.cover ?? "", 512))
         .width(StyleConstants.FULL_WIDTH)
@@ -513,8 +577,8 @@ struct Playing {
         })
         .expandSafeArea()
     }
-    .width(StyleConstants.FULL_WIDTH)
-    .height(StyleConstants.FULL_HEIGHT)
+    .width(judge?StyleConstants.FULL_WIDTH:0)
+    .height(judge?StyleConstants.FULL_HEIGHT:0)
     .position({ x: 0, y: 0 })
     .expandSafeArea()
   }
@@ -1208,7 +1272,9 @@ struct Playing {
     NavDestination() {
       FolderStack() {
         // 背景
-        this.BlurBackground()
+
+          this.BlurBackground(this.is_backblur)
+
 
         Column() {
           // 标题栏

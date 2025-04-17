@@ -62,6 +62,7 @@ export struct Setting {
     onIndexChange: (index): void => this.onMenuIconClick(index),
     componentTag: TAG
   }).linkController(this.scrollController)
+  @State  Pura_X:string =  PreferencesCache.getUserPreference('is_Pura_X', '0')//pura_x尝试适配
 
   calculateCurrentIndex(offset: number): number {
     offset = Math.abs(offset)
