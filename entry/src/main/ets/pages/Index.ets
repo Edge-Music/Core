@@ -23,7 +23,7 @@ import { HorizontalMode } from '../util/HorizontalCheck'
 import { Download } from '../view/Download'
 import { ScrollIndexHandler } from '../util/ScrollIndexHandler'
 import { HeaderAnimation } from '../component/HeaderAnimation'
-
+import { deviceInfo } from '@kit.BasicServicesKit'
 // 缓存常用值以避免重复计算
 const COLUMNS_TEMPLATE_LG = '1fr 1fr 1fr 1fr'
 const COLUMNS_TEMPLATE_SM = '1fr 1fr'
@@ -104,6 +104,12 @@ struct Index_page {
     AppStorage.setOrCreate("pageStack", this.pageStack)
     // 立即初始化数据
     this.initData()
+    let productSeries:string=deviceInfo.productSeries
+    if(productSeries=='VDE') {
+      PreferencesCache.setUserPreference('is_Pura_X', '1')
+    }else {
+      PreferencesCache.setUserPreference('is_Pura_X', '0')
+    }
   }
 
   async initData() {
@@ -128,13 +134,13 @@ struct Index_page {
   private generatePlaylistMenu(playlist: Playlist): Array<MenuElement> {
     return [
       {
-        value: '播放此歌单',
+        value: $r('app.string.play_this_playlist'),
         action: () => {
           PushPathHelper.loading("Playing", async () => {
             const playlistDetail = await SourceAdapter.getPlaylistDetail(playlist)
             const songs = playlistDetail?.songs?.filter(song => song.privilege.playable)
             if (!songs || songs.length === 0) {
-              ToastUtil.showShort("此歌单无可播放歌曲")
+              ToastUtil.showShort($r('app.string.no_playable_songs'))
               return
             }
             PlaylistManager.loadPlaylist(songs, songs[0])
@@ -147,7 +153,7 @@ struct Index_page {
   private generateSongMenu(song: Song): Array<MenuElement> {
     return [
       {
-        value: '添加到下一首播放',
+        value: $r('app.string.add_to_play_next'),
         action: () => {
           PlaylistManager.insertSongs([song])
         }
@@ -233,8 +239,8 @@ struct Index_page {
   @Builder
   RecommendedSongs() {
     Segment({
-      title: "热门歌曲",
-      actionText: "换一批",
+      title: $r('app.string.hot_songs'),
+      actionText: $r('app.string.rotate'),
       loading: this.loading,
       onActionClick: async () => {
         this.recommendSongs = await SourceAdapter.getRecommendSongs()
@@ -270,8 +276,8 @@ struct Index_page {
   @Builder
   RecommendedPlaylists() {
     Segment({
-      title: "推荐歌单",
-      actionText: "换一批",
+      title: $r('app.string.recommended_playlists'),
+      actionText: $r('app.string.rotate'),
       loading: this.loading,
       onActionClick: async () => {
         this.recommendPlaylist = await SourceAdapter.getRecommendList()
@@ -307,8 +313,8 @@ struct Index_page {
   @Builder
   RecommendedArtists() {
     Segment({
-      title: "推荐艺人",
-      actionText: "换一批",
+      title: $r('app.string.recommended_artists'),
+      actionText: $r('app.string.rotate'),
       loading: this.loading,
       radius: "100%",
       onActionClick: async () => {
@@ -347,7 +353,7 @@ struct Index_page {
   @Builder
   TopLists() {
     Segment({
-      title: "排行榜",
+      title: $r('app.string.chart'),
       loading: this.loading
     }) {
       List({ initialIndex: 0, space: 0 }) {
@@ -382,7 +388,7 @@ struct Index_page {
   EmptyDataSource() {
     Column() {
       Row() {
-        Text("添加数据源")
+        Text($r('app.string.add_data_source'))
           .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
           .fontColor($r('app.color.text_click'))
           .fontSize(16)
@@ -447,7 +453,7 @@ struct Index_page {
               ListItem() {
                 Row() {
                   Column() {
-                    Text('当前音源暂无推荐！')
+                    Text($r('app.string.no_recommendations'))
                       .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
                       .fontColor($r('app.color.text_hint'))
                       .fontSize(16)

@@ -252,7 +252,7 @@ export struct LyricsView {
     Stack({ alignContent: Alignment.TopEnd }) {
       Column() {
         if (this.parsedLyrics.length === 0) {
-          Text('暂无歌词')
+          Text($r('app.string.no_lyric_available'))
             .fontSize(18)
             .fontColor('rgba(255, 255, 255, 0.5)')
             .margin(16)
