@@ -421,10 +421,10 @@ struct Playing {
     })
     .backgroundColor($r('sys.color.ohos_id_color_background'))
     .animation({
-      duration: 300,
+      duration: 200,
       curve: Curve.Friction,
       iterations: 1,
-      playMode: PlayMode.Normal
+      playMode: PlayMode.Alternate
     })
     .effectMode(EdgeEffect.None)
     .curve(Curve.Smooth)
@@ -447,7 +447,19 @@ struct Playing {
         .selectedColor(Color.White)
     )
     .expandSafeArea()
-    .onAppear(() => {
+    .onAppear(async () => {
+      try {
+        const context = getContext(this);
+        const resourceMgr: resourceManager.ResourceManager = context.resourceManager;
+        let netFile = this.song?.album?.cover + "?param=64y64" ?? "";
+        let httpRequest = http.createHttp()
+        let data = await httpRequest.request(netFile);
+        let imageDealData = await ImageUtils.getImageDealDataByArr(data.result as ArrayBuffer);//imageDealData.imageColorHex.length
+        this.imageColorHex=imageDealData.imageColorHex
+      } catch (e) {
+        hilog.error(0x0000, 'TestTag', 'Failed error.code is %{public}d,error.message is %{public}s', e.code,
+          e.message);
+      }
       if (PreferencesCache.getUserPreference('Playing_HorizontalMode_index')==='1') {
         this.swiperController.changeIndex(1)
       }else{
