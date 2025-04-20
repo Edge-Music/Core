@@ -11,6 +11,7 @@ import { promptAction, UIContext } from "@kit.ArkUI";
 import { PreferencesCache } from "../util/PreferenceCache";
 import { HeaderAnimation } from "../component/HeaderAnimation";
 import { ScrollIndexHandler } from "../util/ScrollIndexHandler";
+import { ResponseCacheUtil } from "../util/ResponseCacheUtil";
 
 const TAG = 'Library'
 @Builder
@@ -67,6 +68,7 @@ struct Library {
 
     try {
       this.playlists = await SourceAdapter.getUserPlaylist();
+      ResponseCacheUtil.clear()
     } finally {
       this.isLoading = false;
     }
@@ -140,14 +142,16 @@ struct Library {
 
   @Builder
   ButtonS(){
-    Row(){
-      Image(cover(this.adapters[this.sIndex].auth?.user?.avatar ?? '', 200))
-        .shadow(ShadowStyle.OUTER_DEFAULT_XS)
+    Button({ type: ButtonType.Circle }){
+      Image(cover(this.adapters[this.sIndex].auth?.user?.avatar, 200) ?? $r('app.media.portrait'))
         .width(35)
+        .height(35)
         .borderRadius(17.5)
     }
+    .shadow(ShadowStyle.OUTER_DEFAULT_XS)
+    .backgroundColor('transparent')
     .onClick(() => {
-      this.isExpanded = !this.isExpanded;
+      this.isExpanded = !this.isExpanded
     })
     .bindContextMenu(this.isExpanded, this.SwitchSourceMenu(),{
       onDisappear: () => {
