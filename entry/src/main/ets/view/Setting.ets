@@ -14,6 +14,7 @@ import { About } from "./About";
 import {Personalized_settings}from '../view/Personalized_settings'
 import { HeaderAnimation } from "../component/HeaderAnimation";
 import { ScrollIndexHandler } from "../util/ScrollIndexHandler";
+import { ResourceManager } from "../util/ResourceManager";
 
 const TAG = 'Setting'
 
@@ -575,7 +576,7 @@ export struct Setting {
         .onClick(() => {
           DialogUtil.showPrimaryDialog({
             title: $r('app.string.delete_data_source'),
-            message: $r('app.string.whether_to_delete_data_source')+`"${adapter.name}"？`,
+            message: ResourceManager.getStringValueSync($r('app.string.whether_to_delete_data_source')) +`[${adapter.name}]？`,
             primaryButton: $r('app.string.cancel'),
             secondaryButton: $r('app.string.delete'),
             onAction: (action) => {

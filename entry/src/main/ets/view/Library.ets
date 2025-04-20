@@ -44,7 +44,6 @@ struct Library {
   @State scaleY: number = 1.0
   @State scrollIndexHandler: ScrollIndexHandler = new ScrollIndexHandler({
     onIndexChange: (index) => {
-      console.log("currentIndex:"+index)
       this.onMenuIconClick(index)
     },
     componentTag: TAG

@@ -235,9 +235,6 @@ struct Playing {
 
         Column() {
           LyricsView({
-            currentTimeMs: this.currentTime,
-            lyrics: this.song?.meta?.lyric?.normal,
-            translationLyrics: this.song?.meta?.lyric?.translation || this.song?.meta?.lyric?.transliteration,
             mode_judge: false
           }).width('100%').layoutWeight(1)
 
@@ -256,8 +253,9 @@ struct Playing {
         }
         .padding(18)
         .width('65%')
-      }.alignItems(VerticalAlign.Center).justifyContent(FlexAlign.SpaceBetween).onAppear(()=>{        PreferencesCache.setUserPreference('Playing_HorizontalMode_index','0')
-        console.info("zhishi0")})
+      }.alignItems(VerticalAlign.Center).justifyContent(FlexAlign.SpaceBetween).onAppear(()=>{
+        PreferencesCache.setUserPreference('Playing_HorizontalMode_index','0')
+      })
       Row() {
         //封面图
         Column() {
@@ -349,9 +347,6 @@ struct Playing {
         .alignItems(HorizontalAlign.Center)
         Column() {
           LyricsView({
-            currentTimeMs: this.currentTime,
-            lyrics: this.song?.meta?.lyric?.normal,
-            translationLyrics: this.song?.meta?.lyric?.translation || this.song?.meta?.lyric?.transliteration,
             mode_judge: false
           }).width('100%').layoutWeight(1)
         }
@@ -367,10 +362,8 @@ struct Playing {
     .onChange((index:number)=>{
       if (index===1) {
         PreferencesCache.setUserPreference('Playing_HorizontalMode_index','1')
-        console.info("jizhishi_Swiperi_index1")
       }else {
         PreferencesCache.setUserPreference('Playing_HorizontalMode_index','0')
-        console.info("jizhishi_Swiperi_index0")
       }
     })
     .indicator(
@@ -971,9 +964,6 @@ struct Playing {
   LyricsPlaceholder() {
     Column() {
       LyricsView({
-        currentTimeMs: this.currentTime,
-        lyrics: this.song?.meta?.lyric?.normal,
-        translationLyrics: this.song?.meta?.lyric?.translation || this.song?.meta?.lyric?.transliteration,
         mode_judge: true
       })
     }

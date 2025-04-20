@@ -445,9 +445,11 @@ class AVPlayerManager {
 
       switch (state) {
         case 'initialized':
+          LyricsManager.init()
           player.prepare();
           break;
         case 'prepared':
+          LyricsManager.reset()
           this.currentPlaybackState = avSession.PlaybackState.PLAYBACK_STATE_PAUSE;
           this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PAUSE);
           const duration = player.duration;

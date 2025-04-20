@@ -91,7 +91,6 @@ struct Index_page {
   private segmentPadding: number = 4
   @State scrollIndexHandler: ScrollIndexHandler = new ScrollIndexHandler({
     onIndexChange: (index) => {
-      console.log("currentIndex:"+index)
       this.onMenuIconClick(index)
     },
     componentTag: TAG

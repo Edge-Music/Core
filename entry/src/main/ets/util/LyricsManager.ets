@@ -24,15 +24,14 @@ class LyricsManager {
   private hasTranslation: boolean = false
   private currentTimeMs: number = 0
   private parsedLyrics: Array<LyricsLine> = []
-  private lyricsTimer: number = -1
-  private currentIndex: number = -1
+  private lyricsTimer: number = 0
+  private currentIndex: number = 0
   private readonly PRE_HIGHLIGHT_TIME: number = 500 // 提前切换时间
 
   async init(){
     this.song = AppStorage.get<Song>('current_playing_song')
     this.originalLyrics = this.song?.meta?.lyric?.normal ?? ''
     this.translatedLyrics = (this.song?.meta?.lyric?.translation || this.song?.meta?.lyric?.transliteration) ?? ''
-    this.lyricsTimer = -1
     this.parseLyrics()
     this.setLyricsInterval()
   }
@@ -42,33 +41,40 @@ class LyricsManager {
     this.song = undefined
     this.originalLyrics = ''
     this.translatedLyrics = ''
-    this.lyricsTimer = -1
+    this.lyricsTimer = 0
     this.currentTimeMs = 0
     this.parsedLyrics = []
-    this.currentIndex = -1
+    this.currentIndex = 0
   }
 
   async setLyricsInterval(){
     const player = await avPlayerManager.getAVPlayerInstance()
     this.currentTimeMs = player.currentTime
 
-    this.lyricsTimer = setInterval(() => {
-      this.currentTimeMs = player.currentTime
-      this.updateCurrentLyric()
-      AppStorage.setOrCreate<LyricsLine>('current_line_lyrics', this.parsedLyrics[this.currentIndex])
-      console.log("当前歌词："+this.parsedLyrics[this.currentIndex].text)
-      console.log("翻译歌词："+this.parsedLyrics[this.currentIndex].translation)
-    }, 500)
+    if(this.lyricsTimer === 0){
+      this.lyricsTimer = setInterval(() => {
+        this.currentTimeMs = player.currentTime
+        this.updateCurrentLyric()
+        AppStorage.setOrCreate<LyricsLine>('current_line_lyrics', this.parsedLyrics[this.currentIndex])
+        AppStorage.setOrCreate<number>('current_lyrics_index', this.currentIndex)
+      }, 500)
+      console.info(`歌词定时器[${this.lyricsTimer}]设置完成`)
+    }
   }
 
   clearLyricsInterval(){
+    const tmpTimer = this.lyricsTimer
     clearInterval(this.lyricsTimer)
+    console.info(`歌词定时器[${tmpTimer}]清除完成`)
   }
 
-  // 解析LRC格式原文歌词
-  private parseLyrics() {
+  /**
+   * 解析LRC格式原文歌词
+   */
+  private async parseLyrics() {
+    console.info(`开始解析[${this.song?.name}]歌词`)
     // 重置状态
-    this.currentIndex = -1
+    this.currentIndex = 0
 
     if (this.originalLyrics.trim() === '') {
       this.parsedLyrics = []
@@ -90,6 +96,9 @@ class LyricsManager {
       this.hasTranslation = false
       this.parsedLyrics = originalLines
     }
+    AppStorage.setOrCreate<boolean>('current_lyrics_has_translation', this.hasTranslation)
+    AppStorage.setOrCreate<Array<LyricsLine>>('current_parsed_lyrics', this.parsedLyrics)
+    console.info(`完成解析[${this.song?.name}]歌词`)
   }
 
   /**
@@ -147,8 +156,8 @@ class LyricsManager {
         }
       })
 
-      // 如果找到匹配的翻译，且时间差在合理范围内（例如300毫秒）
-      if (closestTranslation !== null && minTimeDiff <= 300) {
+      // 如果找到匹配的翻译，且时间差在合理范围内（例如50毫秒）
+      if (closestTranslation !== null && minTimeDiff <= 50) {
         line.translation = (closestTranslation as LyricsLine).text
       }
     })
@@ -182,5 +191,4 @@ class LyricsManager {
 
 }
 
-const lyricsManager = new LyricsManager()
-export default lyricsManager as LyricsManager
+export default new LyricsManager()

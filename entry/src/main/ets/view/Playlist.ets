@@ -45,7 +45,6 @@ export struct PlayList {
   @State isSearching: boolean = false
   @State scrollIndexHandler: ScrollIndexHandler = new ScrollIndexHandler({
     onIndexChange: (index) => {
-      console.log("currentIndex:"+index)
       this.onMenuIconClick(index)
     },
     componentTag: TAG
