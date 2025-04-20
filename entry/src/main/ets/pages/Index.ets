@@ -23,7 +23,7 @@ import { HorizontalMode } from '../util/HorizontalCheck'
 import { Download } from '../view/Download'
 import { ScrollIndexHandler } from '../util/ScrollIndexHandler'
 import { HeaderAnimation } from '../component/HeaderAnimation'
-
+import { deviceInfo } from '@kit.BasicServicesKit'
 // 缓存常用值以避免重复计算
 const COLUMNS_TEMPLATE_LG = '1fr 1fr 1fr 1fr'
 const COLUMNS_TEMPLATE_SM = '1fr 1fr'
@@ -103,6 +103,12 @@ struct Index_page {
     AppStorage.setOrCreate("pageStack", this.pageStack)
     // 立即初始化数据
     this.initData()
+    let productSeries:string=deviceInfo.productSeries
+    if(productSeries=='VDE') {
+      PreferencesCache.setUserPreference('is_Pura_X', '1')
+    }else {
+      PreferencesCache.setUserPreference('is_Pura_X', '0')
+    }
   }
 
   async initData() {

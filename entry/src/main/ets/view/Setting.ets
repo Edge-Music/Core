@@ -59,6 +59,7 @@ export struct Setting {
   @StorageProp('bottomRect') bottomRect: number = 0;
   @StorageProp('topRect') topRect: number = 0;
   @State groupHeight: number = 0
+  @State  Pura_X:boolean =  PreferencesCache.getUserPreference('is_Pura_X', '0')==='1'? true:false//pura_x尝试适配
   @State scrollIndexHandler: ScrollIndexHandler = new ScrollIndexHandler({
     onIndexChange: (index): void => this.onMenuIconClick(index),
     componentTag: TAG
@@ -532,8 +533,7 @@ export struct Setting {
         .margin({ top: 16 })
 
         this.QRCodeSection()
-
-        Blank()
+        if (!this.Pura_X){Blank()}
 
         Row({ space: 8 }) {
           Button(this.isEditing ? $r('app.string.save_changes') : $r('app.string.confirm_to_add'))
@@ -744,8 +744,8 @@ export struct Setting {
     .height(StyleConstants.FULL_HEIGHT)
     .bindSheet($$this.isShow, this.sheet, {
       showClose: this.nowSheet !== "form",
-      height:SheetSize.FIT_CONTENT,
-      detents: [SheetSize.MEDIUM],
+      height:this.Pura_X?SheetSize.LARGE:SheetSize.FIT_CONTENT,
+      detents:this.Pura_X? [SheetSize.LARGE]:[SheetSize.MEDIUM],
       preferType: this.currentBreakpoint === BreakpointConstants.BREAKPOINT_SM ? SheetType.BOTTOM : SheetType.CENTER
     })
     .gesture(
