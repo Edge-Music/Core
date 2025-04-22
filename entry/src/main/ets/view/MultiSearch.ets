@@ -254,15 +254,6 @@ export struct MultiSearch {
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
     // .systemTransition(NavigationSystemTransitionType.SLIDE_RIGHT)
-    .gesture(
-      SwipeGesture({
-        direction: SwipeDirection.Vertical,
-      }).onAction((event) => {
-        if (event.angle >= 0) {
-          this.pageStack.pop()
-        }
-      })
-    )
   }
 
   /**
