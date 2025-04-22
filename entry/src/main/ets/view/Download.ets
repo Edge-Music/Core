@@ -23,7 +23,7 @@ export struct Download {
   }).linkController(this.scrollController)
 
   onMenuIconClick(index: number) {
-    if (index === 0) {
+    if (index === 0 && this.pageStack.size() > 1) {
       this.pageStack.pop()
     }
   }

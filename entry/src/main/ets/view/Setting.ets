@@ -71,7 +71,7 @@ export struct Setting {
   }
 
   onMenuIconClick(index: number) {
-    if (index === 0) {
+    if (index === 0 && this.pageStack.size() > 1) {
       this.pageStack.pop()
     }
   }

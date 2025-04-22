@@ -328,7 +328,7 @@ export struct MultiSearch {
   }
 
   onMenuIconClick(index: number) {
-    if (index === 0) {
+    if (index === 0 && this.pageStack.size() > 1) {
       this.pageStack.pop();
     } else if (index === 1) {
       // 触发other
