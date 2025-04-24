@@ -26,6 +26,7 @@ export struct LyricsView {
   @State private isAnimating: boolean = false
   @State private showTranslation: boolean = PreferencesCache.showTranslationLyric()
   @StorageProp('current_lyrics_has_translation') private hasTranslation: boolean = false // 是否有翻译歌词
+  @StorageProp('current_lyrics_has_transliteration') private hasTransliteration: boolean = false
   private scroller: Scroller = new Scroller()
   private readonly ANIMATION_DURATION: number = 300
   private readonly SCROLL_ANIMATION_DURATION: number = 400
@@ -80,6 +81,7 @@ export struct LyricsView {
   private toggleTranslation() {
     animateTo({ duration: 300, curve: Curve.EaseInOut }, () => {
       this.showTranslation = !this.showTranslation
+      this.scrollToLyric(this.currentLyricsIndex)
       PreferencesCache.showTranslationLyric(this.showTranslation)
     })
   }
@@ -130,9 +132,32 @@ export struct LyricsView {
                       curve: Curve.EaseInOut
                     })
 
-                  // 翻译/音译歌词 (仅当启用显示翻译且该行有翻译时显示)
+                  // 翻译歌词 (仅当启用显示翻译且该行有翻译时显示)
                   if (this.showTranslation && item.translation) {
                     Text(item.translation)
+                      .fontSize(16)
+                      .fontWeight(FontWeight.Normal)
+                      .fontColor(this.getLyricStyle(index).fontColor)
+                      .opacity(this.getLyricStyle(index).opacity * 0.9)
+                      .margin({ bottom: 4 })
+                      .padding({
+                        left: 16,
+                        right: 16,
+                        top: 4,
+                        bottom: 4
+                      })
+                      .textAlign(TextAlign.Center)
+                      .borderRadius(8)
+                      .backgroundColor('transparent')
+                      .animation({
+                        duration: this.ANIMATION_DURATION,
+                        curve: Curve.EaseInOut
+                      })
+                  }
+
+                  // 音译歌词 (仅当启用显示翻译且该行有翻译时显示)
+                  if (this.showTranslation && item.transliteration) {
+                    Text(item.transliteration)
                       .fontSize(16)
                       .fontWeight(FontWeight.Normal)
                       .fontColor(this.getLyricStyle(index).fontColor)
@@ -174,7 +199,7 @@ export struct LyricsView {
       .width(StyleConstants.FULL_WIDTH)
       .height(StyleConstants.FULL_HEIGHT)
 
-      if (this.hasTranslation&&this.mode_judge===true) {
+      if ((this.hasTranslation || this.hasTransliteration) && this.mode_judge === true) {
         Button({ type: ButtonType.Circle }) {
           Image($r('app.media.ic_translate'))
             .width(24)
