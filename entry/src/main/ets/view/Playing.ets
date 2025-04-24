@@ -41,6 +41,7 @@ struct Playing {
   @State imageColorHex:string='1a2a3a'
   @State currentIndex: number = -1
   @State AOD_ctrl:boolean =false
+  @State IMG_ctrl:boolean =false
   // 独立的按钮动画状态
   @State swipeOffset: number = 0; // 滑动偏移量
   @State isSwipingActive: boolean = false; // 是否正在滑动中
@@ -140,24 +141,28 @@ struct Playing {
   }
   @Builder
   playing_50(){
+    if (this.IMG_ctrl===false){
       this.Title(true)
+    }
       Tabs({ barPosition: BarPosition.End, index: this.selectedTabIndex, controller: this.controller }){
         TabContent(){ Column(){
           Image(cover(this.song?.album?.cover ?? "", 512))
-            .height('50%')
+            .height(this.IMG_ctrl?'90%':'50%')
             .aspectRatio(1)
             .borderRadius(24)
-            .margin({ top: 36 })
+            // .margin({ top: 36 })
               // .geometryTransition('song-cover', { follow: true })
             .transition(TransitionEffect.OPACITY)
             .onClick(() => {
-              if (!this.isWideScreen) {
-                this.controller.changeIndex(1)
-              }
+              this.IMG_ctrl=!this.IMG_ctrl
+              // if (!this.isWideScreen) {
+              //   this.controller.changeIndex(1)
+              // }
             }) //点击图片切换到歌词页面
             .borderRadius(12)
-          this.ProgressBar(false,2)
-          this.PlayerControls()
+          if (this.IMG_ctrl===false){          this.ProgressBar(false,2)
+            this.PlayerControls()}
+
 
         }.expandSafeArea()}
        TabContent(){        Column(){
