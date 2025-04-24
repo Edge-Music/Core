@@ -36,10 +36,11 @@ struct Playing {
   @State isFavorite: boolean = false
   @State playMode: number = PlaylistManager.getPlayMode()
   @State showPlaylist: boolean = false
-  @Watch('onplaying_change')@StorageLink("current_playing_song") song: Song | null = null
+  @StorageLink("current_playing_song") song: Song | null = null
   @State isWideScreen: boolean = false // 是否为宽屏
   @State imageColorHex:string='1a2a3a'
   @State currentIndex: number = -1
+  @State AOD_ctrl:boolean =false
   // 独立的按钮动画状态
   @State swipeOffset: number = 0; // 滑动偏移量
   @State isSwipingActive: boolean = false; // 是否正在滑动中
@@ -57,6 +58,10 @@ struct Playing {
   @State Playing_Next: boolean = true
   @State Fold_judge: boolean = true
   @State is_backblur: boolean = true
+  @StorageLink('topRect') topRect: number = 0
+  // AppStorage.setOrCreate('winWidth', windowSize.width);AppStorage.setOrCreate('winHeight', windowSize.height);
+  @StorageLink('winWidth') winWidth:number =0
+  @StorageLink('winHeight') winHeight:number =0
   private updateTimer: number = -1
   //TAB,swiper控制
   private controller: TabsController = new TabsController()
@@ -71,20 +76,6 @@ struct Playing {
     console.info('Succeeded in obtaining fold status.judge: ' + this.Playing_Next);
   }
 
-  async onplaying_change(){
-    try {
-      const context = getContext(this);
-      let netFile = this.song?.album?.cover + "?param=64y64" ?? "";
-      let httpRequest = http.createHttp()
-      let data = await httpRequest.request(netFile);
-      const resourceMgr: resourceManager.ResourceManager = context.resourceManager;
-      let imageDealData = await ImageUtils.getImageDealDataByArr(data.result as ArrayBuffer);//imageDealData.imageColorHex.length
-      this.imageColorHex=imageDealData.imageColorHex
-    } catch (e) {
-      hilog.error(0x0000, 'TestTag', 'Failed error.code is %{public}d,error.message is %{public}s', e.code,
-        e.message);
-    }
-  }
   @State sheetType: "playlist" | "timer" = "playlist" // 用于控制底部弹出表单的类型，默认为播放列表
 
   @Builder
@@ -148,109 +139,172 @@ struct Playing {
     });
   }
   @Builder
+  playing_50(){
+      this.Title(true)
+      Tabs({ barPosition: BarPosition.End, index: this.selectedTabIndex, controller: this.controller }){
+        TabContent(){ Column(){
+          Image(cover(this.song?.album?.cover ?? "", 512))
+            .height('50%')
+            .aspectRatio(1)
+            .borderRadius(24)
+            .margin({ top: 36 })
+              // .geometryTransition('song-cover', { follow: true })
+            .transition(TransitionEffect.OPACITY)
+            .onClick(() => {
+              if (!this.isWideScreen) {
+                this.controller.changeIndex(1)
+              }
+            }) //点击图片切换到歌词页面
+            .borderRadius(12)
+          this.ProgressBar(false,2)
+          this.PlayerControls()
+
+        }.expandSafeArea()}
+       TabContent(){        Column(){
+         LyricsView({
+           currentTimeMs: this.currentTime,
+           lyrics: this.song?.meta?.lyric?.normal,
+           translationLyrics: this.song?.meta?.lyric?.translation || this.song?.meta?.lyric?.transliteration,
+           mode_judge: false,
+           pianyi_num_xiuzheng:-1
+         }).width('100%').layoutWeight(1)
+       }}
+      }.layoutWeight(1).width('100%')            .scrollable(true)
+      .barMode(BarMode.Fixed)
+      .layoutWeight(1)
+      .clip(false)
+      .barHeight(0)
+      .onChange((index: number) => {
+        animateTo({ duration: 400, curve: Curve.EaseInOut }, () => {
+          this.selectedTabIndex = index
+        })
+      })
+    .expandSafeArea()
+
+  }
+  @Builder
   //————————————————————————
   // 函数名：Playing_HorizontalMode()
   // 参数：null
   // 功能：手机横屏播放器
   //——————————————————————————
   Playing_HorizontalMode() {
-    Swiper(this.swiperController){
-      Row() {
-        //封面图
-        Stack(){
+    if (this.AOD_ctrl){
+
+        Column(){
+          Row(){
+            Image(cover(this.song?.album?.cover ?? "", 512))
+              .width(50)
+            Column(){
+              Text(this.song?.name || "未知歌曲")
+                .fontColor(Color.White)
+              Text(this.song?.artists ? this.song.artists.map(artist => artist.name).join(" / ") : "未知艺术家")
+                .fontColor(Color.White)
+            }.margin({left:24}).height(50).alignItems(HorizontalAlign.Start).justifyContent(FlexAlign.SpaceBetween).width(200)
+            // .backgroundColor(Color.Blue)
+            Row(){
+              LyricsView({
+                currentTimeMs: this.currentTime,
+                lyrics: this.song?.meta?.lyric?.normal,
+                translationLyrics: this.song?.meta?.lyric?.translation || this.song?.meta?.lyric?.transliteration,
+                mode_judge: false,
+                pianyi_num_xiuzheng:1
+              }).width('100%').layoutWeight(1)
+              // Column(){
+              //   this.PlayerControls(false)
+              // }.width('50%')
+
+              // Button('test').onClick(()=>{
+              //   this.AOD_ctrl=false
+              //   screen_on(true)
+              // }).backgroundColor('#000000')
+            }.height(60).layoutWeight(1).justifyContent(FlexAlign.End)
+
+          }.width('100%').padding({left:18,right:18}).height(100)
+        }.width('100%').height('100%').backgroundColor('#000000').expandSafeArea().padding({top:18}).onClick(()=>{
+          this.AOD_ctrl=false
+          screen_on(true)
+        }).onAppear( () => {
+          screen_on(true)
+        }).onDisAppear(() => {
+          screen_on(false)
+        })
+    }else {
+      Swiper(this.swiperController){
+        Row() {
+          //封面图
           Column() {
-            Stack(){
-              Image(cover(this.song?.album?.cover ?? "", 512))
-                .geometryTransition("picture", { follow: false })
-                .transition(TransitionEffect.OPACITY)
-                .width('100%')
-                .aspectRatio(1)
-                .clip(true)
-                .onClick(()=>{this.swiperController.showNext()})
-                .shadow({
-                  radius: 0,
-                  color: 'rgba(0, 0, 0, 0.15)',
-                  offsetX: 0,
-                  offsetY: 2
-                })
-                .onAppear(async ()=>{
-                  try {
-                    const context = getContext(this);
-                    const resourceMgr: resourceManager.ResourceManager = context.resourceManager;
-                    let netFile = this.song?.album?.cover + "?param=64y64" ?? "";
-                    let httpRequest = http.createHttp()
-                    let data = await httpRequest.request(netFile);
-                    let imageDealData = await ImageUtils.getImageDealDataByArr(data.result as ArrayBuffer);//imageDealData.imageColorHex.length
-                    this.imageColorHex=imageDealData.imageColorHex
-                  } catch (e) {
-                    hilog.error(0x0000, 'TestTag', 'Failed error.code is %{public}d,error.message is %{public}s', e.code,
-                      e.message);
-                  }
-                })
-                .borderRadius(this.img_playing_ctrl==='1'?0:24)
-                .gesture(
-                  PanGesture({ direction: PanDirection.Horizontal })
-                    .onActionStart(() => {
-                      this.isSwipingActive = true;
-                    })
-                    .onActionUpdate((event) => {
-                      // 更新滑动偏移量
-                      this.swipeOffset = event.offsetX;
+            Image(cover(this.song?.album?.cover ?? "", 512))
+              .geometryTransition("picture", { follow: false })
+              .transition(TransitionEffect.OPACITY)
+              .width('100%')
+              .aspectRatio(1)
+              .clip(true)
+              .shadow({
+                radius: 0,
+                color: 'rgba(0, 0, 0, 0.15)',
+                offsetX: 0,
+                offsetY: 2
+              })
+              .onClick(()=>{
+                this.swiperController.showNext()
+              })
+              .borderRadius(this.img_playing_ctrl==='1'?0:24)
+              .gesture(
+                PanGesture({ direction: PanDirection.Horizontal })
+                  .onActionStart(() => {
+                    this.isSwipingActive = true;
+                  })
+                  .onActionUpdate((event) => {
+                    // 更新滑动偏移量
+                    this.swipeOffset = event.offsetX;
 
-                      // 确定滑动方向
-                      if (event.offsetX > 10 &&this.img_playing_ctrl==='1') {
-                        this.swipeDirection = 'right'; // 向右滑动，上一首
-                      } else if (event.offsetX < -10) {
-                        this.swipeDirection = 'left'; // 向左滑动，下一首
-                      } else {
-                        this.swipeDirection = '';
-                      }
-                    })
-                    .onActionEnd(() => {
-                      // 根据最终偏移量决定是切换歌曲还是回弹
-                      if (this.swipeOffset > this.SWIPE_THRESHOLD &&this.img_playing_ctrl==='1') {
-                        // 向右滑动超过阈值，切换到上一首
-                        this.handleSongChange('prev');
-                      }   else if (this.swipeOffset < -this.SWIPE_THRESHOLD &&this.img_playing_ctrl==='0') {
-                        this.swiperController.showNext()
-                      }else if (this.swipeOffset < -this.SWIPE_THRESHOLD&&this.img_playing_ctrl==='1') {
-                        // 向左滑动超过阈值，切换到下一首
-                        this.handleSongChange('next');
-                      } else {
-                        // 未达到阈值，回弹
-                        animateTo({
-                          duration: 250,
-                          curve: Curve.EaseOut,
-                          delay: 0,
-                          onFinish: () => {
-                            this.isSwipingActive = false;
-                            this.swipeDirection = '';
-                          }
-                        }, () => {
-                          this.swipeOffset = 0;
-                        });
-                      }
-                    })
-                )
-                .borderImage({
-                  source: {
-                    angle: 90,
-                    direction: GradientDirection.Left,
-                    colors: [[0xAEE1E1, 0.0], [0xD3E0DC, 0.3], [0xFCD1D1, 1.0]]
-                  },
-                  slice: { top: this.img_playing_ctrl==='1'?10:0, bottom: this.img_playing_ctrl==='1'?10:0, left: this.img_playing_ctrl==='1'?10:0, right: this.img_playing_ctrl==='1'?10:0 },
-                  width: { top:this.img_playing_ctrl==='1'? "10px":"0px", bottom: this.img_playing_ctrl==='1'? "10px":"0px", left: this.img_playing_ctrl==='1'? "10px":"0px", right: this.img_playing_ctrl==='1'? "10px":"0px" },
-                  repeat: RepeatMode.Stretch,
-                  fill: false
-                })
-              TextClock()
-                .fontColor(`#ff${this.imageColorHex}`)
-                .format('HH:mm')
-                .blendMode(BlendMode.PLUS, BlendApplyType.OFFSCREEN)
-                .margin(12)
-              // .backgroundBlurStyle(BlurStyle.Thin)
-            }.alignContent(Alignment.BottomEnd)
-
+                    // 确定滑动方向
+                    if (event.offsetX > 10 &&this.img_playing_ctrl==='1') {
+                      this.swipeDirection = 'right'; // 向右滑动，上一首
+                    } else if (event.offsetX < -10) {
+                      this.swipeDirection = 'left'; // 向左滑动，下一首
+                    } else {
+                      this.swipeDirection = '';
+                    }
+                  })
+                  .onActionEnd(() => {
+                    // 根据最终偏移量决定是切换歌曲还是回弹
+                    if (this.swipeOffset > this.SWIPE_THRESHOLD &&this.img_playing_ctrl==='1') {
+                      // 向右滑动超过阈值，切换到上一首
+                      this.handleSongChange('prev');
+                    }   else if (this.swipeOffset < -this.SWIPE_THRESHOLD &&this.img_playing_ctrl==='0') {
+                      this.swiperController.showNext()
+                    }else if (this.swipeOffset < -this.SWIPE_THRESHOLD&&this.img_playing_ctrl==='1') {
+                      // 向左滑动超过阈值，切换到下一首
+                      this.handleSongChange('next');
+                    } else {
+                      // 未达到阈值，回弹
+                      animateTo({
+                        duration: 250,
+                        curve: Curve.EaseOut,
+                        delay: 0,
+                        onFinish: () => {
+                          this.isSwipingActive = false;
+                          this.swipeDirection = '';
+                        }
+                      }, () => {
+                        this.swipeOffset = 0;
+                      });
+                    }
+                  })
+              )
+              .borderImage({
+                source: {
+                  angle: 90,
+                  direction: GradientDirection.Left,
+                  colors: [[0xAEE1E1, 0.0], [0xD3E0DC, 0.3], [0xFCD1D1, 1.0]]
+                },
+                slice: { top: this.img_playing_ctrl==='1'?10:0, bottom: this.img_playing_ctrl==='1'?10:0, left: this.img_playing_ctrl==='1'?10:0, right: this.img_playing_ctrl==='1'?10:0 },
+                width: { top:this.img_playing_ctrl==='1'? "10px":"0px", bottom: this.img_playing_ctrl==='1'? "10px":"0px", left: this.img_playing_ctrl==='1'? "10px":"0px", right: this.img_playing_ctrl==='1'? "10px":"0px" },
+                repeat: RepeatMode.Stretch,
+                fill: false
+              })
           }
           .padding({
             left: 45,
@@ -263,215 +317,171 @@ struct Playing {
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Center)
 
-        }.alignContent(Alignment.BottomEnd)
+          Column() {
+            LyricsView({
+              currentTimeMs: this.currentTime,
+              lyrics: this.song?.meta?.lyric?.normal,
+              translationLyrics: this.song?.meta?.lyric?.translation || this.song?.meta?.lyric?.transliteration,
+              mode_judge: false
+            }).width('100%').layoutWeight(1)
 
+            Text((this.song?.name || "未知歌曲") + '/' +
+              (this.song?.artists ? this.song.artists.map(artist => artist.name).join(" / ") : "未知艺术家"))
+              .fontSize(this.getFontSize(this.song?.name ?? "", 16, 16))// .fontWeight(FontWeight.Bold)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .fontColor('rgba(255, 255, 255, 0.6)')
+              .height(24) // 固定高度确保布局稳定
+            Column(){this.PlayerControls()}.width('50%')
+            Column(){
+              this.ProgressBar(true,4,false)
+            }.width('65%')
 
-        Column() {
-          LyricsView({
-            currentTimeMs: this.currentTime,
-            lyrics: this.song?.meta?.lyric?.normal,
-            translationLyrics: this.song?.meta?.lyric?.translation || this.song?.meta?.lyric?.transliteration,
-            mode_judge: false
-          }).width('100%').layoutWeight(1)
+          }
+          .padding(18)
+          .width('65%')
+        }.alignItems(VerticalAlign.Center).justifyContent(FlexAlign.SpaceBetween).onAppear(()=>{        PreferencesCache.setUserPreference('Playing_HorizontalMode_index','0')
+          console.info("zhishi0")})
+        Row() {
+          //封面图
+          Column() {
+            Image(cover(this.song?.album?.cover ?? "", 512))
+              .width('60%')
+              .aspectRatio(1)
+              .borderRadius(this.img_playing_ctrl==='1'?0: 24)
+              .borderImage({
+                source: {
+                  angle: 90,
+                  direction: GradientDirection.Left,
+                  colors: [[0xAEE1E1, 0.0], [0xD3E0DC, 0.3], [0xFCD1D1, 1.0]]
+                },
+                slice: { top: this.img_playing_ctrl==='1'?10:0, bottom: this.img_playing_ctrl==='1'?10:0, left: this.img_playing_ctrl==='1'?10:0, right: this.img_playing_ctrl==='1'?10:0 },
+                width: { top:this.img_playing_ctrl==='1'? "10px":"0px", bottom: this.img_playing_ctrl==='1'? "10px":"0px", left: this.img_playing_ctrl==='1'? "10px":"0px", right: this.img_playing_ctrl==='1'? "10px":"0px" },
+                repeat: RepeatMode.Stretch,
+                fill: false
+              })
+              .gesture(
+                PanGesture({ direction: PanDirection.Horizontal })
+                  .onActionStart(() => {
+                    this.isSwipingActive = true;
+                  })
+                  .onActionUpdate((event) => {
+                    // 更新滑动偏移量
+                    this.swipeOffset = event.offsetX;
 
-          Text((this.song?.name || "未知歌曲") + '/' +
-            (this.song?.artists ? this.song.artists.map(artist => artist.name).join(" / ") : "未知艺术家"))
-            .fontSize(this.getFontSize(this.song?.name ?? "", 16, 16))// .fontWeight(FontWeight.Bold)
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-            .fontColor('rgba(255, 255, 255, 0.6)')
-            .height(24) // 固定高度确保布局稳定
-          Column(){this.PlayerControls(this.Pura_X==='1'?false:true)}.width('50%')
-          Column(){
-            this.ProgressBar(true,4,false)
-          }.width('65%')
+                    // 确定滑动方向
+                    if (event.offsetX > 10 &&this.img_playing_ctrl==='1') {
+                      this.swipeDirection = 'right'; // 向右滑动，上一首
+                    } else if (event.offsetX < -10) {
+                      this.swipeDirection = 'left'; // 向左滑动，下一首
+                    } else {
+                      this.swipeDirection = '';
+                    }
+                  })
+                  .onActionEnd(() => {
+                    // 根据最终偏移量决定是切换歌曲还是回弹
+                    if (this.swipeOffset > this.SWIPE_THRESHOLD &&this.img_playing_ctrl==='1') {
+                      // 向右滑动超过阈值，切换到上一首
+                      this.handleSongChange('prev');
+                    }                else  if (this.swipeOffset > this.SWIPE_THRESHOLD &&this.img_playing_ctrl==='0') {
+                      // 向右滑动超过阈值，切换到上一首
+                      this.swiperController.showPrevious()
+                    }  else if (this.swipeOffset < -this.SWIPE_THRESHOLD&&this.img_playing_ctrl==='1') {
+                      // 向左滑动超过阈值，切换到下一首
+                      this.handleSongChange('next');
+                    } else {
+                      // 未达到阈值，回弹
+                      animateTo({
+                        duration: 250,
+                        curve: Curve.EaseOut,
+                        delay: 0,
+                        onFinish: () => {
+                          this.isSwipingActive = false;
+                          this.swipeDirection = '';
+                        }
+                      }, () => {
+                        this.swipeOffset = 0;
+                      });
+                    }
+                  })
+              )
+              .geometryTransition("picture", { follow: false })
+              .transition(TransitionEffect.OPACITY)
+              .margin({bottom:5,top:20})
+              .onClick(()=>{
+                this.swiperController.showPrevious()
+              })
+            this.ProgressBar(false)
 
+            Text((this.song?.name || "未知歌曲") + '/' +
+              (this.song?.artists ? this.song.artists.map(artist => artist.name).join(" / ") : "未知艺术家"))
+              .fontSize(this.getFontSize(this.song?.name ?? "", 16, 16))// .fontWeight(FontWeight.Bold)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .fontColor(Color.White)
+              .height(24) // 固定高度确保布局稳定
+              .margin({top:5})
+            this.PlayerControls(false)
+          }
+          .padding({
+            left: 45,
+            top: 12,
+            bottom: 12,
+            right: 12
+          })
+          .width('35%')
+          .height('100%')
+          .justifyContent(FlexAlign.Center)
+          .alignItems(HorizontalAlign.Center)
+          Column() {
+            LyricsView({
+              currentTimeMs: this.currentTime,
+              lyrics: this.song?.meta?.lyric?.normal,
+              translationLyrics: this.song?.meta?.lyric?.translation || this.song?.meta?.lyric?.transliteration,
+              mode_judge: false
+            }).width('100%').layoutWeight(1)
+          }
+          .padding(18)
+          .width('65%')
+        }.alignItems(VerticalAlign.Top).justifyContent(FlexAlign.SpaceBetween)
+      }.loop(false)
+      .onAppear(()=>{
+        this.img_playing_ctrl=  PreferencesCache.getUserPreference('img_playing_ctrl','0')
+      })
+      .effectMode(EdgeEffect.None)
+      .curve(Curve.Smooth)
+      .onChange((index:number)=>{
+        if (index===1) {
+          PreferencesCache.setUserPreference('Playing_HorizontalMode_index','1')
+          console.info("jizhishi_Swiperi_index1")
+        }else {
+          PreferencesCache.setUserPreference('Playing_HorizontalMode_index','0')
+          console.info("jizhishi"+ this.winHeight)
         }
-        .padding(18)
-        .width('65%')
-      }.alignItems(VerticalAlign.Center).justifyContent(FlexAlign.SpaceBetween).onAppear(()=>{        PreferencesCache.setUserPreference('Playing_HorizontalMode_index','0')
-        console.info("zhishi0")})
-      Row() {
-        //封面图
-        Column() {
-          Image(cover(this.song?.album?.cover ?? "", 512))
-            .width('60%')
-            .aspectRatio(1)
-            .borderRadius(this.img_playing_ctrl==='1'?0: 24)
-            .borderImage({
-              source: {
-                angle: 90,
-                direction: GradientDirection.Left,
-                colors: [[0xAEE1E1, 0.0], [0xD3E0DC, 0.3], [0xFCD1D1, 1.0]]
-              },
-              slice: { top: this.img_playing_ctrl==='1'?10:0, bottom: this.img_playing_ctrl==='1'?10:0, left: this.img_playing_ctrl==='1'?10:0, right: this.img_playing_ctrl==='1'?10:0 },
-              width: { top:this.img_playing_ctrl==='1'? "10px":"0px", bottom: this.img_playing_ctrl==='1'? "10px":"0px", left: this.img_playing_ctrl==='1'? "10px":"0px", right: this.img_playing_ctrl==='1'? "10px":"0px" },
-              repeat: RepeatMode.Stretch,
-              fill: false
-            })
-            .onAppear(async ()=>{
-              try {
-                const context = getContext(this);
-                const resourceMgr: resourceManager.ResourceManager = context.resourceManager;
-                let netFile = this.song?.album?.cover + "?param=64y64" ?? "";
-                let httpRequest = http.createHttp()
-                let data = await httpRequest.request(netFile);
-                let imageDealData = await ImageUtils.getImageDealDataByArr(data.result as ArrayBuffer);//imageDealData.imageColorHex.length
-                this.imageColorHex=imageDealData.imageColorHex
-              } catch (e) {
-                hilog.error(0x0000, 'TestTag', 'Failed error.code is %{public}d,error.message is %{public}s', e.code,
-                  e.message);
-              }
-            })
-            .gesture(
-              PanGesture({ direction: PanDirection.Horizontal })
-                .onActionStart(() => {
-                  this.isSwipingActive = true;
-                })
-                .onActionUpdate((event) => {
-                  // 更新滑动偏移量
-                  this.swipeOffset = event.offsetX;
-
-                  // 确定滑动方向
-                  if (event.offsetX > 10 &&this.img_playing_ctrl==='1') {
-                    this.swipeDirection = 'right'; // 向右滑动，上一首
-                  } else if (event.offsetX < -10) {
-                    this.swipeDirection = 'left'; // 向左滑动，下一首
-                  } else {
-                    this.swipeDirection = '';
-                  }
-                })
-                .onActionEnd(() => {
-                  // 根据最终偏移量决定是切换歌曲还是回弹
-                  if (this.swipeOffset > this.SWIPE_THRESHOLD &&this.img_playing_ctrl==='1') {
-                    // 向右滑动超过阈值，切换到上一首
-                    this.handleSongChange('prev');
-                  }                else  if (this.swipeOffset > this.SWIPE_THRESHOLD &&this.img_playing_ctrl==='0') {
-                    // 向右滑动超过阈值，切换到上一首
-                    this.swiperController.showPrevious()
-                  }  else if (this.swipeOffset < -this.SWIPE_THRESHOLD&&this.img_playing_ctrl==='1') {
-                    // 向左滑动超过阈值，切换到下一首
-                    this.handleSongChange('next');
-                  } else {
-                    // 未达到阈值，回弹
-                    animateTo({
-                      duration: 250,
-                      curve: Curve.EaseOut,
-                      delay: 0,
-                      onFinish: () => {
-                        this.isSwipingActive = false;
-                        this.swipeDirection = '';
-                      }
-                    }, () => {
-                      this.swipeOffset = 0;
-                    });
-                  }
-                })
-            )
-            .margin({bottom:5,top:20})
-            .onClick(()=>{
-              this.swiperController.showPrevious()
-            })
-          this.ProgressBar(false)
-
-          Text((this.song?.name || "未知歌曲") + '/' +
-            (this.song?.artists ? this.song.artists.map(artist => artist.name).join(" / ") : "未知艺术家"))
-            .fontSize(this.getFontSize(this.song?.name ?? "", 16, 16))// .fontWeight(FontWeight.Bold)
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-            .fontColor(Color.White)
-            .height(24) // 固定高度确保布局稳定
-            .margin({top:5})
-          this.PlayerControls(false)
+      })
+      .indicator(
+        new DotIndicator().top(10)
+          // .itemWidth(15)
+          // .itemHeight(15)
+          // .selectedItemWidth(15)
+          // .selectedItemHeight(15)
+          .color(Color.Gray)
+          .selectedColor(Color.White)
+      )
+      .onAppear(() => {
+        if (PreferencesCache.getUserPreference('Playing_HorizontalMode_index')==='1') {
+          this.swiperController.changeIndex(1)
+        }else{
+          this.swiperController.changeIndex(0)
         }
-        .padding({
-          left: 45,
-          top: 12,
-          bottom: 12,
-          right: 12
-        })
-        .width('35%')
-        .height('100%')
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
-        Column() {
-          LyricsView({
-            currentTimeMs: this.currentTime,
-            lyrics: this.song?.meta?.lyric?.normal,
-            translationLyrics: this.song?.meta?.lyric?.translation || this.song?.meta?.lyric?.transliteration,
-            mode_judge: false
-          }).width('100%').layoutWeight(1)
-        }
-        .padding(18)
-        .width('65%')
-      }.alignItems(VerticalAlign.Top).justifyContent(FlexAlign.SpaceBetween)
-    }.loop(false)
-    .onAppear( ()=>{
-      this.img_playing_ctrl=  PreferencesCache.getUserPreference('img_playing_ctrl','0')
-      this.is_backblur=false
-
-    })
-    .onDisAppear(()=>{
-      this.is_backblur=true
-    })
-    .linearGradient({
-      direction: GradientDirection.Bottom,
-      repeating: false,
-      colors: [[`#ff${this.imageColorHex}`, 0.0], [`#aa${this.imageColorHex}`, 0.3], [`#cc${this.imageColorHex}`, 0.5], [`#ff${this.imageColorHex}`, 1.0]]
-    })
-    .backgroundColor($r('sys.color.ohos_id_color_background'))
-    .animation({
-      duration: 200,
-      curve: Curve.Friction,
-      iterations: 1,
-      playMode: PlayMode.Alternate
-    })
-    .effectMode(EdgeEffect.None)
-    .curve(Curve.Smooth)
-    .onChange((index:number)=>{
-      if (index===1) {
-        PreferencesCache.setUserPreference('Playing_HorizontalMode_index','1')
-        console.info("jizhishi_Swiperi_index1")
-      }else {
-        PreferencesCache.setUserPreference('Playing_HorizontalMode_index','0')
-        console.info("jizhishi_Swiperi_index0")
-      }
-    })
-    .indicator(
-      new DotIndicator().top(10)
-        // .itemWidth(15)
-        // .itemHeight(15)
-        // .selectedItemWidth(15)
-        // .selectedItemHeight(15)
-        .color(Color.Gray)
-        .selectedColor(Color.White)
-    )
-    .expandSafeArea()
-    .onAppear(async () => {
-      try {
-        const context = getContext(this);
-        const resourceMgr: resourceManager.ResourceManager = context.resourceManager;
-        let netFile = this.song?.album?.cover + "?param=64y64" ?? "";
-        let httpRequest = http.createHttp()
-        let data = await httpRequest.request(netFile);
-        let imageDealData = await ImageUtils.getImageDealDataByArr(data.result as ArrayBuffer);//imageDealData.imageColorHex.length
-        this.imageColorHex=imageDealData.imageColorHex
-      } catch (e) {
-        hilog.error(0x0000, 'TestTag', 'Failed error.code is %{public}d,error.message is %{public}s', e.code,
-          e.message);
-      }
-      if (PreferencesCache.getUserPreference('Playing_HorizontalMode_index')==='1') {
-        this.swiperController.changeIndex(1)
-      }else{
-        this.swiperController.changeIndex(0)
-      }
-      screen_on(true)
-    }).onDisAppear(() => {
-      screen_on(false)
-    })
+        screen_on(true)
+      }).onDisAppear(() => {
+        screen_on(false)
+      })}
   }
 
   async aboutToAppear() {
+    console.info("jizhishi"+ this.winHeight)
     const player = await avPlayerManager.getAVPlayerInstance()
     this.Playing_Next = isHorizontalMode()
     // 初始化当前时间和持续时间
@@ -756,7 +766,7 @@ struct Playing {
           this.isPrevButtonPressed = false
         }
       })
-      .onClick(() => {
+      .onClick(async () => {
         ClickUtil.debounce(async () => {
           animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
             const prevSong = PlaylistManager.playPrevious()
@@ -1190,7 +1200,7 @@ struct Playing {
   }
 
   @Builder
-  Title() {
+  Title(judge:boolean=false) {
     Row() {
       Image($r('app.media.ic_arrow_down_3'))
         .width(36)
@@ -1209,7 +1219,16 @@ struct Playing {
           this.isBackButtonPressed = true
           this.pageStack.pop()
         })
-      if (this.Pura_X==='1'){
+      if (judge){
+        Text((this.song?.name || "未知歌曲") + '/' +
+          (this.song?.artists ? this.song.artists.map(artist => artist.name).join(" / ") : "未知艺术家"))
+          .fontSize(this.getFontSize(this.song?.name ?? "", 16, 16))// .fontWeight(FontWeight.Bold)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .fontColor('rgba(255, 255, 255, 0.6)')
+          // .height(24) // 固定高度确保布局稳定
+      }
+      if (this.Pura_X==='1'||judge){
         Blank().layoutWeight(1)
         Button({ type: ButtonType.Circle }) {
           Image(this.isFavorite ? $r('app.media.ic_heart_fill') : $r('app.media.ic_heart'))
@@ -1286,15 +1305,17 @@ struct Playing {
       FolderStack() {
         // 背景
 
-          this.BlurBackground(this.is_backblur)
+          this.BlurBackground()
 
 
         Column() {
           // 标题栏
+          if (this.winHeight<1500){
 
-
+            this.playing_50()
+          }
           // 根据屏幕尺寸显示不同布局
-          if (this.isWideScreen && this.Playing_Next == false) {
+          else if (this.isWideScreen && this.Playing_Next == false) {
             this.Title()
             // 宽屏布局 - 左右分栏
             Row() {

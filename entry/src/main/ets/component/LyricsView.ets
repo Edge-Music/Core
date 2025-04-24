@@ -37,6 +37,7 @@ export struct LyricsView {
   @Watch('onTranslationLyricsChanged') @Prop translationLyrics: string = '' // 翻译/音译歌词
   @State private parsedLyrics: Array<LyricsLine> = []
   @State mode_judge:boolean = false
+  @State pianyi_num_xiuzheng:number = 0
   @State private currentIndex: number = -1
   @State private isAnimating: boolean = false
   @State private showTranslation: boolean = PreferencesCache.showTranslationLyric()
@@ -202,7 +203,7 @@ export struct LyricsView {
     }
 
     // 保持在视图中间偏上的位置，很显然这是一个经验修正
-    const targetIndex = Math.max(0,this.mode_judge? index - (5 * (this.showTranslation ? 0.6 : 1)):index-1)
+    const targetIndex = Math.max(0,this.mode_judge? index - (5 * (this.showTranslation ? 0.6 : 1)):index-1+this.pianyi_num_xiuzheng)
 
     animateTo({
       duration: this.SCROLL_ANIMATION_DURATION,
@@ -320,7 +321,7 @@ export struct LyricsView {
           .expandSafeArea()
           .contentEndOffset(10)
           .contentStartOffset(10)
-          .fadingEdge(true,{fadingEdgeLength:LengthMetrics.vp(80)})
+          // .fadingEdge(true,{fadingEdgeLength:LengthMetrics.vp(80)})
         }
       }
       .width(StyleConstants.FULL_WIDTH)
