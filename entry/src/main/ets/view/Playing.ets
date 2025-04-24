@@ -19,6 +19,8 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import { resourceManager } from '@kit.LocalizationKit';
 import { http } from '@kit.NetworkKit';
 import ImageUtils from '../util/ImageUtils';
+import { promptAction } from '@kit.ArkUI'
+
 @Builder
 export function PlayingBuilder() {
   Playing()
@@ -184,6 +186,7 @@ struct Playing {
           this.selectedTabIndex = index
         })
       })
+      .onAppear(()=>{promptAction.showToast({ message: '点击图片可全屏显示封面' })})
     .expandSafeArea()
 
   }
