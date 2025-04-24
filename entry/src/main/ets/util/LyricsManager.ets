@@ -51,6 +51,8 @@ class LyricsManager {
     this.currentTimeMs = 0
     this.parsedLyrics = []
     this.currentIndex = 0
+    this.hasTranslation = false
+    this.hasTransliteration = false
   }
 
   async setLyricsInterval(){

@@ -204,7 +204,7 @@ export struct LyricsView {
           Image($r('app.media.ic_translate'))
             .width(24)
             .height(24)
-            .fillColor(this.showTranslation ? Color.White : 'rgba(255, 255, 255, 0.6)')
+            .fillColor((this.hasTranslation || this.hasTransliteration) ? Color.White : 'rgba(255, 255, 255, 0.6)')
         }
         .width(48)
         .height(48)
