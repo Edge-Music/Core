@@ -323,7 +323,7 @@ struct Library {
                   subTitleIndex: this.subTitleIndex,
                   adapters: this.adapters,
                   onPlaylistSelected: (item: Playlist) => {
-                    PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
+                    PushPathHelper.pushPathImmediately(this.pageStack, "Playlist", async () => {
                       const playlist = await SourceAdapter.getPlaylistDetail(item)
                       AppStorage.setOrCreate('current_playlist_data', playlist)
                     })

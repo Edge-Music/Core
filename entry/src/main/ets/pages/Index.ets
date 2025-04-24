@@ -294,7 +294,7 @@ struct Index_page {
               .width(this.coverWidth)
               .padding(this.segmentPadding)
               .onClick(async () => {
-                PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
+                PushPathHelper.pushPathImmediately(this.pageStack, "Playlist", async () => {
                   const playlist = await SourceAdapter.getPlaylistDetail(item)
                   AppStorage.setOrCreate('current_playlist_data', playlist)
                 })
@@ -333,7 +333,7 @@ struct Index_page {
               .width(this.coverWidth)
               .padding(this.segmentPadding)
               .onClick(() => {
-                PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
+                PushPathHelper.pushPathImmediately(this.pageStack, "Playlist", async () => {
                   // 歌手复用歌单UI
                   const playlist = await SourceAdapter.getArtistDetail(item)
                   AppStorage.setOrCreate('current_playlist_data', playlist)
@@ -368,8 +368,9 @@ struct Index_page {
               .width(this.coverWidth)
               .padding(this.segmentPadding)
               .onClick(async () => {
-                PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
+                PushPathHelper.pushPathImmediately(this.pageStack, "Playlist", async () => {
                   const playlist = await SourceAdapter.getPlaylistDetail(item)
+                  console.log("zmhzmh");
                   AppStorage.setOrCreate('current_playlist_data', playlist)
                 })
               })
