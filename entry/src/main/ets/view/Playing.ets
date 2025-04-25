@@ -20,7 +20,7 @@ import { resourceManager } from '@kit.LocalizationKit';
 import { http } from '@kit.NetworkKit';
 import ImageUtils from '../util/ImageUtils';
 import { promptAction } from '@kit.ArkUI'
-
+import { display } from '@kit.ArkUI';
 @Builder
 export function PlayingBuilder() {
   Playing()
@@ -187,6 +187,52 @@ struct Playing {
         })
       })
       .onAppear(()=>{promptAction.showToast({ message: '点击图片可全屏显示封面' })})
+    .expandSafeArea()
+
+  }
+  @Builder
+  playing_30(){
+    Tabs({ barPosition: BarPosition.End, index: this.selectedTabIndex, controller: this.controller }){
+      TabContent(){ Column(){
+        Image(cover(this.song?.album?.cover ?? "", 512))
+          .height(this.IMG_ctrl?'90%':'50%')
+          .aspectRatio(1)
+          .borderRadius(24)
+            // .margin({ top: 36 })
+            // .geometryTransition('song-cover', { follow: true })
+          .transition(TransitionEffect.OPACITY)
+          .onClick(() => {
+            this.IMG_ctrl=!this.IMG_ctrl
+            // if (!this.isWideScreen) {
+            //   this.controller.changeIndex(1)
+            // }
+          }) //点击图片切换到歌词页面
+          .borderRadius(12)
+        if (this.IMG_ctrl===false){          this.ProgressBar(false,2)
+          this.PlayerControls(false)}
+
+
+      }.expandSafeArea()}
+      TabContent(){        Column(){
+        LyricsView({
+          currentTimeMs: this.currentTime,
+          lyrics: this.song?.meta?.lyric?.normal,
+          translationLyrics: this.song?.meta?.lyric?.translation || this.song?.meta?.lyric?.transliteration,
+          mode_judge: false,
+          pianyi_num_xiuzheng:0
+        }).width('100%').layoutWeight(1)
+      }}
+    }.layoutWeight(1).width('100%')            .scrollable(true)
+    .barMode(BarMode.Fixed)
+    .layoutWeight(1)
+    .clip(false)
+    .barHeight(0)
+    .onChange((index: number) => {
+      animateTo({ duration: 400, curve: Curve.EaseInOut }, () => {
+        this.selectedTabIndex = index
+      })
+    })
+    .onAppear(()=>{promptAction.showToast({ message: '点击图片可全屏显示封面' })})
     .expandSafeArea()
 
   }
@@ -489,7 +535,8 @@ struct Playing {
   }
 
   async aboutToAppear() {
-    console.info("jizhishi"+ this.winHeight)
+    console.info("jizhishiwinWidth"+ this.winWidth)
+    console.info("jizhishiwinHeight"+ this.winHeight)
     const player = await avPlayerManager.getAVPlayerInstance()
     this.Playing_Next = isHorizontalMode()
     // 初始化当前时间和持续时间
@@ -1232,6 +1279,7 @@ struct Playing {
           (this.song?.artists ? this.song.artists.map(artist => artist.name).join(" / ") : "未知艺术家"))
           .fontSize(this.getFontSize(this.song?.name ?? "", 16, 16))// .fontWeight(FontWeight.Bold)
           .maxLines(1)
+          .width('40%')
           .textOverflow({ overflow: TextOverflow.Ellipsis })
           .fontColor('rgba(255, 255, 255, 0.6)')
           // .height(24) // 固定高度确保布局稳定
@@ -1318,9 +1366,12 @@ struct Playing {
 
         Column() {
           // 标题栏
-          if (this.winHeight<1500){
-
-            this.playing_50()
+          if (this.winHeight<1500&&this.winWidth<1500){
+            if(this.winHeight>900&&this.Pura_X==='0'||this.winHeight>600&&this.Pura_X==='1'){
+              this.playing_50()
+            }else{
+              this.playing_30()
+            }
           }
           // 根据屏幕尺寸显示不同布局
           else if (this.isWideScreen && this.Playing_Next == false) {
