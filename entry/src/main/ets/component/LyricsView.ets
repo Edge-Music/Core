@@ -3,6 +3,7 @@ import { avPlayerManager } from "../util/AVPlayerManager";
 import { PreferencesCache } from "../util/PreferenceCache";
 import { LengthMetrics } from '@kit.ArkUI'
 import { LyricsLine } from "../util/LyricsManager";
+import { VibrationControl } from "../util/DeviceController";
 
 class LyricStyle {
   fontWeight: FontWeight;
@@ -30,6 +31,7 @@ export struct LyricsView {
   private scroller: Scroller = new Scroller()
   private readonly ANIMATION_DURATION: number = 300
   private readonly SCROLL_ANIMATION_DURATION: number = 400
+  private lastTriggerTime: number = 0;
 
   aboutToAppear() {
     this.scrollToLyric(this.currentLyricsIndex)
@@ -51,7 +53,7 @@ export struct LyricsView {
     }
 
     // 保持在视图中间偏上的位置，很显然这是一个经验修正
-    const targetIndex = Math.max(0,this.mode_judge? index - (5 * (this.showTranslation ? 0.6 : 1)):index-1)
+    const targetIndex = Math.max(0, this.mode_judge ? index - (5 * (this.showTranslation ? 0.2 : 0.6)) : index - (this.showTranslation ? 0 : 1))
 
     animateTo({
       duration: this.SCROLL_ANIMATION_DURATION,
@@ -83,6 +85,7 @@ export struct LyricsView {
       this.showTranslation = !this.showTranslation
       this.scrollToLyric(this.currentLyricsIndex)
       PreferencesCache.showTranslationLyric(this.showTranslation)
+      VibrationControl.handlePresetVibration()
     })
   }
 
@@ -96,6 +99,18 @@ export struct LyricsView {
       isCurrent ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
       isCurrent ? 1 : 0.7
     )
+  }
+
+  /**
+   * 双指操作防抖
+   * @param func
+   */
+  private debounce(func: Function) {
+    const now = Date.now();
+    if (now - this.lastTriggerTime > 300) {
+      func();
+      this.lastTriggerTime = now;
+    }
   }
 
   build() {
@@ -222,5 +237,23 @@ export struct LyricsView {
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
     .expandSafeArea()
+    .gesture(
+      PinchGesture()
+        .onActionUpdate((event: PinchGestureEvent) => {
+          if (event.scale > 1.1) {
+            this.debounce(() => {
+              if(!this.showTranslation && (this.hasTranslation || this.hasTransliteration)){
+                this.toggleTranslation()
+              }
+            });
+          } else if (event.scale < 0.9) {
+            this.debounce(() => {
+              if(this.showTranslation && (this.hasTranslation || this.hasTransliteration)){
+                this.toggleTranslation()
+              }
+            });
+          }
+        })
+    )
   }
 }
