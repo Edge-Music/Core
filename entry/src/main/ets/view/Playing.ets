@@ -1131,6 +1131,8 @@ struct Playing {
     Column() {
       // 封面图
       Image(cover(this.song?.album?.cover ?? "", 512))
+        // .height('40%')
+
         .width(this.coverWidth.getValue(this.currentBreakpoint))
         .aspectRatio(1)
         .borderRadius(24)
