@@ -386,7 +386,7 @@ struct Playing {
               .textOverflow({ overflow: TextOverflow.Ellipsis })
               .fontColor('rgba(255, 255, 255, 0.6)')
               .height(24) // 固定高度确保布局稳定
-            Column(){this.PlayerControls()}.width('50%')
+            Column(){this.PlayerControls(this.Pura_X==='1'?false:true)}.width('50%')
             Column(){
               this.ProgressBar(true,4,false)
             }.width('65%')
