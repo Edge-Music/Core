@@ -24,7 +24,7 @@ export struct Download {
 
   onMenuIconClick(index: number) {
     if (index === 0) {
-      this.pageStack.pop()
+      this.pageStack.popToIndex(0)
     }
   }
 
@@ -158,7 +158,7 @@ export struct Download {
           // 向上滑
         } else {
           // 向下滑，返回上一页
-          this.pageStack.pop();
+          this.pageStack.popToIndex(0)
         }
       })
     )

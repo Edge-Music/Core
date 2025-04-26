@@ -71,7 +71,7 @@ export struct Setting {
 
   onMenuIconClick(index: number) {
     if (index === 0) {
-      this.pageStack.pop()
+      this.pageStack.popToIndex(0)
     }
   }
 
@@ -760,7 +760,7 @@ export struct Setting {
         direction: SwipeDirection.Vertical,
       }).onAction((event) => {
         if (event.angle >= 0) {
-          this.pageStack.pop()
+          this.pageStack.popToIndex(0)
         }
       })
     )
