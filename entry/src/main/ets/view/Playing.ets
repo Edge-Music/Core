@@ -1368,15 +1368,9 @@ struct Playing {
 
         Column() {
           // 标题栏
-          if (this.winHeight<1500&&this.winWidth<1500){
-            if(this.winHeight>900&&this.Pura_X==='0'||this.winHeight>600&&this.Pura_X==='1'){
-              this.playing_50()
-            }else{
-              this.playing_30()
-            }
-          }
+
           // 根据屏幕尺寸显示不同布局
-          else if (this.isWideScreen && this.Playing_Next == false) {
+         if (this.isWideScreen && this.Playing_Next == false) {
             this.Title()
             // 宽屏布局 - 左右分栏
             Row() {
@@ -1415,6 +1409,12 @@ struct Playing {
             .layoutWeight(1)
           } else if (this.isWideScreen && this.Playing_Next) {
             this.Playing_HorizontalMode()
+          }         else if (this.winHeight<1500&&this.winWidth<1500){
+            if(this.winHeight>900&&this.Pura_X==='0'||this.winHeight>600&&this.Pura_X==='1'){
+              this.playing_50()
+            }else{
+              this.playing_30()
+            }
           } else {
 
             this.Title()
