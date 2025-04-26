@@ -173,7 +173,7 @@ struct Playing {
            lyrics: this.song?.meta?.lyric?.normal,
            translationLyrics: this.song?.meta?.lyric?.translation || this.song?.meta?.lyric?.transliteration,
            mode_judge: false,
-           pianyi_num_xiuzheng:-1
+           pianyi_num_xiuzheng:0
          }).width('100%').layoutWeight(1)
        }}
       }.layoutWeight(1).width('100%')            .scrollable(true)
@@ -1235,9 +1235,12 @@ struct Playing {
         .layoutWeight(2)
 
       // 底部控件
-      Column() {
-        this.BottomControls()
+      if (this.Pura_X==='0'){
+        Column() {
+          this.BottomControls()
+        }
       }
+
     }
     .padding(16)
     .width(StyleConstants.FULL_WIDTH)
