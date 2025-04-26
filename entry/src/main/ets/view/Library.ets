@@ -55,7 +55,7 @@ struct Library {
 
   onMenuIconClick(index: number) {
     if (index === 0) {
-      this.pageStack.popToIndex(0)
+      this.pageStack.pop()
     } else if (index === 2) {
       // 触发刷新
       this.refreshData();
@@ -394,7 +394,7 @@ struct Library {
           // 向上滑
         } else {
           // 向下滑，返回上一页
-          this.pageStack.popToIndex(0)
+          this.pageStack.pop()
         }
       })
     )
