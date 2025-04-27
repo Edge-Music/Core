@@ -14,6 +14,7 @@ import { About } from "./About";
 import {Personalized_settings}from '../view/Personalized_settings'
 import { HeaderAnimation } from "../component/HeaderAnimation";
 import { ScrollIndexHandler } from "../util/ScrollIndexHandler";
+import { ResourceManager } from "../util/ResourceManager";
 
 const TAG = 'Setting'
 
@@ -70,7 +71,7 @@ export struct Setting {
   }
 
   onMenuIconClick(index: number) {
-    if (index === 0) {
+    if (index === 0 && this.pageStack.size() > 1) {
       this.pageStack.pop()
     }
   }
@@ -575,7 +576,7 @@ export struct Setting {
         .onClick(() => {
           DialogUtil.showPrimaryDialog({
             title: $r('app.string.delete_data_source'),
-            message: $r('app.string.whether_to_delete_data_source')+`"${adapter.name}"？`,
+            message: ResourceManager.getStringValueSync($r('app.string.whether_to_delete_data_source')) +`[${adapter.name}]？`,
             primaryButton: $r('app.string.cancel'),
             secondaryButton: $r('app.string.delete'),
             onAction: (action) => {
@@ -747,15 +748,6 @@ export struct Setting {
       detents:this.Pura_X? [SheetSize.LARGE]:[SheetSize.MEDIUM],
       preferType: this.currentBreakpoint === BreakpointConstants.BREAKPOINT_SM ? SheetType.BOTTOM : SheetType.CENTER
     })
-    .gesture(
-      SwipeGesture({
-        direction: SwipeDirection.Vertical,
-      }).onAction((event) => {
-        if (event.angle >= 0) {
-          this.pageStack.pop()
-        }
-      })
-    )
   }
 
   getBlankHeight(): Length {

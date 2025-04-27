@@ -11,6 +11,7 @@ import { promptAction, UIContext } from "@kit.ArkUI";
 import { PreferencesCache } from "../util/PreferenceCache";
 import { HeaderAnimation } from "../component/HeaderAnimation";
 import { ScrollIndexHandler } from "../util/ScrollIndexHandler";
+import { ResponseCacheUtil } from "../util/ResponseCacheUtil";
 
 const TAG = 'Library'
 @Builder
@@ -43,7 +44,6 @@ struct Library {
   @State scaleY: number = 1.0
   @State scrollIndexHandler: ScrollIndexHandler = new ScrollIndexHandler({
     onIndexChange: (index) => {
-      console.log("currentIndex:"+index)
       this.onMenuIconClick(index)
     },
     componentTag: TAG
@@ -54,7 +54,7 @@ struct Library {
   }
 
   onMenuIconClick(index: number) {
-    if (index === 0) {
+    if (index === 0 && this.pageStack.size() > 1) {
       this.pageStack.pop();
     } else if (index === 2) {
       // 触发刷新
@@ -67,6 +67,7 @@ struct Library {
 
     try {
       this.playlists = await SourceAdapter.getUserPlaylist();
+      ResponseCacheUtil.clear()
     } finally {
       this.isLoading = false;
     }
@@ -140,14 +141,16 @@ struct Library {
 
   @Builder
   ButtonS(){
-    Row(){
-      Image(cover(this.adapters[this.sIndex].auth?.user?.avatar ?? '', 200))
-        .shadow(ShadowStyle.OUTER_DEFAULT_XS)
+    Button({ type: ButtonType.Circle }){
+      Image(cover(this.adapters[this.sIndex].auth?.user?.avatar, 200) ?? $r('app.media.portrait'))
         .width(35)
+        .height(35)
         .borderRadius(17.5)
     }
+    .shadow(ShadowStyle.OUTER_DEFAULT_XS)
+    .backgroundColor('transparent')
     .onClick(() => {
-      this.isExpanded = !this.isExpanded;
+      this.isExpanded = !this.isExpanded
     })
     .bindContextMenu(this.isExpanded, this.SwitchSourceMenu(),{
       onDisappear: () => {
@@ -386,18 +389,6 @@ struct Library {
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
     .expandSafeArea()
-    .gesture(
-      SwipeGesture({
-        direction: SwipeDirection.Vertical,
-      }).onAction((event) => {
-        if (event.angle < 0) {
-          // 向上滑
-        } else {
-          // 向下滑，返回上一页
-          this.pageStack.pop();
-        }
-      })
-    )
   }
 
   countSubVp(): number{

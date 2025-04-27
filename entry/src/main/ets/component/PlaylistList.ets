@@ -36,13 +36,13 @@ export struct PlaylistList {
         // 版本三：歌单分类项
         Tabs({ index: this.subTitleIndex }) {
           TabContent(){
-            this.TabContentList(this.playlists, 0)
+            this.TabContentList(0)
           }
           TabContent(){
-            this.TabContentList(this.playlists, 1)
+            this.TabContentList(1)
           }
           TabContent(){
-            this.TabContentList(this.playlists, 2)
+            this.TabContentList(2)
           }
         }
         .scrollable(false)
@@ -104,7 +104,6 @@ export struct PlaylistList {
     let exists: boolean = false
     const showAdapterIDs: ID[] = this.showAdapters.map(adapter => adapter.id)
     if(showAdapterIDs.includes(playlist.source?.id as ID)){
-      console.log("创建者ID："+playlist.creator?.id + " 数据源ID:" + playlist.source?.auth?.user?.id);
       switch(index){
         case 0:
           exists = true
@@ -130,12 +129,12 @@ export struct PlaylistList {
   }
 
   @Builder
-  TabContentList(playLists: Playlist[], index: number){
+  TabContentList(index: number){
     List(){
       ListItem(){
         Row().height(12)
       }
-      ForEach(playLists, (playlist: Playlist) => {
+      ForEach(this.playlists, (playlist: Playlist) => {
         if(this.judgeSourceByDataSourceId(playlist, index)){
           ListItem(){
             this.PlaylistItem(playlist)
