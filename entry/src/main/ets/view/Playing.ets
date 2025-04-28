@@ -1337,7 +1337,6 @@ struct Playing {
           if (PreferencesCache.getUserPreference('Lyic_desktop','0')==='0') {
             PreferencesCache.setUserPreference('Lyic_desktop','1')
             this.Lyic_desktop ='1'
-            PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
             PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
             PipManager.getInstance().startPip()
           }else {
@@ -1465,6 +1464,8 @@ struct Playing {
     .expandSafeArea()
     .onAppear(()=>{
       this.img_playing_ctrl=  PreferencesCache.getUserPreference('img_playing_ctrl','0')
+      PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
+
     })
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
