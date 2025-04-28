@@ -10,7 +10,12 @@ import { cover } from './AdapterHelper';
 let mess:string=AppStorage.get('test_index')??''
 let song: Song
 let  intervalID:number
-let judge:boolean
+let Is_PAD:boolean
+let playing_judge:boolean
+let controlType: PiPWindow.PiPControlType = PiPWindow.PiPControlType.VIDEO_PLAY_PAUSE; // 视频播放控制面板中播放/暂停控件。
+let status_play: PiPWindow.PiPControlStatus = PiPWindow.PiPControlStatus.PLAY;
+let status_pause: PiPWindow.PiPControlStatus = PiPWindow.PiPControlStatus.PAUSE;
+
 @Observed
 class Params {
   text: string = '';
@@ -45,7 +50,7 @@ function buildText(params: Params) {
         Text(AppStorage.get('test_index'))
           .layoutWeight(1)
           .maxLines(2)
-          .fontSize(judge?36:18)
+          .fontSize(Is_PAD?36:18)
           .fontColor(Color.White)
           .textOverflow({overflow: TextOverflow.Ellipsis })
       }.width('100%').justifyContent(FlexAlign.Start)
@@ -83,7 +88,9 @@ class TextNodeController extends NodeController {
     mess=AppStorage.get('test_index')??'w'
     song = AppStorage.get("current_playing_song")??song
     // AppStorage.setOrCreate<boolean>('isWideScreen', this.isWideScreen&&this.Playing_Next===false)
-    judge = AppStorage.get("isWideScreen")??false
+    Is_PAD = AppStorage.get("isWideScreen")??false
+
+
     console.log(`update message: ${message}`);
     if (this.textNode !== null) {
       this.textNode.update(new Params(message));
@@ -266,6 +273,8 @@ export class PipManager {
     avPlayerManager.getAVPlayerInstance().then(player => {
       this.isPlaying = player.state === 'playing';
       intervalID =setInterval(() => {
+        playing_judge = AppStorage.get("playing_judge")??false
+        this.pipController?.updatePiPControlStatus(controlType,playing_judge?status_play:status_pause)
         nodeController.update('he')
       }, 100);
     });

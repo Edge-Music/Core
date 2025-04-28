@@ -622,6 +622,7 @@ class AVPlayerManager {
       const player = await this.getAVPlayerInstance();
       await player.play();
       this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PLAY);
+      AppStorage.setOrCreate<boolean>("playing_judge",true)
       this.triggerPlay();
       EventHelper.postSongState('PLAY');
     } catch (error) {
@@ -633,6 +634,8 @@ class AVPlayerManager {
     try {
       const player = await this.getAVPlayerInstance();
       await player.pause();
+      AppStorage.setOrCreate<boolean>("playing_judge",false)
+
       this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PAUSE);
       this.triggerPause();
       EventHelper.postSongState('PAUSE');
