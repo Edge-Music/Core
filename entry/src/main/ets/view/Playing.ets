@@ -61,7 +61,7 @@ struct Playing {
   @State Playing_Next: boolean = true
   @State Fold_judge: boolean = true
   @State is_backblur: boolean = true
-  @State IMG_ctrl: boolean = true
+  @State IMG_ctrl: boolean = false
   @StorageLink('winWidth') winWidth:number =0
   @StorageLink('winHeight') winHeight:number =0
   private updateTimer: number = -1
