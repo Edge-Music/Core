@@ -1,6 +1,7 @@
 import { PreferencesCache } from "../util/PreferenceCache";
 import {HorizontalMode}from '../util/HorizontalCheck'
 import { ResourceManager } from "../util/ResourceManager";
+import { PipManager } from '../util/PipManager';
 
 @Component
 //'0'关。'1'开。!!!!(开关颜色日后调)
@@ -27,6 +28,12 @@ export struct Personalized_settings_Component {
             }else {
               this.text_ctrl ='0'
               PreferencesCache.setUserPreference(this.setUserPreference_name, this.text_ctrl)
+            }
+            if (PreferencesCache.getUserPreference('Lyic_desktop','0')==='1') {
+              PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
+              PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
+            }else {
+              PipManager.getInstance().setAutoStart(false)
             }
           })
       }
@@ -69,6 +76,7 @@ export struct Personalized_settings{
               HorizontalMode(this.HorizontalMode_ctrl==='1')
               PreferencesCache.setUserPreference('HorizontalMode_ctrl', this.HorizontalMode_ctrl)
             }
+
           })
       }
       .width('100%')
@@ -88,6 +96,8 @@ export struct Personalized_settings{
           ListItem(){this.HorizontalMode_Ctrl()}
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.mini_music_control_bottom')), setUserPreference_name:'miniplaying_bottom_judge'})}
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.swipe_cover_switch_songs')), setUserPreference_name:'img_playing_ctrl'})}
+          ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.Lyic_desktop')), setUserPreference_name:'Lyic_desktop'})}
+
         }
       }.padding(16)
     }.title($r('app.string.custom_settings')).hideToolBar(true)

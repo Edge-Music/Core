@@ -26,7 +26,7 @@ export interface PlayerCallbacks {
 }
 
 class AVPlayerManager {
-  private avPlayer: media.AVPlayer | null = null;
+   avPlayer: media.AVPlayer | null = null;
   private avSession: avSession.AVSession | null = null;
   private currentPlaybackState: avSession.PlaybackState = avSession.PlaybackState.PLAYBACK_STATE_PAUSE;
   private context: common.UIAbilityContext | undefined;

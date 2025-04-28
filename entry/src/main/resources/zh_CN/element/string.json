@@ -459,6 +459,10 @@
     {
       "name": "confirm",
       "value": "确认"
+    },
+    {
+      "name": "Lyic_desktop",
+      "value": "画中画歌词"
     }
   ]
 }
