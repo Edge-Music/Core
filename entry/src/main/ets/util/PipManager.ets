@@ -26,12 +26,29 @@ function buildText(params: Params) {
       Image(cover(song?.album?.cover ?? "", 512))
         .foregroundBlurStyle(BlurStyle.BACKGROUND_REGULAR)
         // .blur(60)
+      Row(){
+        Column(){
+          Image(cover(song?.album?.cover ?? "", 512))
+            .height(40)
+            .aspectRatio(1)
+            .clip(true)
+            .shadow({
+              radius: 0,
+              color: 'rgba(0, 0, 0, 0.15)',
+              offsetX: 0,
+              offsetY: 2
+            })
+            .borderRadius(5)
 
-      Text(AppStorage.get('test_index'))
-        .maxLines(2)
-        .fontSize(28)
-        .fontColor(Color.White)
-        .textOverflow({overflow: TextOverflow.Ellipsis })
+        }.margin({left:20,right:20})
+        Text(AppStorage.get('test_index'))
+          .layoutWeight(1)
+          .maxLines(2)
+          .fontSize(18)
+          .fontColor(Color.White)
+          .textOverflow({overflow: TextOverflow.Ellipsis })
+      }.width('100%').justifyContent(FlexAlign.Start)
+
     }
 
   }.backgroundColor('#00000000')
