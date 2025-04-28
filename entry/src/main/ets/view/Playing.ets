@@ -74,6 +74,7 @@ struct Playing {
   // 监听屏幕断点变化
   onBreakpointChange() {
     this.isWideScreen = this.currentBreakpoint !== BreakpointConstants.BREAKPOINT_SM;
+    AppStorage.setOrCreate<boolean>('isWideScreen', this.isWideScreen&&this.Playing_Next===false)
     this.Playing_Next = isHorizontalMode()
     console.info('Succeeded in obtaining fold status.judge: ' + this.Playing_Next);
   }
@@ -1465,6 +1466,8 @@ struct Playing {
     .expandSafeArea()
     .onAppear(()=>{
       this.img_playing_ctrl=  PreferencesCache.getUserPreference('img_playing_ctrl','0')
+      AppStorage.setOrCreate<boolean>('isWideScreen', this.isWideScreen&&this.Playing_Next===false)
+
     })
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)

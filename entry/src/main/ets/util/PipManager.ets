@@ -10,6 +10,7 @@ import { cover } from './AdapterHelper';
 let mess:string=AppStorage.get('test_index')??''
 let song: Song
 let  intervalID:number
+let judge:boolean
 @Observed
 class Params {
   text: string = '';
@@ -29,7 +30,7 @@ function buildText(params: Params) {
       Row(){
         Column(){
           Image(cover(song?.album?.cover ?? "", 512))
-            .height(40)
+            .height('70%')
             .aspectRatio(1)
             .clip(true)
             .shadow({
@@ -44,7 +45,7 @@ function buildText(params: Params) {
         Text(AppStorage.get('test_index'))
           .layoutWeight(1)
           .maxLines(2)
-          .fontSize(18)
+          .fontSize(judge?36:18)
           .fontColor(Color.White)
           .textOverflow({overflow: TextOverflow.Ellipsis })
       }.width('100%').justifyContent(FlexAlign.Start)
@@ -81,7 +82,8 @@ class TextNodeController extends NodeController {
   update(message: string) {
     mess=AppStorage.get('test_index')??'w'
     song = AppStorage.get("current_playing_song")??song
-
+    // AppStorage.setOrCreate<boolean>('isWideScreen', this.isWideScreen&&this.Playing_Next===false)
+    judge = AppStorage.get("isWideScreen")??false
     console.log(`update message: ${message}`);
     if (this.textNode !== null) {
       this.textNode.update(new Params(message));
