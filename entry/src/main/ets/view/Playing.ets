@@ -36,7 +36,7 @@ struct Playing {
   @State isFavorite: boolean = false
   @State playMode: number = PlaylistManager.getPlayMode()
   @State showPlaylist: boolean = false
-  @Watch('onplaying_change')@StorageLink("current_playing_song") song: Song | null = null
+  @StorageLink("current_playing_song") song: Song | null = null
   @State isWideScreen: boolean = false // 是否为宽屏
   @State imageColorHex:string='1a2a3a'
   @State currentIndex: number = -1
@@ -69,21 +69,6 @@ struct Playing {
     this.isWideScreen = this.currentBreakpoint !== BreakpointConstants.BREAKPOINT_SM;
     this.Playing_Next = isHorizontalMode()
     console.info('Succeeded in obtaining fold status.judge: ' + this.Playing_Next);
-  }
-
-  async onplaying_change(){
-    try {
-      const context = getContext(this);
-      let netFile = this.song?.album?.cover + "?param=64y64" ?? "";
-      let httpRequest = http.createHttp()
-      let data = await httpRequest.request(netFile);
-      const resourceMgr: resourceManager.ResourceManager = context.resourceManager;
-      let imageDealData = await ImageUtils.getImageDealDataByArr(data.result as ArrayBuffer);//imageDealData.imageColorHex.length
-      this.imageColorHex=imageDealData.imageColorHex
-    } catch (e) {
-      hilog.error(0x0000, 'TestTag', 'Failed error.code is %{public}d,error.message is %{public}s', e.code,
-        e.message);
-    }
   }
   @State sheetType: "playlist" | "timer" = "playlist" // 用于控制底部弹出表单的类型，默认为播放列表
 
@@ -172,20 +157,6 @@ struct Playing {
                   color: 'rgba(0, 0, 0, 0.15)',
                   offsetX: 0,
                   offsetY: 2
-                })
-                .onAppear(async ()=>{
-                  try {
-                    const context = getContext(this);
-                    const resourceMgr: resourceManager.ResourceManager = context.resourceManager;
-                    let netFile = this.song?.album?.cover + "?param=64y64" ?? "";
-                    let httpRequest = http.createHttp()
-                    let data = await httpRequest.request(netFile);
-                    let imageDealData = await ImageUtils.getImageDealDataByArr(data.result as ArrayBuffer);//imageDealData.imageColorHex.length
-                    this.imageColorHex=imageDealData.imageColorHex
-                  } catch (e) {
-                    hilog.error(0x0000, 'TestTag', 'Failed error.code is %{public}d,error.message is %{public}s', e.code,
-                      e.message);
-                  }
                 })
                 .borderRadius(this.img_playing_ctrl==='1'?0:24)
                 .gesture(
@@ -403,18 +374,7 @@ struct Playing {
     }.loop(false)
     .onAppear( ()=>{
       this.img_playing_ctrl=  PreferencesCache.getUserPreference('img_playing_ctrl','0')
-      this.is_backblur=false
-
     })
-    .onDisAppear(()=>{
-      this.is_backblur=true
-    })
-    .linearGradient({
-      direction: GradientDirection.Bottom,
-      repeating: false,
-      colors: [[`#ff${this.imageColorHex}`, 0.0], [`#aa${this.imageColorHex}`, 0.3], [`#cc${this.imageColorHex}`, 0.5], [`#ff${this.imageColorHex}`, 1.0]]
-    })
-    .backgroundColor($r('sys.color.ohos_id_color_background'))
     .animation({
       duration: 300,
       curve: Curve.Friction,
