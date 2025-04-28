@@ -325,8 +325,8 @@ export struct Setting {
         // 显示二维码
         Column({ space: 4 }) {
           Image(this.qrCodeUrl)
-            .width(180)
-            .height(180)
+            .width('50%')
+
             .objectFit(ImageFit.Contain)
             .backgroundColor(Color.White)
             .borderRadius(8)
@@ -406,69 +406,74 @@ export struct Setting {
     Stack() {
       // 第一页表单
       Column({ space: 16 }) {
-        Column({ space: 8 }) {
-          Text($r('app.string.data_source_name'))
-            .fontSize(14)
-            .fontColor($r('app.color.text_secondary'))
-            .opacity(this.currentStep === 0 ? 1 : 0)
-            .translate({ x: this.currentStep === 0 ? 0 : '-20%' })
-            .animation({ delay: 50, duration: 250, curve: Curve.FastOutSlowIn })
+        Scroll(){
+          Column(){
 
-          TextInput({ placeholder: $r('app.string.please_input_data_source_name'), text: $$this.formData.name })
-            .width(StyleConstants.FULL_WIDTH)
-            .opacity(this.currentStep === 0 ? 1 : 0)
-            .translate({ x: this.currentStep === 0 ? 0 : '-20%' })
-            .animation({ delay: 100, duration: 250, curve: Curve.FastOutSlowIn })
-        }
+            Column({ space: 8 }) {
+              Text($r('app.string.data_source_name'))
+                .fontSize(14)
+                .fontColor($r('app.color.text_secondary'))
+                .opacity(this.currentStep === 0 ? 1 : 0)
+                .translate({ x: this.currentStep === 0 ? 0 : '-20%' })
+                .animation({ delay: 50, duration: 250, curve: Curve.FastOutSlowIn })
 
-        Column({ space: 8 }) {
-          Text($r('app.string.data_source_name_address'))
-            .fontSize(14)
-            .fontColor($r('app.color.text_secondary'))
-            .opacity(this.currentStep === 0 ? 1 : 0)
-            .translate({ x: this.currentStep === 0 ? 0 : '-20%' })
-            .animation({ delay: 150, duration: 250, curve: Curve.FastOutSlowIn })
+              TextInput({ placeholder: $r('app.string.please_input_data_source_name'), text: $$this.formData.name })
+                .width(StyleConstants.FULL_WIDTH)
+                .opacity(this.currentStep === 0 ? 1 : 0)
+                .translate({ x: this.currentStep === 0 ? 0 : '-20%' })
+                .animation({ delay: 100, duration: 250, curve: Curve.FastOutSlowIn })
+            }
 
-          TextInput({ placeholder: $r('app.string.please_input_data_source_name_address'), text: $$this.formData.url })
-            .width(StyleConstants.FULL_WIDTH)
-            .opacity(this.currentStep === 0 ? 1 : 0)
-            .translate({ x: this.currentStep === 0 ? 0 : '-20%' })
-            .animation({ delay: 200, duration: 250, curve: Curve.FastOutSlowIn })
-        }
+            Column({ space: 8 }) {
+              Text($r('app.string.data_source_name_address'))
+                .fontSize(14)
+                .fontColor($r('app.color.text_secondary'))
+                .opacity(this.currentStep === 0 ? 1 : 0)
+                .translate({ x: this.currentStep === 0 ? 0 : '-20%' })
+                .animation({ delay: 150, duration: 250, curve: Curve.FastOutSlowIn })
 
-        Column({ space: 8 }) {
-          Text($r('app.string.data_source_description'))
-            .fontSize(14)
-            .fontColor($r('app.color.text_secondary'))
-            .opacity(this.currentStep === 0 ? 1 : 0)
-            .translate({ x: this.currentStep === 0 ? 0 : '-20%' })
-            .animation({ delay: 250, duration: 250, curve: Curve.FastOutSlowIn })
+              TextInput({ placeholder: $r('app.string.please_input_data_source_name_address'), text: $$this.formData.url })
+                .width(StyleConstants.FULL_WIDTH)
+                .opacity(this.currentStep === 0 ? 1 : 0)
+                .translate({ x: this.currentStep === 0 ? 0 : '-20%' })
+                .animation({ delay: 200, duration: 250, curve: Curve.FastOutSlowIn })
+            }
 
-          TextArea({ placeholder: $r('app.string.please_input_data_source_description'), text: $$this.formData.description })
-            .width(StyleConstants.FULL_WIDTH)
-            .height(100)
-            .opacity(this.currentStep === 0 ? 1 : 0)
-            .translate({ x: this.currentStep === 0 ? 0 : '-20%' })
-            .animation({ delay: 300, duration: 250, curve: Curve.FastOutSlowIn })
-        }
+            Column({ space: 8 }) {
+              Text($r('app.string.data_source_description'))
+                .fontSize(14)
+                .fontColor($r('app.color.text_secondary'))
+                .opacity(this.currentStep === 0 ? 1 : 0)
+                .translate({ x: this.currentStep === 0 ? 0 : '-20%' })
+                .animation({ delay: 250, duration: 250, curve: Curve.FastOutSlowIn })
 
-        Row() {
-          Blank()
-          Button($r('app.string.next_step'))
-            .width(120)
-            .height(40)
-            .backgroundColor($r('app.color.button_background'))
-            .fontColor($r('app.color.text_primary'))
-            .enabled(this.formData.name.trim() !== '' && this.formData.url.trim() !== '' &&
-            this.validateUrl(this.formData.url))
-            .onClick(() => {
-              animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
-                this.currentStep = 1
-              })
-            })
-            .opacity(this.currentStep === 0 ? 1 : 0)
-            .translate({ x: this.currentStep === 0 ? 0 : '-20%' })
-            .animation({ delay: 350, duration: 250, curve: Curve.FastOutSlowIn })
+              TextArea({ placeholder: $r('app.string.please_input_data_source_description'), text: $$this.formData.description })
+                .width(StyleConstants.FULL_WIDTH)
+                .height(100)
+                .opacity(this.currentStep === 0 ? 1 : 0)
+                .translate({ x: this.currentStep === 0 ? 0 : '-20%' })
+                .animation({ delay: 300, duration: 250, curve: Curve.FastOutSlowIn })
+            }
+
+            Row() {
+              Blank()
+              Button($r('app.string.next_step'))
+                .width(120)
+                .height(40)
+                .backgroundColor($r('app.color.button_background'))
+                .fontColor($r('app.color.text_primary'))
+                .enabled(this.formData.name.trim() !== '' && this.formData.url.trim() !== '' &&
+                this.validateUrl(this.formData.url))
+                .onClick(() => {
+                  animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
+                    this.currentStep = 1
+                  })
+                })
+                .opacity(this.currentStep === 0 ? 1 : 0)
+                .translate({ x: this.currentStep === 0 ? 0 : '-20%' })
+                .animation({ delay: 350, duration: 250, curve: Curve.FastOutSlowIn })
+            }
+          }
         }
       }
       .width(StyleConstants.FULL_WIDTH)
@@ -479,76 +484,86 @@ export struct Setting {
 
       // 第二页表单
       Column() {
-        Row() {
-          Row() {
-            Image($r('app.media.ic_back'))
-              .width(20)
-              .height(20)
-              .fillColor($r('app.color.text_primary'))
-            Text($r('app.string.back'))
-              .fontSize(15)
-              .fontColor($r('app.color.text_primary'))
-              .margin({ left: 2 })
-          }
-          .height(28)
-          .borderRadius(14)
-          .padding({ left: 6, right: 10 })
-          .backgroundColor($r('app.color.back_button_normal'))
-          .onClick(() => {
-            // 只处理页面切换，不重置二维码状态
-            animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
-              this.currentStep = 0
-              this.clearQRCodeTimer()
-            })
-          })
-          .opacity(this.currentStep === 1 ? 1 : 0)
-          .translate({ x: this.currentStep === 1 ? 0 : '20%' })
-          .animation({ delay: 50, duration: 250, curve: Curve.FastOutSlowIn })
-        }
-        .width(StyleConstants.FULL_WIDTH)
-        .justifyContent(FlexAlign.Start)
-        .alignItems(VerticalAlign.Center)
-
-        Column({ space: 8 }) {
-          Text($r('app.string.token_credential'))
-            .fontSize(14)
-            .fontColor($r('app.color.text_secondary'))
-            .opacity(this.currentStep === 1 ? 1 : 0)
-            .translate({ x: this.currentStep === 1 ? 0 : '20%' })
-            .animation({ delay: 100, duration: 250, curve: Curve.FastOutSlowIn })
-
-          TextInput({ placeholder: $r('app.string.please_input_token_credential'), text: this.tokenFromQR || (this.formData.auth?.token || '') })
-            .width(StyleConstants.FULL_WIDTH)
-            .type(InputType.Password)
-            .onChange((value) => {
-              if (!this.formData.auth) {
-                this.formData.auth = { token: '', signAt: Date.now() }
+        Scroll() {
+          Column() {
+            Row() {
+              Row() {
+                Image($r('app.media.ic_back'))
+                  .width(20)
+                  .height(20)
+                  .fillColor($r('app.color.text_primary'))
+                Text($r('app.string.back'))
+                  .fontSize(15)
+                  .fontColor($r('app.color.text_primary'))
+                  .margin({ left: 2 })
               }
-              this.formData.auth.token = value
-            })
-            .opacity(this.currentStep === 1 ? 1 : 0)
-            .translate({ x: this.currentStep === 1 ? 0 : '20%' })
-            .animation({ delay: 150, duration: 250, curve: Curve.FastOutSlowIn })
-        }
-        .margin({ top: 16 })
+              .height(28)
+              .borderRadius(14)
+              .padding({ left: 6, right: 10 })
+              .backgroundColor($r('app.color.back_button_normal'))
+              .onClick(() => {
+                // 只处理页面切换，不重置二维码状态
+                animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
+                  this.currentStep = 0
+                  this.clearQRCodeTimer()
+                })
+              })
+              .opacity(this.currentStep === 1 ? 1 : 0)
+              .translate({ x: this.currentStep === 1 ? 0 : '20%' })
+              .animation({ delay: 50, duration: 250, curve: Curve.FastOutSlowIn })
+            }
+            .width(StyleConstants.FULL_WIDTH)
+            .justifyContent(FlexAlign.Start)
+            .alignItems(VerticalAlign.Center)
 
-        this.QRCodeSection()
-        if (!this.Pura_X){Blank()}
+            Column({ space: 8 }) {
+              Text($r('app.string.token_credential'))
+                .fontSize(14)
+                .fontColor($r('app.color.text_secondary'))
+                .opacity(this.currentStep === 1 ? 1 : 0)
+                .translate({ x: this.currentStep === 1 ? 0 : '20%' })
+                .animation({ delay: 100, duration: 250, curve: Curve.FastOutSlowIn })
 
-        Row({ space: 8 }) {
-          Button(this.isEditing ? $r('app.string.save_changes') : $r('app.string.confirm_to_add'))
-            .width(120)
-            .height(40)
-            .backgroundColor($r('app.color.button_background'))
-            .fontColor($r('app.color.text_primary'))
-            .onClick(() => {
-              this.connectToDataSource()
-            })
-            .opacity(this.currentStep === 1 ? 1 : 0)
-            .translate({ y: this.currentStep === 1 ? 0 : '20%' })
-            .animation({ delay: 250, duration: 250, curve: Curve.FastOutSlowIn })
+              TextInput({
+                placeholder: $r('app.string.please_input_token_credential'),
+                text: this.tokenFromQR || (this.formData.auth?.token || '')
+              })
+                .width(StyleConstants.FULL_WIDTH)
+                .type(InputType.Password)
+                .onChange((value) => {
+                  if (!this.formData.auth) {
+                    this.formData.auth = { token: '', signAt: Date.now() }
+                  }
+                  this.formData.auth.token = value
+                })
+                .opacity(this.currentStep === 1 ? 1 : 0)
+                .translate({ x: this.currentStep === 1 ? 0 : '20%' })
+                .animation({ delay: 150, duration: 250, curve: Curve.FastOutSlowIn })
+            }
+            .margin({ top: 16 })
+
+            this.QRCodeSection()
+            if (!this.Pura_X) {
+              Blank()
+            }
+
+            Row({ space: 8 }) {
+              Button(this.isEditing ? $r('app.string.save_changes') : $r('app.string.confirm_to_add'))
+                .width(120)
+                .height(40)
+                .backgroundColor($r('app.color.button_background'))
+                .fontColor($r('app.color.text_primary'))
+                .onClick(() => {
+                  this.connectToDataSource()
+                })
+                .opacity(this.currentStep === 1 ? 1 : 0)
+                .translate({ y: this.currentStep === 1 ? 0 : '20%' })
+                .animation({ delay: 250, duration: 250, curve: Curve.FastOutSlowIn })
+            }
+            .margin({ bottom: 16 })
+          }
         }
-        .margin({ bottom: 16 })
+
       }
       .width(StyleConstants.FULL_WIDTH)
       .height(StyleConstants.FULL_HEIGHT)
