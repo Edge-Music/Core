@@ -111,6 +111,14 @@ struct Index_page {
     // 立即初始化数据
     this.initData()
     let productSeries:string=deviceInfo.productSeries
+    let devicetype:string =deviceInfo.deviceType
+    if (devicetype!='phone'&&productSeries!='VDE'){
+      AppStorage.setOrCreate<boolean>('isWideScreen', true)
+    }else {
+      AppStorage.setOrCreate<boolean>('isWideScreen', false)
+
+    }
+    AppStorage.setOrCreate("devicetype", devicetype)
     if(productSeries=='VDE') {
       PreferencesCache.setUserPreference('is_Pura_X', '1')
     }else {
