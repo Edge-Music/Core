@@ -19,8 +19,8 @@ export struct Personalized_settings_Component {
         Blank()
           .layoutWeight(1)
         Toggle({ type: ToggleType.Switch, isOn: PreferencesCache.getUserPreference(this.setUserPreference_name)==='1'?true:false})
-          .switchPointColor('#46B1E3')
-          .selectedColor('#A6C2BE')
+          .switchPointColor($r('app.color.text_primary'))
+          .selectedColor($r('app.color.Personalized_settings_button_background'))
           .onChange((isOn: boolean) => {
             if (isOn) {
               this.text_ctrl ='1'
@@ -64,8 +64,8 @@ export struct Personalized_settings{
         Blank()
           .layoutWeight(1)
         Toggle({ type: ToggleType.Switch, isOn: this.HorizontalMode_ctrl==='1'?true:false})
-          .switchPointColor('#46B1E3')
-          .selectedColor('#A6C2BE')
+          .switchPointColor($r('app.color.text_primary'))
+          .selectedColor($r('app.color.Personalized_settings_button_background'))
           .onChange((isOn: boolean) => {
             if (isOn) {
               this.HorizontalMode_ctrl ='1'

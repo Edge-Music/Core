@@ -345,17 +345,8 @@ struct Library {
               }
             }
 
-            // 添加底部空白区域，避开播放控制器和底部安全区域
-            ListItem() {
-              Column() {
-                // 使用Column包裹空白区域，符合ArkTS规范
-                // 主页底部避让高度：播控组件高度(60) + 播控组件下方margin值(16)
-              }
-              .width(StyleConstants.FULL_WIDTH)
-              .height(StyleConstants.PLAYER_CONTROL_HEIGHT + 16)
-              .backgroundColor('transparent')
-            }
           }
+          .contentEndOffset(StyleConstants.PLAYER_CONTROL_HEIGHT + 16)
           .width(StyleConstants.FULL_WIDTH)
           .height(StyleConstants.FULL_HEIGHT)
           .layoutWeight(1)

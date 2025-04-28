@@ -20,6 +20,7 @@ import { resourceManager } from '@kit.LocalizationKit';
 import { http } from '@kit.NetworkKit';
 import ImageUtils from '../util/ImageUtils';
 import { promptAction } from '@kit.ArkUI'
+import { PipManager } from '../util/PipManager'
 
 @Builder
 export function PlayingBuilder() {
@@ -42,6 +43,7 @@ struct Playing {
   @State isWideScreen: boolean = false // 是否为宽屏
   @State imageColorHex:string='1a2a3a'
   @State currentIndex: number = -1
+  @State Lyic_desktop:string= PreferencesCache.getUserPreference('Lyic_desktop','0')
   // 独立的按钮动画状态
   @State swipeOffset: number = 0; // 滑动偏移量
   @State isSwipingActive: boolean = false; // 是否正在滑动中
@@ -1313,6 +1315,39 @@ struct Playing {
           }, 300)
         })
         .bindMenu(this.isWideScreen ? this.getWideScreenMenu() : this.getNarrowScreenMenu())
+      }
+      if(this.selectedTabIndex===1||this.isWideScreen && this.Playing_Next == false){
+        Blank()
+        Button({ type: ButtonType.Circle }){
+          Image($r('app.media.lysic'))
+            .width(24)
+            .height(24)
+            .fillColor(this.Lyic_desktop==='1' ?Color.White:Color.Gray)
+        }.width(this.buttonSize)
+        .height(this.buttonSize)
+        .backgroundColor(Color.Transparent)
+        .rotate({ angle: this.isMoreButtonPressed ? 90 : 0 })
+        .animation({
+          duration: 300,
+          curve: Curve.EaseInOut,
+          iterations: 1,
+          playMode: PlayMode.Normal
+        })
+        .onClick(() => {
+          if (PreferencesCache.getUserPreference('Lyic_desktop','0')==='0') {
+            PreferencesCache.setUserPreference('Lyic_desktop','1')
+            this.Lyic_desktop ='1'
+            PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
+            PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
+            PipManager.getInstance().startPip()
+          }else {
+            PipManager.getInstance().setAutoStart(false)
+            PreferencesCache.setUserPreference('Lyic_desktop','0')
+            this.Lyic_desktop ='0'
+            PipManager.getInstance().stopPip()
+          }
+          // 重置按钮状态
+        })
       }
     }
     .width(StyleConstants.FULL_WIDTH)

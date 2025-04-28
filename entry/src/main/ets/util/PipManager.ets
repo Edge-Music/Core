@@ -232,9 +232,7 @@ export class PipManager {
       contentWidth: 1920, // 使用typeNode启动画中画时，contentWidth需设置为大于0的值，否则将设置为16:9默认比例
       contentHeight: 400, // 使用typeNode启动画中画时，contentHeight需设置为大于0的值，否则将设置为16:9默认比例
     };
-      intervalID =setInterval(() => {
-      nodeController.update('he')
-    }, 100);
+
 
     // 通过create接口创建画中画控制器实例
     let promise: Promise<PiPWindow.PiPController> = PiPWindow.create(config, this.xComponent);
@@ -265,7 +263,9 @@ export class PipManager {
   startPip() {
     avPlayerManager.getAVPlayerInstance().then(player => {
       this.isPlaying = player.state === 'playing';
-
+      intervalID =setInterval(() => {
+        nodeController.update('he')
+      }, 100);
     });
       this.pipController?.startPiP().then(() => {
 
