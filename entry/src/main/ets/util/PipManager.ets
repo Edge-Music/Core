@@ -11,6 +11,7 @@ let mess:string=AppStorage.get('test_index')??''
 let song: Song
 let  intervalID:number
 let  intervalID1:number
+
 let Is_PAD:boolean
 let playing_judge:boolean
 let controlType: PiPWindow.PiPControlType = PiPWindow.PiPControlType.VIDEO_PLAY_PAUSE; // 视频播放控制面板中播放/暂停控件。
@@ -50,8 +51,8 @@ function buildText(params: Params) {
         }.margin({left:20,right:20})
         Text(AppStorage.get('test_index'))
           .layoutWeight(1)
-          .margin({right:20})
           .maxLines(2)
+          .margin({right:20})
           .fontSize(Is_PAD?36:18)
           .fontColor(Color.White)
           .textOverflow({overflow: TextOverflow.Ellipsis })
@@ -305,6 +306,7 @@ export class PipManager {
     }
     clearInterval(intervalID);
     clearInterval(intervalID1);
+
     let promise: Promise<void> = this.pipController.stopPiP();
     promise.then(() => {
       console.info(TAG, `Succeeded in stopping pip.`);
@@ -314,12 +316,12 @@ export class PipManager {
   }
 
   setAutoStart(autoStart: boolean): void {
-    this.pipController?.setAutoStartEnabled(autoStart);
- intervalID1 =setInterval(() => {
+    intervalID1 =setInterval(() => {
       playing_judge = AppStorage.get("playing_judge")??false
       this.pipController?.updatePiPControlStatus(controlType,playing_judge?status_play:status_pause)
       nodeController.update('he')
     }, 100);
+    this.pipController?.setAutoStartEnabled(autoStart);
   }
 
   // 创建typeNode节点
