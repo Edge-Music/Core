@@ -24,6 +24,7 @@ import { Download } from '../view/Download'
 import { ScrollIndexHandler } from '../util/ScrollIndexHandler'
 import { HeaderAnimation } from '../component/HeaderAnimation'
 import { deviceInfo } from '@kit.BasicServicesKit'
+import { PipManager } from '../util/PipManager';
 // 缓存常用值以避免重复计算
 const COLUMNS_TEMPLATE_LG = '1fr 1fr 1fr 1fr'
 const COLUMNS_TEMPLATE_SM = '1fr 1fr'
@@ -53,7 +54,9 @@ struct Index {
   }
 
   aboutToAppear(): void {
+
     this.pageStack.replacePath({ name: 'Index_page' })
+
   }
 
   build() {
@@ -97,6 +100,10 @@ struct Index_page {
   }).linkController(this.scrollController)
 
   async aboutToAppear() {
+    if (PreferencesCache.getUserPreference('Lyic_desktop','0')==='1') {
+      PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
+      PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
+    }
     // 注册断点系统
     this.breakpointSystem.register()
     HorizontalMode(this.HorizontalMode_ctrl === '1')
@@ -104,6 +111,14 @@ struct Index_page {
     // 立即初始化数据
     this.initData()
     let productSeries:string=deviceInfo.productSeries
+    let devicetype:string =deviceInfo.deviceType
+    if (devicetype!='phone'&&productSeries!='VDE'){
+      AppStorage.setOrCreate<boolean>('isWideScreen', true)
+    }else {
+      AppStorage.setOrCreate<boolean>('isWideScreen', false)
+
+    }
+    AppStorage.setOrCreate("devicetype", devicetype)
     if(productSeries=='VDE') {
       PreferencesCache.setUserPreference('is_Pura_X', '1')
     }else {
@@ -160,8 +175,23 @@ struct Index_page {
     ]
   }
 
+
+  onPageShow(): void {
+    console.info(TAG, 'onPageShow')
+    PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
+    PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
+    PipManager.getInstance().startPip();
+  }
+
+  onPageHide(): void {
+    console.info(TAG, 'onPageHide')
+    PipManager.getInstance().setAutoStart(false);
+  }
+
   aboutToDisappear() {
     this.breakpointSystem.unregister()
+    PipManager.getInstance().unregisterPipStateChangeListener(); // 解注册画中画生命周期及状态回调
+
   }
 
   @Builder

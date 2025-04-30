@@ -14,7 +14,7 @@ import app from '@system.app';
 import FormUtils from '../util/FormUtils';
 import { CallMethod } from '../widget/model/FormCardConstant';
 import { SongDownloadManager } from '../util/SongDownloadManager';
-
+import { PipManager } from '../util/PipManager';
 export default class EntryAbility extends UIAbility {
 
   private _pause_timer: number = -1; // 用于存储暂停计时器的ID
@@ -119,6 +119,11 @@ export default class EntryAbility extends UIAbility {
       }
       hilog.info(0x0000, 'testTag', 'Succeeded in loading the content.');
     });
+    windowStage.getMainWindow().then((window) => {
+      let ctx = window.getUIContext();
+      // 通过主窗口UIContext创建typeNode节点
+      PipManager.getInstance().makeTypeNode(ctx);
+    })
     if (this.page){
       setTimeout((page:string) => {
         EventHelper.postFormJumpPage(page)

@@ -113,7 +113,7 @@ export struct MiniPlaybackControl {
       })
         .height(37)
         .width(37)
-        .color($r('app.color.text_click'))
+        .color($r('app.color.text_primary'))
         .style({
           strokeWidth: 2,
           shadow: false,

@@ -208,7 +208,7 @@ export struct LyricsView {
           .expandSafeArea()
           .contentEndOffset(10)
           .contentStartOffset(10)
-          .fadingEdge(true,{fadingEdgeLength:LengthMetrics.vp(80)})
+
         }
       }
       .width(StyleConstants.FULL_WIDTH)

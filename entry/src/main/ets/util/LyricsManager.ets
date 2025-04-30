@@ -64,6 +64,7 @@ class LyricsManager {
         this.currentTimeMs = player.currentTime
         this.updateCurrentLyric()
         AppStorage.setOrCreate<LyricsLine>('current_line_lyrics', this.parsedLyrics[this.currentIndex])
+        AppStorage.setOrCreate<string>('test_index', this.parsedLyrics[this.currentIndex].text)
         AppStorage.setOrCreate<number>('current_lyrics_index', this.currentIndex)
       }, 500)
       console.info(`歌词定时器[${this.lyricsTimer}]设置完成`)

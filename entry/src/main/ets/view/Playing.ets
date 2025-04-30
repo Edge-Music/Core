@@ -19,6 +19,9 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import { resourceManager } from '@kit.LocalizationKit';
 import { http } from '@kit.NetworkKit';
 import ImageUtils from '../util/ImageUtils';
+import { promptAction } from '@kit.ArkUI'
+import { PipManager } from '../util/PipManager'
+
 @Builder
 export function PlayingBuilder() {
   Playing()
@@ -40,6 +43,7 @@ struct Playing {
   @State isWideScreen: boolean = false // 是否为宽屏
   @State imageColorHex:string='1a2a3a'
   @State currentIndex: number = -1
+  @State Lyic_desktop:string= PreferencesCache.getUserPreference('Lyic_desktop','0')
   // 独立的按钮动画状态
   @State swipeOffset: number = 0; // 滑动偏移量
   @State isSwipingActive: boolean = false; // 是否正在滑动中
@@ -57,6 +61,9 @@ struct Playing {
   @State Playing_Next: boolean = true
   @State Fold_judge: boolean = true
   @State is_backblur: boolean = true
+  @State IMG_ctrl: boolean = false
+  @StorageLink('winWidth') winWidth:number =0
+  @StorageLink('winHeight') winHeight:number =0
   private updateTimer: number = -1
   //TAB,swiper控制
   private controller: TabsController = new TabsController()
@@ -71,7 +78,93 @@ struct Playing {
     console.info('Succeeded in obtaining fold status.judge: ' + this.Playing_Next);
   }
   @State sheetType: "playlist" | "timer" = "playlist" // 用于控制底部弹出表单的类型，默认为播放列表
+  @Builder
+  playing_50(){
+    if (this.IMG_ctrl===false){
+      this.Title(true)
+    }
+    Tabs({ barPosition: BarPosition.End, index: this.selectedTabIndex, controller: this.controller }){
+      TabContent(){ Column(){
+        Image(cover(this.song?.album?.cover ?? "", 512))
+          .height(this.IMG_ctrl?'90%':'50%')
+          .aspectRatio(1)
+          .borderRadius(24)
+            // .margin({ top: 36 })
+            // .geometryTransition('song-cover', { follow: true })
+          .transition(TransitionEffect.OPACITY)
+          .onClick(() => {
+            this.IMG_ctrl=!this.IMG_ctrl
+            // if (!this.isWideScreen) {
+            //   this.controller.changeIndex(1)
+            // }
+          }) //点击图片切换到歌词页面
+          .borderRadius(12)
+        if (this.IMG_ctrl===false){          this.ProgressBar(false,2)
+          this.PlayerControls()}
 
+
+      }.expandSafeArea()}
+      TabContent(){        Column(){
+        LyricsView({
+          mode_judge: false,
+        }).width('100%').layoutWeight(1)
+      }}
+    }.layoutWeight(1).width('100%')            .scrollable(true)
+    .barMode(BarMode.Fixed)
+    .layoutWeight(1)
+    .clip(false)
+    .barHeight(0)
+    .onChange((index: number) => {
+      animateTo({ duration: 400, curve: Curve.EaseInOut }, () => {
+        this.selectedTabIndex = index
+      })
+    })
+    .onAppear(()=>{promptAction.showToast({ message: '点击图片可全屏显示封面' })})
+    .expandSafeArea()
+
+  }
+  @Builder
+  playing_30(){
+    Tabs({ barPosition: BarPosition.End, index: this.selectedTabIndex, controller: this.controller }){
+      TabContent(){ Column(){
+        Image(cover(this.song?.album?.cover ?? "", 512))
+          .height(this.IMG_ctrl?'90%':'50%')
+          .aspectRatio(1)
+          .borderRadius(24)
+            // .margin({ top: 36 })
+            // .geometryTransition('song-cover', { follow: true })
+          .transition(TransitionEffect.OPACITY)
+          .onClick(() => {
+            this.IMG_ctrl=!this.IMG_ctrl
+            // if (!this.isWideScreen) {
+            //   this.controller.changeIndex(1)
+            // }
+          }) //点击图片切换到歌词页面
+          .borderRadius(12)
+        if (this.IMG_ctrl===false){          this.ProgressBar(false,2)
+          this.PlayerControls(false)}
+
+
+      }.expandSafeArea()}
+      TabContent(){        Column(){
+        LyricsView({
+          mode_judge: false,
+        }).width('100%').layoutWeight(1)
+      }}
+    }.layoutWeight(1).width('100%')            .scrollable(true)
+    .barMode(BarMode.Fixed)
+    .layoutWeight(1)
+    .clip(false)
+    .barHeight(0)
+    .onChange((index: number) => {
+      animateTo({ duration: 400, curve: Curve.EaseInOut }, () => {
+        this.selectedTabIndex = index
+      })
+    })
+    .onAppear(()=>{promptAction.showToast({ message: '点击图片可全屏显示封面' })})
+    .expandSafeArea()
+
+  }
   @Builder
   PlayListBuilder() {
     Column() {
@@ -1128,7 +1221,7 @@ struct Playing {
   }
 
   @Builder
-  Title() {
+  Title(judge:boolean=false) {
     Row() {
       Image($r('app.media.ic_arrow_down_3'))
         .width(36)
@@ -1147,7 +1240,17 @@ struct Playing {
           this.isBackButtonPressed = true
           this.pageStack.pop()
         })
-      if (this.Pura_X==='1'){
+      if (judge){
+        Text((this.song?.name || "未知歌曲") + '/' +
+          (this.song?.artists ? this.song.artists.map(artist => artist.name).join(" / ") : "未知艺术家"))
+          .fontSize(this.getFontSize(this.song?.name ?? "", 16, 16))// .fontWeight(FontWeight.Bold)
+          .maxLines(1)
+          .width('40%')
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .fontColor('rgba(255, 255, 255, 0.6)')
+        // .height(24) // 固定高度确保布局稳定
+      }
+      if (this.Pura_X==='1'||judge){
         Blank().layoutWeight(1)
         Button({ type: ButtonType.Circle }) {
           Image(this.isFavorite ? $r('app.media.ic_heart_fill') : $r('app.media.ic_heart'))
@@ -1213,6 +1316,38 @@ struct Playing {
         })
         .bindMenu(this.isWideScreen ? this.getWideScreenMenu() : this.getNarrowScreenMenu())
       }
+      if(this.selectedTabIndex===1||this.isWideScreen && this.Playing_Next == false){
+        Blank()
+        Button({ type: ButtonType.Circle }){
+          Image($r('app.media.lysic'))
+            .width(24)
+            .height(24)
+            .fillColor(this.Lyic_desktop==='1' ?Color.White:Color.Gray)
+        }.width(this.buttonSize)
+        .height(this.buttonSize)
+        .backgroundColor(Color.Transparent)
+        .rotate({ angle: this.isMoreButtonPressed ? 90 : 0 })
+        .animation({
+          duration: 300,
+          curve: Curve.EaseInOut,
+          iterations: 1,
+          playMode: PlayMode.Normal
+        })
+        .onClick(() => {
+          if (PreferencesCache.getUserPreference('Lyic_desktop','0')==='0') {
+            PreferencesCache.setUserPreference('Lyic_desktop','1')
+            this.Lyic_desktop ='1'
+            PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
+            PipManager.getInstance().startPip()
+          }else {
+            PipManager.getInstance().setAutoStart(false)
+            PreferencesCache.setUserPreference('Lyic_desktop','0')
+            this.Lyic_desktop ='0'
+            PipManager.getInstance().stopPip()
+          }
+          // 重置按钮状态
+        })
+      }
     }
     .width(StyleConstants.FULL_WIDTH)
     .alignItems(VerticalAlign.Center)
@@ -1224,7 +1359,7 @@ struct Playing {
       FolderStack() {
         // 背景
 
-          this.BlurBackground(this.is_backblur)
+        this.BlurBackground(this.is_backblur)
 
 
         Column() {
@@ -1271,6 +1406,12 @@ struct Playing {
             .layoutWeight(1)
           } else if (this.isWideScreen && this.Playing_Next) {
             this.Playing_HorizontalMode()
+          }else if (this.winHeight<1500&&this.winWidth<1500){
+            if(this.winHeight>900&&this.Pura_X==='0'||this.winHeight>600&&this.Pura_X==='1'){
+              this.playing_50()
+            }else{
+              this.playing_30()
+            }
           } else {
 
             this.Title()
@@ -1323,6 +1464,8 @@ struct Playing {
     .expandSafeArea()
     .onAppear(()=>{
       this.img_playing_ctrl=  PreferencesCache.getUserPreference('img_playing_ctrl','0')
+      PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
+
     })
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
