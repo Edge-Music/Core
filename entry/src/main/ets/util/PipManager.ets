@@ -6,6 +6,7 @@ import { avPlayerManager} from './AVPlayerManager'
 import { PlaylistManager } from '../util/PlaylistManager'
 import { Song } from "../type/Adapter";
 import { cover } from './AdapterHelper';
+import { PreferencesCache } from './PreferenceCache';
 
 let mess:string=AppStorage.get('test_index')??''
 let song: Song
@@ -33,7 +34,7 @@ function buildText(params: Params) {
 
       Image(cover(song?.album?.cover ?? "", 512))
         .foregroundBlurStyle(BlurStyle.BACKGROUND_REGULAR)
-        // .blur(60)
+      // .blur(60)
       Row(){
         Column(){
           Image(cover(song?.album?.cover ?? "", 512))
@@ -251,7 +252,7 @@ export class PipManager {
     promise.then((controller: PiPWindow.PiPController) => {
       this.pipController = controller;
       // 通过画中画控制器实例的setAutoStartEnabled接口设置是否需要在应用返回桌面时自动启动画中画
-      this.pipController.setAutoStartEnabled(true);
+      this.pipController.setAutoStartEnabled(PreferencesCache.getUserPreference('Lyic_desktop','0')==='1');
       // 通过画中画控制器实例的on('stateChange')接口注册生命周期事件回调
       this.pipController.on('stateChange', (state: PiPWindow.PiPState, reason: string) => {
         console.info(TAG, `Succeeded in starting pip.`+state);
@@ -281,12 +282,12 @@ export class PipManager {
         nodeController.update('he')
       }, 100);
     });
-      this.pipController?.startPiP().then(() => {
+    this.pipController?.startPiP().then(() => {
 
-        console.info(TAG, `Succeeded in starting pip.`);
-      }).catch((err: BusinessError) => {
-        console.error(TAG, `Failed to start pip. Cause:${err.code}, message:${err.message}`);
-      });
+      console.info(TAG, `Succeeded in starting pip.`);
+    }).catch((err: BusinessError) => {
+      console.error(TAG, `Failed to start pip. Cause:${err.code}, message:${err.message}`);
+    });
 
 
   }
@@ -322,6 +323,7 @@ export class PipManager {
       nodeController.update('he')
     }, 100);
     this.pipController?.setAutoStartEnabled(autoStart);
+
   }
 
   // 创建typeNode节点

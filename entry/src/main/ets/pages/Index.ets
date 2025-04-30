@@ -104,6 +104,54 @@ struct Index_page {
       PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
       PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
     }
+    if (PreferencesCache.getUserPreference('update_mess_114514','0')==='0'){
+      try{
+        AlertDialog.show(
+          {
+            title: '更新提示',
+            subtitle: '114514版本',
+            message: '画中画歌词控制请前往歌词页面，画中画歌词单次关闭可使用画中画逻辑',
+            autoCancel: true,
+            alignment: DialogAlignment.Bottom,
+            gridCount: 4,
+            offset: { dx: 0, dy: -20 },
+            primaryButton: {
+              value: '我知道了',
+              action: () => {
+                PreferencesCache.setUserPreference('update_mess_114514','1')
+
+                console.info('Callback when the first button is clicked');
+              }
+            },
+            secondaryButton: {
+              enabled: true,
+              defaultFocus: true,
+              style: DialogButtonStyle.HIGHLIGHT,
+              value: '已知悉',
+              action: () => {
+                PreferencesCache.setUserPreference('update_mess_114514','1')
+                console.info('Callback when the second button is clicked');
+              }
+            },
+            cancel: () => {
+              console.info('Closed callbacks');
+            },
+            onWillDismiss: (dismissDialogAction: DismissDialogAction) => {
+              console.info("reason=" + JSON.stringify(dismissDialogAction.reason))
+              console.log("dialog onWillDismiss")
+              if (dismissDialogAction.reason === DismissReason.PRESS_BACK) {
+                dismissDialogAction.dismiss();
+              }
+              if (dismissDialogAction.reason === DismissReason.TOUCH_OUTSIDE) {
+                dismissDialogAction.dismiss();
+              }
+            }
+          }
+        )
+      }catch (e) {
+      }
+    }
+
     // 注册断点系统
     this.breakpointSystem.register()
     HorizontalMode(this.HorizontalMode_ctrl === '1')
