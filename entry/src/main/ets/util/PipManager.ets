@@ -10,8 +10,8 @@ import { PreferencesCache } from './PreferenceCache';
 
 let mess:string=AppStorage.get('test_index')??''
 let song: Song
-let  intervalID:number
-let  intervalID1:number
+let  intervalID:number=114514//这个值就是我用来判断舍妹设置定时器的
+
 
 let Is_PAD:boolean
 let playing_judge:boolean
@@ -203,6 +203,7 @@ export class PipManager {
         break;
       case PiPWindow.PiPState.ABOUT_TO_RESTORE:
         curState = "ABOUT_TO_RESTORE";
+
         break;
       case PiPWindow.PiPState.ERROR:
         curState = "ERROR";
@@ -255,6 +256,23 @@ export class PipManager {
       this.pipController.setAutoStartEnabled(PreferencesCache.getUserPreference('Lyic_desktop','0')==='1');
       // 通过画中画控制器实例的on('stateChange')接口注册生命周期事件回调
       this.pipController.on('stateChange', (state: PiPWindow.PiPState, reason: string) => {
+        if (state==3) {
+          console.info(TAG, `Succeeded in starting pip_jizhishi.`+state);
+          console.info(TAG, `pip_Timer_off.`+state);
+
+          clearInterval(intervalID);
+          intervalID=114514
+        }else         if (state==1) {
+          console.info(TAG, `Succeeded in starting pip_jizhishi.`+state);
+          if (intervalID=114514) {
+            intervalID =setInterval(() => {
+              playing_judge = AppStorage.get("playing_judge")??false
+              this.pipController?.updatePiPControlStatus(controlType,playing_judge?status_play:status_pause)
+              nodeController.update('This pip_Timer is on：'+intervalID)
+            }, 100);
+          }
+        }
+
         console.info(TAG, `Succeeded in starting pip.`+state);
         AppStorage.setOrCreate<boolean>('current_lyrics',true)
 
@@ -276,11 +294,7 @@ export class PipManager {
   startPip() {
     avPlayerManager.getAVPlayerInstance().then(player => {
       this.isPlaying = player.state === 'playing';
-      intervalID =setInterval(() => {
-        playing_judge = AppStorage.get("playing_judge")??false
-        this.pipController?.updatePiPControlStatus(controlType,playing_judge?status_play:status_pause)
-        nodeController.update('he')
-      }, 100);
+
     });
     this.pipController?.startPiP().then(() => {
 
@@ -305,9 +319,6 @@ export class PipManager {
     if (this.pipController === null || this.pipController === undefined) {
       return;
     }
-    clearInterval(intervalID);
-    clearInterval(intervalID1);
-
     let promise: Promise<void> = this.pipController.stopPiP();
     promise.then(() => {
       console.info(TAG, `Succeeded in stopping pip.`);
@@ -317,13 +328,7 @@ export class PipManager {
   }
 
   setAutoStart(autoStart: boolean): void {
-    intervalID1 =setInterval(() => {
-      playing_judge = AppStorage.get("playing_judge")??false
-      this.pipController?.updatePiPControlStatus(controlType,playing_judge?status_play:status_pause)
-      nodeController.update('he')
-    }, 100);
     this.pipController?.setAutoStartEnabled(autoStart);
-
   }
 
   // 创建typeNode节点
