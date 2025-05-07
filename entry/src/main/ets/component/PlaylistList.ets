@@ -131,9 +131,6 @@ export struct PlaylistList {
   @Builder
   TabContentList(index: number){
     List(){
-      ListItem(){
-        Row().height(12)
-      }
       ForEach(this.playlists, (playlist: Playlist) => {
         if(this.judgeSourceByDataSourceId(playlist, index)){
           ListItem(){
