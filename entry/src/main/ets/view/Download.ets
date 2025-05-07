@@ -124,6 +124,7 @@ export struct Download {
               }
             }
           }
+          .backToTop(true)
           .width(StyleConstants.FULL_WIDTH)
           .height(StyleConstants.FULL_HEIGHT)
           .layoutWeight(1)

@@ -146,6 +146,7 @@ export struct PlaylistList {
           .height(StyleConstants.PLAYER_CONTROL_HEIGHT + 32 + px2vp(this.bottomRect))
       }
     }
+    .backToTop(true)
     .nestedScroll({ scrollForward: NestedScrollMode.SELF_ONLY, scrollBackward: NestedScrollMode.SELF_FIRST})
     .width('100%')
     .height('100%')
