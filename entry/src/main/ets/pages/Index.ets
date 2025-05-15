@@ -25,6 +25,8 @@ import { ScrollIndexHandler } from '../util/ScrollIndexHandler'
 import { HeaderAnimation } from '../component/HeaderAnimation'
 import { deviceInfo } from '@kit.BasicServicesKit'
 import { PipManager } from '../util/PipManager';
+import { avPlayerManager } from '../util/AVPlayerManager';
+
 // 缓存常用值以避免重复计算
 const COLUMNS_TEMPLATE_LG = '1fr 1fr 1fr 1fr'
 const COLUMNS_TEMPLATE_SM = '1fr 1fr'
@@ -100,6 +102,7 @@ struct Index_page {
   }).linkController(this.scrollController)
 
   async aboutToAppear() {
+    avPlayerManager.setAudioSession()
     if (PreferencesCache.getUserPreference('Lyic_desktop','0')==='1') {
       PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
       PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
