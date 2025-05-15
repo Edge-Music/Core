@@ -621,13 +621,13 @@ class AVPlayerManager {
 
   async play() {
     try {
+      this.setAudioSession()
       const player = await this.getAVPlayerInstance();
       await player.play();
       this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PLAY);
       AppStorage.setOrCreate<boolean>("playing_judge",true)
       this.triggerPlay();
       EventHelper.postSongState('PLAY');
-      this.setAudioSession()
     } catch (error) {
       this.triggerError(error);
     }
