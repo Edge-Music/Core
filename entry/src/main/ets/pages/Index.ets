@@ -135,7 +135,7 @@ struct Index_page {
               style: DialogButtonStyle.HIGHLIGHT,
               value: '已知悉',
               action: () => {
-                PreferencesCache.setUserPreference('update_mess_114514','1')
+                PreferencesCache.setUserPreference(this.appversion,'1')
                 console.info('Callback when the second button is clicked');
               }
             },
