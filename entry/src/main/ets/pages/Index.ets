@@ -73,6 +73,8 @@ struct Index {
 
 @Component
 struct Index_page {
+  @State appversion: string = '2.1.0.x'
+
   @State blankHeight: number = 0
   @Consume('NavPathStack') pageStack: NavPathStack
   @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
@@ -108,7 +110,7 @@ struct Index_page {
       PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
       PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
     }
-    if (PreferencesCache.getUserPreference('update_mess_1145141','0')==='0'){
+    if (PreferencesCache.getUserPreference(this.appversion,'0')==='0'){
       try{
         AlertDialog.show(
           {
@@ -122,7 +124,7 @@ struct Index_page {
             primaryButton: {
               value: '我知道了',
               action: () => {
-                PreferencesCache.setUserPreference('update_mess_114514','1')
+                PreferencesCache.setUserPreference(this.appversion,'1')
 
                 console.info('Callback when the first button is clicked');
               }
