@@ -131,9 +131,6 @@ export struct PlaylistList {
   @Builder
   TabContentList(index: number){
     List(){
-      ListItem(){
-        Row().height(12)
-      }
       ForEach(this.playlists, (playlist: Playlist) => {
         if(this.judgeSourceByDataSourceId(playlist, index)){
           ListItem(){
@@ -146,6 +143,7 @@ export struct PlaylistList {
           .height(StyleConstants.PLAYER_CONTROL_HEIGHT + 32 + px2vp(this.bottomRect))
       }
     }
+    .backToTop(true)
     .nestedScroll({ scrollForward: NestedScrollMode.SELF_ONLY, scrollBackward: NestedScrollMode.SELF_FIRST})
     .width('100%')
     .height('100%')
