@@ -1,4 +1,5 @@
 import { StyleConstants } from "../constants/StyleConstants";
+import { PreferencesCache } from "../util/PreferenceCache";
 
 @Component
 export struct TitleHeader {
@@ -8,9 +9,10 @@ export struct TitleHeader {
   @BuilderParam midContent: () => void;
   @State isFirstPage: boolean = true
   @Prop backActive: boolean = false
-
+  @State is_2in1:boolean =false
   aboutToAppear() {
     this.isFirstPage = false
+    this.is_2in1= PreferencesCache.getUserPreference('devicetype')==='2in1'?true:false
   }
 
   @Builder
@@ -51,7 +53,10 @@ export struct TitleHeader {
     Stack({ alignContent: Alignment.Start }) {
       Row() {
         Row() {
-          // this.BackButton()
+          if (this.is_2in1){
+            this.BackButton()
+
+          }
 
           Text(this.title)
             .fontColor($r('app.color.text_title'))

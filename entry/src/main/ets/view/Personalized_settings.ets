@@ -3,8 +3,9 @@ import {HorizontalMode}from '../util/HorizontalCheck'
 import { ResourceManager } from "../util/ResourceManager";
 import { PipManager } from '../util/PipManager';
 
+
 @Component
-//'0'关。'1'开。!!!!(开关颜色日后调)
+  //'0'关。'1'开。!!!!(开关颜色日后调)
 export struct Personalized_settings_Component {
   @State text_name: string = '';
   @State setUserPreference_name: string = '';
@@ -35,6 +36,8 @@ export struct Personalized_settings_Component {
             }else {
               PipManager.getInstance().setAutoStart(false)
             }
+
+
           })
       }
       .width('100%')
@@ -96,6 +99,7 @@ export struct Personalized_settings{
           ListItem(){this.HorizontalMode_Ctrl()}
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.mini_music_control_bottom')), setUserPreference_name:'miniplaying_bottom_judge'})}
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.swipe_cover_switch_songs')), setUserPreference_name:'img_playing_ctrl'})}
+          ListItem(){ Personalized_settings_Component({text_name: '允许同时播放', setUserPreference_name:'playing_mix'})}
           // ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.Lyic_desktop')), setUserPreference_name:'Lyic_desktop'})}
 
         }
