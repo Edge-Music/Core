@@ -27,8 +27,8 @@ export interface PlayerCallbacks {
 
 class AVPlayerManager {
   avPlayer: media.AVPlayer | null = null;
-  audioManager = audio.getAudioManager()
-  audioSessionManager: audio.AudioSessionManager = this.audioManager.getSessionManager()
+  audioManager = audio?.getAudioManager()
+  audioSessionManager: audio.AudioSessionManager = this.audioManager?.getSessionManager()
   private avSession: avSession.AVSession | null = null;
   private currentPlaybackState: avSession.PlaybackState = avSession.PlaybackState.PLAYBACK_STATE_PAUSE;
   private context: common.UIAbilityContext | undefined;
