@@ -104,7 +104,7 @@ struct Index_page {
   }).linkController(this.scrollController)
 
   async aboutToAppear() {
-    // avPlayerManager.setAudioSession()
+    avPlayerManager.setAudioSession()
     // avPlayerManager.avPlayer?.setVolume(Number(PreferencesCache.getUserPreference('Volume','100'))/100)
     if (PreferencesCache.getUserPreference('Lyic_desktop','0')==='1') {
       PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
