@@ -27,7 +27,7 @@ export struct AlbumCoversCarousel {
   private allSongs: Song[][] = [];
 
   // 定时器ID
-  private timer: number = 0;
+  private timer: number = -1;
   // 容器宽度
   private containerWidth: number = 0;
 
@@ -43,9 +43,9 @@ export struct AlbumCoversCarousel {
 
   // 清除定时器
   private clearTimer() {
-    if (this.timer !== 0) {
+    if (this.timer !== -1) {
       clearInterval(this.timer);
-      this.timer = 0;
+      this.timer = -1;
     }
   }
 
@@ -58,7 +58,7 @@ export struct AlbumCoversCarousel {
     this.allSongs = Array(this.rows).fill(0).map(() => []);
 
     // 限制最多使用99首歌曲
-    const songCount = Math.min(this.songs.length, 99);
+    const songCount = Math.min(this.songs.length, 30);
 
     // 按照指定顺序排列歌曲
     for (let i = 0; i < songCount; i++) {
@@ -75,7 +75,7 @@ export struct AlbumCoversCarousel {
     // 设置计时器
     this.timer = setInterval(() => {
       // 计算移动距离
-      const moveDistance = this.scrollSpeed / 60;
+      const moveDistance = this.scrollSpeed / 150;
 
       // 更新滚动位置
       this.scrollPosition -= moveDistance;
