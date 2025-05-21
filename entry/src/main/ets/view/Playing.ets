@@ -522,7 +522,7 @@ struct Playing {
       if (this.isPlaying && this.currentTime < (this.song?.duration || 0)) {
         this.currentTime = player.currentTime;
       }
-    }, 1000)
+    }, 300)
 
     // 初始化监听
     EventHelper.subscribeLoopMode((mode: number) => {
@@ -663,11 +663,12 @@ struct Playing {
         value: this.currentTime,
         max: this.song?.duration || 0,
         step: 1,
-        style: SliderStyle.NONE
+        style: SliderStyle.InSet
       })
-        .trackThickness(this.isProgressBarExpanded ? 8 : 4+weight)
-        .selectedColor(Color.White)
+        .trackThickness(this.isProgressBarExpanded ? 12 : 8+weight)
+        .selectedColor('rgba(202, 202, 202, 1.00)')
         .trackColor('rgba(255, 255, 255, 0.3)')// 半透明背景
+        .blockColor('rgba(255, 255, 255, 1.00)')
         .width(StyleConstants.FULL_WIDTH)
         .height(32)// 固定高度以保持布局稳定
         .animation({
@@ -725,7 +726,7 @@ struct Playing {
   }
 
   private coverWidth = new BreakPointType({
-    sm: '70%',
+    sm: '90%',
     md: '60%',
     lg: '50%'
   })
@@ -1100,7 +1101,7 @@ struct Playing {
         .width(this.coverWidth.getValue(this.currentBreakpoint))
         .aspectRatio(1)
         .borderRadius(24)
-        .margin({ top: 36 })
+        .margin({ bottom: 16 })
           // .geometryTransition('song-cover', { follow: true })
         .transition(TransitionEffect.OPACITY)
         .onClick(() => {

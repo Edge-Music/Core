@@ -37,6 +37,7 @@ class LyricsManager {
     this.originalLyrics = this.song?.meta?.lyric?.normal ?? ''
     this.translatedLyrics = this.song?.meta?.lyric?.translation ?? ''
     this.transliteratedLyrics = this.song?.meta?.lyric?.transliteration ?? ''
+    AppStorage.setOrCreate<string>('test_index', this.song?.name + ' - ' + this.song?.artists[0].name)
     this.parseLyrics()
     this.setLyricsInterval()
   }
