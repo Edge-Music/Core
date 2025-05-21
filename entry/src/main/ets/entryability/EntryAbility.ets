@@ -108,8 +108,11 @@ export default class EntryAbility extends UIAbility {
       AppStorage.setOrCreate('bottomRect', windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM).bottomRect.height);
       // 监听避让高度变化
       windowClass.on('avoidAreaChange', (avoidArea) => {
-        AppStorage.setOrCreate('topRect', avoidArea.area.topRect.height);
-        AppStorage.setOrCreate('bottomRect', avoidArea.area.bottomRect.height);
+        if (avoidArea.type === window.AvoidAreaType.TYPE_SYSTEM) {
+          AppStorage.setOrCreate('topRect', avoidArea.area.topRect.height);
+        } else if (avoidArea.type === window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR) {
+          AppStorage.setOrCreate('bottomRect', avoidArea.area.bottomRect.height);
+        }
       });
     });
     windowStage.loadContent('pages/Index', (err) => {
