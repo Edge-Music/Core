@@ -49,6 +49,7 @@ export struct MenuButton {
       Blank()
       this.ArrowIcon()
     }
+    .hoverEffect(HoverEffect.Scale)
     .width(StyleConstants.FULL_WIDTH)
     .height(48)
     .padding({ left: 16, right: 16 })
