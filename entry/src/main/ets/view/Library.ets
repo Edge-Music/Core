@@ -40,8 +40,9 @@ struct Library {
   @State capsuleWidth: number = 0
   @State titleWidths: number[] = []
   private readonly BUTTON_GAP: number = 15
-  @State scaleX: number = 0.9
-  @State scaleY: number = 1.0
+  @State CapsuleScaleX: number = 0.9
+  @State CapsuleScaleY: number = 1.0
+  @State AvatarScale: number = 1
   @State scrollIndexHandler: ScrollIndexHandler = new ScrollIndexHandler({
     onIndexChange: (index) => {
       this.onMenuIconClick(index)
@@ -103,7 +104,7 @@ struct Library {
           .backgroundColor($r('app.color.title_emphasis_color'))
           .borderRadius(5)
           .margin({ bottom: -20})
-          .scale({ x: this.scaleX, y: this.scaleY })
+          .scale({ x: this.CapsuleScaleX, y: this.CapsuleScaleY })
           .shadow(ShadowStyle.OUTER_DEFAULT_XS)
       }
       .height(35)
@@ -132,6 +133,19 @@ struct Library {
       .height(35)
       .align(Alignment.BottomStart)
       .layoutWeight(1)
+      .onTouch((event) => {
+        if (event.type === TouchType.Down) {
+          animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+            this.CapsuleScaleX = 0.75
+            this.CapsuleScaleY = 1.1
+          })
+        } else if (event.type === TouchType.Up) {
+          animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+            this.CapsuleScaleX = 0.9
+            this.CapsuleScaleY = 1.0
+          })
+        }
+      })
     }
     .height(35)
     .layoutWeight(1)
@@ -147,10 +161,22 @@ struct Library {
         .height(35)
         .borderRadius(17.5)
     }
+    .scale({ x: this.AvatarScale, y: this.AvatarScale})
     .shadow(ShadowStyle.OUTER_DEFAULT_XS)
     .backgroundColor('transparent')
     .onClick(() => {
       this.isExpanded = !this.isExpanded
+    })
+    .onTouch((event) => {
+      if (event.type === TouchType.Down) {
+        animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+          this.AvatarScale = 0.8
+        })
+      } else if (event.type === TouchType.Up) {
+        animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+          this.AvatarScale = 1
+        })
+      }
     })
     .bindContextMenu(this.isExpanded, this.SwitchSourceMenu(),{
       onDisappear: () => {
@@ -218,18 +244,13 @@ struct Library {
       offset += (this.titleWidths[i] || 0) + this.BUTTON_GAP
     }
 
-    animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
-      this.scaleX = 0.4
-      this.scaleY = 1.3
-    })
-
     animateTo({ duration: 200, curve: Curve.EaseInOut }, () => {
       this.capsuleOffset = offset
     })
 
     animateTo({ duration: 150, curve: Curve.EaseIn }, () => {
-      this.scaleX = 0.9
-      this.scaleY = 1
+      this.CapsuleScaleX = 0.9
+      this.CapsuleScaleY = 1
       this.capsuleWidth = this.titleWidths[index]
       this.subTitleIndex = index
     })
