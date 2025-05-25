@@ -63,6 +63,17 @@ export struct TitleHeader {
             .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
             .fontSize($r('app.float.title_font_size'))
             .maxLines(1)
+            .onClick(() => {
+              this.backActive = true
+              setTimeout(() => {
+                this.pageStack.pop()
+              }, 300)
+            })
+            .onHover((isHover: boolean) => {
+              if(isHover){
+                this.backActive = true
+              }
+            })
 
           // 自定义左侧
           if(this.midContent){
@@ -84,17 +95,26 @@ export struct TitleHeader {
             .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
             .fontSize($r('app.float.title_font_size'))
             .maxLines(1)
+            .padding({ left: 16 })
         }
-        .padding({ left: 16 })
-
-
+        .width(StyleConstants.FULL_WIDTH)
+        .onHover((isHover: boolean) => {
+          if(isHover){
+            this.backActive = true
+          }else{
+            this.backActive = false
+          }
+        })
+        .onClick(() => {
+          this.pageStack.pop()
+        })
       }
       .width(StyleConstants.FULL_WIDTH)
       .backgroundColor(Color.Transparent)
       .height(50)
       .translate({ x: this.backActive ? '-100%' : 0 }) // 初始值16与所有标题左padding一致
       .animation({
-        duration: 300,
+        duration: 250,
         curve: Curve.FastOutSlowIn
       })
     }

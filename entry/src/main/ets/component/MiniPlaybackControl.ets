@@ -22,6 +22,10 @@ export struct MiniPlaybackControl {
   @State swipeDirection: string = ''; // 滑动方向
   @StorageLink('winWidth') winWidth: number = 0
   @State bottom_judge:string = PreferencesCache.getUserPreference('miniplaying_bottom_judge','0')
+  @State playBtnScale: number = 1
+  @State nextBtnScale: number = 1
+  @State playListBtnScale: number = 1
+  @State stackScale: number = 1
   private updateTimer: number = -1;
   private playerManager = avPlayerManager;
   private readonly SWIPE_THRESHOLD: number = 80; // 触发切换的阈值
@@ -210,6 +214,7 @@ export struct MiniPlaybackControl {
                     .width(20)
                     .height(20)
                     .fillColor($r('app.color.text_primary'))
+
                 }else{
                   Image($r('app.media.ic_play'))
                     .width(16)
@@ -227,11 +232,23 @@ export struct MiniPlaybackControl {
 
               this.ProgressBarCircle()
             }
+            .scale({ x: this.playBtnScale, y: this.playBtnScale})
             .onClick(() => {
               if (this.isPlaying) {
                 this.playerManager.pause();
               } else {
                 this.playerManager.play();
+              }
+            })
+            .onTouch((event) => {
+              if (event.type === TouchType.Down) {
+                animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+                  this.playBtnScale = 0.8
+                })
+              } else if (event.type === TouchType.Up) {
+                animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+                  this.playBtnScale = 1
+                })
               }
             })
 
@@ -245,6 +262,7 @@ export struct MiniPlaybackControl {
             }
             .width(36)
             .height(36)
+            .scale({ x: this.nextBtnScale, y: this.nextBtnScale})
             .backgroundBlurStyle(BlurStyle.Thin)
             .backgroundColor('rgba(200, 200, 200, 0.1)')
             .shadow(ShadowStyle.OUTER_DEFAULT_XS)
@@ -252,6 +270,17 @@ export struct MiniPlaybackControl {
               const nextSong = PlaylistManager.playNext();
               if (nextSong) {
                 PlaylistManager.playSong(nextSong);
+              }
+            })
+            .onTouch((event) => {
+              if (event.type === TouchType.Down) {
+                animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+                  this.nextBtnScale = 0.8
+                })
+              } else if (event.type === TouchType.Up) {
+                animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+                  this.nextBtnScale = 1
+                })
               }
             })
 
@@ -264,12 +293,25 @@ export struct MiniPlaybackControl {
             }
             .width(36)
             .height(36)
+            .scale({ x: this.playListBtnScale, y: this.playListBtnScale})
             .backgroundBlurStyle(BlurStyle.Thin)
             .backgroundColor('rgba(200, 200, 200, 0.1)')
             .shadow(ShadowStyle.OUTER_DEFAULT_XS)
             .onClick(() => {
               this.showPlaylist = true;
             })
+            .onTouch((event) => {
+              if (event.type === TouchType.Down) {
+                animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+                  this.playListBtnScale = 0.8
+                })
+              } else if (event.type === TouchType.Up) {
+                animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+                  this.playListBtnScale = 1
+                })
+              }
+            })
+
           }
           .margin({ right: 16 })
         }
@@ -296,6 +338,7 @@ export struct MiniPlaybackControl {
     .height(64)
     .borderRadius(12)
     .clip(true)
+    .scale({ x: this.stackScale, y: this.stackScale})
     .margin({ left: 16, right: 16, bottom:this.bottom_judge==='0'? 16:0 })
     .shadow({
       radius: 8,
@@ -356,6 +399,17 @@ export struct MiniPlaybackControl {
         //   this.pageStack.pushPath({ name: 'Playing' },{launchMode:LaunchMode.MOVE_TO_TOP_SINGLETON,animated:true} )
         // })
         this.pageStack.pushPath({ name: 'Playing' },{launchMode:LaunchMode.MOVE_TO_TOP_SINGLETON,animated:true} )
+      }
+    })
+    .onTouch((event) => {
+      if (event.type === TouchType.Down) {
+        animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+          this.stackScale = 0.95
+        })
+      } else if (event.type === TouchType.Up) {
+        animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+          this.stackScale = 1
+        })
       }
     })
     .bindSheet($$this.showPlaylist, this.PlayListBuilder(), {
