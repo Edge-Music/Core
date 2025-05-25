@@ -32,6 +32,9 @@ export struct LyricsView {
   private readonly ANIMATION_DURATION: number = 300
   private readonly SCROLL_ANIMATION_DURATION: number = 400
   private lastTriggerTime: number = 0;
+  @State private manualScrollTimeoutId: number = -1; // 手动滚动超时ID
+  @State private isManualScroll: boolean = false; // 是否处于手动滚动状态
+  @State private isAutoScroll: boolean = false; // 是否处于自动滚动状态
 
   aboutToAppear() {
     this.scrollToLyric(this.currentLyricsIndex)
@@ -40,7 +43,7 @@ export struct LyricsView {
   // 监听当前播放时间更新
   onTimeUpdate() {
     // 如果索引变化且不在动画中，则更新并滚动
-    if (this.currentLyricsIndex !== -1 && !this.isAnimating) {
+    if (this.currentLyricsIndex !== -1 && !this.isAnimating && !this.isManualScroll) {
       this.isAnimating = true
       this.scrollToLyric(this.currentLyricsIndex)
     }
@@ -52,6 +55,7 @@ export struct LyricsView {
       return
     }
 
+    this.isAutoScroll = true
     // 保持在视图中间偏上的位置，很显然这是一个经验修正
     const targetIndex = Math.max(0, this.mode_judge ? index - (5 * (this.showTranslation ? 0.2 : 0.6)) : index - (this.showTranslation ? 0 : 1))
 
@@ -60,6 +64,8 @@ export struct LyricsView {
       curve: Curve.EaseOut,
       onFinish: () => {
         this.isAnimating = false
+        this.isAutoScroll = false
+
       }
     }, () => {
       this.scroller.scrollToIndex(targetIndex)
@@ -70,6 +76,7 @@ export struct LyricsView {
   private handleLyricClick(time: number, index: number) {
     // 更新UI状态
     this.isAnimating = true
+    this.isManualScroll = false
     this.currentLyricsIndex = index
 
     // 滚动到目标位置
@@ -208,7 +215,18 @@ export struct LyricsView {
           .expandSafeArea()
           .contentEndOffset(10)
           .contentStartOffset(10)
-
+          .onDidScroll(() => {
+            // 检测到手动滚动时启动计时器
+            if (!this.isAutoScroll) {
+              this.startManualScrollTimer()
+            }
+          })
+          .onScrollStop(() => {
+            // 滚动停止时也检查是否需要锁定
+            if (!this.isAutoScroll && this.isManualScroll) {
+              this.startManualScrollTimer()
+            }
+          })
         }
       }
       .width(StyleConstants.FULL_WIDTH)
@@ -255,5 +273,23 @@ export struct LyricsView {
           }
         })
     )
+  }
+
+  private startManualScrollTimer() {
+    // 清除之前的计时器
+    if (this.manualScrollTimeoutId) {
+      clearTimeout(this.manualScrollTimeoutId)
+    }
+
+    // 设置手动滚动状态
+    this.isManualScroll = true
+
+    // 设置7秒后恢复自动滚动
+    this.manualScrollTimeoutId = setTimeout(() => {
+      this.isManualScroll = false
+      this.manualScrollTimeoutId = -1
+      // 恢复后立即同步到当前歌词位置
+      this.scrollToLyric(this.currentLyricsIndex)
+    }, 7000) as number
   }
 }

@@ -330,7 +330,7 @@ export struct PlayList {
           coverSize: 56,
           scrollSpeed: 60,
           rows: 1,
-          songs: this.playlist?.songs.slice(0, 99) || [],
+          songs: this.playlist?.songs.slice(0, 30) || [],
           onCoverClick: (song: Song, index: number) => {
             this.handleCoverClick(song, index);
           }
