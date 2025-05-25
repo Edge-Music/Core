@@ -25,6 +25,8 @@ import { ScrollIndexHandler } from '../util/ScrollIndexHandler'
 import { HeaderAnimation } from '../component/HeaderAnimation'
 import { deviceInfo } from '@kit.BasicServicesKit'
 import { PipManager } from '../util/PipManager';
+import { avPlayerManager } from '../util/AVPlayerManager';
+
 // 缓存常用值以避免重复计算
 const COLUMNS_TEMPLATE_LG = '1fr 1fr 1fr 1fr'
 const COLUMNS_TEMPLATE_SM = '1fr 1fr'
@@ -71,6 +73,8 @@ struct Index {
 
 @Component
 struct Index_page {
+  @State appversion: string = '2.1.0.x'
+
   @State blankHeight: number = 0
   @Consume('NavPathStack') pageStack: NavPathStack
   @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
@@ -100,17 +104,19 @@ struct Index_page {
   }).linkController(this.scrollController)
 
   async aboutToAppear() {
+    avPlayerManager.setAudioSession()
+    // avPlayerManager.avPlayer?.setVolume(Number(PreferencesCache.getUserPreference('Volume','100'))/100)
     if (PreferencesCache.getUserPreference('Lyic_desktop','0')==='1') {
       PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
       PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
     }
-    if (PreferencesCache.getUserPreference('update_mess_114514','0')==='0'){
+    if (PreferencesCache.getUserPreference(this.appversion,'0')==='0'){
       try{
         AlertDialog.show(
           {
             title: '更新提示',
-            subtitle: '114514版本',
-            message: '画中画歌词控制请前往歌词页面，画中画歌词单次关闭可使用画中画逻辑',
+            subtitle: '此版本',
+            message: '播放页双击歌曲两侧即可弹出调节软件音量，个性化设置中增加允许同时播放（需暂停再次播放后触发），临时解决2in1设备无法使用的问题，全新2in1适配施工中',
             autoCancel: true,
             alignment: DialogAlignment.Bottom,
             gridCount: 4,
@@ -118,7 +124,7 @@ struct Index_page {
             primaryButton: {
               value: '我知道了',
               action: () => {
-                PreferencesCache.setUserPreference('update_mess_114514','1')
+                PreferencesCache.setUserPreference(this.appversion,'1')
 
                 console.info('Callback when the first button is clicked');
               }
@@ -129,7 +135,7 @@ struct Index_page {
               style: DialogButtonStyle.HIGHLIGHT,
               value: '已知悉',
               action: () => {
-                PreferencesCache.setUserPreference('update_mess_114514','1')
+                PreferencesCache.setUserPreference(this.appversion,'1')
                 console.info('Callback when the second button is clicked');
               }
             },
@@ -167,6 +173,7 @@ struct Index_page {
 
     }
     AppStorage.setOrCreate("devicetype", devicetype)
+    PreferencesCache.setUserPreference('devicetype', devicetype)
     if(productSeries=='VDE') {
       PreferencesCache.setUserPreference('is_Pura_X', '1')
     }else {

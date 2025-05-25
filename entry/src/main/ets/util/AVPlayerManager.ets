@@ -26,7 +26,9 @@ export interface PlayerCallbacks {
 }
 
 class AVPlayerManager {
-   avPlayer: media.AVPlayer | null = null;
+  avPlayer: media.AVPlayer | null = null;
+  audioManager = audio?.getAudioManager()
+  audioSessionManager: audio.AudioSessionManager = this.audioManager?.getSessionManager()
   private avSession: avSession.AVSession | null = null;
   private currentPlaybackState: avSession.PlaybackState = avSession.PlaybackState.PLAYBACK_STATE_PAUSE;
   private context: common.UIAbilityContext | undefined;
@@ -619,6 +621,7 @@ class AVPlayerManager {
 
   async play() {
     try {
+      this.setAudioSession()
       const player = await this.getAVPlayerInstance();
       await player.play();
       this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PLAY);
@@ -674,7 +677,16 @@ class AVPlayerManager {
       this.triggerError(error);
     }
   }
+  async setAudioSession() {
+    // let isMixWithOthers = await AppStorage.get(StorageConstants.MIX_WITH_OTHERS) as boolean
+    let playing_mix: string =  PreferencesCache.getUserPreference('playing_mix','0')
+    const strategy: audio.AudioSessionStrategy = {
+      concurrencyMode:playing_mix==='1'? audio.AudioConcurrencyMode.CONCURRENCY_MIX_WITH_OTHERS:audio.AudioConcurrencyMode.CONCURRENCY_DEFAULT
+    }
+    await this.audioSessionManager.activateAudioSession(strategy)
 
+
+  }
   async seek(position: number) {
     try {
       const player = await this.getAVPlayerInstance();
