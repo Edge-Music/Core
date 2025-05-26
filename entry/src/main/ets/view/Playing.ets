@@ -719,10 +719,10 @@ struct Playing {
     .padding({
       left: 16,
       right: 16,
-      top: judge_time_area?8:0 ,
+      top: judge_time_area ? 8 : 0,
       bottom: 4
     })
-    .height( judge?64:32) // 固定整个进度条区域的高度
+    .height(judge ? 64 : 32) // 固定整个进度条区域的高度
   }
 
   private coverWidth = new BreakPointType({
