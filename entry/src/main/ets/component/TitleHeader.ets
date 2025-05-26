@@ -53,10 +53,9 @@ export struct TitleHeader {
     Stack({ alignContent: Alignment.Start }) {
       Row() {
         Row() {
-          if (this.is_2in1){
-            this.BackButton()
-
-          }
+          // if (this.is_2in1){
+          //   this.BackButton()
+          // }
 
           Text(this.title)
             .fontColor($r('app.color.text_title'))
