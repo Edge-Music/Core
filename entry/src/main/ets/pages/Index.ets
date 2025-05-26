@@ -505,28 +505,36 @@ struct Index_page {
           }
 
           if (this.adapters.length > 0) {
-            if (this.recommendPlaylist.length > 0 && this.recommendSongs.length > 0
-              && this.recommendArtists.length > 0 && this.topList.length > 0) {
-              ListItem() {
-                this.MenuGrid()
+            ListItem() {
+              this.MenuGrid()
+            }
+
+            if (this.loading || (this.recommendPlaylist.length > 0 || this.recommendSongs.length > 0
+              || this.recommendArtists.length > 0 || this.topList.length > 0)) {
+              if(this.recommendPlaylist.length > 0){
+                ListItem() {
+                  this.RecommendedSongs()
+                }
               }
 
-              ListItem() {
-                this.RecommendedSongs()
+              if(this.recommendSongs.length > 0){
+                ListItem() {
+                  this.RecommendedPlaylists()
+                }
               }
 
-              ListItem() {
-                this.RecommendedPlaylists()
+              if(this.recommendArtists.length > 0){
+                ListItem() {
+                  this.RecommendedArtists()
+                }
               }
 
-              ListItem() {
-                this.RecommendedArtists()
+              if(this.topList.length > 0){
+                ListItem() {
+                  this.TopLists()
+                }
               }
-
-              ListItem() {
-                this.TopLists()
-              }
-            } else {
+            } else if(!this.loading) {
               ListItem() {
                 this.MenuGrid()
               }
