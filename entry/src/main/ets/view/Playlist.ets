@@ -559,9 +559,9 @@ export struct PlayList {
     .systemTransition(NavigationSystemTransitionType.EXPLODE)
     .backgroundColor($r('app.color.page_background'))
     .mode(NavDestinationMode.STANDARD)
-    .expandSafeArea()
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
+    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM])
   }
 
   @Builder

@@ -594,6 +594,7 @@ struct Index_page {
       height: 50,
     })
     .backgroundColor($r('app.color.page_background'))
+    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM])
   }
 
   getBlankHeight(): number {
