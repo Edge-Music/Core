@@ -13,7 +13,7 @@ import { AboutSetting, PlayerSetting, SoftwareSetting } from "../viewmodel/Setti
 import { About } from "./About";
 import {Personalized_settings}from '../view/Personalized_settings'
 import { HeaderAnimation } from "../component/HeaderAnimation";
-import { ScrollIndexHandler } from "../util/ScrollIndexHandler";
+import { ScrollController } from "../util/ScrollController";
 import { ResourceManager } from "../util/ResourceManager";
 
 const TAG = 'Setting'
@@ -39,7 +39,7 @@ export struct Setting {
   @StorageLink("user_data_source") adapters: SourceConfig[] = PreferencesCache.getUserDataSource()
   @State currentIndex: number = -1
   @State isEditing: boolean = false // 新增：标记是否处于编辑模式
-  private scrollController: Scroller = new ListScroller()
+  private scroller: Scroller = new ListScroller()
   // QR Code 相关状态
   @State qrCodeUrl: string = ''
   @State qrCodeUnikey: string = ''
@@ -60,10 +60,10 @@ export struct Setting {
   @StorageProp('topRect') topRect: number = 0;
   @State groupHeight: number = 0
   @State  Pura_X:boolean =  PreferencesCache.getUserPreference('is_Pura_X', '0')==='1'? true:false//pura_x尝试适配
-  @State scrollIndexHandler: ScrollIndexHandler = new ScrollIndexHandler({
+  @State scrollController: ScrollController = new ScrollController({
     onIndexChange: (index): void => this.onMenuIconClick(index),
     componentTag: TAG
-  }).linkController(this.scrollController)
+  }).linkController(this.scroller)
 
   calculateCurrentIndex(offset: number): number {
     offset = Math.abs(offset)
@@ -245,7 +245,7 @@ export struct Setting {
   Title() {
     TitleHeader({
       title: $r('app.string.settings'),
-      backActive: this.scrollIndexHandler.currentIndex === 0,
+      backActive: this.scrollController.currentIndex === 0,
     })
   }
 
@@ -261,6 +261,7 @@ export struct Setting {
         .fontColor($r('app.color.text_secondary'))
         .margin({ left: 8 })
     }
+    .clickEffect({ level: ClickEffectLevel.LIGHT })
     .padding(12)
     .width(StyleConstants.FULL_WIDTH)
     .borderRadius(8)
@@ -643,6 +644,7 @@ export struct Setting {
       .height(32)
       .backgroundColor('transparent')
       .bindMenu(this.AdapterItemMenu(adapter))
+      .clickEffect({ level: ClickEffectLevel.LIGHT })
 
       Image($r('app.media.ic_arrow_down_3'))
         .width(20)
@@ -690,9 +692,9 @@ export struct Setting {
 
       Column() {
 
-        List({ scroller: this.scrollController }) {
+        List({ scroller: this.scroller }) {
           ListItem() {
-            HeaderAnimation({ scrollIndexHandler: this.scrollIndexHandler })
+            HeaderAnimation({ scrollController: this.scrollController })
           }
 
           ListItemGroup({ header: this.SourceButton() }) {
@@ -743,8 +745,8 @@ export struct Setting {
         .width(StyleConstants.FULL_WIDTH)
         .height(StyleConstants.FULL_HEIGHT)
         .sticky(StickyStyle.Header | StickyStyle.Footer)
-        .onWillScroll(this.scrollIndexHandler.scrollHandlers.onWillScroll)
-        .onScrollStop(this.scrollIndexHandler.scrollHandlers.onScrollStop)
+        .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
+        .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
       }
       .width(StyleConstants.FULL_WIDTH)
       .height(StyleConstants.FULL_HEIGHT)

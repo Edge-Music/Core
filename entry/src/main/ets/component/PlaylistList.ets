@@ -19,6 +19,7 @@ export struct PlaylistList {
   @Prop adapters: SourceConfig[] = []
   @Link sIndex: number
   @Link subTitleIndex: number
+  @State isPressedPlaylistItem: boolean = false
 
   build() {
     Column() {
@@ -186,23 +187,44 @@ export struct PlaylistList {
       .alignItems(HorizontalAlign.Start)
 
       // 更多操作按钮
-      Image($r('app.media.ic_more'))
-        .width(20)
-        .height(20)
-        .fillColor($r('app.color.icon_normal'))
-        .opacity(0.9)
-        .bindMenu(this.generatePlaylistMenu(playlist))
+      Button({ type: ButtonType.Circle }) {
+        Image($r('app.media.ic_more'))
+          .width(20)
+          .height(20)
+          .fillColor($r('app.color.icon_normal'))
+          .opacity(0.9)
+      }
+      .width(48)
+      .height(48)
+      .bindMenu(this.generatePlaylistMenu(playlist))
+      .clickEffect({ level: ClickEffectLevel.LIGHT })
+      .stateStyles({
+        pressed: this.pressedStyles,
+        normal: this.normalStyles
+      })
+
     }
     .width('100%')
     .justifyContent(FlexAlign.SpaceBetween)
     .padding({ left: 16, right: 16, top: 0, bottom: 0 })
     .height(74)
-    .backgroundColor($r('app.color.card_background'))
     .onClick(() => {
       if (this.onPlaylistSelected) {
         this.onPlaylistSelected(playlist);
       }
     })
+    .clickEffect({ level: ClickEffectLevel.LIGHT })
+    .animation({ duration: 300, curve: Curve.LinearOutSlowIn })
+  }
+
+  @Styles pressedStyles(): void {
+    .backgroundColor($r("app.color.homepage_menu_button_pressed"))
+    .animation({ duration: 300, curve: Curve.LinearOutSlowIn })
+  }
+
+  @Styles normalStyles(): void {
+    .backgroundColor('transparent')
+    .animation({ duration: 300, curve: Curve.LinearOutSlowIn })
   }
 
   private generatePlaylistMenu(playlist: Playlist): Array<MenuElement> {

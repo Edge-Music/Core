@@ -3,7 +3,7 @@ import { SongInfo } from "../component/SongInfo";
 import { TitleHeader } from "../component/TitleHeader";
 import { StyleConstants } from "../constants/StyleConstants";
 import { Playlist, Song } from "../type/Adapter";
-import { BasicPrefetcher } from '@kit.ArkUI';
+import { BasicPrefetcher, ColorMetrics, LengthMetrics } from '@kit.ArkUI';
 import { SongDataSourcePrefetching } from "../util/SongDataSourcePrefetching";
 import { BreakpointConstants } from "../constants/BreakpointConstants";
 import { cover } from "../util/AdapterHelper";
@@ -11,7 +11,7 @@ import { PushPathHelper } from "../util/PushPathHelper";
 import { PlaylistManager, PlayMode } from "../util/PlaylistManager";
 import { MiniPlaybackControl } from "../component/MiniPlaybackControl";
 import { SongDownloadManager } from "../util/SongDownloadManager";
-import { ScrollIndexHandler } from "../util/ScrollIndexHandler";
+import { ScrollController } from "../util/ScrollController";
 import { HeaderAnimation } from "../component/HeaderAnimation";
 import { ResourceManager } from "../util/ResourceManager";
 import { ToastUtil } from "@pura/harmony-utils";
@@ -28,7 +28,7 @@ export struct PlayList {
   private songDataSource: SongDataSourcePrefetching = new SongDataSourcePrefetching(null);
   private prefetcher: BasicPrefetcher | null = null;
   private sourceOk: boolean = false;
-  private scrollController: Scroller = new Scroller();
+  private scroller: Scroller = new Scroller();
   @State isLoading: boolean = false;
   // 点击跳转后的闪烁效果索引
   @State billingIndex: number = -1
@@ -43,18 +43,18 @@ export struct PlayList {
   @State searchKeywords: string = ''
   @State filteredSongs: Song[] = []
   @State isSearching: boolean = false
-  @State scrollIndexHandler: ScrollIndexHandler = new ScrollIndexHandler({
+  @State scrollController: ScrollController = new ScrollController({
     onIndexChange: (index) => {
       this.onMenuIconClick(index)
     },
     componentTag: TAG
-  }).linkController(this.scrollController)
+  }).linkController(this.scroller)
 
   @Builder
   Title() {
     TitleHeader({
       title: this.playlist?.name,
-      backActive: this.scrollIndexHandler.currentIndex === 0,
+      backActive: this.scrollController.currentIndex === 0,
     })
   }
 
@@ -203,10 +203,10 @@ export struct PlayList {
       //   right: 16,
       // })
 
-      List({ scroller: this.scrollController }) {
+      List({ scroller: this.scroller }) {
         ListItem() {
           // 下拉提示动画
-          HeaderAnimation({ scrollIndexHandler: this.scrollIndexHandler })
+          HeaderAnimation({ scrollController: this.scrollController })
         }
 
         ListItem() {
@@ -279,8 +279,8 @@ export struct PlayList {
           this.prefetcher.visibleAreaChanged(firstIndex, lastIndex);
         }
       })
-      .onWillScroll(this.scrollIndexHandler.scrollHandlers.onWillScroll)
-      .onScrollStop(this.scrollIndexHandler.scrollHandlers.onScrollStop)
+      .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
+      .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
       .onReachEnd(async () => {
         if (this.isLoading || !this.sourceOk || this.isSearching) {
           return;
@@ -312,7 +312,7 @@ export struct PlayList {
     // this.scrollController.scrollToIndex(index, true);
     // 使用ListItemGroup之后会导致scrollToIndex方法失效，无法穿透滚动，使用scrollTo滚动指定距离
     // 滚动位置为每个歌曲卡片高度(68) + 上下padding距离(2*4)，并向上便宜3个卡片的距离，使后面的滚动可以屏幕居中
-    this.scrollController.scrollTo({ xOffset: 0, yOffset: (68 + 8) * (index - 3), animation: true })
+    this.scroller.scrollTo({ xOffset: 0, yOffset: (68 + 8) * (index - 3), animation: true })
     // 设置高亮效果
     this.billingIndex = index;
 
@@ -511,10 +511,10 @@ export struct PlayList {
               }
             } else {
               // 显示空状态
-              List({ scroller: this.scrollController }) {
+              List({ scroller: this.scroller }) {
                 ListItem() {
                   // 下拉提示动画
-                  HeaderAnimation({ scrollIndexHandler: this.scrollIndexHandler })
+                  HeaderAnimation({ scrollController: this.scrollController })
                 }
 
                 ListItem() {
@@ -536,8 +536,8 @@ export struct PlayList {
                   }
                 }
               }
-              .onWillScroll(this.scrollIndexHandler.scrollHandlers.onWillScroll)
-              .onScrollStop(this.scrollIndexHandler.scrollHandlers.onScrollStop)
+              .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
+              .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
               .width(StyleConstants.FULL_WIDTH)
               .height(StyleConstants.FULL_HEIGHT)
             }
@@ -596,6 +596,11 @@ export struct PlayList {
             .fontColor($r('app.color.text_primary'))
             .margin({ left: 4 })
         }
+        .clickEffect({ level: ClickEffectLevel.LIGHT })
+        .stateStyles({
+          pressed: this.pressedStyles,
+          normal: this.normalStyles
+        })
         .shadow(ShadowStyle.OUTER_DEFAULT_XS)
         .height(36)
         .width(100)
@@ -635,6 +640,11 @@ export struct PlayList {
             }
           }
         }])
+        .clickEffect({ level: ClickEffectLevel.LIGHT })
+        .stateStyles({
+          pressed: this.pressedStyles,
+          normal: this.normalStyles
+        })
       }
       .padding({
         left: 8,
@@ -676,6 +686,11 @@ export struct PlayList {
             .fontColor($r('app.color.text_primary'))
             .margin({ left: 4 })
         }
+        .clickEffect({ level: ClickEffectLevel.LIGHT })
+        .stateStyles({
+          pressed: this.pressedStyles,
+          normal: this.normalStyles
+        })
         .shadow(ShadowStyle.OUTER_DEFAULT_XS)
         .height(36)
         .width(100)
@@ -715,6 +730,11 @@ export struct PlayList {
             }
           }
         }])
+        .clickEffect({ level: ClickEffectLevel.LIGHT })
+        .stateStyles({
+          pressed: this.pressedStyles,
+          normal: this.normalStyles
+        })
       }
       .padding({
         left: 8,
@@ -754,5 +774,14 @@ export struct PlayList {
     song.album.name.toLowerCase().includes(keywords)
     )
     this.isSearching = true
+  }
+
+  @Styles pressedStyles(): void {
+    .borderWidth(1)
+    .borderColor($r('app.color.text_click'))
+  }
+
+  @Styles normalStyles(): void {
+    .borderWidth(0)
   }
 }

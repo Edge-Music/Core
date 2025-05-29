@@ -140,10 +140,24 @@ export struct SongInfo {
           this.onTap(this.song);
         }
       })
+      .clickEffect({ level: ClickEffectLevel.LIGHT })
+      .stateStyles({
+        pressed: this.pressedStyles,
+        normal: this.normalStyles
+      })
     }
 
     .width(StyleConstants.FULL_WIDTH)
     .padding({ left: 12, right: 12, top: 4, bottom: 4 })
     .expandSafeArea()
+  }
+
+  @Styles pressedStyles(): void {
+    .borderWidth(1)
+    .borderColor($r('app.color.text_click'))
+  }
+
+  @Styles normalStyles(): void {
+    .borderWidth(0)
   }
 }

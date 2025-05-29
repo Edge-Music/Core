@@ -10,7 +10,7 @@ import { cover } from "../util/AdapterHelper";
 import { promptAction, UIContext } from "@kit.ArkUI";
 import { PreferencesCache } from "../util/PreferenceCache";
 import { HeaderAnimation } from "../component/HeaderAnimation";
-import { ScrollIndexHandler } from "../util/ScrollIndexHandler";
+import { ScrollController } from "../util/ScrollController";
 import { ResponseCacheUtil } from "../util/ResponseCacheUtil";
 
 const TAG = 'Library'
@@ -27,7 +27,7 @@ struct Library {
   @StorageLink('user_playlist') playlists: Playlist[] = [];
   @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm';
   @State isLoading: boolean = false;
-  private scrollController: Scroller = new Scroller();
+  private scroller: Scroller = new Scroller();
   @StorageProp('bottomRect') bottomRect: number = 0;
   @StorageProp('topRect') topRect: number = 0;
   @StorageProp('winHeight') winHeight: number = 0;
@@ -40,15 +40,15 @@ struct Library {
   @State capsuleWidth: number = 0
   @State titleWidths: number[] = []
   private readonly BUTTON_GAP: number = 15
-  @State CapsuleScaleX: number = 0.9
-  @State CapsuleScaleY: number = 1.0
-  @State AvatarScale: number = 1
-  @State scrollIndexHandler: ScrollIndexHandler = new ScrollIndexHandler({
+  @State capsuleScaleX: number = 0.9
+  @State capsuleScaleY: number = 1.0
+  @State avatarScale: number = 1
+  @State scrollController: ScrollController = new ScrollController({
     onIndexChange: (index) => {
       this.onMenuIconClick(index)
     },
     componentTag: TAG
-  }).linkController(this.scrollController)
+  }).linkController(this.scroller)
 
   onChangeSubTitleIndex(){
     this.updateCapsulePosition(this.subTitleIndex)
@@ -84,7 +84,7 @@ struct Library {
   Title() {
     TitleHeader({
       title: $r('app.string.library'),
-      backActive: this.scrollIndexHandler.currentIndex === 0,
+      backActive: this.scrollController.currentIndex === 0,
       rightContent: () => {
         this.ButtonS()
       },
@@ -104,7 +104,7 @@ struct Library {
           .backgroundColor($r('app.color.title_emphasis_color'))
           .borderRadius(5)
           .margin({ bottom: -20})
-          .scale({ x: this.CapsuleScaleX, y: this.CapsuleScaleY })
+          .scale({ x: this.capsuleScaleX, y: this.capsuleScaleY })
           .shadow(ShadowStyle.OUTER_DEFAULT_XS)
       }
       .height(35)
@@ -136,13 +136,13 @@ struct Library {
       .onTouch((event) => {
         if (event.type === TouchType.Down) {
           animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
-            this.CapsuleScaleX = 0.75
-            this.CapsuleScaleY = 1.1
+            this.capsuleScaleX = 0.75
+            this.capsuleScaleY = 1.1
           })
         } else if (event.type === TouchType.Up) {
           animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
-            this.CapsuleScaleX = 0.9
-            this.CapsuleScaleY = 1.0
+            this.capsuleScaleX = 0.9
+            this.capsuleScaleY = 1.0
           })
         }
       })
@@ -161,23 +161,13 @@ struct Library {
         .height(35)
         .borderRadius(17.5)
     }
-    .scale({ x: this.AvatarScale, y: this.AvatarScale})
+    .scale({ x: this.avatarScale, y: this.avatarScale})
     .shadow(ShadowStyle.OUTER_DEFAULT_XS)
     .backgroundColor('transparent')
     .onClick(() => {
       this.isExpanded = !this.isExpanded
     })
-    .onTouch((event) => {
-      if (event.type === TouchType.Down) {
-        animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
-          this.AvatarScale = 0.8
-        })
-      } else if (event.type === TouchType.Up) {
-        animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
-          this.AvatarScale = 1
-        })
-      }
-    })
+    .clickEffect({ level: ClickEffectLevel.LIGHT })
     .bindContextMenu(this.isExpanded, this.SwitchSourceMenu(),{
       onDisappear: () => {
         if(this.isExpanded){
@@ -249,8 +239,8 @@ struct Library {
     })
 
     animateTo({ duration: 150, curve: Curve.EaseIn }, () => {
-      this.CapsuleScaleX = 0.9
-      this.CapsuleScaleY = 1
+      this.capsuleScaleX = 0.9
+      this.capsuleScaleY = 1
       this.capsuleWidth = this.titleWidths[index]
       this.subTitleIndex = index
     })
@@ -327,10 +317,10 @@ struct Library {
           // 标题
           this.Title()
           // 主内容
-          List({ scroller: this.scrollController }) {
+          List({ scroller: this.scroller }) {
             // 下拉提示动画
             ListItem(){
-              HeaderAnimation({ scrollIndexHandler: this.scrollIndexHandler, isShowLoadingProgress: true })
+              HeaderAnimation({ scrollController: this.scrollController, isShowLoadingProgress: true })
             }
             // 如果没有歌单，显示空状态
             if (this.playlists.length === 0) {
@@ -375,8 +365,8 @@ struct Library {
           .scrollBar(BarState.Off)
           .expandSafeArea()
           .backToTop(true)
-          .onWillScroll(this.scrollIndexHandler.scrollHandlers.onWillScroll)
-          .onScrollStop(this.scrollIndexHandler.scrollHandlers.onScrollStop)
+          .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
+          .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
           .onReachEnd(() => {
             // 到达底部可以加载更多内容
             if (!this.isLoading) {
