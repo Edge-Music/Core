@@ -67,7 +67,7 @@ export class PreferencesCache {
    */
   static setUserDataSource(sourceConfig: SourceConfig[]): void {
     PreferencesCache.setCache('user_data_source', JSON.stringify(sourceConfig));
-    AppStorage.set('user_data_source', sourceConfig);
+    AppStorage.setOrCreate('user_data_source', sourceConfig);
   }
 
   /**
@@ -116,7 +116,7 @@ export class PreferencesCache {
    */
   static setShowUserDataSource(sourceConfig: SourceConfig[]): void {
     PreferencesCache.setCache('show_user_data_source', JSON.stringify(sourceConfig));
-    AppStorage.set('show_user_data_source', sourceConfig);
+    AppStorage.setOrCreate('show_user_data_source', sourceConfig);
   }
 
   /**

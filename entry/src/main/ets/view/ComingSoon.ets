@@ -1,7 +1,6 @@
 @Component
 export struct ComingSoon {
   @Consume('NavPathStack') pageStack: NavPathStack;
-  @State isButtonPressed: boolean = false;
 
   build() {
     NavDestination() {
@@ -42,23 +41,19 @@ export struct ComingSoon {
           .width('80%')
           .height(46)
           .borderRadius(23)
-          .backgroundColor(this.isButtonPressed ? '#5D4FB8' : '#6A5ACD')
+          .stateStyles({
+            normal: this.normalStyle,
+            clicked: this.clickedStyle
+          })
           .shadow({
             radius: 8,
             color: 'rgba(106, 90, 205, 0.3)',
             offsetY: 4
           })
-          .scale({ x: this.isButtonPressed ? 0.96 : 1.0, y: this.isButtonPressed ? 0.96 : 1.0 })
+          .clickEffect({ level: ClickEffectLevel.LIGHT })
           .animation({
             duration: 100,
             curve: Curve.EaseInOut
-          })
-          .onTouch((event) => {
-            if (event.type === TouchType.Down) {
-              this.isButtonPressed = true;
-            } else if (event.type === TouchType.Up) {
-              this.isButtonPressed = false;
-            }
           })
           .onClick(() => {
             this.pageStack.pop();
@@ -93,8 +88,15 @@ export struct ComingSoon {
           })
       )
     }
-    .backgroundColor('transparent')
     .hideTitleBar(true)
     .mode(NavDestinationMode.DIALOG)
+  }
+
+  @Styles normalStyle(){
+    .backgroundColor('#6A5ACD')
+  }
+
+  @Styles clickedStyle(){
+    .backgroundColor('#5D4FB8')
   }
 }

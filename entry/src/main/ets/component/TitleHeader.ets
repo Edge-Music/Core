@@ -15,6 +15,12 @@ export struct TitleHeader {
     this.is_2in1= PreferencesCache.getUserPreference('devicetype')==='2in1'?true:false
   }
 
+  pagesStackPop(){
+    if(this.pageStack.size() > 1){
+      this.pageStack.pop()
+    }
+  }
+
   @Builder
   BackButton() {
     if (!this.isFirstPage) {
@@ -65,7 +71,7 @@ export struct TitleHeader {
             .onClick(() => {
               this.backActive = true
               setTimeout(() => {
-                this.pageStack.pop()
+                this.pagesStackPop()
               }, 300)
             })
             .onHover((isHover: boolean) => {
@@ -105,7 +111,7 @@ export struct TitleHeader {
           }
         })
         .onClick(() => {
-          this.pageStack.pop()
+          this.pagesStackPop()
         })
       }
       .width(StyleConstants.FULL_WIDTH)

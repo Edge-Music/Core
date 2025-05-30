@@ -21,11 +21,11 @@ export struct MiniPlaybackControl {
   @State isSwipingActive: boolean = false; // 是否正在滑动中
   @State swipeDirection: string = ''; // 滑动方向
   @StorageLink('winWidth') winWidth: number = 0
-  @State bottom_judge:string = PreferencesCache.getUserPreference('miniplaying_bottom_judge','0')
+  @StorageProp('bottomRect') bottomRect: number = 0
+  @State bottom_judge: string = PreferencesCache.getUserPreference('miniplaying_bottom_judge','0')
   @State playBtnScale: number = 1
   @State nextBtnScale: number = 1
   @State playListBtnScale: number = 1
-  @State stackScale: number = 1
   private updateTimer: number = -1;
   private playerManager = avPlayerManager;
   private readonly SWIPE_THRESHOLD: number = 80; // 触发切换的阈值
@@ -166,7 +166,7 @@ export struct MiniPlaybackControl {
         })
         .clip(true)
 
-      Row() {
+      Column() {
         // 进度条（覆盖在整个组件上方）
         // this.ProgressBar()
 
@@ -315,7 +315,7 @@ export struct MiniPlaybackControl {
           }
           .margin({ right: 16 })
         }
-        .height(StyleConstants.FULL_HEIGHT)
+        .height(64)
         .width(StyleConstants.FULL_WIDTH)
         .justifyContent(FlexAlign.SpaceBetween)
         .alignItems(VerticalAlign.Center)
@@ -328,18 +328,25 @@ export struct MiniPlaybackControl {
           delay: 0,
           iterations: 1
         })
+
+        if(this.bottom_judge !== '0'){
+          Row()
+            .height(px2vp(this.bottomRect/2))
+            .width(StyleConstants.FULL_WIDTH)
+        }
       }
       .transition(TransitionEffect.OPACITY)
       .width(StyleConstants.FULL_WIDTH)
       .height(StyleConstants.FULL_HEIGHT)
     }
-    .onVisibleAreaChange([0.0, 1.0], () =>{this.bottom_judge=PreferencesCache.getUserPreference('miniplaying_bottom_judge','0')})
-    .width("90%")
-    .height(64)
+    .onVisibleAreaChange([0.0, 1.0], () => {
+      this.bottom_judge = PreferencesCache.getUserPreference('miniplaying_bottom_judge','0')
+    })
+    .width(this.bottom_judge === '0' ? "90%" : "100%")
+    .height(this.bottom_judge === '0' ? 64 : 64+px2vp(this.bottomRect/2))
     .borderRadius(12)
     .clip(true)
-    .scale({ x: this.stackScale, y: this.stackScale})
-    .margin({ left: 16, right: 16, bottom:this.bottom_judge==='0'? 16:0 })
+    .margin(this.bottom_judge === '0' ? px2vp(this.bottomRect) : 0)
     .shadow({
       radius: 8,
       color: 'rgba(0, 0, 0, 0.15)',
@@ -401,17 +408,7 @@ export struct MiniPlaybackControl {
         this.pageStack.pushPath({ name: 'Playing' },{launchMode:LaunchMode.MOVE_TO_TOP_SINGLETON,animated:true} )
       }
     })
-    .onTouch((event) => {
-      if (event.type === TouchType.Down) {
-        animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
-          this.stackScale = 0.95
-        })
-      } else if (event.type === TouchType.Up) {
-        animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
-          this.stackScale = 1
-        })
-      }
-    })
+    .clickEffect({ level: ClickEffectLevel.LIGHT })
     .bindSheet($$this.showPlaylist, this.PlayListBuilder(), {
       showClose: false,
       height: SheetSize.MEDIUM,

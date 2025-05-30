@@ -21,7 +21,7 @@ import { MultiSearch } from '../view/MultiSearch'
 import { LazyData } from '@pie/lazy-data'
 import { HorizontalMode } from '../util/HorizontalCheck'
 import { Download } from '../view/Download'
-import { ScrollIndexHandler } from '../util/ScrollIndexHandler'
+import { ScrollController } from '../util/ScrollController'
 import { HeaderAnimation } from '../component/HeaderAnimation'
 import { deviceInfo } from '@kit.BasicServicesKit'
 import { PipManager } from '../util/PipManager';
@@ -80,7 +80,7 @@ struct Index_page {
   @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
   private breakpointSystem = new BreakpointSystem()
   private menuItems = HomePageMenuData
-  private scrollController: Scroller = new Scroller()
+  private scroller: Scroller = new Scroller()
   @StorageLink("user_data_source") adapters: SourceConfig[] = PreferencesCache.getUserDataSource()
   // 使用StorageLink保持数据同步
   @StorageLink("index_recommend_playlist") recommendPlaylist: Playlist[] = []
@@ -96,12 +96,12 @@ struct Index_page {
   // 预先计算并缓存必要的布局值
   private coverWidth: number = 120
   private segmentPadding: number = 4
-  @State scrollIndexHandler: ScrollIndexHandler = new ScrollIndexHandler({
+  @State scrollController: ScrollController = new ScrollController({
     onIndexChange: (index) => {
       this.onMenuIconClick(index)
     },
     componentTag: TAG
-  }).linkController(this.scrollController)
+  }).linkController(this.scroller)
 
   async aboutToAppear() {
     avPlayerManager.setAudioSession()
@@ -260,19 +260,21 @@ struct Index_page {
       Row() {
         MenuIcon({
           icon: $r('app.media.ic_search'),
-          active: this.scrollIndexHandler.currentIndex === 1
+          active: this.scrollController.currentIndex === 1
         })
           .onClick(() => {
             this.onMenuIconClick(1)
           })
+          .clickEffect({ level: ClickEffectLevel.LIGHT })
 
         MenuIcon({
           icon: $r('app.media.ic_gearshape'),
-          active: this.scrollIndexHandler.currentIndex === 0
+          active: this.scrollController.currentIndex === 0
         })
           .onClick(() => {
             this.onMenuIconClick(0)
           })
+          .clickEffect({ level: ClickEffectLevel.LIGHT })
       }
       .height(StyleConstants.FULL_HEIGHT)
       .alignItems(VerticalAlign.Center)
@@ -499,9 +501,9 @@ struct Index_page {
   build() {
     NavDestination() {
       Stack({ alignContent: Alignment.Bottom }) {
-        List({ scroller: this.scrollController }) {
+        List({ scroller: this.scroller }) {
           ListItem() {
-            HeaderAnimation({ scrollIndexHandler: this.scrollIndexHandler, isShowLoadingProgress: true })
+            HeaderAnimation({ scrollController: this.scrollController, isShowLoadingProgress: true })
           }
 
           if (this.adapters.length > 0) {
@@ -575,9 +577,10 @@ struct Index_page {
         .backToTop(true)
         .scrollBar(BarState.Off)
         .edgeEffect(EdgeEffect.Spring)
-        .onWillScroll(this.scrollIndexHandler.scrollHandlers.onWillScroll)
-        .onScrollStop(this.scrollIndexHandler.scrollHandlers.onScrollStop)
+        .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
+        .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
         .expandSafeArea()
+        .scrollBarColor('#e7bb7c')
 
         MiniPlaybackControl()
       }
@@ -594,6 +597,7 @@ struct Index_page {
       height: 50,
     })
     .backgroundColor($r('app.color.page_background'))
+    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM])
   }
 
   getBlankHeight(): number {

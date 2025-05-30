@@ -62,6 +62,7 @@ export struct SettingGroup {
       this.pressedIndex = index
       item.onClick?.()
     })
+    .clickEffect({ level: ClickEffectLevel.LIGHT })
   }
 
   @Builder
@@ -101,6 +102,7 @@ export struct SettingGroup {
       this.pressedIndex = index
       item.onClick?.()
     })
+    .clickEffect({ level: ClickEffectLevel.LIGHT })
   }
 
   @Builder
@@ -144,6 +146,8 @@ export struct SettingGroup {
       this.pressedIndex = index
       item.onClick?.()
     })
+    .clickEffect({ level: ClickEffectLevel.LIGHT })
+
   }
 
   @Builder
@@ -179,6 +183,7 @@ export struct SettingGroup {
       this.pressedIndex = index
       item.onClick?.()
     })
+    .clickEffect({ level: ClickEffectLevel.LIGHT })
   }
 
   build() {

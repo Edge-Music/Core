@@ -11,7 +11,7 @@ import { cover } from "../util/AdapterHelper";
 import { PlaylistManager } from "../util/PlaylistManager";
 import { PushPathHelper } from "../util/PushPathHelper";
 import { ResourceManager } from "../util/ResourceManager";
-import { ScrollIndexHandler } from "../util/ScrollIndexHandler";
+import { ScrollController } from "../util/ScrollController";
 
 const TAG = 'MultiSearch'
 
@@ -26,11 +26,11 @@ export struct MultiSearch {
   @StorageProp('bottomRect') bottomRect: number = 0
   @StorageProp('topRect') topRect: number = 0
   @StorageProp('winHeight') winHeight: number = 0
-  private scrollController: Scroller = new Scroller();
-  @State scrollIndexHandler: ScrollIndexHandler = new ScrollIndexHandler({
+  private scroller: Scroller = new Scroller();
+  @State scrollController: ScrollController = new ScrollController({
     onIndexChange: (index): void => this.onMenuIconClick(index),
     componentTag: TAG
-  }).linkController(this.scrollController)
+  }).linkController(this.scroller)
 
   private generatePlaylistMenu(playlist: Playlist) {
     return [
@@ -85,10 +85,10 @@ export struct MultiSearch {
         Column(){
           this.Title()
 
-          List({ scroller: this.scrollController}){
+          List({ scroller: this.scroller}){
 
             ListItem(){
-              HeaderAnimation({ scrollIndexHandler: this.scrollIndexHandler })
+              HeaderAnimation({ scrollController: this.scrollController })
             }
 
             ListItemGroup({ header: this.SearchComponent() }){
@@ -231,8 +231,8 @@ export struct MultiSearch {
           .height(StyleConstants.FULL_HEIGHT)
           .width(StyleConstants.FULL_WIDTH)
           .sticky(StickyStyle.Header | StickyStyle.Footer)
-          .onWillScroll(this.scrollIndexHandler.scrollHandlers.onWillScroll)
-          .onScrollStop(this.scrollIndexHandler.scrollHandlers.onScrollStop)
+          .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
+          .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
           .scrollBar(BarState.Off)
           .edgeEffect(EdgeEffect.Spring)
         }
@@ -250,10 +250,9 @@ export struct MultiSearch {
     .hideTitleBar(true)
     .backgroundColor($r('app.color.page_background'))
     .mode(NavDestinationMode.STANDARD)
-    .expandSafeArea()
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
-    // .systemTransition(NavigationSystemTransitionType.SLIDE_RIGHT)
+    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM])
   }
 
   /**
@@ -294,7 +293,7 @@ export struct MultiSearch {
   Title() {
     TitleHeader({
       title: $r('app.string.search'),
-      backActive: this.scrollIndexHandler.currentIndex === 0
+      backActive: this.scrollController.currentIndex === 0
     })
   }
 

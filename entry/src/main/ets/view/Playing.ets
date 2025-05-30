@@ -181,8 +181,11 @@ struct Playing {
             // }
           }) //点击图片切换到歌词页面
           .borderRadius(12)
-        if (this.IMG_ctrl===false){          this.ProgressBar(false,2)
-          this.PlayerControls()}
+          .clickEffect({ level: ClickEffectLevel.LIGHT })
+        if (this.IMG_ctrl === false){
+          this.ProgressBar(false,2)
+          this.PlayerControls()
+        }
 
 
       }.expandSafeArea()}
@@ -223,8 +226,11 @@ struct Playing {
             // }
           }) //点击图片切换到歌词页面
           .borderRadius(12)
-        if (this.IMG_ctrl===false){          this.ProgressBar(false,2)
-          this.PlayerControls(false)}
+          .clickEffect({ level: ClickEffectLevel.LIGHT })
+        if (this.IMG_ctrl === false){
+          this.ProgressBar(false,2)
+          this.PlayerControls(false)
+        }
 
 
       }.expandSafeArea()}
@@ -389,6 +395,7 @@ struct Playing {
                   repeat: RepeatMode.Stretch,
                   fill: false
                 })
+                .clickEffect({ level: ClickEffectLevel.LIGHT })
               TextClock()
                 .fontColor(`#ff${this.imageColorHex}`)
                 .format('HH:mm')
@@ -516,6 +523,7 @@ struct Playing {
             .onClick(()=>{
               this.swiperController.showPrevious()
             })
+            .clickEffect({ level: ClickEffectLevel.LIGHT })
           this.ProgressBar(false)
 
           Text((this.song?.name || "未知歌曲") + '/' +
@@ -1272,6 +1280,8 @@ struct Playing {
               })
           }
         }
+        .clickEffect({ level: ClickEffectLevel.LIGHT })
+
         Column(){
           if (this.isSliderVisible1){
             this.progress_Volume()

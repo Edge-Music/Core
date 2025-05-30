@@ -3,7 +3,7 @@ import { StyleConstants } from '../constants/StyleConstants';
 import { DownloadProgress, SongDownloadManager } from '../util/SongDownloadManager';
 import { MiniPlaybackControl } from '../component/MiniPlaybackControl';
 import { TitleHeader } from '../component/TitleHeader';
-import { ScrollIndexHandler } from '../util/ScrollIndexHandler';
+import { ScrollController } from '../util/ScrollController';
 import { HeaderAnimation } from '../component/HeaderAnimation';
 
 const TAG = 'Download'
@@ -16,11 +16,11 @@ export struct Download {
   @StorageProp('topRect') topRect: number = 0;
   @StorageProp('winHeight') winHeight: number = 0;
   @StorageLink('download_queue') queue: Map<ID, DownloadProgress> = new Map();
-  private scrollController: Scroller = new Scroller();
-  @State scrollIndexHandler: ScrollIndexHandler = new ScrollIndexHandler({
+  private scroller: Scroller = new Scroller();
+  @State scrollController: ScrollController = new ScrollController({
     onIndexChange: (index): void => this.onMenuIconClick(index),
     componentTag: TAG
-  }).linkController(this.scrollController)
+  }).linkController(this.scroller)
 
   onMenuIconClick(index: number) {
     if (index === 0 && this.pageStack.size() > 1) {
@@ -32,7 +32,7 @@ export struct Download {
   Title() {
     TitleHeader({
       title: $r('app.string.download'),
-      backActive: this.scrollIndexHandler.currentIndex === 0
+      backActive: this.scrollController.currentIndex === 0
     })
   }
 
@@ -44,10 +44,10 @@ export struct Download {
           this.Title()
 
           // 下载列表
-          List({ scroller: this.scrollController }) {
+          List({ scroller: this.scroller }) {
 
             ListItem(){
-              HeaderAnimation({ scrollIndexHandler: this.scrollIndexHandler })
+              HeaderAnimation({ scrollController: this.scrollController })
             }
 
             if (this.queue.size === 0) {
@@ -131,8 +131,8 @@ export struct Download {
           .edgeEffect(EdgeEffect.Spring)
           .scrollBar(BarState.Off)
           .expandSafeArea()
-          .onWillScroll(this.scrollIndexHandler.scrollHandlers.onWillScroll)
-          .onScrollStop(this.scrollIndexHandler.scrollHandlers.onScrollStop)
+          .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
+          .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
         }
         .width(StyleConstants.FULL_WIDTH)
         .height(StyleConstants.FULL_HEIGHT)
@@ -150,7 +150,7 @@ export struct Download {
     .mode(NavDestinationMode.STANDARD)
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
-    .expandSafeArea()
+    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM])
   }
 
   getBlankHeight(): Length {

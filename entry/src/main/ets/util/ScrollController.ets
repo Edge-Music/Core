@@ -12,7 +12,7 @@ export interface ScrollHandlersConfig {
 }
 
 @Observed
-export class ScrollIndexHandler {
+export class ScrollController {
   currentIndex: number = -1
   config: ScrollIndexConfig
   scrollController?: Scroller
@@ -39,7 +39,7 @@ export class ScrollIndexHandler {
   }
 
   // 关联ScrollController
-  linkController(controller: Scroller): ScrollIndexHandler {
+  linkController(controller: Scroller): ScrollController {
     this.scrollController = controller;
     return this;
   }

@@ -102,5 +102,6 @@ export struct Cover {
       .alignItems(this.titleAlign)
       .width(StyleConstants.FULL_WIDTH)
     }
+    .clickEffect({ level: ClickEffectLevel.LIGHT })
   }
 }
