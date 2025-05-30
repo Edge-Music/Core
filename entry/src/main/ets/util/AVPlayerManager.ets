@@ -465,7 +465,7 @@ class AVPlayerManager {
           this.triggerPlay();
           break;
         case 'paused':
-          LyricsManager.reset()
+          LyricsManager.pause()
           this.isPlayingBeforeInterrupt = false;
           this.currentPlaybackState = avSession.PlaybackState.PLAYBACK_STATE_PAUSE;
           this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PAUSE);

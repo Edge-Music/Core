@@ -31,15 +31,24 @@ class LyricsManager {
   private lyricsTimer: number = -1
   private currentIndex: number = 0
   private readonly PRE_HIGHLIGHT_TIME: number = 500 // 提前切换时间
+  private isPause: boolean = false
 
   async init(){
-    this.song = AppStorage.get<Song>('current_playing_song')
-    this.originalLyrics = this.song?.meta?.lyric?.normal ?? ''
-    this.translatedLyrics = this.song?.meta?.lyric?.translation ?? ''
-    this.transliteratedLyrics = this.song?.meta?.lyric?.transliteration ?? ''
-    AppStorage.setOrCreate<string>('test_index', this.song?.name + ' - ' + this.song?.artists[0].name)
-    this.parseLyrics()
+    if(!this.isPause){
+      this.song = AppStorage.get<Song>('current_playing_song')
+      this.originalLyrics = this.song?.meta?.lyric?.normal ?? ''
+      this.translatedLyrics = this.song?.meta?.lyric?.translation ?? ''
+      this.transliteratedLyrics = this.song?.meta?.lyric?.transliteration ?? ''
+      AppStorage.setOrCreate<string>('test_index', this.song?.name + ' - ' + this.song?.artists[0].name)
+      this.parseLyrics()
+    }
+    this.isPause = false
     this.setLyricsInterval()
+  }
+
+  async pause(){
+    this.isPause = true
+    this.clearLyricsInterval()
   }
 
   async reset(){
@@ -54,6 +63,7 @@ class LyricsManager {
     this.currentIndex = 0
     this.hasTranslation = false
     this.hasTransliteration = false
+    this.isPause = false
   }
 
   async setLyricsInterval(){
@@ -73,9 +83,11 @@ class LyricsManager {
   }
 
   clearLyricsInterval(){
-    const tmpTimer = this.lyricsTimer
-    clearInterval(this.lyricsTimer)
-    console.info(`歌词定时器[${tmpTimer}]清除完成`)
+    if(this.lyricsTimer !== -1){
+      const tmpTimer = this.lyricsTimer
+      clearInterval(this.lyricsTimer)
+      console.info(`歌词定时器[${tmpTimer}]清除完成`)
+    }
   }
 
   /**
