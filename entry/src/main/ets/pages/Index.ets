@@ -538,13 +538,6 @@ struct Index_page {
               }
             } else if(!this.loading) {
               ListItem() {
-                this.MenuGrid()
-              }
-              .onAreaChange((oldValue: Area, newValue: Area) => {
-                this.blankHeight = newValue.height as number
-              })
-
-              ListItem() {
                 Row() {
                   Column() {
                     Text($r('app.string.no_recommendations'))
