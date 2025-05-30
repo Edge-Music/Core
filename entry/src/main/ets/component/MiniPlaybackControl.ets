@@ -418,5 +418,9 @@ export struct MiniPlaybackControl {
         this.showPlaylist = false;
       }
     })
+    .animation({
+      duration: 500,
+      curve: Curve.FastOutSlowIn
+    })
   }
 }
