@@ -73,7 +73,7 @@ struct Index {
 
 @Component
 struct Index_page {
-  @State appversion: string = '2.1.0.x'
+  @State version: string = '2.2.0'
 
   @State blankHeight: number = 0
   @Consume('NavPathStack') pageStack: NavPathStack
@@ -110,7 +110,7 @@ struct Index_page {
       PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
       PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
     }
-    if (PreferencesCache.getUserPreference(this.appversion,'0')==='0'){
+    if (PreferencesCache.getUserPreference(this.version,'0')==='0'){
       try{
         AlertDialog.show(
           {
@@ -124,7 +124,7 @@ struct Index_page {
             primaryButton: {
               value: '我知道了',
               action: () => {
-                PreferencesCache.setUserPreference(this.appversion,'1')
+                PreferencesCache.setUserPreference(this.version,'1')
 
                 console.info('Callback when the first button is clicked');
               }
@@ -135,7 +135,7 @@ struct Index_page {
               style: DialogButtonStyle.HIGHLIGHT,
               value: '已知悉',
               action: () => {
-                PreferencesCache.setUserPreference(this.appversion,'1')
+                PreferencesCache.setUserPreference(this.version,'1')
                 console.info('Callback when the second button is clicked');
               }
             },
