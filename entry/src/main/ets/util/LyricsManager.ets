@@ -31,24 +31,28 @@ class LyricsManager {
   private lyricsTimer: number = -1
   private currentIndex: number = 0
   private readonly PRE_HIGHLIGHT_TIME: number = 500 // 提前切换时间
-  private isPause: boolean = false
+  private isInit: boolean = false
+  private currentSongName: string = ''
 
   async init(){
-    if(!this.isPause){
-      this.song = AppStorage.get<Song>('current_playing_song')
-      this.originalLyrics = this.song?.meta?.lyric?.normal ?? ''
-      this.translatedLyrics = this.song?.meta?.lyric?.translation ?? ''
-      this.transliteratedLyrics = this.song?.meta?.lyric?.transliteration ?? ''
-      AppStorage.setOrCreate<string>('test_index', this.song?.name + ' - ' + this.song?.artists[0].name)
-      this.parseLyrics()
+    this.song = AppStorage.get<Song>('current_playing_song')
+    this.originalLyrics = this.song?.meta?.lyric?.normal ?? ''
+    this.translatedLyrics = this.song?.meta?.lyric?.translation ?? ''
+    this.transliteratedLyrics = this.song?.meta?.lyric?.transliteration ?? ''
+    let tmpSongName: string = this.song?.name + ' - ' + this.song?.artists[0].name
+    if(this.currentSongName !== tmpSongName){
+      this.currentSongName = tmpSongName
+      AppStorage.setOrCreate<string>('test_index', tmpSongName)
     }
-    this.isPause = false
-    this.setLyricsInterval()
+    this.parseLyrics()
+    this.isInit = true
   }
 
-  async pause(){
-    this.isPause = true
-    this.clearLyricsInterval()
+  async start(){
+    if(!this.isInit){
+      this.init()
+    }
+    this.setLyricsInterval()
   }
 
   async reset(){
@@ -57,13 +61,12 @@ class LyricsManager {
     this.originalLyrics = ''
     this.translatedLyrics = ''
     this.transliteratedLyrics = ''
-    this.lyricsTimer = -1
     this.currentTimeMs = 0
     this.parsedLyrics = []
     this.currentIndex = 0
     this.hasTranslation = false
     this.hasTransliteration = false
-    this.isPause = false
+    this.isInit = false
   }
 
   async setLyricsInterval(){
@@ -86,6 +89,7 @@ class LyricsManager {
     if(this.lyricsTimer !== -1){
       const tmpTimer = this.lyricsTimer
       clearInterval(this.lyricsTimer)
+      this.lyricsTimer = -1
       console.info(`歌词定时器[${tmpTimer}]清除完成`)
     }
   }

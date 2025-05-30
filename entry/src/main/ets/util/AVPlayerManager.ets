@@ -451,21 +451,20 @@ class AVPlayerManager {
           player.prepare();
           break;
         case 'prepared':
-          LyricsManager.reset()
           this.currentPlaybackState = avSession.PlaybackState.PLAYBACK_STATE_PAUSE;
           this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PAUSE);
           const duration = player.duration;
           this.triggerDurationChange(duration);
           break;
         case 'playing':
-          LyricsManager.init()
+          LyricsManager.start()
           this.isPlayingBeforeInterrupt = true;
           this.currentPlaybackState = avSession.PlaybackState.PLAYBACK_STATE_PLAY;
           this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PLAY);
           this.triggerPlay();
           break;
         case 'paused':
-          LyricsManager.pause()
+          LyricsManager.reset()
           this.isPlayingBeforeInterrupt = false;
           this.currentPlaybackState = avSession.PlaybackState.PLAYBACK_STATE_PAUSE;
           this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PAUSE);
