@@ -73,5 +73,6 @@ export struct MenuButton {
         this.isPressed = false
       }
     })
+    .clickEffect({ level: ClickEffectLevel.LIGHT })
   }
 }

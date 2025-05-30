@@ -26,7 +26,6 @@ export struct MiniPlaybackControl {
   @State playBtnScale: number = 1
   @State nextBtnScale: number = 1
   @State playListBtnScale: number = 1
-  @State stackScale: number = 1
   private updateTimer: number = -1;
   private playerManager = avPlayerManager;
   private readonly SWIPE_THRESHOLD: number = 80; // 触发切换的阈值
@@ -347,7 +346,6 @@ export struct MiniPlaybackControl {
     .height(this.bottom_judge === '0' ? 64 : 64+px2vp(this.bottomRect/2))
     .borderRadius(12)
     .clip(true)
-    .scale({ x: this.stackScale, y: this.stackScale})
     .margin(this.bottom_judge === '0' ? px2vp(this.bottomRect) : 0)
     .shadow({
       radius: 8,
@@ -410,17 +408,7 @@ export struct MiniPlaybackControl {
         this.pageStack.pushPath({ name: 'Playing' },{launchMode:LaunchMode.MOVE_TO_TOP_SINGLETON,animated:true} )
       }
     })
-    .onTouch((event) => {
-      if (event.type === TouchType.Down) {
-        animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
-          this.stackScale = 0.95
-        })
-      } else if (event.type === TouchType.Up) {
-        animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
-          this.stackScale = 1
-        })
-      }
-    })
+    .clickEffect({ level: ClickEffectLevel.LIGHT })
     .bindSheet($$this.showPlaylist, this.PlayListBuilder(), {
       showClose: false,
       height: SheetSize.MEDIUM,

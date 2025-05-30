@@ -274,7 +274,7 @@ struct Index_page {
           .onClick(() => {
             this.onMenuIconClick(0)
           })
-          .clickEffect({ level: ClickEffectLevel.LIGHT ,scale: 0.80 })
+          .clickEffect({ level: ClickEffectLevel.LIGHT })
       }
       .height(StyleConstants.FULL_HEIGHT)
       .alignItems(VerticalAlign.Center)
