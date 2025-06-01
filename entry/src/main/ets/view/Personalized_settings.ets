@@ -3,7 +3,6 @@ import {HorizontalMode}from '../util/HorizontalCheck'
 import { ResourceManager } from "../util/ResourceManager";
 import { PipManager } from '../util/PipManager';
 
-
 @Component
   //'0'关。'1'开。!!!!(开关颜色日后调)
 export struct Personalized_settings_Component {
@@ -56,6 +55,7 @@ export struct Personalized_settings_Component {
 export struct Personalized_settings{
   @Consume('NavPathStack') pageStack: NavPathStack;
   @State HorizontalMode_ctrl:string =  PreferencesCache.getUserPreference('HorizontalMode_ctrl','0')
+  @StorageProp('bottomRect') bottomRect: number = 0
   @Builder
   HorizontalMode_Ctrl(){
     Column(){
@@ -101,10 +101,15 @@ export struct Personalized_settings{
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.swipe_cover_switch_songs')), setUserPreference_name:'img_playing_ctrl'})}
           ListItem(){ Personalized_settings_Component({text_name: '允许同时播放', setUserPreference_name:'playing_mix'})}
           // ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.Lyic_desktop')), setUserPreference_name:'Lyic_desktop'})}
-
+          ListItem(){ Column().height(16+px2vp(this.bottomRect/2))}
         }
-      }.padding(16)
-    }.title($r('app.string.custom_settings')).hideToolBar(true)
+        .width('100%')
+        .height('100%')
+      }
+      .padding({ top: 16, left: 16, right: 16 })
+    }
+    .title($r('app.string.custom_settings')).hideToolBar(true)
+    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM])
 
   }
 }

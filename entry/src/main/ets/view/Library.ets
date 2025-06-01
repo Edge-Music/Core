@@ -39,7 +39,7 @@ struct Library {
   @State capsuleOffset: number = 0
   @State capsuleWidth: number = 0
   @State titleWidths: number[] = []
-  private readonly BUTTON_GAP: number = 15
+  private readonly BUTTON_GAP: number = 10
   @State capsuleScaleX: number = 0.9
   @State capsuleScaleY: number = 1.0
   @State avatarScale: number = 1
@@ -113,7 +113,7 @@ struct Library {
       .padding({ left: this.capsuleOffset })
       .animation({ duration: 500, curve: Curve.FastOutSlowIn })
 
-      Row({ space: 15 }){
+      Row({ space: this.BUTTON_GAP }){
         ForEach(this.subTitles, (str: string, index: number) => {
           Text(str)
             .fontColor($r('app.color.text_secondary'))
@@ -149,7 +149,7 @@ struct Library {
     }
     .height(35)
     .layoutWeight(1)
-    .padding({ left: 20 })
+    .padding({ left: 15 })
     .align(Alignment.BottomStart)
   }
 
