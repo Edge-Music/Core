@@ -756,7 +756,6 @@ export struct Setting {
     .hideTitleBar(true)
     .backgroundColor($r('app.color.page_background'))
     .mode(NavDestinationMode.STANDARD)
-    .expandSafeArea()
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
     .bindSheet($$this.isShow, this.sheet, {
@@ -765,6 +764,7 @@ export struct Setting {
       detents:this.Pura_X? [SheetSize.LARGE]:[SheetSize.MEDIUM],
       preferType: this.currentBreakpoint === BreakpointConstants.BREAKPOINT_SM ? SheetType.BOTTOM : SheetType.CENTER
     })
+    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM])
   }
 
   getBlankHeight(): Length {

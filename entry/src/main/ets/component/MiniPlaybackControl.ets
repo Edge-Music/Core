@@ -342,11 +342,11 @@ export struct MiniPlaybackControl {
     .onVisibleAreaChange([0.0, 1.0], () => {
       this.bottom_judge = PreferencesCache.getUserPreference('miniplaying_bottom_judge','0')
     })
-    .width(this.bottom_judge === '0' ? "90%" : "100%")
+    .width(this.bottom_judge === '0' && this.bottomRect > 0 ? "90%" : "100%")
     .height(this.bottom_judge === '0' ? 64 : 64+px2vp(this.bottomRect/2))
+    .margin(this.bottom_judge === '0' ? px2vp(this.bottomRect) : 0)
     .borderRadius(12)
     .clip(true)
-    .margin(this.bottom_judge === '0' ? px2vp(this.bottomRect) : 0)
     .shadow({
       radius: 8,
       color: 'rgba(0, 0, 0, 0.15)',
@@ -417,6 +417,10 @@ export struct MiniPlaybackControl {
       onWillDismiss: () => {
         this.showPlaylist = false;
       }
+    })
+    .animation({
+      duration: 500,
+      curve: Curve.FastOutSlowIn
     })
   }
 }
