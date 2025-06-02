@@ -227,6 +227,9 @@ export struct LyricsView {
               this.startManualScrollTimer()
             }
           })
+          .fadingEdge(true, {
+            fadingEdgeLength:LengthMetrics.vp(80)
+          })
         }
       }
       .width(StyleConstants.FULL_WIDTH)
