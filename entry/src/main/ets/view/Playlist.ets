@@ -260,7 +260,7 @@ export struct PlayList {
         ListItem() {
           Row() {
             // 底部避让空间，高度为播控高度(64) + 播控底部padding高度(16)
-            Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + 16)
+            Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + px2vp(this.bottomRect))
           }
         }
       }
@@ -561,7 +561,7 @@ export struct PlayList {
     .mode(NavDestinationMode.STANDARD)
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
-    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM])
+    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM, LayoutSafeAreaEdge.TOP])
   }
 
   @Builder
@@ -748,7 +748,7 @@ export struct PlayList {
   }
 
   countSubVp(): number {
-    let sub: number = px2vp(this.winHeight) - 50 - this.groupHeight - (this.bottomRect + this.topRect)
+    let sub: number = px2vp(this.winHeight) - 50 - this.groupHeight - px2vp(this.bottomRect+this.topRect)
     // if(this.songDataSource.totalCount() <= 15){
     //   // 填补高度=屏幕高度 - title高度50 - (播放组件高度40+上下padding高度2*4) - 状态栏高度 - 导航栏高度
     //   sub = px2vp(this.winHeight) - (50+40+12*2+(68+2*4)*this.songDataSource.totalCount()) - px2vp(this.topRect) - px2vp(this.bottomRect)

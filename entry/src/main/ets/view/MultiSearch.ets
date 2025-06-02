@@ -221,7 +221,7 @@ export struct MultiSearch {
             ListItem(){
               Row(){
                 // 搜索页底部避让高度：播控组件高度(64) + 导航栏避让高度 + 播控组件下方margin值(16)
-                Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + 16).layoutWeight(1)
+                Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + px2vp(this.bottomRect))
               }
             }
           }
@@ -252,7 +252,7 @@ export struct MultiSearch {
     .mode(NavDestinationMode.STANDARD)
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
-    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM])
+    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM, LayoutSafeAreaEdge.TOP])
   }
 
   /**

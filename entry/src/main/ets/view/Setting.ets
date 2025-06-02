@@ -59,7 +59,7 @@ export struct Setting {
   @StorageProp('bottomRect') bottomRect: number = 0;
   @StorageProp('topRect') topRect: number = 0;
   @State groupHeight: number = 0
-  @State  Pura_X:boolean =  PreferencesCache.getUserPreference('is_Pura_X', '0')==='1'? true:false//pura_x尝试适配
+  @State Pura_X: boolean =  PreferencesCache.getUserPreference('is_Pura_X', '0') === '1' ? true : false //pura_x尝试适配
   @State scrollController: ScrollController = new ScrollController({
     onIndexChange: (index): void => this.onMenuIconClick(index),
     componentTag: TAG
@@ -688,10 +688,8 @@ export struct Setting {
   }
   build() {
     NavDestination() {
-      this.Title()
-
       Column() {
-
+        this.Title()
         List({ scroller: this.scroller }) {
           ListItem() {
             HeaderAnimation({ scrollController: this.scrollController })
@@ -736,10 +734,15 @@ export struct Setting {
               Blank().height(this.getBlankHeight())
             }
           }
+
+          ListItem(){
+            Row(){
+              Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + px2vp(this.bottomRect))
+            }
+          }
         }
         .borderRadius(8)
         .backToTop(true)
-        .layoutWeight(1)
         .scrollBar(BarState.Off)
         .edgeEffect(EdgeEffect.Spring)
         .width(StyleConstants.FULL_WIDTH)
@@ -764,7 +767,7 @@ export struct Setting {
       detents:this.Pura_X? [SheetSize.LARGE]:[SheetSize.MEDIUM],
       preferType: this.currentBreakpoint === BreakpointConstants.BREAKPOINT_SM ? SheetType.BOTTOM : SheetType.CENTER
     })
-    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM])
+    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM, LayoutSafeAreaEdge.TOP])
   }
 
   getBlankHeight(): Length {
