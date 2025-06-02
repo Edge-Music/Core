@@ -72,10 +72,14 @@ export struct TitleHeader {
           }
           .justifyContent(FlexAlign.Start)
           .alignItems(VerticalAlign.Center)
-          .height(this.decorHeight).backgroundColor('transparent').width('100%')
+          .height(this.decorHeight)
+          .backgroundColor('transparent')
+          .width('100%')
         }else if(this.topRect > 0){
           Row(){}
-          .height(px2vp(this.topRect)).backgroundColor('transparent').width('100%')
+          .height(px2vp(this.topRect))
+          .backgroundColor('transparent')
+          .width('100%')
         }
 
         Row() {
@@ -144,7 +148,6 @@ export struct TitleHeader {
           curve: Curve.FastOutSlowIn
         })
       }
-
     }
   }
 }

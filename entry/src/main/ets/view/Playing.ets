@@ -22,16 +22,22 @@ import ImageUtils from '../util/ImageUtils';
 import { curves, promptAction } from '@kit.ArkUI'
 import { PipManager } from '../util/PipManager'
 
+const COLORS: Color[] = [Color.White, Color.Red, Color.Orange, Color.Yellow, Color.Green, Color.Blue, Color.Pink, Color.Grey]
 @Builder
 export function PlayingBuilder() {
   Playing()
 }
 
-
 @Component
 struct Playing {
+  private colorTimer: number = -1
+  @State curColorIndex: number = 0
   @StorageProp('topRect') topRect: number = 0
+  @StorageProp('bottomRect') bottomRect: number = 0
   @StorageProp('decorHeight') decorHeight: number = 0
+  @StorageProp('leftCutoutRectWidth') leftCutoutRectWidth: number = 0
+  @StorageProp('rightCutoutRectWidth') rightCutoutRectWidth: number = 0
+
   @Consume('NavPathStack') pageStack: NavPathStack;
   @Watch('onBreakpointChange') @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
   @State currentTime: number = 0
@@ -331,7 +337,6 @@ struct Playing {
               Image(cover(this.song?.album?.cover ?? "", 512))
                 .geometryTransition("picture", { follow: false })
                 .transition(TransitionEffect.OPACITY)
-                .width('100%')
                 .aspectRatio(1)
                 .clip(true)
                 .onClick(()=>{this.swiperController.showNext()})
@@ -404,51 +409,72 @@ struct Playing {
                 .blendMode(BlendMode.PLUS, BlendApplyType.OFFSCREEN)
                 .margin(12)
               // .backgroundBlurStyle(BlurStyle.Thin)
-            }.alignContent(Alignment.BottomEnd)
+            }
+            .layoutWeight(1)
+            .alignContent(Alignment.BottomEnd)
 
+            Text((this.song?.name || "未知歌曲") + '/' +
+              (this.song?.artists ? this.song.artists.map(artist => artist.name).join(" / ") : "未知艺术家"))
+              .fontSize(this.getFontSize(this.song?.name ?? "", 16, 16))// .fontWeight(FontWeight.Bold)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .fontColor('rgba(255, 255, 255, 0.6)')
+              .height(24) // 固定高度确保布局稳定
+              .margin({ top: 5 })
           }
-          .padding({
-            left: 45,
-            top: 12,
-            bottom: 12,
-            right: 12
-          })
-          .width('35%')
+          .width('45%')
           .height('100%')
+          .padding({
+            left: px2vp(this.rightCutoutRectWidth > 0 ? this.rightCutoutRectWidth : this.leftCutoutRectWidth*2),
+            top: 12
+          })
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Center)
 
-        }.alignContent(Alignment.BottomEnd)
-
+        }
+        .alignContent(Alignment.BottomEnd)
 
         Column() {
           LyricsView({
             mode_judge: false
-          }).width('100%').layoutWeight(1)
+          })
+            .width(StyleConstants.FULL_WIDTH)
+            .height(StyleConstants.SEVENTY_HEIGHT)
 
-          Text((this.song?.name || "未知歌曲") + '/' +
-            (this.song?.artists ? this.song.artists.map(artist => artist.name).join(" / ") : "未知艺术家"))
-            .fontSize(this.getFontSize(this.song?.name ?? "", 16, 16))// .fontWeight(FontWeight.Bold)
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-            .fontColor('rgba(255, 255, 255, 0.6)')
-            .height(24) // 固定高度确保布局稳定
-          Column(){this.PlayerControls(this.Pura_X==='1'?false:true)}.width('50%')
           Column(){
-            this.ProgressBar(true,4,false)
-          }.width('65%')
+            this.PlayerControls(this.Pura_X === '1' ? false : true)
+          }
+          .width('90%')
+          .layoutWeight(1)
+
+          Blank()
+
+          Column(){
+            this.ProgressBar(true, 0, false)
+          }
+          .width('90%')
+          .layoutWeight(0.6)
 
         }
-        .padding(18)
-        .width('65%')
-      }.alignItems(VerticalAlign.Center).justifyContent(FlexAlign.SpaceBetween).onAppear(()=>{
+        .padding({
+          left: 18,
+          right: this.leftCutoutRectWidth > 0 ? 18 : px2vp(this.rightCutoutRectWidth)*2
+        })
+        .width('55%')
+      }
+      .margin({ bottom: px2vp(this.bottomRect/2) })
+      .alignItems(VerticalAlign.Center)
+      .justifyContent(FlexAlign.SpaceBetween)
+      .onAppear(()=>{
         PreferencesCache.setUserPreference('Playing_HorizontalMode_index','0')
       })
+      .animation({ duration: 500, curve: Curve.FastOutSlowIn })
+
       Row() {
         //封面图
         Column() {
           Image(cover(this.song?.album?.cover ?? "", 512))
-            .width('60%')
+            .height('70%')
             .aspectRatio(1)
             .borderRadius(this.img_playing_ctrl==='1'?0: 24)
             .borderImage({
@@ -521,12 +547,10 @@ struct Playing {
                   }
                 })
             )
-            .margin({bottom:5,top:20})
             .onClick(()=>{
               this.swiperController.showPrevious()
             })
             .clickEffect({ level: ClickEffectLevel.LIGHT })
-          this.ProgressBar(false)
 
           Text((this.song?.name || "未知歌曲") + '/' +
             (this.song?.artists ? this.song.artists.map(artist => artist.name).join(" / ") : "未知艺术家"))
@@ -535,27 +559,46 @@ struct Playing {
             .textOverflow({ overflow: TextOverflow.Ellipsis })
             .fontColor(Color.White)
             .height(24) // 固定高度确保布局稳定
-            .margin({top:5})
-          this.PlayerControls(false)
+            .margin({ top: 5 })
+
+          Column(){
+            this.ProgressBar(false)
+          }
+          .width('100%')
+          .layoutWeight(0.5)
+
+          Column(){
+            this.PlayerControls(this.Pura_X === '1' ? false : true)
+          }
+          .width('100%')
+          .layoutWeight(1)
         }
         .padding({
-          left: 45,
+          left: px2vp(this.rightCutoutRectWidth > 0 ? this.rightCutoutRectWidth : this.leftCutoutRectWidth*2),
           top: 12,
           bottom: 12,
           right: 12
         })
-        .width('35%')
+        .width('40%')
         .height('100%')
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
+
         Column() {
           LyricsView({
             mode_judge: false
           }).width('100%').layoutWeight(1)
         }
-        .padding(18)
-        .width('65%')
-      }.alignItems(VerticalAlign.Top).justifyContent(FlexAlign.SpaceBetween)
+        .padding({
+          left: 18,
+          right: this.leftCutoutRectWidth > 0 ? 18 : px2vp(this.rightCutoutRectWidth)*2
+        })
+        .width('60%')
+      }
+      .margin({ bottom: px2vp(this.bottomRect/2) })
+      .alignItems(VerticalAlign.Top)
+      .justifyContent(FlexAlign.SpaceBetween)
+      .animation({ duration: 500, curve: Curve.FastOutSlowIn })
     }.loop(false)
     .onAppear( ()=>{
       this.img_playing_ctrl=  PreferencesCache.getUserPreference('img_playing_ctrl','0')
@@ -723,9 +766,9 @@ struct Playing {
   }
 
   @Builder
-  ProgressBar(judge:boolean=true,weight:number=0,judge_time_area:boolean=true) {
+  ProgressBar(judge: boolean = true, weight: number = 0, judge_time_area: boolean = true) {
     Column() {
-      if (judge&&judge_time_area){
+      if (judge && judge_time_area){
         Row() {
           Text(this.formatTime(this.currentTime))
             .fontSize(12)
@@ -750,19 +793,18 @@ struct Playing {
         .height(20) // 固定高度以保持布局稳定
       }
 
-
       Slider({
         value: this.currentTime,
         max: this.song?.duration || 0,
         step: 1,
         style: SliderStyle.InSet
       })
-        .trackThickness(this.isProgressBarExpanded ? 12 : 8+weight)
+        .trackThickness(this.isProgressBarExpanded ? 12+weight : 8+weight)
         .selectedColor('rgba(202, 202, 202, 1.00)')
         .trackColor('rgba(255, 255, 255, 0.3)')// 半透明背景
         .blockColor('rgba(255, 255, 255, 1.00)')
         .width(StyleConstants.FULL_WIDTH)
-        .height(32)// 固定高度以保持布局稳定
+        .height(25)// 固定高度以保持布局稳定
         .animation({
           duration: 250,
           curve: Curve.EaseOut,
@@ -782,7 +824,7 @@ struct Playing {
             avPlayerManager.seek(this.currentTime)
           }
         })
-      if (judge&&judge_time_area===false){
+      if (judge && judge_time_area === false){
         Row() {
           Text(this.formatTime(this.currentTime))
             .fontSize(12)
@@ -807,7 +849,6 @@ struct Playing {
         .height(20) // 固定高度以保持布局稳定
       }
     }
-    .layoutWeight(1)
     .width(StyleConstants.FULL_WIDTH)
     .padding({
       left: 16,
@@ -835,12 +876,18 @@ struct Playing {
           .width(22)
           .height(22)
           .fillColor(Color.White)
+          .animation({
+            duration: 300,
+            curve: Curve.EaseOut,
+            iterations: 1,
+            playMode: PlayMode.Normal
+          })
       }
       .width(this.smallButtonSize)
       .height(this.smallButtonSize)
       .backgroundColor(Color.Transparent)
       .scale({ x: this.isShuffleButtonPressed ? 1.3 : 1.0, y: this.isShuffleButtonPressed ? 1.3 : 1.0 })
-      .rotate({ angle: this.isShuffleButtonPressed ? 30 : 0 })
+      // .rotate({ angle: this.isShuffleButtonPressed ? 0 : 0 })
       .animation({
         duration: 300,
         curve: Curve.EaseOut,
@@ -898,23 +945,20 @@ struct Playing {
       // Play/pause button (center)
       Button({ type: ButtonType.Circle }) {
         Image(this.isPlaying ? $r('app.media.ic_pause') : $r('app.media.ic_play'))
-          .width(36)
-          .height(36)
+          .width(this.isPlaying ? 36 : 32)
+          .height(this.isPlaying ? 36 : 32)
           .fillColor(Color.White)
-          .animation({
-            duration: 200,
-            curve: Curve.EaseInOut,
-            iterations: 1,
-            playMode: PlayMode.Normal
+          .margin({
+            left: this.isPlaying ? 0 : 4
           })
       }
       .backgroundColor(this.isPlayButtonPressed ? 'rgba(255, 255, 255, 0.2)' : Color.Transparent)
-      .width(this.buttonSize + 16)
-      .height(this.buttonSize + 16)
+      .width(this.buttonSize + 6)
+      .height(this.buttonSize + 6)
       .scale({ x: this.isPlayButtonPressed ? 0.9 : 1.0, y: this.isPlayButtonPressed ? 0.9 : 1.0 })
       .shadow({
         radius: this.isPlaying ? 24 : 0,
-        color: this.isPlaying ? 'rgba(255, 255, 255, 0.4)' : 'transparent',
+        color: this.isPlaying ? 'rgba(255, 255, 255, 0.30)' : 'transparent',
         offsetX: 0,
         offsetY: 0
       })
@@ -933,14 +977,12 @@ struct Playing {
         }
       })
       .onClick(() => {
-        animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
-          this.isPlaying = !this.isPlaying
-          if (this.isPlaying) {
-            avPlayerManager.play()
-          } else {
-            avPlayerManager.pause()
-          }
-        })
+        this.isPlaying = !this.isPlaying
+        if (this.isPlaying) {
+          avPlayerManager.play()
+        } else {
+          avPlayerManager.pause()
+        }
       })
 
       // Next button
@@ -979,17 +1021,18 @@ struct Playing {
         }, 500, "playNext")
       })
       // Playlist button (Right)
-      if (judge){      Button({ type: ButtonType.Circle }) {
-        Image($r('app.media.ic_list'))
-          .width(22)
-          .height(22)
-          .fillColor(Color.White)
+      if (judge){
+        Button({ type: ButtonType.Circle }) {
+          Image($r('app.media.ic_list'))
+            .width(22)
+            .height(22)
+            .fillColor(Color.White)
       }
       .width(this.smallButtonSize)
       .height(this.smallButtonSize)
       .backgroundColor(Color.Transparent)
       .translate({ x: this.isListButtonPressed ? 5 : 0, y: this.isListButtonPressed ? -5 : 0 })
-      .scale({ x: this.isListButtonPressed ? 1.2 : 1.0, y: this.isListButtonPressed ? 1.2 : 1.0 })
+      .scale({ x: this.isListButtonPressed ? 1.3 : 1.0, y: this.isListButtonPressed ? 1.3 : 1.0 })
       .animation({
         duration: 200,
         curve: Curve.EaseInOut,
@@ -1009,11 +1052,10 @@ struct Playing {
       }
     }
     .width(StyleConstants.FULL_WIDTH)
-    .layoutWeight(1)
     .padding({ left: 16, right: 16 })
     .justifyContent(FlexAlign.SpaceBetween) // Space between all buttons
     .alignItems(VerticalAlign.Center)
-    .height(80) // Fixed height
+    .height(70) // Fixed height
   }
 
   // 下载歌曲
@@ -1345,7 +1387,10 @@ struct Playing {
       Blank()
 
       // 进度条
-      this.ProgressBar()
+      Column(){
+        this.ProgressBar()
+      }
+      .layoutWeight(1)
 
       // 底部控件 - 使用Blank占据空间，将控件推到底部
       Blank()
@@ -1644,7 +1689,6 @@ struct Playing {
     .hideTitleBar(true)
     .backgroundColor($r('app.color.page_background'))
     .mode(NavDestinationMode.STANDARD)
-    .expandSafeArea()
     .onAppear(()=>{
       this.img_playing_ctrl=  PreferencesCache.getUserPreference('img_playing_ctrl','0')
       PipManager.getInstance().init(getContext(this)); // 创建画中画控制器

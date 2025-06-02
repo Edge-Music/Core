@@ -34,6 +34,11 @@ class WindowUtil {
           AppStorage.setOrCreate('topRect', avoidArea.area.topRect.height);
         } else if (avoidArea.type === window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR) {
           AppStorage.setOrCreate('bottomRect', avoidArea.area.bottomRect.height);
+        } else if (avoidArea.type === window.AvoidAreaType.TYPE_CUTOUT) {
+          AppStorage.setOrCreate('leftCutoutRectHeight', avoidArea.area.leftRect.height)
+          AppStorage.setOrCreate('leftCutoutRectWidth', avoidArea.area.leftRect.width)
+          AppStorage.setOrCreate('rightCutoutRectHeight', avoidArea.area.rightRect.height)
+          AppStorage.setOrCreate('rightCutoutRectWidth', avoidArea.area.rightRect.width)
         }
         LogUtil.info(`[${TAG}]`, 'Succeeded in adding avoidAreaChange listener.');
       });
@@ -49,7 +54,11 @@ class WindowUtil {
       // 获取避让高度，存入AppStorage
       AppStorage.setOrCreate('topRect', windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM).topRect.height);
       AppStorage.setOrCreate('bottomRect', windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR).bottomRect.height);
-
+      // 刘海屏避让区
+      AppStorage.setOrCreate('leftCutoutRectHeight', windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_CUTOUT).leftRect.height)
+      AppStorage.setOrCreate('leftCutoutRectWidth', windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_CUTOUT).leftRect.width)
+      AppStorage.setOrCreate('rightCutoutRectHeight', windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_CUTOUT).rightRect.height)
+      AppStorage.setOrCreate('rightCutoutRectWidth', windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_CUTOUT).rightRect.width)
       LogUtil.info(`[${TAG}]`, 'Succeeded in initting window properties.');
     })
 

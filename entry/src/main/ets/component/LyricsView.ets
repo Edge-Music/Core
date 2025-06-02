@@ -212,9 +212,6 @@ export struct LyricsView {
           .height(StyleConstants.FULL_HEIGHT)
           .layoutWeight(1)
           .scrollBar(BarState.Off)
-          .expandSafeArea()
-          .contentEndOffset(10)
-          .contentStartOffset(10)
           .onDidScroll(() => {
             // 检测到手动滚动时启动计时器
             if (!this.isAutoScroll) {
@@ -257,7 +254,6 @@ export struct LyricsView {
     }
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
-    .expandSafeArea()
     .gesture(
       PinchGesture()
         .onActionUpdate((event: PinchGestureEvent) => {
