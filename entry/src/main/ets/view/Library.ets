@@ -349,21 +349,14 @@ struct Library {
                 this.itemHeight = newValue.height as number
               })
 
-              ListItem(){
-                Column(){
-                  Blank().height(this.countSubVp())
-                }
-              }
             }
-
           }
-          .contentEndOffset(StyleConstants.PLAYER_CONTROL_HEIGHT + 16)
+          .contentEndOffset(0.1)  //双层滚动嵌套外层折中处理
           .width(StyleConstants.FULL_WIDTH)
           .height(StyleConstants.FULL_HEIGHT)
           .layoutWeight(1)
           .edgeEffect(EdgeEffect.Spring)
           .scrollBar(BarState.Off)
-          .expandSafeArea()
           .backToTop(true)
           .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
           .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
@@ -390,13 +383,14 @@ struct Library {
     .mode(NavDestinationMode.STANDARD)
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
-    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM])
+    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM, LayoutSafeAreaEdge.TOP])
   }
 
   countSubVp(): number{
     let sub: number = 0
     // 填补高度=屏幕高度 - title高度50 - 上方padding高度12 - 单一组件高度(74+0.5)*歌曲数量 - 状态栏高度 - 导航栏高度
-    sub = px2vp(this.winHeight) - (this.itemHeight+50+12) - px2vp(this.topRect+this.bottomRect)
+    sub = px2vp(this.winHeight) - (this.itemHeight+50) - px2vp(this.topRect+this.bottomRect)
+    console.log('最终的高度是：'+sub);
     return sub > 0 ? sub : 0
   }
 }

@@ -120,7 +120,7 @@ export struct Download {
             // 底部空白区域
             ListItem() {
               Column() {
-                Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + 16)
+                Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + px2vp(this.bottomRect))
               }
             }
           }
@@ -150,7 +150,7 @@ export struct Download {
     .mode(NavDestinationMode.STANDARD)
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
-    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM])
+    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM, LayoutSafeAreaEdge.TOP])
   }
 
   getBlankHeight(): Length {
