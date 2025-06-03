@@ -30,7 +30,6 @@ import { avPlayerManager } from '../util/AVPlayerManager';
 // 缓存常用值以避免重复计算
 const COLUMNS_TEMPLATE_LG = '1fr 1fr 1fr 1fr'
 const COLUMNS_TEMPLATE_SM = '1fr 1fr'
-const DEFAULT_COVER_SIZE = 256
 const TAG = 'Index'
 
 @Entry
@@ -200,37 +199,6 @@ struct Index_page {
     }
   }
 
-  private generatePlaylistMenu(playlist: Playlist): Array<MenuElement> {
-    return [
-      {
-        value: $r('app.string.play_this_playlist'),
-        action: () => {
-          PushPathHelper.loading("Playing", async () => {
-            const playlistDetail = await SourceAdapter.getPlaylistDetail(playlist)
-            const songs = playlistDetail?.songs?.filter(song => song.privilege.playable)
-            if (!songs || songs.length === 0) {
-              ToastUtil.showShort($r('app.string.no_playable_songs'))
-              return
-            }
-            PlaylistManager.loadPlaylist(songs, songs[0])
-          })
-        }
-      }
-    ]
-  }
-
-  private generateSongMenu(song: Song): Array<MenuElement> {
-    return [
-      {
-        value: $r('app.string.add_to_play_next'),
-        action: () => {
-          PlaylistManager.insertSongs([song])
-        }
-      }
-    ]
-  }
-
-
   onPageShow(): void {
     console.info(TAG, 'onPageShow')
     PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
@@ -334,7 +302,7 @@ struct Index_page {
               this.pageStack.pushPath({ name: item.path })
             }
           })
-        }
+        }.key(`${item.title}`)
         .padding(4)
       })
     }
@@ -348,80 +316,36 @@ struct Index_page {
   @Builder
   RecommendedSongs() {
     Segment({
+      lists: this.recommendSongs,
+      type: 'Song',
       title: $r('app.string.hot_songs'),
       actionText: $r('app.string.rotate'),
       loading: this.loading,
       onActionClick: async () => {
         this.recommendSongs = await SourceAdapter.getRecommendSongs()
       },
-    }) {
-      List({ initialIndex: 0, space: 0 }) {
-        LazyForEach(new LazyData(this.recommendSongs), (item: Song) => {
-          ListItem() {
-            Cover({
-              src: cover(item.album.cover, DEFAULT_COVER_SIZE),
-              title: item.name,
-              subtitle: item.artists.map(artist => artist.name).join(' / '),
-              menuItems: this.generateSongMenu(item)
-            })
-              .width(this.coverWidth)
-              .padding(this.segmentPadding)
-              .onClick(() => {
-                PushPathHelper.loading("Playing", async () => {
-                  PlaylistManager.insertSongs([item], -1, item)
-                })
-              })
-          }
-        })
-      }
-      .width('100%')
-      .height('auto')
-      .listDirection(Axis.Horizontal)
-      .scrollBar(BarState.Off)
-      .cachedCount(3) // 缓存更多项以提高性能
-    }
+    }).key('Index-R')
   }
 
   @Builder
   RecommendedPlaylists() {
     Segment({
+      lists: this.recommendPlaylist,
+      type: 'Playlist',
       title: $r('app.string.recommended_playlists'),
       actionText: $r('app.string.rotate'),
       loading: this.loading,
       onActionClick: async () => {
         this.recommendPlaylist = await SourceAdapter.getRecommendList()
       },
-    }) {
-      List({ initialIndex: 0, space: 0 }) {
-        LazyForEach(new LazyData(this.recommendPlaylist), (item: Playlist) => {
-          ListItem() {
-            Cover({
-              src: cover(item.cover, DEFAULT_COVER_SIZE),
-              title: item.name,
-              menuItems: this.generatePlaylistMenu(item)
-            })
-              .width(this.coverWidth)
-              .padding(this.segmentPadding)
-              .onClick(async () => {
-                PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
-                  const playlist = await SourceAdapter.getPlaylistDetail(item)
-                  AppStorage.setOrCreate('current_playlist_data', playlist)
-                })
-              })
-          }
-        })
-      }
-      .width('100%')
-      .height('auto')
-      .listDirection(Axis.Horizontal)
-      .scrollBar(BarState.Off)
-      .cachedCount(3)
-    }
+    }).key('Index-R')
   }
 
   @Builder
   RecommendedArtists() {
     Segment({
+      lists: this.recommendArtists,
+      type: 'Artist',
       title: $r('app.string.recommended_artists'),
       actionText: $r('app.string.rotate'),
       loading: this.loading,
@@ -429,68 +353,17 @@ struct Index_page {
       onActionClick: async () => {
         this.recommendArtists = await SourceAdapter.getRecommendArtists()
       },
-    }) {
-      List({ initialIndex: 0, space: 0 }) {
-        LazyForEach(new LazyData(this.recommendArtists), (item: Artist) => {
-          ListItem() {
-            Cover({
-              src: cover(item.avatar, DEFAULT_COVER_SIZE),
-              title: item.name,
-              radius: "100%",
-              titleAlign: HorizontalAlign.Center
-            })
-              .width(this.coverWidth)
-              .padding(this.segmentPadding)
-              .onClick(() => {
-                PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
-                  // 歌手复用歌单UI
-                  const playlist = await SourceAdapter.getArtistDetail(item)
-                  AppStorage.setOrCreate('current_playlist_data', playlist)
-                })
-              })
-          }
-        })
-      }
-      .width('100%')
-      .height('auto')
-      .listDirection(Axis.Horizontal)
-      .scrollBar(BarState.Off)
-      .cachedCount(3)
-    }
+    }).key('Index-R')
   }
 
   @Builder
   TopLists() {
     Segment({
+      lists: this.topList,
+      type: 'TopPlaylist',
       title: $r('app.string.chart'),
       loading: this.loading
-    }) {
-      List({ initialIndex: 0, space: 0 }) {
-        LazyForEach(new LazyData(this.topList), (item: Playlist) => {
-          ListItem() {
-            Cover({
-              src: cover(item.cover, DEFAULT_COVER_SIZE),
-              title: item.name,
-              subtitle: item.description,
-              menuItems: this.generatePlaylistMenu(item)
-            })
-              .width(this.coverWidth)
-              .padding(this.segmentPadding)
-              .onClick(async () => {
-                PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
-                  const playlist = await SourceAdapter.getPlaylistDetail(item)
-                  AppStorage.setOrCreate('current_playlist_data', playlist)
-                })
-              })
-          }
-        })
-      }
-      .width('100%')
-      .height('auto')
-      .listDirection(Axis.Horizontal)
-      .scrollBar(BarState.Off)
-      .cachedCount(3)
-    }
+    }).key('Index-R')
   }
 
   @Builder
@@ -540,27 +413,19 @@ struct Index_page {
               if (this.loading || (this.recommendPlaylist.length > 0 || this.recommendSongs.length > 0
                 || this.recommendArtists.length > 0 || this.topList.length > 0)) {
                 if(this.recommendPlaylist.length > 0){
-                  ListItem() {
-                    this.RecommendedSongs()
-                  }
+                  this.RecommendedSongs()
                 }
 
                 if(this.recommendSongs.length > 0){
-                  ListItem() {
-                    this.RecommendedPlaylists()
-                  }
+                  this.RecommendedPlaylists()
                 }
 
                 if(this.recommendArtists.length > 0){
-                  ListItem() {
-                    this.RecommendedArtists()
-                  }
+                  this.RecommendedArtists()
                 }
 
                 if(this.topList.length > 0){
-                  ListItem() {
-                    this.TopLists()
-                  }
+                  this.TopLists()
                 }
               } else if(!this.loading) {
                 ListItem() {

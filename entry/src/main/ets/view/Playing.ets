@@ -176,35 +176,40 @@ struct Playing {
       this.Title(true)
     }
     Tabs({ barPosition: BarPosition.End, index: this.selectedTabIndex, controller: this.controller }){
-      TabContent(){ Column(){
-        Image(cover(this.song?.album?.cover ?? "", 512))
-          .height(this.IMG_ctrl?'90%':'50%')
-          .aspectRatio(1)
-          .borderRadius(24)
-            // .margin({ top: 36 })
-            // .geometryTransition('song-cover', { follow: true })
-          .transition(TransitionEffect.OPACITY)
-          .onClick(() => {
-            this.IMG_ctrl=!this.IMG_ctrl
-            // if (!this.isWideScreen) {
-            //   this.controller.changeIndex(1)
-            // }
-          }) //点击图片切换到歌词页面
-          .borderRadius(12)
-          .clickEffect({ level: ClickEffectLevel.LIGHT })
-        if (this.IMG_ctrl === false){
-          this.ProgressBar(false,2)
-          this.PlayerControls()
+      TabContent(){
+        Column(){
+          Image(cover(this.song?.album?.cover ?? "", 512))
+            .height(this.IMG_ctrl?'90%':'50%')
+            .aspectRatio(1)
+            .borderRadius(24)
+              // .margin({ top: 36 })
+              // .geometryTransition('song-cover', { follow: true })
+            .transition(TransitionEffect.OPACITY)
+            .onClick(() => {
+              this.IMG_ctrl=!this.IMG_ctrl
+              // if (!this.isWideScreen) {
+              //   this.controller.changeIndex(1)
+              // }
+            }) //点击图片切换到歌词页面
+            .borderRadius(12)
+            .clickEffect({ level: ClickEffectLevel.LIGHT })
+
+          if (this.IMG_ctrl === false){
+            this.ProgressBar(false,2)
+            this.PlayerControls()
+          }
         }
-
-
-      }.expandSafeArea()}
-      TabContent(){        Column(){
-        LyricsView({
-          mode_judge: false,
-        }).width('100%').layoutWeight(1)
+      }
+      TabContent(){
+        Column(){
+          LyricsView({
+            mode_judge: false,
+          }).width('100%').layoutWeight(1)
       }}
-    }.layoutWeight(1).width('100%')            .scrollable(true)
+    }
+    .layoutWeight(1)
+    .width('100%')
+    .scrollable(true)
     .barMode(BarMode.Fixed)
     .layoutWeight(1)
     .clip(false)
@@ -215,41 +220,45 @@ struct Playing {
       })
     })
     .onAppear(()=>{promptAction.showToast({ message: '点击图片可全屏显示封面' })})
-    .expandSafeArea()
 
   }
   @Builder
   playing_30(){
     Tabs({ barPosition: BarPosition.End, index: this.selectedTabIndex, controller: this.controller }){
-      TabContent(){ Column(){
-        Image(cover(this.song?.album?.cover ?? "", 512))
-          .height(this.IMG_ctrl?'90%':'50%')
-          .aspectRatio(1)
-          .borderRadius(24)
-            // .margin({ top: 36 })
-            // .geometryTransition('song-cover', { follow: true })
-          .transition(TransitionEffect.OPACITY)
-          .onClick(() => {
-            this.IMG_ctrl=!this.IMG_ctrl
-            // if (!this.isWideScreen) {
-            //   this.controller.changeIndex(1)
-            // }
-          }) //点击图片切换到歌词页面
-          .borderRadius(12)
-          .clickEffect({ level: ClickEffectLevel.LIGHT })
-        if (this.IMG_ctrl === false){
-          this.ProgressBar(false,2)
-          this.PlayerControls(false)
+      TabContent(){
+        Column(){
+          Image(cover(this.song?.album?.cover ?? "", 512))
+            .height(this.IMG_ctrl?'90%':'50%')
+            .aspectRatio(1)
+            .borderRadius(24)
+              // .margin({ top: 36 })
+              // .geometryTransition('song-cover', { follow: true })
+            .transition(TransitionEffect.OPACITY)
+            .onClick(() => {
+              this.IMG_ctrl=!this.IMG_ctrl
+              // if (!this.isWideScreen) {
+              //   this.controller.changeIndex(1)
+              // }
+            }) //点击图片切换到歌词页面
+            .borderRadius(12)
+            .clickEffect({ level: ClickEffectLevel.LIGHT })
+
+          if (this.IMG_ctrl === false){
+              this.ProgressBar(false,2)
+              this.PlayerControls(false)
+          }
         }
-
-
-      }.expandSafeArea()}
-      TabContent(){        Column(){
-        LyricsView({
-          mode_judge: false,
-        }).width('100%').layoutWeight(1)
+      }
+      TabContent(){
+        Column(){
+          LyricsView({
+            mode_judge: false,
+          }).width('100%').layoutWeight(1)
       }}
-    }.layoutWeight(1).width('100%')            .scrollable(true)
+    }
+    .layoutWeight(1)
+    .width('100%')
+    .scrollable(true)
     .barMode(BarMode.Fixed)
     .layoutWeight(1)
     .clip(false)
@@ -260,7 +269,6 @@ struct Playing {
       })
     })
     .onAppear(()=>{promptAction.showToast({ message: '点击图片可全屏显示封面' })})
-    .expandSafeArea()
 
   }
   @Builder
@@ -753,7 +761,6 @@ struct Playing {
         .objectFit(ImageFit.Cover)
         .blur(98)
         .opacity(0.6)
-        .expandSafeArea()
 
       Column()
         .width(StyleConstants.FULL_WIDTH)
@@ -762,12 +769,10 @@ struct Playing {
           angle: 180,
           colors: [['rgba(0,0,0,0.3)', 0.0], ['rgba(0,0,0,0.7)', 1.0]]
         })
-        .expandSafeArea()
     }
     .width(judge?StyleConstants.FULL_WIDTH:0)
     .height(judge?StyleConstants.FULL_HEIGHT:0)
     .position({ x: 0, y: 0 })
-    .expandSafeArea()
   }
 
   @Builder

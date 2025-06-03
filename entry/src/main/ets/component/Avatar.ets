@@ -6,14 +6,17 @@ export struct Avatar {
   @Prop radius: number | string = "50%"
 
   build() {
-    ImageKnifeComponent({
-      imageKnifeOption: {
-        loadSrc: this.url,
-        objectFit: ImageFit.Cover,
-        placeholderSrc: $r('app.media.ic_placeholder'),
-      }
-    })
+    Image(this.url ?? $r('app.media.ic_placeholder'))
       .borderRadius(this.radius)
       .clip(true)
+    // ImageKnifeComponent({
+    //   imageKnifeOption: {
+    //     loadSrc: this.url,
+    //     objectFit: ImageFit.Cover,
+    //     placeholderSrc: $r('app.media.ic_placeholder'),
+    //   }
+    // })
+    //   .borderRadius(this.radius)
+    //   .clip(true)
   }
 }

@@ -1,12 +1,12 @@
-import { ImageKnifeComponent } from "@ohos/imageknife"
 import { StyleConstants } from "../constants/StyleConstants"
 
+
+@Reusable
 @Component
 export struct Cover {
-  @State private isOverlayVisible: boolean = false
   loading?: boolean = false
   title?: string = ''
-  subtitle?: string = ''
+  subTitle?: string = ''
   menuItems?: MenuElement[] = []
   src: ResourceStr = ''
   radius: number | string = 8
@@ -43,18 +43,24 @@ export struct Cover {
   build() {
     Column({ space: 8 }) {
       Stack({ alignContent: Alignment.TopStart }) {
-        ImageKnifeComponent({
-          imageKnifeOption: {
-            loadSrc: this.src,
-            placeholderSrc: $r("app.media.ic_placeholder"),
-            errorholderSrc: $r("app.media.icon"),
-            objectFit: ImageFit.Fill,
-          }
-        }).hoverEffect(HoverEffect.Scale)
+        Image(this.src ?? $r("app.media.icon"))
+          .hoverEffect(HoverEffect.Scale)
           .width(StyleConstants.FULL_WIDTH)
           .aspectRatio(1)
           .borderRadius(this.radius)
           .clip(true)
+        // ImageKnifeComponent({
+        //   imageKnifeOption: {
+        //     loadSrc: this.src,
+        //     placeholderSrc: $r("app.media.ic_placeholder"),
+        //     errorholderSrc: $r("app.media.icon"),
+        //     objectFit: ImageFit.Fill,
+        //   }
+        // }).hoverEffect(HoverEffect.Scale)
+        //   .width(StyleConstants.FULL_WIDTH)
+        //   .aspectRatio(1)
+        //   .borderRadius(this.radius)
+        //   .clip(true)
 
 
         this.MoreButton()
@@ -68,7 +74,7 @@ export struct Cover {
             .backgroundColor('rgba(0, 0, 0, 0.05)')// 骨架屏颜色
             .borderRadius(4)
 
-          if (this.subtitle) {
+          if (this.subTitle) {
             Text()
               .width('60%')
               .height(14)
@@ -87,8 +93,8 @@ export struct Cover {
               .heightAdaptivePolicy(TextHeightAdaptivePolicy.MAX_LINES_FIRST)
           }
 
-          if (this.subtitle) {
-            Text(this.subtitle)
+          if (this.subTitle) {
+            Text(this.subTitle)
               .width(StyleConstants.FULL_WIDTH)
               .fontSize(14)
               .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
@@ -104,4 +110,6 @@ export struct Cover {
     }
     .clickEffect({ level: ClickEffectLevel.LIGHT })
   }
+
+
 }
