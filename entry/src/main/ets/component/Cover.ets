@@ -49,19 +49,6 @@ export struct Cover {
           .aspectRatio(1)
           .borderRadius(this.radius)
           .clip(true)
-        // ImageKnifeComponent({
-        //   imageKnifeOption: {
-        //     loadSrc: this.src,
-        //     placeholderSrc: $r("app.media.ic_placeholder"),
-        //     errorholderSrc: $r("app.media.icon"),
-        //     objectFit: ImageFit.Fill,
-        //   }
-        // }).hoverEffect(HoverEffect.Scale)
-        //   .width(StyleConstants.FULL_WIDTH)
-        //   .aspectRatio(1)
-        //   .borderRadius(this.radius)
-        //   .clip(true)
-
 
         this.MoreButton()
       }

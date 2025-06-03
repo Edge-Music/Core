@@ -1,5 +1,4 @@
 import { BreakpointSystem } from '../component/BreakpointSystem'
-import { Cover } from '../component/Cover'
 import { MenuButton } from '../component/MenuButton'
 import { StyleConstants } from '../constants/StyleConstants'
 import { HomePageMenu } from '../model/HomePageMenu'
@@ -10,20 +9,15 @@ import { Setting } from '../view/Setting'
 import { PreferencesCache } from '../util/PreferenceCache'
 import { Artist, Playlist, Song, SourceConfig } from '../type/Adapter'
 import { SourceAdapter } from '../adapter'
-import { cover } from '../util/AdapterHelper'
 import { Segment } from '../component/Segment'
 import { PlayList } from '../view/Playlist'
-import { AppUtil, ToastUtil } from '@pura/harmony-utils'
-import { PushPathHelper } from '../util/PushPathHelper'
-import { PlaylistManager } from '../util/PlaylistManager'
 import { MiniPlaybackControl } from '../component/MiniPlaybackControl'
 import { MultiSearch } from '../view/MultiSearch'
-import { LazyData } from '@pie/lazy-data'
 import { HorizontalMode } from '../util/HorizontalCheck'
 import { Download } from '../view/Download'
 import { ScrollController } from '../util/ScrollController'
 import { HeaderAnimation } from '../component/HeaderAnimation'
-import { BusinessError, deviceInfo } from '@kit.BasicServicesKit'
+import { deviceInfo } from '@kit.BasicServicesKit'
 import { PipManager } from '../util/PipManager';
 import { avPlayerManager } from '../util/AVPlayerManager';
 
@@ -92,9 +86,6 @@ struct Index_page {
   @StorageProp('topRect') topRect: number = 0
   @StorageProp('winHeight') winHeight: number = 0
   @State HorizontalMode_ctrl: string = PreferencesCache.getUserPreference('HorizontalMode_ctrl', '0')
-  // 预先计算并缓存必要的布局值
-  private coverWidth: number = 120
-  private segmentPadding: number = 4
   @State scrollController: ScrollController = new ScrollController({
     onIndexChange: (index) => {
       this.onMenuIconClick(index)

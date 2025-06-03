@@ -19,11 +19,11 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import { resourceManager } from '@kit.LocalizationKit';
 import { http } from '@kit.NetworkKit';
 import ImageUtils from '../util/ImageUtils';
-import { curves, promptAction, window } from '@kit.ArkUI'
+import { curves, promptAction } from '@kit.ArkUI'
 import { PipManager } from '../util/PipManager'
 import WindowUtil from '../util/WindowUtil'
 
-const COLORS: Color[] = [Color.White, Color.Red, Color.Orange, Color.Yellow, Color.Green, Color.Blue, Color.Pink, Color.Grey]
+
 @Builder
 export function PlayingBuilder() {
   Playing()
