@@ -6,7 +6,7 @@ import { BreakPointType } from '../component/BreakpointSystem'
 import { PlaylistManager } from '../util/PlaylistManager'
 import { EventHelper } from '../util/EventHelper'
 import { avPlayerManager } from '../util/AVPlayerManager'
-import { ClickUtil, ToastUtil } from '@pura/harmony-utils'
+import { AppUtil, ClickUtil, ToastUtil } from '@pura/harmony-utils'
 import { LyricsView } from '../component/LyricsView'
 import { PlaylistView } from '../component/PlaylistView'
 import { PreferencesCache } from '../util/PreferenceCache'
@@ -19,8 +19,9 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import { resourceManager } from '@kit.LocalizationKit';
 import { http } from '@kit.NetworkKit';
 import ImageUtils from '../util/ImageUtils';
-import { curves, promptAction } from '@kit.ArkUI'
+import { curves, promptAction, window } from '@kit.ArkUI'
 import { PipManager } from '../util/PipManager'
+import WindowUtil from '../util/WindowUtil'
 
 const COLORS: Color[] = [Color.White, Color.Red, Color.Orange, Color.Yellow, Color.Green, Color.Blue, Color.Pink, Color.Grey]
 @Builder
@@ -30,7 +31,6 @@ export function PlayingBuilder() {
 
 @Component
 struct Playing {
-  private colorTimer: number = -1
   @State curColorIndex: number = 0
   @StorageProp('topRect') topRect: number = 0
   @StorageProp('bottomRect') bottomRect: number = 0
@@ -72,8 +72,8 @@ struct Playing {
   @State is_backblur: boolean = true
   @State rotateAngle:number=0
   @State IMG_ctrl: boolean = false
-  @StorageLink('winWidth') winWidth:number =0
-  @StorageLink('winHeight') winHeight:number =0
+  @StorageLink('winWidth') @Watch('onWinWidthChange') winWidth: number = 0
+  @StorageLink('winHeight') @Watch('onWinWidthChange') winHeight: number = 0
   @State isSliderVisible: boolean = false
   @State isSliderVisible1: boolean = false
   private timerId: number = -1
@@ -101,6 +101,8 @@ struct Playing {
     console.info('Succeeded in obtaining fold status.judge: ' + this.Playing_Next);
   }
   @State sheetType: "playlist" | "timer" = "playlist" // 用于控制底部弹出表单的类型，默认为播放列表
+  private windowStage = AppUtil.getWindowStage()
+
   @Builder
   progress_Volume(){
     Column(){
@@ -411,7 +413,6 @@ struct Playing {
               // .backgroundBlurStyle(BlurStyle.Thin)
             }
             .layoutWeight(1)
-            .alignContent(Alignment.BottomEnd)
 
             Text((this.song?.name || "未知歌曲") + '/' +
               (this.song?.artists ? this.song.artists.map(artist => artist.name).join(" / ") : "未知艺术家"))
@@ -426,7 +427,8 @@ struct Playing {
           .height('100%')
           .padding({
             left: px2vp(this.rightCutoutRectWidth > 0 ? this.rightCutoutRectWidth : this.leftCutoutRectWidth*2),
-            top: 12
+            top: 12,
+            bottom: 12
           })
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Center)
@@ -458,7 +460,8 @@ struct Playing {
         }
         .padding({
           left: 18,
-          right: this.leftCutoutRectWidth > 0 ? 18 : px2vp(this.rightCutoutRectWidth)*2
+          right: this.leftCutoutRectWidth > 0 ? 18 : px2vp(this.rightCutoutRectWidth)*2,
+          bottom: 12
         })
         .width('55%')
       }
@@ -618,16 +621,12 @@ struct Playing {
         PreferencesCache.setUserPreference('Playing_HorizontalMode_index','0')
       }
     })
-    .indicator(
-      new DotIndicator().top(10)
-        // .itemWidth(15)
-        // .itemHeight(15)
-        // .selectedItemWidth(15)
-        // .selectedItemHeight(15)
-        .color(Color.Gray)
-        .selectedColor(Color.White)
-    )
-    .expandSafeArea()
+    // .indicator(
+    //   new DotIndicator().top(10)
+    //     .color(Color.Gray)
+    //     .selectedColor(Color.White)
+    // )
+    .indicator(false)
     .onAppear(() => {
       if (PreferencesCache.getUserPreference('Playing_HorizontalMode_index')==='1') {
         this.swiperController.changeIndex(1)
@@ -696,9 +695,15 @@ struct Playing {
     avPlayerManager.addListener('onPause', () => {
       this.isPlaying = false;
     });
+    if(this.winWidth > this.winHeight){
+      WindowUtil.setSystemBarEnabled(this.windowStage, false)
+    }else{
+      WindowUtil.setSystemBarEnabled(this.windowStage, true)
+    }
   }
 
   aboutToDisappear() {
+    WindowUtil.setSystemBarEnabled(this.windowStage, true)
     if (this.updateTimer !== -1) {
       clearInterval(this.updateTimer)
       this.updateTimer = -1
@@ -1405,9 +1410,10 @@ struct Playing {
       Column() {
         this.BottomControls()
       }
-      .layoutWeight(1)
+
+      // 底部避让
+      Blank().height(px2vp(this.bottomRect/2))
     }
-    .padding({ top: 16, bottom: 16 })
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
     .alignItems(HorizontalAlign.Center)
@@ -1585,16 +1591,13 @@ struct Playing {
     NavDestination() {
       FolderStack() {
         // 背景
-
         this.BlurBackground(this.is_backblur)
 
-
         Column() {
-          // 标题栏
-
 
           // 根据屏幕尺寸显示不同布局
           if (this.isWideScreen && this.Playing_Next == false) {
+            // 标题栏
             this.Title()
             // 宽屏布局 - 左右分栏
             Row() {
@@ -1661,7 +1664,6 @@ struct Playing {
             .scrollable(true)
             .barMode(BarMode.Fixed)
             .layoutWeight(1)
-            .clip(false)
             .barHeight(0)
             .onChange((index: number) => {
               animateTo({ duration: 400, curve: Curve.EaseInOut }, () => {
@@ -1681,7 +1683,6 @@ struct Playing {
       })
       .width(StyleConstants.FULL_WIDTH)
       .height(StyleConstants.FULL_HEIGHT)
-      .expandSafeArea()
     }
     .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM, LayoutSafeAreaEdge.TOP])
     .systemTransition(NavigationSystemTransitionType.FADE)
@@ -1736,5 +1737,13 @@ struct Playing {
         this.sheetType = "playlist";
       }
     })
+  }
+
+  onWinWidthChange() {
+    if(this.winWidth > this.winHeight) {
+      WindowUtil.setSystemBarEnabled(this.windowStage, false)
+    }else{
+      WindowUtil.setSystemBarEnabled(this.windowStage, true)
+    }
   }
 }

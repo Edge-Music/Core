@@ -98,12 +98,12 @@ export default class EntryAbility extends UIAbility {
   async onWindowStageCreate(windowStage: window.WindowStage): Promise<void> {
     LogUtil.info(`[${TAG}]`, 'Ability onWindowStageCreate');
     WindowUtil.loadContent(windowStage);
-    WindowUtil.setupWindowProperties(windowStage)
-    WindowUtil.setupWindowListeners(windowStage)
-    WindowUtil.setupPipManager(windowStage)
+    WindowUtil.setWindowProperties(windowStage)
+    WindowUtil.setWindowListeners(windowStage)
+    WindowUtil.setPipManager(windowStage)
 
     if (this.page){
-      WindowUtil.setupPageJump(this.page)
+      WindowUtil.setPageJump(this.page)
     }
 
   }

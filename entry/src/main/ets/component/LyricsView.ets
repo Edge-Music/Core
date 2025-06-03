@@ -1,7 +1,7 @@
 import { StyleConstants } from "../constants/StyleConstants";
 import { avPlayerManager } from "../util/AVPlayerManager";
 import { PreferencesCache } from "../util/PreferenceCache";
-import { LengthMetrics } from '@kit.ArkUI'
+import { LengthMetrics, window } from '@kit.ArkUI'
 import { LyricsLine } from "../util/LyricsManager";
 import { VibrationControl } from "../util/DeviceController";
 
@@ -21,6 +21,8 @@ class LyricStyle {
 
 @Component
 export struct LyricsView {
+  @StorageProp('leftCutoutRectWidth') leftCutoutRectWidth: number = 0
+  @StorageProp('rightCutoutRectWidth') rightCutoutRectWidth: number = 0
   @StorageProp('current_parsed_lyrics') private parsedLyrics: Array<LyricsLine> = []
   @StorageLink('current_lyrics_index') @Watch("onTimeUpdate") private currentLyricsIndex: number = 0
   @State mode_judge: boolean = false
@@ -40,6 +42,11 @@ export struct LyricsView {
     this.scrollToLyric(this.currentLyricsIndex)
   }
 
+  aboutToDisappear() {
+  }
+
+
+
   // 监听当前播放时间更新
   onTimeUpdate() {
     // 如果索引变化且不在动画中，则更新并滚动
@@ -57,7 +64,7 @@ export struct LyricsView {
 
     this.isAutoScroll = true
     // 保持在视图中间偏上的位置，很显然这是一个经验修正
-    const targetIndex = Math.max(0, this.mode_judge ? index - (5 * (this.showTranslation ? 0.2 : 0.6)) : index - (this.showTranslation ? 0 : 1))
+    const targetIndex = Math.max(0, this.mode_judge ? index - (10 * (this.showTranslation ? 0.1 : 0.3)) : index - (this.showTranslation ? 0 : 1))
 
     animateTo({
       duration: this.SCROLL_ANIMATION_DURATION,
@@ -227,6 +234,8 @@ export struct LyricsView {
           .fadingEdge(true, {
             fadingEdgeLength:LengthMetrics.vp(80)
           })
+          .contentStartOffset(50)
+          .contentEndOffset(100)
         }
       }
       .width(StyleConstants.FULL_WIDTH)
