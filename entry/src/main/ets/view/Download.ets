@@ -130,7 +130,6 @@ export struct Download {
           .layoutWeight(1)
           .edgeEffect(EdgeEffect.Spring)
           .scrollBar(BarState.Off)
-          .expandSafeArea()
           .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
           .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
         }

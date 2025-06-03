@@ -201,6 +201,5 @@ export struct About {
     }
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
-    .expandSafeArea()
   }
 }

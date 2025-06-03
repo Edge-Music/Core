@@ -1,7 +1,7 @@
 import { StyleConstants } from "../constants/StyleConstants";
 import { avPlayerManager } from "../util/AVPlayerManager";
 import { PreferencesCache } from "../util/PreferenceCache";
-import { LengthMetrics, window } from '@kit.ArkUI'
+import { LengthMetrics } from '@kit.ArkUI'
 import { LyricsLine } from "../util/LyricsManager";
 import { VibrationControl } from "../util/DeviceController";
 

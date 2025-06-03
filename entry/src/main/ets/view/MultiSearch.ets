@@ -95,104 +95,40 @@ export struct MultiSearch {
               if(this.result){
                 // 歌曲
                 if(this.isNullResult(this.result.songs)){
-                  ListItem(){
-                    Segment({
-                      title: "歌曲",
-                      loading: this.loading,
-                    }) {
-                      ForEach(this.result.songs, (item: Song) => {
-                        Cover({
-                          src: cover(item.album.cover, 256),
-                          title: item.name,
-                          subtitle: item.artists.map(artist => artist.name).join(' / '),
-                          menuItems: this.generateSongMenu(item)
-                        })
-                          .width(120)
-                          .padding(4)
-                          .onClick(() => {
-                            PushPathHelper.loading("Playing", async () => {
-                              PlaylistManager.insertSongs([item], -1, item)
-                            })
-                          })
-                      })
-                    }
-                  }
+                  Segment({
+                    lists: this.result.songs,
+                    type: 'Song',
+                    title: "歌曲",
+                    loading: this.loading,
+                  }).key('search')
                 }
                 // 歌单
                 if(this.isNullResult(this.result.playlists)){
-                  ListItem(){
-                    Segment({
-                      title: "歌单",
-                      loading: this.loading,
-                    }) {
-                      ForEach(this.result.playlists, (item: Playlist) => {
-                        Cover({
-                          src: cover(item.cover, 256),
-                          title: item.name,
-                          menuItems: this.generatePlaylistMenu(item)
-                        })
-                          .width(120)
-                          .padding(4)
-                          .onClick(() => {
-                            PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
-                              const playlist = await SourceAdapter.getPlaylistDetail(item)
-                              AppStorage.setOrCreate('current_playlist_data', playlist)
-                            })
-                          })
-                      })
-                    }
-                  }
+                  Segment({
+                    lists: this.result.playlists,
+                    type: 'Playlist',
+                    title: "歌单",
+                    loading: this.loading,
+                  }).key('search')
                 }
                 // 艺人
                 if(this.isNullResult(this.result.artists)){
-                  ListItem(){
-                    Segment({
-                      title: "歌手",
-                      loading: this.loading,
-                      radius: "100%",
-                    }) {
-                      ForEach(this.result.artists, (item: Artist) => {
-                        Cover({
-                          src: cover(item.avatar, 256),
-                          title: item.name,
-                          radius: "100%",
-                        })
-                          .width(120)
-                          .padding(4)
-                          .onClick(() => {
-                            PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
-                              const artist = await SourceAdapter.getArtistDetail(item)
-                              AppStorage.setOrCreate('current_playlist_data', artist)
-                            })
-                          })
-                      })
-                    }
-                  }
+                  Segment({
+                    lists: this.result.artists,
+                    type: 'Artist',
+                    title: "歌手",
+                    loading: this.loading,
+                    radius: "100%",
+                  }).key('search')
                 }
                 // 专辑
                 if(this.isNullResult(this.result.albums)){
-                  ListItem(){
-                    Segment({
-                      title: "专辑",
-                      loading: this.loading,
-                    }) {
-                      ForEach(this.result.albums, (item: Album) => {
-                        Cover({
-                          src: cover(item.cover, 256),
-                          title: item.name,
-                          subtitle: item.artists?.map(artist => artist.name).join(' / '),
-                        })
-                          .width(120)
-                          .padding(4)
-                          .onClick(() => {
-                            PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
-                              const album = await SourceAdapter.getAlbumDetail(item)
-                              AppStorage.setOrCreate('current_playlist_data', album)
-                            })
-                          })
-                      })
-                    }
-                  }
+                  Segment({
+                    lists: this.result.albums,
+                    type: 'Album',
+                    title: "专辑",
+                    loading: this.loading,
+                  }).key('search')
                 }
                 // 如果结果为空
                 if(this.nullResultFlag){
@@ -225,7 +161,6 @@ export struct MultiSearch {
               }
             }
           }
-          .expandSafeArea()
           .backToTop(true)
           .layoutWeight(1)
           .height(StyleConstants.FULL_HEIGHT)
@@ -236,13 +171,11 @@ export struct MultiSearch {
           .scrollBar(BarState.Off)
           .edgeEffect(EdgeEffect.Spring)
         }
-        .expandSafeArea()
         .width(StyleConstants.FULL_WIDTH)
         .height(StyleConstants.FULL_HEIGHT)
 
         MiniPlaybackControl()
       }
-      .expandSafeArea()
       .width(StyleConstants.FULL_WIDTH)
       .height(StyleConstants.FULL_HEIGHT)
     }

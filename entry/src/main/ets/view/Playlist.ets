@@ -269,7 +269,6 @@ export struct PlayList {
       .height(StyleConstants.FULL_HEIGHT)
       .width(StyleConstants.FULL_WIDTH)
       .layoutWeight(1)
-      .expandSafeArea()
       .edgeEffect(EdgeEffect.Spring)
       .listDirection(Axis.Vertical)
       .divider({ strokeWidth: 0 })
@@ -298,7 +297,6 @@ export struct PlayList {
       })
 
     }
-    .expandSafeArea()
     .width(StyleConstants.FULL_WIDTH)
     .layoutWeight(1)
   }
@@ -358,7 +356,6 @@ export struct PlayList {
     Column() {
       this.SongListSection()
     }
-    .expandSafeArea()
     .height(StyleConstants.FULL_HEIGHT)
     .width(StyleConstants.FULL_WIDTH)
   }
