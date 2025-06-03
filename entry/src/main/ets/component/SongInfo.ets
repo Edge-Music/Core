@@ -1,9 +1,10 @@
 import { StyleConstants } from "../constants/StyleConstants";
 import { Song } from "../type/Adapter";
 
+@Reusable
 @Component
 export struct SongInfo {
-  song: Song | null = null;
+  @Prop song: Song
   showBorder: boolean = true;
   onTap?: (song: Song) => void;
   @Prop active: boolean = false;
@@ -149,7 +150,6 @@ export struct SongInfo {
 
     .width(StyleConstants.FULL_WIDTH)
     .padding({ left: 12, right: 12, top: 4, bottom: 4 })
-    .expandSafeArea()
   }
 
   @Styles pressedStyles(): void {

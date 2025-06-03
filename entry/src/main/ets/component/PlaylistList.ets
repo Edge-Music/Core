@@ -7,6 +7,7 @@ import { cover } from '../util/AdapterHelper';
 import { PlaylistManager } from '../util/PlaylistManager';
 import { PushPathHelper } from '../util/PushPathHelper';
 import { PreferencesCache } from "../util/PreferenceCache";
+import { PlaylistItem } from "./PlaylistItem";
 
 @Component
 export struct PlaylistList {
@@ -98,7 +99,6 @@ export struct PlaylistList {
     }
     .width('100%')
     .backgroundColor($r('app.color.page_background'))
-    .expandSafeArea()
   }
 
   judgeSourceByDataSourceId(playlist: Playlist, index: number): boolean {
@@ -132,11 +132,12 @@ export struct PlaylistList {
   @Builder
   TabContentList(index: number){
     List(){
-      ForEach(this.playlists, (playlist: Playlist) => {
+      ForEach(this.playlists, (playlist: Playlist, Pindex: number) => {
         if(this.judgeSourceByDataSourceId(playlist, index)){
           ListItem(){
-            this.PlaylistItem(playlist)
+            PlaylistItem({ playlist: playlist, onPlaylistSelected: this.onPlaylistSelected })
           }
+          .key(playlist.id as string)
         }
       })
       ListItem(){

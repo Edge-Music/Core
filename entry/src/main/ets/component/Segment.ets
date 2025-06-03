@@ -1,10 +1,14 @@
 import { StyleConstants } from "../constants/StyleConstants"
+import { Artist, Playlist, Song } from "../type/Adapter"
 import { Cover } from "./Cover"
 import { HorizontalScroll } from "./HorizontalScroll"
 
+@Reusable
 @Component
 export struct Segment {
   @Prop loading: boolean = false
+  @Prop lists: Object[]
+  @Prop type: string
   title: string | Resource = ''
   actionText: string | undefined | Resource = undefined
   onActionClick?: () => void
@@ -40,18 +44,7 @@ export struct Segment {
         bottom: 4
       })
 
-      HorizontalScroll() {
-        ForEach([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], () => {
-          Cover({
-            loading: true,
-            src: $r('app.media.ic_placeholder'),
-            title: '',
-            radius: this.radius
-          })
-            .width(120)
-            .padding(4)
-        })
-      }
+      HorizontalScroll({ lists: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], type: 'Template'})
     }
     .width(StyleConstants.FULL_WIDTH)
     .alignItems(HorizontalAlign.Start)
@@ -92,9 +85,7 @@ export struct Segment {
           bottom: 4
         })
 
-        HorizontalScroll() {
-          this.items?.()
-        }
+        HorizontalScroll({ lists: this.lists, type: this.type })
       }
     }
     .width(StyleConstants.FULL_WIDTH)

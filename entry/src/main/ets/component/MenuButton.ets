@@ -1,5 +1,6 @@
 import { StyleConstants } from "../constants/StyleConstants"
 
+@Reusable
 @Component
 export struct MenuButton {
   @State private isAnimating: boolean = false

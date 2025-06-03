@@ -227,7 +227,6 @@ export struct SettingGroup {
       .borderRadius(8)
     }
     .width(StyleConstants.FULL_WIDTH)
-    .expandSafeArea()
     .padding({ left: 12, right: 12 })
     .transition({ opacity: 250, scale: { x: 1, y: 1 } })
     .animation({
