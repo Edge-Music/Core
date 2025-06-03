@@ -101,7 +101,6 @@ export default class EntryAbility extends UIAbility {
     WindowUtil.setWindowProperties(windowStage)
     WindowUtil.setWindowListeners(windowStage)
     WindowUtil.setPipManager(windowStage)
-    // WindowUtil.setSystemBarEnabled(windowStage)
 
     if (this.page){
       WindowUtil.setPageJump(this.page)

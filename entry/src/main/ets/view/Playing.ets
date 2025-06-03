@@ -72,8 +72,8 @@ struct Playing {
   @State is_backblur: boolean = true
   @State rotateAngle:number=0
   @State IMG_ctrl: boolean = false
-  @StorageLink('winWidth') winWidth:number =0
-  @StorageLink('winHeight') winHeight:number =0
+  @StorageLink('winWidth') @Watch('onWinWidthChange') winWidth: number = 0
+  @StorageLink('winHeight') @Watch('onWinWidthChange') winHeight: number = 0
   @State isSliderVisible: boolean = false
   @State isSliderVisible1: boolean = false
   private timerId: number = -1
@@ -101,7 +101,7 @@ struct Playing {
     console.info('Succeeded in obtaining fold status.judge: ' + this.Playing_Next);
   }
   @State sheetType: "playlist" | "timer" = "playlist" // 用于控制底部弹出表单的类型，默认为播放列表
-  private windowClass: window.Window = AppUtil.getMainWindow()
+  private windowStage = AppUtil.getWindowStage()
 
   @Builder
   progress_Volume(){
@@ -695,24 +695,15 @@ struct Playing {
     avPlayerManager.addListener('onPause', () => {
       this.isPlaying = false;
     });
-    let windowStage = AppUtil.getWindowStage()
     if(this.winWidth > this.winHeight){
-      WindowUtil.setSystemBarEnabled(windowStage, false)
+      WindowUtil.setSystemBarEnabled(this.windowStage, false)
+    }else{
+      WindowUtil.setSystemBarEnabled(this.windowStage, true)
     }
-    this.windowClass.on('windowSizeChange', (windowSize) => {
-      if(windowSize.width > windowSize.height) {
-        WindowUtil.setSystemBarEnabled(windowStage, false)
-      }else{
-        WindowUtil.setSystemBarEnabled(windowStage, true)
-      }
-    })
   }
 
   aboutToDisappear() {
-    this.windowClass.off('windowSizeChange')
-    let windowStage = AppUtil.getWindowStage()
-    WindowUtil.setSystemBarEnabled(windowStage, true)
-
+    WindowUtil.setSystemBarEnabled(this.windowStage, true)
     if (this.updateTimer !== -1) {
       clearInterval(this.updateTimer)
       this.updateTimer = -1
@@ -1746,5 +1737,13 @@ struct Playing {
         this.sheetType = "playlist";
       }
     })
+  }
+
+  onWinWidthChange() {
+    if(this.winWidth > this.winHeight) {
+      WindowUtil.setSystemBarEnabled(this.windowStage, false)
+    }else{
+      WindowUtil.setSystemBarEnabled(this.windowStage, true)
+    }
   }
 }
