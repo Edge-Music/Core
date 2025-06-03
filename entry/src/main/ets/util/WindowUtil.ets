@@ -8,7 +8,7 @@ import { LogUtil } from '@pura/harmony-utils';
 const TAG = 'WindowUtil'
 class WindowUtil {
 
-  setupPipManager(windowStage: window.WindowStage) {
+  setPipManager(windowStage: window.WindowStage) {
     if (!windowStage) return;
     windowStage.getMainWindow().then((window) => {
       let ctx = window.getUIContext();
@@ -18,7 +18,7 @@ class WindowUtil {
     })
   }
 
-  setupWindowListeners(windowStage: window.WindowStage) {
+  setWindowListeners(windowStage: window.WindowStage) {
     if (!windowStage) return;
     windowStage.getMainWindow().then((windowClass) => {
       // 监听窗口尺寸变化
@@ -45,7 +45,7 @@ class WindowUtil {
     })
   }
 
-  setupWindowProperties(windowStage: window.WindowStage) {
+  setWindowProperties(windowStage: window.WindowStage) {
     if (!windowStage) return;
     windowStage.getMainWindow().then((windowClass) => {
       // 获取窗口尺寸，存入AppStorage
@@ -64,7 +64,7 @@ class WindowUtil {
 
   }
 
-  setupPageJump(page: string) {
+  setPageJump(page: string) {
     if (page){
       setTimeout((page:string) => {
         EventHelper.postFormJumpPage(page)
@@ -107,6 +107,28 @@ class WindowUtil {
       });
     })
 
+  }
+
+  setSystemBarEnabled(windowStage: window.WindowStage, enable: boolean = true){
+    windowStage.getMainWindow((err: BusinessError, windowClass) => {
+      const errCode: number = err.code;
+      if (errCode) {
+        LogUtil.error(`[${TAG}]`, `Failed to obtain the main window. Cause code: ${err.code}, message: ${err.message}`);
+        return;
+      }
+      try {
+        if(canIUse('SystemCapability.Window.SessionManager')){
+          let promise = windowClass.setSpecificSystemBarEnabled('navigationIndicator', enable, true);
+          promise.then(() => {
+            LogUtil.info(`[${TAG}]`, 'Succeeded in setting the system bar to be invisible.');
+          }).catch((err: BusinessError) => {
+            LogUtil.error(`[${TAG}]`, `Failed to set the system bar to be invisible. Cause code: ${err.code}, message: ${err.message}`);
+          });
+        }
+      } catch (exception) {
+        LogUtil.error(`[${TAG}]`, `Failed to set the system bar to be invisible. Cause code: ${exception.code}, message: ${exception.message}`);
+      }
+    });
   }
 
 }
