@@ -3,6 +3,8 @@ import { PreferencesCache } from "../util/PreferenceCache";
 
 @Component
 export struct TitleHeader {
+  @StorageProp('topRect') topRect: number = 0
+  @StorageProp('decorHeight') decorHeight: number = 0
   @Consume('NavPathStack') pageStack: NavPathStack;
   @Prop title: ResourceStr = $r("app.string.homepage")
   @BuilderParam rightContent: () => void;
@@ -57,71 +59,95 @@ export struct TitleHeader {
 
   build() {
     Stack({ alignContent: Alignment.Start }) {
-      Row() {
-        Row() {
-          // if (this.is_2in1){
-          //   this.BackButton()
-          // }
+      Column(){
+        // PC工具栏适配
+        if(this.decorHeight > 0){
+          Row(){
+            Image($r('app.media.icon'))
+              .height(this.decorHeight/2)
+              .width(this.decorHeight/2)
+              .margin({ left: 16 })
+            Blank().width(5)
+            Text('云享社').fontSize(14).fontWeight(FontWeight.Bold)
+          }
+          .justifyContent(FlexAlign.Start)
+          .alignItems(VerticalAlign.Center)
+          .height(this.decorHeight)
+          .backgroundColor('transparent')
+          .width('100%')
+        }else if(this.topRect > 0){
+          Row(){}
+          .height(px2vp(this.topRect))
+          .backgroundColor('transparent')
+          .width('100%')
+        }
 
-          Text(this.title)
-            .fontColor($r('app.color.text_title'))
-            .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-            .fontSize($r('app.float.title_font_size'))
-            .maxLines(1)
-            .onClick(() => {
-              this.backActive = true
-              setTimeout(() => {
-                this.pagesStackPop()
-              }, 300)
-            })
-            .onHover((isHover: boolean) => {
-              if(isHover){
+        Row() {
+          Row() {
+            // if (this.is_2in1){
+            //   this.BackButton()
+            // }
+
+            Text(this.title)
+              .fontColor($r('app.color.text_title'))
+              .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
+              .fontSize($r('app.float.title_font_size'))
+              .maxLines(1)
+              .onClick(() => {
                 this.backActive = true
-              }
-            })
+                setTimeout(() => {
+                  this.pagesStackPop()
+                }, 300)
+              })
+              .onHover((isHover: boolean) => {
+                if(isHover){
+                  this.backActive = true
+                }
+              })
 
-          // 自定义左侧
-          if(this.midContent){
-            this.midContent()
+            // 自定义左侧
+            if(this.midContent){
+              this.midContent()
+            }
+            // 自定义右侧
+            if (this.rightContent) {
+              this.rightContent()
+            }
+            // Blank()
           }
-          // 自定义右侧
-          if (this.rightContent) {
-            this.rightContent()
+          .padding({ left: 16, right: 16})
+          .justifyContent(FlexAlign.SpaceBetween)
+          .width(StyleConstants.FULL_WIDTH)
+          .alignItems(VerticalAlign.Center)
+          Row() {
+            Text($r('app.string.back'))
+              .fontColor($r('app.color.text_title'))
+              .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
+              .fontSize($r('app.float.title_font_size'))
+              .maxLines(1)
+              .padding({ left: 16 })
           }
-          // Blank()
+          .width(StyleConstants.FULL_WIDTH)
+          .onHover((isHover: boolean) => {
+            if(isHover){
+              this.backActive = true
+            }else{
+              this.backActive = false
+            }
+          })
+          .onClick(() => {
+            this.pagesStackPop()
+          })
         }
-        .padding({ left: 16, right: 16})
-        .justifyContent(FlexAlign.SpaceBetween)
         .width(StyleConstants.FULL_WIDTH)
-        .alignItems(VerticalAlign.Center)
-        Row() {
-          Text($r('app.string.back'))
-            .fontColor($r('app.color.text_title'))
-            .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-            .fontSize($r('app.float.title_font_size'))
-            .maxLines(1)
-            .padding({ left: 16 })
-        }
-        .width(StyleConstants.FULL_WIDTH)
-        .onHover((isHover: boolean) => {
-          if(isHover){
-            this.backActive = true
-          }else{
-            this.backActive = false
-          }
-        })
-        .onClick(() => {
-          this.pagesStackPop()
+        .backgroundColor(Color.Transparent)
+        .height(50)
+        .translate({ x: this.backActive ? '-100%' : 0 }) // 初始值16与所有标题左padding一致
+        .animation({
+          duration: 250,
+          curve: Curve.FastOutSlowIn
         })
       }
-      .width(StyleConstants.FULL_WIDTH)
-      .backgroundColor(Color.Transparent)
-      .height(50)
-      .translate({ x: this.backActive ? '-100%' : 0 }) // 初始值16与所有标题左padding一致
-      .animation({
-        duration: 250,
-        curve: Curve.FastOutSlowIn
-      })
     }
   }
 }

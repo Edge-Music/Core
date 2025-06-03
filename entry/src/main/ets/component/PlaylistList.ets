@@ -141,7 +141,7 @@ export struct PlaylistList {
       })
       ListItem(){
         Column()
-          .height(StyleConstants.PLAYER_CONTROL_HEIGHT + 32 + px2vp(this.bottomRect))
+          .height(StyleConstants.PLAYER_CONTROL_HEIGHT + px2vp(this.bottomRect))
       }
     }
     .backToTop(true)

@@ -14,25 +14,29 @@ import app from '@system.app';
 import FormUtils from '../util/FormUtils';
 import { CallMethod } from '../widget/model/FormCardConstant';
 import { SongDownloadManager } from '../util/SongDownloadManager';
-import { PipManager } from '../util/PipManager';
+import WindowUtil from '../util/WindowUtil';
+
+const TAG = 'EntryAbility'
 export default class EntryAbility extends UIAbility {
 
   private _pause_timer: number = -1; // 用于存储暂停计时器的ID
-  private page?:string = undefined;
+  private page?: string | null = null;
 
   async onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): Promise<void> {
-    hilog.info(0x0000, 'testTag', '%{public}s', 'Ability onCreate');
+    LogUtil.init(0x2003, 'Edge Music', true); // 初始化日志工具类
+    AppUtil.init(this.context); // 初始化应用工具类
+    LogUtil.info(`[${TAG}]`, 'Ability onCreate');
     if (want?.parameters?.params) {
       let params: Record<string, Object> = JSON.parse(want.parameters.params as string);
       this.page = params.type as string;
     }
-    AppUtil.init(this.context); // 初始化应用工具类
+
     DialogHelper.setDefaultConfig((config) => {
       config.uiAbilityContext = this.context;
       config.autoCancel = false; //点击遮障层时，是否关闭弹窗
       config.backCancel = true; // 点击返回键时，是否关闭弹窗
     }) // 初始化对话框工具类
-    LogUtil.init(0x2003, 'Edge Music', true); // 初始化日志工具类
+
     SongCacheManager.initialize() // 初始化歌曲缓存管理器
     SongDownloadManager.init(this.context) // 初始化歌曲下载管理器
     CrashUtil.onError(); // 注册错误处理
@@ -52,7 +56,7 @@ export default class EntryAbility extends UIAbility {
       if (endAt > 0) {
         this._pause_timer = setTimeout(async () => {
           // 当计时器到达指定时间后触发
-          LogUtil.info("EntryAbility ", "Pause Timer Ended", `Pausing playback`);
+          LogUtil.info(`[${TAG}]`, "Pause Timer Ended", `Pausing playback`);
           await avPlayerManager.pause(); // 暂停播放器
           this._pause_timer = -1; // 重置计时器ID
         }, endAt - Date.now());
@@ -61,7 +65,7 @@ export default class EntryAbility extends UIAbility {
       }
     })
     EventHelper.subscribeSongState(async (data) => {
-      hilog.info(0x0000, 'testTag', 'context '+ this.context);
+      LogUtil.info(`[${TAG}]`, 'context '+ this.context);
       if (data === 'PLAY') {
         await backgroundRunningManager.startBackgroundRunning(this.context);
         FormUtils.updateCardPlayStatus(true);
@@ -87,67 +91,36 @@ export default class EntryAbility extends UIAbility {
   }
 
   onDestroy(): void {
-    hilog.info(0x0000, 'testTag', '%{public}s', 'Ability onDestroy');
+    LogUtil.info(`[${TAG}]`, 'Ability onDestroy');
     FormUtils.updateCardPlayStatus(false);
   }
 
   async onWindowStageCreate(windowStage: window.WindowStage): Promise<void> {
-    // Main window is created, set main page for this ability
-    hilog.info(0x0000, 'testTag', '%{public}s', 'Ability onWindowStageCreate');
-    windowStage.getMainWindow().then((windowClass) => {
-      // 获取窗口尺寸，存入AppStorage
-      AppStorage.setOrCreate('winWidth', windowClass.getWindowProperties().windowRect.width);
-      AppStorage.setOrCreate('winHeight', windowClass.getWindowProperties().windowRect.height);
-      // 监听窗口尺寸变化
-      windowClass.on('windowSizeChange', (windowSize) => {
-        AppStorage.setOrCreate('winWidth', windowSize.width);
-        AppStorage.setOrCreate('winHeight', windowSize.height);
-      });
-      // 获取避让高度，存入AppStorage
-      AppStorage.setOrCreate('topRect', windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM).topRect.height);
-      AppStorage.setOrCreate('bottomRect', windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR).bottomRect.height);
-      // 监听避让高度变化
-      windowClass.on('avoidAreaChange', (avoidArea) => {
-        if (avoidArea.type === window.AvoidAreaType.TYPE_SYSTEM) {
-          AppStorage.setOrCreate('topRect', avoidArea.area.topRect.height);
-        } else if (avoidArea.type === window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR) {
-          AppStorage.setOrCreate('bottomRect', avoidArea.area.bottomRect.height);
-        }
-      });
-    });
-    windowStage.loadContent('pages/Index', (err) => {
-      if (err.code) {
-        hilog.error(0x0000, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err) ?? '');
-        return;
-      }
-      hilog.info(0x0000, 'testTag', 'Succeeded in loading the content.');
-    });
-    windowStage.getMainWindow().then((window) => {
-      let ctx = window.getUIContext();
-      // 通过主窗口UIContext创建typeNode节点
-      PipManager.getInstance().makeTypeNode(ctx);
-    })
+    LogUtil.info(`[${TAG}]`, 'Ability onWindowStageCreate');
+    WindowUtil.loadContent(windowStage);
+    WindowUtil.setupWindowProperties(windowStage)
+    WindowUtil.setupWindowListeners(windowStage)
+    WindowUtil.setupPipManager(windowStage)
+
     if (this.page){
-      setTimeout((page:string) => {
-        EventHelper.postFormJumpPage(page)
-        hilog.info(0x0000, 'testTag', 'targetPage: '+page);
-      }, 500,this.page);
+      WindowUtil.setupPageJump(this.page)
     }
+
   }
 
   onWindowStageDestroy(): void {
     // Main window is destroyed, release UI related resources
-    hilog.info(0x0000, 'testTag', '%{public}s', 'Ability onWindowStageDestroy');
+    LogUtil.info(`[${TAG}]`, 'Ability onWindowStageDestroy');
   }
 
   onForeground(): void {
     // Ability has brought to foreground
-    hilog.info(0x0000, 'testTag', '%{public}s', 'Ability onForeground');
+    LogUtil.info(`[${TAG}]`, 'Ability onForeground');
   }
 
   onBackground(): void {
     // Ability has back to background
-    hilog.info(0x0000, 'testTag', '%{public}s', 'Ability onBackground');
+    LogUtil.info(`[${TAG}]`, 'Ability onBackground');
   }
 
   onNewWant(want: Want, launchParam: AbilityConstant.LaunchParam): void {
@@ -155,7 +128,7 @@ export default class EntryAbility extends UIAbility {
       let params: Record<string, Object> = JSON.parse(want.parameters.params as string);
       let type = params.type as string;
       EventHelper.postFormJumpPage(type)
-      hilog.info(0x0000, 'testTag', 'targetPage: '+type);
+      LogUtil.info(`[${TAG}]`, 'targetPage: '+ type);
     }
   }
 }

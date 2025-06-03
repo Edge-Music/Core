@@ -13,7 +13,7 @@ import { SourceAdapter } from '../adapter'
 import { cover } from '../util/AdapterHelper'
 import { Segment } from '../component/Segment'
 import { PlayList } from '../view/Playlist'
-import { ToastUtil } from '@pura/harmony-utils'
+import { AppUtil, ToastUtil } from '@pura/harmony-utils'
 import { PushPathHelper } from '../util/PushPathHelper'
 import { PlaylistManager } from '../util/PlaylistManager'
 import { MiniPlaybackControl } from '../component/MiniPlaybackControl'
@@ -23,7 +23,7 @@ import { HorizontalMode } from '../util/HorizontalCheck'
 import { Download } from '../view/Download'
 import { ScrollController } from '../util/ScrollController'
 import { HeaderAnimation } from '../component/HeaderAnimation'
-import { deviceInfo } from '@kit.BasicServicesKit'
+import { BusinessError, deviceInfo } from '@kit.BasicServicesKit'
 import { PipManager } from '../util/PipManager';
 import { avPlayerManager } from '../util/AVPlayerManager';
 
@@ -56,9 +56,7 @@ struct Index {
   }
 
   aboutToAppear(): void {
-
     this.pageStack.replacePath({ name: 'Index_page' })
-
   }
 
   build() {
@@ -68,11 +66,13 @@ struct Index {
     .navDestination(this.PageMap)
     .hideNavBar(true)
     .mode(NavigationMode.Stack)
+    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM, LayoutSafeAreaEdge.TOP])
   }
 }
 
 @Component
 struct Index_page {
+  @StorageProp('decorHeight') decorHeight: number = 0
   @State version: string = '2.2.0'
 
   @State blankHeight: number = 0
@@ -251,42 +251,65 @@ struct Index_page {
 
   @Builder
   Title() {
-    Row() {
-      Text($r("app.string.homepage"))
-        .fontColor($r('app.color.text_title'))
-        .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-        .fontSize($r('app.float.title_font_size'))
+
+    Column(){
+      // PC工具栏适配
+      if(this.decorHeight > 0){
+        Row(){
+          Image($r('app.media.icon'))
+            .height(this.decorHeight/2)
+            .width(this.decorHeight/2)
+            .margin({ left: 16 })
+          Blank().width(5)
+          Text('云享社').fontSize(14).fontWeight(FontWeight.Bold)
+        }
+        .justifyContent(FlexAlign.Start)
+        .alignItems(VerticalAlign.Center)
+        .height(this.decorHeight).backgroundColor('transparent').width('100%')
+      }
+      else if(this.topRect > 0){
+        Row(){}
+        .height(px2vp(this.topRect)).backgroundColor('transparent').width('100%')
+      }
 
       Row() {
-        MenuIcon({
-          icon: $r('app.media.ic_search'),
-          active: this.scrollController.currentIndex === 1
-        })
-          .onClick(() => {
-            this.onMenuIconClick(1)
-          })
-          .clickEffect({ level: ClickEffectLevel.LIGHT })
+        Text($r("app.string.homepage"))
+          .fontColor($r('app.color.text_title'))
+          .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
+          .fontSize($r('app.float.title_font_size'))
 
-        MenuIcon({
-          icon: $r('app.media.ic_gearshape'),
-          active: this.scrollController.currentIndex === 0
-        })
-          .onClick(() => {
-            this.onMenuIconClick(0)
+        Row() {
+          MenuIcon({
+            icon: $r('app.media.ic_search'),
+            active: this.scrollController.currentIndex === 1
           })
-          .clickEffect({ level: ClickEffectLevel.LIGHT })
+            .onClick(() => {
+              this.onMenuIconClick(1)
+            })
+            .clickEffect({ level: ClickEffectLevel.LIGHT })
+
+          MenuIcon({
+            icon: $r('app.media.ic_gearshape'),
+            active: this.scrollController.currentIndex === 0
+          })
+            .onClick(() => {
+              this.onMenuIconClick(0)
+            })
+            .clickEffect({ level: ClickEffectLevel.LIGHT })
+        }
+        .height(StyleConstants.FULL_HEIGHT)
+        .alignItems(VerticalAlign.Center)
       }
-      .height(StyleConstants.FULL_HEIGHT)
+      .width(StyleConstants.FULL_WIDTH)
+      .height(50)
+      .justifyContent(FlexAlign.SpaceBetween)
       .alignItems(VerticalAlign.Center)
+      .padding({
+        left: 16,
+        right: 16
+      })
     }
-    .width(StyleConstants.FULL_WIDTH)
-    .justifyContent(FlexAlign.SpaceBetween)
-    .alignItems(VerticalAlign.Center)
-    .padding({
-      left: 16,
-      right: 16
-    })
-    .expandSafeArea()
+
   }
 
   onMenuIconClick(index: number) {
@@ -501,79 +524,84 @@ struct Index_page {
   build() {
     NavDestination() {
       Stack({ alignContent: Alignment.Bottom }) {
-        List({ scroller: this.scroller }) {
-          ListItem() {
-            HeaderAnimation({ scrollController: this.scrollController, isShowLoadingProgress: true })
-          }
+        Column(){
+          this.Title()
 
-          if (this.adapters.length > 0) {
+          List({ scroller: this.scroller }) {
             ListItem() {
-              this.MenuGrid()
+              HeaderAnimation({ scrollController: this.scrollController, isShowLoadingProgress: true })
             }
 
-            if (this.loading || (this.recommendPlaylist.length > 0 || this.recommendSongs.length > 0
-              || this.recommendArtists.length > 0 || this.topList.length > 0)) {
-              if(this.recommendPlaylist.length > 0){
-                ListItem() {
-                  this.RecommendedSongs()
-                }
-              }
-
-              if(this.recommendSongs.length > 0){
-                ListItem() {
-                  this.RecommendedPlaylists()
-                }
-              }
-
-              if(this.recommendArtists.length > 0){
-                ListItem() {
-                  this.RecommendedArtists()
-                }
-              }
-
-              if(this.topList.length > 0){
-                ListItem() {
-                  this.TopLists()
-                }
-              }
-            } else if(!this.loading) {
+            if (this.adapters.length > 0) {
               ListItem() {
-                Row() {
-                  Column() {
-                    Text($r('app.string.no_recommendations'))
-                      .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-                      .fontColor($r('app.color.text_hint'))
-                      .fontSize(16)
+                this.MenuGrid()
+              }
+
+              if (this.loading || (this.recommendPlaylist.length > 0 || this.recommendSongs.length > 0
+                || this.recommendArtists.length > 0 || this.topList.length > 0)) {
+                if(this.recommendPlaylist.length > 0){
+                  ListItem() {
+                    this.RecommendedSongs()
                   }
-                  .width(StyleConstants.FULL_WIDTH)
-                  .height(StyleConstants.FULL_HEIGHT)
-                  .justifyContent(FlexAlign.Center)
                 }
-                .height(this.getBlankHeight())
+
+                if(this.recommendSongs.length > 0){
+                  ListItem() {
+                    this.RecommendedPlaylists()
+                  }
+                }
+
+                if(this.recommendArtists.length > 0){
+                  ListItem() {
+                    this.RecommendedArtists()
+                  }
+                }
+
+                if(this.topList.length > 0){
+                  ListItem() {
+                    this.TopLists()
+                  }
+                }
+              } else if(!this.loading) {
+                ListItem() {
+                  Row() {
+                    Column() {
+                      Text($r('app.string.no_recommendations'))
+                        .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
+                        .fontColor($r('app.color.text_hint'))
+                        .fontSize(16)
+                    }
+                    .width(StyleConstants.FULL_WIDTH)
+                    .height(StyleConstants.FULL_HEIGHT)
+                    .justifyContent(FlexAlign.Center)
+                  }
+                  .height(this.getBlankHeight())
+                }
+              }
+            } else {
+              ListItem() {
+                this.EmptyDataSource()
               }
             }
-          } else {
-            ListItem() {
-              this.EmptyDataSource()
-            }
-          }
 
-          ListItem() {
-            Row() {
-              Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + 16)
+            ListItem() {
+              Row() {
+                Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + px2vp(this.bottomRect))
+              }
             }
           }
+          .width(StyleConstants.FULL_WIDTH)
+          .height(StyleConstants.FULL_HEIGHT)
+          .layoutWeight(1)
+          .backToTop(true)
+          .scrollBar(BarState.Off)
+          .edgeEffect(EdgeEffect.Spring)
+          .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
+          .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
+          .scrollBarColor('#e7bb7c')
         }
         .width(StyleConstants.FULL_WIDTH)
         .height(StyleConstants.FULL_HEIGHT)
-        .layoutWeight(1)
-        .backToTop(true)
-        .scrollBar(BarState.Off)
-        .edgeEffect(EdgeEffect.Spring)
-        .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
-        .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
-        .expandSafeArea()
-        .scrollBarColor('#e7bb7c')
 
         MiniPlaybackControl()
       }
@@ -584,13 +612,10 @@ struct Index_page {
     .width(StyleConstants.FULL_WIDTH)
     .systemTransition(NavigationSystemTransitionType.SLIDE_RIGHT)
     .hideToolBar(true)
+    .hideTitleBar(true)
     .hideBackButton(true)
-    .title({
-      builder: this.Title(),
-      height: 50,
-    })
     .backgroundColor($r('app.color.page_background'))
-    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM])
+    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM, LayoutSafeAreaEdge.TOP])
   }
 
   getBlankHeight(): number {
