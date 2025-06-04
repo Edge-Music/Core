@@ -1,9 +1,7 @@
-import { AbilityConstant, UIAbility, Want } from '@kit.AbilityKit';
-import { hilog } from '@kit.PerformanceAnalysisKit';
+import { AbilityConstant, common, Context, UIAbility, Want } from '@kit.AbilityKit';
 import { window } from '@kit.ArkUI';
 import { AppUtil, CrashUtil, LogUtil } from '@pura/harmony-utils';
 import { ImageKnife } from '@ohos/imageknife';
-import { DialogHelper } from '@pura/harmony-dialog';
 import { SongCacheManager } from '../util/SongCacheManager';
 import { EventHelper } from '../util/EventHelper';
 import { ContextHelper } from '../util/ContextHelper';
@@ -30,12 +28,6 @@ export default class EntryAbility extends UIAbility {
       let params: Record<string, Object> = JSON.parse(want.parameters.params as string);
       this.page = params.type as string;
     }
-
-    DialogHelper.setDefaultConfig((config) => {
-      config.uiAbilityContext = this.context;
-      config.autoCancel = false; //点击遮障层时，是否关闭弹窗
-      config.backCancel = true; // 点击返回键时，是否关闭弹窗
-    }) // 初始化对话框工具类
 
     SongCacheManager.initialize() // 初始化歌曲缓存管理器
     SongDownloadManager.init(this.context) // 初始化歌曲下载管理器
@@ -65,7 +57,7 @@ export default class EntryAbility extends UIAbility {
       }
     })
     EventHelper.subscribeSongState(async (data) => {
-      LogUtil.info(`[${TAG}]`, 'context '+ this.context);
+      LogUtil.info(`[${TAG}]`, `收到[on_song_state]事件订阅，状态为：[${data}]`);
       if (data === 'PLAY') {
         await backgroundRunningManager.startBackgroundRunning(this.context);
         FormUtils.updateCardPlayStatus(true);

@@ -11,6 +11,7 @@ import { ContextHelper } from "./ContextHelper";
 import { SourceAdapter } from "../adapter";
 import FormUtils from "./FormUtils";
 
+const TAG = 'EventHelper'
 async function checkCacheFileExists(cache: SongCacheItem, key: string) {
   if (!cache || !cache.path) {
     return false;
@@ -224,7 +225,6 @@ export class EventHelper {
       else{
         let pageStack = AppStorage.get("pageStack") as NavPathStack
         pageStack.pushPath({name:targetPage},{launchMode:LaunchMode.MOVE_TO_TOP_SINGLETON})
-
       }
     });
   }
@@ -244,7 +244,19 @@ export class EventHelper {
   }
 
   public static postSongState(data: "PLAY" | "PAUSE") {
-    EmitterUtil.post("on_song_state", data);
+    let songState = AppStorage.get<"PLAY"|"PAUSE">('SongState')
+    LogUtil.info(`[${TAG}]`, `现在全局[on_song_state]状态：[${songState}]`)
+    if(songState !== data){
+      LogUtil.info(`[${TAG}]`, `发送[on_song_state]事件成功，状态由[${songState}]变[${data}]`)
+      EmitterUtil.post("on_song_state", data);
+      AppStorage.setOrCreate('SongState', data)
+      return
+    }
+    if(songState === undefined){
+      LogUtil.info(`[${TAG}]`, `发送[on_song_state]事件成功，状态由[${songState}]变[${data}]`)
+      EmitterUtil.post("on_song_state", data);
+      AppStorage.setOrCreate('SongState', data)
+    }
   }
 
   public static postPauseTimer(pauseAt: number) {
@@ -253,5 +265,24 @@ export class EventHelper {
 
   public static postFormJumpPage(targetPage: string){
     EmitterUtil.post("on_form_jump", targetPage);
+  }
+
+  public static subscribePipLyric(callback: (data: string) => void) {
+    EmitterUtil.onSubscribe("on_pip_lyric", (data: string) => {
+      callback(data);
+    });
+  }
+
+  public static postPipLyric(data: string) {
+    EmitterUtil.post("on_pip_lyric", data);
+    LogUtil.info(`[${TAG}]`, `发送[on_pip_lyric]事件成功，当前歌词：[${data}]`)
+  }
+
+  public static unSubscribePipLyric(){
+    EmitterUtil.unSubscribe('on_pip_lyric')
+  }
+
+  public static getPipLyricListenerCount(): number{
+    return EmitterUtil.getListenerCount('on_pip_lyric')
   }
 }

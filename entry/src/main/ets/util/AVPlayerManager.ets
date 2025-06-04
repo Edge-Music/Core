@@ -217,7 +217,7 @@ class AVPlayerManager {
     callbacks.forEach(callback => {
       callback(error);
     });
-    LogUtil.error('AVPlayerManager', error.message);
+    LogUtil.error('[AVPlayerManager]', error.message);
   }
 
   private triggerCompleted() {
@@ -508,6 +508,7 @@ class AVPlayerManager {
       this.updatePlaybackState(this.currentPlaybackState, position);
     });
 
+    player
 
     this.avPlayer = player;
     return this.avPlayer;
@@ -635,12 +636,13 @@ class AVPlayerManager {
   async pause() {
     try {
       const player = await this.getAVPlayerInstance();
-      await player.pause();
-      AppStorage.setOrCreate<boolean>("playing_judge",false)
-
-      this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PAUSE);
-      this.triggerPause();
-      EventHelper.postSongState('PAUSE');
+      if(player.state === 'playing'){
+        await player.pause();
+        AppStorage.setOrCreate<boolean>("playing_judge",false)
+        this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PAUSE);
+        this.triggerPause();
+        EventHelper.postSongState('PAUSE');
+      }
     } catch (error) {
       this.triggerError(error);
     }
@@ -653,9 +655,11 @@ class AVPlayerManager {
       if (player.state === 'playing') {
         await player.pause();
       }
-      await player.stop();
-      this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_IDLE);
-      this.triggerStop();
+      if (player.state !== 'idle' && player.state !== 'initialized'){
+        await player.stop();
+        this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_IDLE);
+        this.triggerStop();
+      }
     } catch (error) {
       this.triggerError(error);
     }
