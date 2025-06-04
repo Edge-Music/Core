@@ -419,6 +419,7 @@ struct Playing {
                 .margin(12)
               // .backgroundBlurStyle(BlurStyle.Thin)
             }
+            .alignContent(Alignment.BottomEnd)
             .layoutWeight(1)
 
             Text((this.song?.name || "未知歌曲") + '/' +
