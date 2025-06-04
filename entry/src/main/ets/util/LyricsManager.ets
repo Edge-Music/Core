@@ -1,7 +1,6 @@
 import { Song } from "../type/Adapter";
 import { avPlayerManager } from "./AVPlayerManager";
-import { resourceManager } from "@kit.LocalizationKit";
-import { ResourceManager } from "./ResourceManager";
+import { EventHelper } from "./EventHelper";
 
 export class LyricsLine {
   time: number; // 时间点（毫秒）
@@ -29,6 +28,7 @@ class LyricsManager {
   private currentTimeMs: number = 0
   private parsedLyrics: Array<LyricsLine> = []
   private lyricsTimer: number = -1
+  private lastIndex: number = -1
   private currentIndex: number = 0
   private readonly PRE_HIGHLIGHT_TIME: number = 500 // 提前切换时间
   private isInit: boolean = false
@@ -43,6 +43,9 @@ class LyricsManager {
     if(this.currentSongName !== tmpSongName){
       this.currentSongName = tmpSongName
       AppStorage.setOrCreate<string>('test_index', tmpSongName)
+      if(EventHelper.getPipLyricListenerCount() > 0){
+        EventHelper.postPipLyric(tmpSongName)
+      }
     }
     this.parseLyrics()
     this.isInit = true
@@ -63,6 +66,7 @@ class LyricsManager {
     this.transliteratedLyrics = ''
     this.currentTimeMs = 0
     this.parsedLyrics = []
+    this.lastIndex = -1
     this.currentIndex = 0
     this.hasTranslation = false
     this.hasTransliteration = false
@@ -77,9 +81,6 @@ class LyricsManager {
       this.lyricsTimer = setInterval(() => {
         this.currentTimeMs = player.currentTime
         this.updateCurrentLyric()
-        AppStorage.setOrCreate<LyricsLine>('current_line_lyrics', this.parsedLyrics[this.currentIndex])
-        AppStorage.setOrCreate<string>('test_index', this.parsedLyrics[this.currentIndex].text)
-        AppStorage.setOrCreate<number>('current_lyrics_index', this.currentIndex)
       }, 500)
       console.info(`歌词定时器[${this.lyricsTimer}]设置完成`)
     }
@@ -233,12 +234,30 @@ class LyricsManager {
         if (adjustedTime >= this.parsedLyrics[i].time) {
           newIndex = i
           this.currentIndex = newIndex
+          if(this.currentIndex !== this.lastIndex){
+            this.lastIndex = this.currentIndex
+            AppStorage.setOrCreate<LyricsLine>('current_line_lyrics', this.parsedLyrics[this.currentIndex])
+            AppStorage.setOrCreate<string>('test_index', this.parsedLyrics[this.currentIndex].text)
+            AppStorage.setOrCreate<number>('current_lyrics_index', this.currentIndex)
+            if(EventHelper.getPipLyricListenerCount() > 0) {
+              EventHelper.postPipLyric(this.parsedLyrics[this.currentIndex].text)
+            }
+          }
         }
       } else {
         // 非最后一句，检查是否在当前时间范围内
         if (adjustedTime >= this.parsedLyrics[i].time && adjustedTime < this.parsedLyrics[i + 1].time) {
           newIndex = i
           this.currentIndex = newIndex
+          if(this.currentIndex !== this.lastIndex){
+            this.lastIndex = this.currentIndex
+            AppStorage.setOrCreate<LyricsLine>('current_line_lyrics', this.parsedLyrics[this.currentIndex])
+            AppStorage.setOrCreate<string>('test_index', this.parsedLyrics[this.currentIndex].text)
+            AppStorage.setOrCreate<number>('current_lyrics_index', this.currentIndex)
+            if(EventHelper.getPipLyricListenerCount() > 0) {
+              EventHelper.postPipLyric(this.parsedLyrics[this.currentIndex].text)
+            }
+          }
           break
         }
       }

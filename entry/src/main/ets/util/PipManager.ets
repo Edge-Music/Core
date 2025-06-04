@@ -1,18 +1,15 @@
 // model/PipManager.ets
 // 画中画控制器单例
-import { BuilderNode, NodeController, PiPWindow, typeNode } from '@kit.ArkUI'; // 引入PiPWindow模块
+import { App, BuilderNode, NodeController, PiPWindow, typeNode } from '@kit.ArkUI'; // 引入PiPWindow模块
 import { BusinessError } from '@kit.BasicServicesKit';
 import { avPlayerManager} from './AVPlayerManager'
 import { PlaylistManager } from '../util/PlaylistManager'
 import { Song } from "../type/Adapter";
 import { cover } from './AdapterHelper';
 import { PreferencesCache } from './PreferenceCache';
+import { EventHelper } from './EventHelper';
 
-let mess:string=AppStorage.get('test_index')??''
 let song: Song
-let  intervalID:number=114514//这个值就是我用来判断舍妹设置定时器的
-
-
 let Is_PAD:boolean
 let playing_judge:boolean
 let controlType: PiPWindow.PiPControlType = PiPWindow.PiPControlType.VIDEO_PLAY_PAUSE; // 视频播放控制面板中播放/暂停控件。
@@ -61,10 +58,8 @@ function buildText(params: Params) {
 
     }
 
-  }.backgroundColor('#00000000')
-  .onClick(()=>{
-    mess =AppStorage.get('test_index') ??'a'
-  })
+  }
+  .backgroundColor('#00000000')
   .width('100%') // 宽度方向充满画中画窗口
   .height('100%') // 高度方向充满画中画窗口
 }
@@ -89,13 +84,10 @@ class TextNodeController extends NodeController {
 
   // 开发者可自定义该方法实现布局更新
   update(message: string) {
-    mess=AppStorage.get('test_index')??'w'
-    song = AppStorage.get("current_playing_song")??song
+    song = AppStorage.get("current_playing_song") ?? song
     // AppStorage.setOrCreate<boolean>('isWideScreen', this.isWideScreen&&this.Playing_Next===false)
     Is_PAD = AppStorage.get("isWideScreen")??false
 
-
-    console.log(`update message: ${message}`);
     if (this.textNode !== null) {
       this.textNode.update(new Params(message));
     }
@@ -150,8 +142,6 @@ export class PipManager {
       case PiPWindow.PiPControlType.VIDEO_PLAY_PAUSE:
         if (control.status === PiPWindow.PiPControlStatus.PAUSE) {
           avPlayerManager.pause()
-          mess='a'
-
           //停止视频
         } else if (control.status === PiPWindow.PiPControlStatus.PLAY) {
           //播放视频
@@ -256,34 +246,31 @@ export class PipManager {
       this.pipController.setAutoStartEnabled(PreferencesCache.getUserPreference('Lyic_desktop','0')==='1');
       // 通过画中画控制器实例的on('stateChange')接口注册生命周期事件回调
       this.pipController.on('stateChange', (state: PiPWindow.PiPState, reason: string) => {
-        if (state==3) {
+        if (state == 3) {
           console.info(TAG, `Succeeded in starting pip_jizhishi.`+state);
           console.info(TAG, `pip_Timer_off.`+state);
+          PreferencesCache.setUserPreference('Lyic_desktop','0')
+          AppStorage.setOrCreate('Lyic_desktop', '0')
 
-          clearInterval(intervalID);
-          intervalID=114514
-        }else         if (state==1) {
+          EventHelper.unSubscribePipLyric()
+        }else if (state == 1) {
+          nodeController.update(`刷新PipLyric布局`)
+          EventHelper.subscribePipLyric(async (data: string) => {
+            playing_judge = AppStorage.get('playing_judge') ?? false
+            this.pipController?.updatePiPControlStatus(controlType, playing_judge ? status_play : status_pause)
+            nodeController.update(`Current Pip Lyric: [${data}]`)
+          })
           console.info(TAG, `Succeeded in starting pip_jizhishi.`+state);
-          if (intervalID=114514) {
-            intervalID =setInterval(() => {
-              playing_judge = AppStorage.get("playing_judge")??false
-              this.pipController?.updatePiPControlStatus(controlType,playing_judge?status_play:status_pause)
-              nodeController.update('This pip_Timer is on：'+intervalID)
-            }, 100);
-          }
         }
 
         console.info(TAG, `Succeeded in starting pip.`+state);
         AppStorage.setOrCreate<boolean>('current_lyrics',true)
-
-        mess=AppStorage.get('test_index')??'a'
-        nodeController.update(AppStorage.get('test_index')??'a')
         this.onStateChange(state, reason);
       });
       // 通过画中画控制器实例的on('controlEvent')接口注册控制事件回调
       this.pipController.on('controlEvent', (control: PiPWindow.ControlEventParam) => {
         this.onActionEvent(control);
-        nodeController.update(AppStorage.get('test_index')??'l')
+        nodeController.update(`刷新PipLyric播控状态`)
       });
     }).catch((err: BusinessError) => {
       console.error(TAG, `Failed to create pip controller. Cause:${err.code}, message:${err.message}`);
@@ -297,7 +284,6 @@ export class PipManager {
 
     });
     this.pipController?.startPiP().then(() => {
-
       console.info(TAG, `Succeeded in starting pip.`);
     }).catch((err: BusinessError) => {
       console.error(TAG, `Failed to start pip. Cause:${err.code}, message:${err.message}`);

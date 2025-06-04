@@ -1,4 +1,3 @@
-import { resourceManager } from "@kit.LocalizationKit";
 import { BusinessError } from "@kit.BasicServicesKit";
 import { common } from "@kit.AbilityKit";
 
