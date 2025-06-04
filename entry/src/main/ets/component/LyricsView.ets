@@ -4,6 +4,7 @@ import { PreferencesCache } from "../util/PreferenceCache";
 import { LengthMetrics } from '@kit.ArkUI'
 import { LyricsLine } from "../util/LyricsManager";
 import { VibrationControl } from "../util/DeviceController";
+import { EventHelper } from "../util/EventHelper";
 
 class LyricStyle {
   fontWeight: FontWeight;
@@ -85,6 +86,7 @@ export struct LyricsView {
     this.isAnimating = true
     this.isManualScroll = false
     this.currentLyricsIndex = index
+    EventHelper.postPipLyric(this.parsedLyrics[index].text)
 
     // 滚动到目标位置
     this.scrollToLyric(index)

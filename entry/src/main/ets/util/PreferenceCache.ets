@@ -1,6 +1,5 @@
 import { ID, Song, SourceConfig } from "../type/Adapter";
 import { PreferencesUtil } from '@pura/harmony-utils';
-import { ResourceManager } from "./ResourceManager";
 
 // 比特率类型
 export type BitrateType = 128000 | 192000 | 320000 | 350000 | 999000;

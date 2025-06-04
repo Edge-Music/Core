@@ -16,7 +16,6 @@ import { isHorizontalMode } from '../util/HorizontalCheck'
 import { screen_on } from '../util/On_screen_control'
 import { SongDownloadManager } from '../util/SongDownloadManager'
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { resourceManager } from '@kit.LocalizationKit';
 import { http } from '@kit.NetworkKit';
 import ImageUtils from '../util/ImageUtils';
 import { curves, promptAction } from '@kit.ArkUI'
@@ -52,7 +51,7 @@ struct Playing {
   @State isWideScreen: boolean = false // 是否为宽屏
   @State imageColorHex:string='1a2a3a'
   @State currentIndex: number = -1
-  @State Lyic_desktop:string= PreferencesCache.getUserPreference('Lyic_desktop','0')
+  @StorageLink('Lyic_desktop') Lyic_desktop: string = PreferencesCache.getUserPreference('Lyic_desktop','0')
   // 独立的按钮动画状态
   @State swipeOffset: number = 0; // 滑动偏移量
   @State isSwipingActive: boolean = false; // 是否正在滑动中
@@ -420,6 +419,7 @@ struct Playing {
                 .margin(12)
               // .backgroundBlurStyle(BlurStyle.Thin)
             }
+            .alignContent(Alignment.BottomEnd)
             .layoutWeight(1)
 
             Text((this.song?.name || "未知歌曲") + '/' +
@@ -502,7 +502,6 @@ struct Playing {
             .onAppear(async ()=>{
               try {
                 const context = getContext(this);
-                const resourceMgr: resourceManager.ResourceManager = context.resourceManager;
                 let netFile = this.song?.album?.cover + "?param=64y64" ?? "";
                 let httpRequest = http.createHttp()
                 let data = await httpRequest.request(netFile);
@@ -1570,7 +1569,7 @@ struct Playing {
           .onClick(() => {
             if (PreferencesCache.getUserPreference('Lyic_desktop','0')==='0') {
               PreferencesCache.setUserPreference('Lyic_desktop','1')
-              this.Lyic_desktop ='1'
+              this.Lyic_desktop = '1'
               PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
               PipManager.getInstance().startPip()
             }else {

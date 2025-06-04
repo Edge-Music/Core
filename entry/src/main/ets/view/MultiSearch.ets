@@ -7,7 +7,6 @@ import { Segment } from "../component/Segment";
 import { TitleHeader } from "../component/TitleHeader";
 import { StyleConstants } from "../constants/StyleConstants";
 import { Album, Artist, Playlist, SearchResult, Song } from "../type/Adapter";
-import { cover } from "../util/AdapterHelper";
 import { PlaylistManager } from "../util/PlaylistManager";
 import { PushPathHelper } from "../util/PushPathHelper";
 import { ResourceManager } from "../util/ResourceManager";
