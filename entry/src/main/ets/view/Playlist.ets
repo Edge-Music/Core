@@ -3,7 +3,7 @@ import { SongInfo } from "../component/SongInfo";
 import { TitleHeader } from "../component/TitleHeader";
 import { StyleConstants } from "../constants/StyleConstants";
 import { Playlist, Song } from "../type/Adapter";
-import { BasicPrefetcher, ColorMetrics, LengthMetrics } from '@kit.ArkUI';
+import { BasicPrefetcher } from '@kit.ArkUI';
 import { SongDataSourcePrefetching } from "../util/SongDataSourcePrefetching";
 import { BreakpointConstants } from "../constants/BreakpointConstants";
 import { cover } from "../util/AdapterHelper";
@@ -766,9 +766,9 @@ export struct PlayList {
 
     const keywords = this.searchKeywords.toLowerCase().trim()
     this.filteredSongs = this.playlist.songs.filter(song =>
-    song.name.toLowerCase().includes(keywords) ||
-    song.artists.some(artist => artist.name.toLowerCase().includes(keywords)) ||
-    song.album.name.toLowerCase().includes(keywords)
+    song.name?.toLowerCase().includes(keywords) ||
+    song.artists?.some(artist => artist?.name?.toLowerCase().includes(keywords)) ||
+    song.album?.name?.toLowerCase().includes(keywords)
     )
     this.isSearching = true
   }
