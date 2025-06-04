@@ -13,6 +13,7 @@ import FormUtils from '../util/FormUtils';
 import { CallMethod } from '../widget/model/FormCardConstant';
 import { SongDownloadManager } from '../util/SongDownloadManager';
 import WindowUtil from '../util/WindowUtil';
+import { DialogHelper } from '@pura/harmony-dialog';
 
 const TAG = 'EntryAbility'
 export default class EntryAbility extends UIAbility {
@@ -28,6 +29,12 @@ export default class EntryAbility extends UIAbility {
       let params: Record<string, Object> = JSON.parse(want.parameters.params as string);
       this.page = params.type as string;
     }
+
+    DialogHelper.setDefaultConfig((config) => {
+      config.uiAbilityContext = this.context;
+      config.autoCancel = false; //点击遮障层时，是否关闭弹窗
+      config.backCancel = true; // 点击返回键时，是否关闭弹窗
+    }) // 初始化对话框工具类
 
     SongCacheManager.initialize() // 初始化歌曲缓存管理器
     SongDownloadManager.init(this.context) // 初始化歌曲下载管理器
