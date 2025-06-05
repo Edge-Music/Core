@@ -28,9 +28,9 @@ export  struct IS_2IN1_UI{
   @Consume('NavPathStack') pageStack: NavPathStack;
   @StorageLink('user_playlist') playlists: Playlist[] = [];
   @StorageLink('currentBreakpoint') currentBreakpoint: string = 'sm'
+  @StorageProp('2in1title') title:string='首页'
   @StorageProp('2in1page_judge') page_judge:string = 'index'
   @State sidebar_ctrl:boolean =false
-  @StorageProp('2in1title') title:string='首页'
   @StorageProp('bottomRect') bottomRect: number = 0
   @StorageProp('topRect') topRect: number = 0
   aboutToAppear(): void {
