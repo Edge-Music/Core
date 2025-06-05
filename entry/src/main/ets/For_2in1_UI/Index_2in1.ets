@@ -408,7 +408,7 @@ export struct Index_page {
 
               ListItem() {
                 Row() {
-                  Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + px2vp(this.bottomRect) + px2vp(this.topRect) + this.decorHeight + 50)
+                  Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + px2vp(this.bottomRect) + px2vp(this.topRect) + this.decorHeight + 50 + 32)
                 }
               }
             }
