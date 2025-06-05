@@ -81,6 +81,15 @@ export struct IS_2IN1_UI{
             this.sidebar_ctrl = !this.sidebar_ctrl
           });
         })
+
+        if(this.sidebar_ctrl){
+          Text($r('app.string.library'))
+            .fontColor($r('app.color.text_title'))
+            .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
+            .fontSize($r('app.float.title_font_size'))
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .maxLines(1)
+        }
       }
       .padding({ left: 16, right: 16})
       .justifyContent(FlexAlign.Start)
