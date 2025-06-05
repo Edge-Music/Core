@@ -55,6 +55,11 @@ export struct Personalized_settings_Component {
       PreferencesCache.setUserPreference(this.setUserPreference_name, this.text_ctrl)
       AppStorage.setOrCreate('zhishi_UI', this.text_ctrl)
     }
+
+    if(this.setUserPreference_name === 'miniplaying_bottom_judge'){
+      PreferencesCache.setUserPreference(this.setUserPreference_name, this.text_ctrl)
+      AppStorage.setOrCreate('miniplaying_bottom_judge', this.text_ctrl)
+    }
   }
 }
 

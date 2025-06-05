@@ -22,7 +22,7 @@ export struct MiniPlaybackControl {
   @State swipeDirection: string = ''; // 滑动方向
   @StorageLink('winWidth') winWidth: number = 0
   @StorageProp('bottomRect') bottomRect: number = 0
-  @State bottom_judge: string = PreferencesCache.getUserPreference('miniplaying_bottom_judge','0')
+  @StorageLink('miniplaying_bottom_judge') bottom_judge: string = PreferencesCache.getUserPreference('miniplaying_bottom_judge','0')
   @State playBtnScale: number = 1
   @State nextBtnScale: number = 1
   @State playListBtnScale: number = 1
