@@ -133,6 +133,7 @@ export struct IS_2IN1_UI{
             .textOverflow({ overflow: TextOverflow.Ellipsis })
             .maxLines(1)
         }
+        .layoutWeight(1)
         .height(StyleConstants.TITLE_HEIGHT)
         .justifyContent(FlexAlign.Center)
         .alignItems(VerticalAlign.Center)
