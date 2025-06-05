@@ -93,7 +93,7 @@ struct Index_page {
     componentTag: TAG
   }).linkController(this.scroller)
   //2in1 UI控制
-  @State zhishi_UI:string =  PreferencesCache.getUserPreference('zhishi_UI','0')
+    @State zhishi_UI:string =  PreferencesCache.getUserPreference('zhishi_UI','0')
   async aboutToAppear() {
     avPlayerManager.setAudioSession()
 
@@ -484,6 +484,7 @@ struct Index_page {
       }
 
     }
+
     .height(StyleConstants.FULL_HEIGHT)
     .width(StyleConstants.FULL_WIDTH)
     .systemTransition(NavigationSystemTransitionType.SLIDE_RIGHT)

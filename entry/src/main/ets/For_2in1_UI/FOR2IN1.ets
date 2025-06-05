@@ -29,12 +29,16 @@ export  struct IS_2IN1_UI{
   @StorageLink('user_playlist') playlists: Playlist[] = [];
   @StorageLink('currentBreakpoint') currentBreakpoint: string = 'sm'
   @StorageProp('2in1title') title:string='首页'
-  @StorageProp('2in1page_judge') page_judge:string = 'index'
+  @Watch('_2in1page_judge')@StorageProp('2in1page_judge') page_judge:string =                   AppStorage.get('2in1page_judge')??'index'
+
   @State sidebar_ctrl:boolean =false
   @StorageProp('bottomRect') bottomRect: number = 0
   @StorageProp('topRect') topRect: number = 0
   aboutToAppear(): void {
    this.sidebar_ctrl = this.currentBreakpoint==='sm'? false:true
+  }
+  _2in1page_judge(){
+    this.page_judge=                   AppStorage.get('2in1page_judge')??'index'
   }
   @Builder
   /**
@@ -77,6 +81,8 @@ export  struct IS_2IN1_UI{
       Blank()
       Button('设置').onClick(()=>{
         this.page_judge='Setting'
+        AppStorage.setOrCreate('2in1page_judge',"Setting")
+
         this.title ='设置'
       }).margin({right: AppStorage.get("devicetype")==='2in1'?150:16})
     }.width('100%').alignItems(VerticalAlign.Center).justifyContent(FlexAlign.Start).padding({left:16})
@@ -95,10 +101,10 @@ export  struct IS_2IN1_UI{
                   Text('首页').fontSize(36)
                   Divider().width('100%').color(this.title==='首页'?'#05468c':'#000000')
                     .strokeWidth(this.title==='首页'?3:1)
-
                 }
               }.onClick(()=>{
                 this.page_judge='index'
+                AppStorage.setOrCreate('2in1page_judge',"index")
                 this.title='首页'
               })
               ForEach(this.playlists,(playlist:Playlist)=>{
@@ -128,6 +134,7 @@ export  struct IS_2IN1_UI{
                     .onClick(async ()=>{
                       this.page_judge='playlist'
                       this.title=playlist?.name || '未知歌单'
+                      AppStorage.setOrCreate('2in1page_judge',"playlist")
 
                       const playlistitem = await SourceAdapter.getPlaylistDetail(playlist)
                       AppStorage.setOrCreate('current_playlist_data', playlistitem)
@@ -241,5 +248,10 @@ export  struct IS_2IN1_UI{
 
         })
     )
+  }
+
+
+
+  in1page_judge(changedPropertyName: string) {
   }
 }

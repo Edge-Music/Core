@@ -5,6 +5,7 @@ import { StyleConstants } from "../constants/StyleConstants"
 import { Album, Artist, Playlist, Song } from "../type/Adapter"
 import { cover } from "../util/AdapterHelper"
 import { PlaylistManager } from "../util/PlaylistManager"
+import { PreferencesCache } from "../util/PreferenceCache"
 import { PushPathHelper } from "../util/PushPathHelper"
 import { Cover } from "./Cover"
 
@@ -18,7 +19,8 @@ export struct HorizontalScroll {
   private coverWidth: number = 120
   private segmentPadding: number = 4
   private radius: string | number = 8
-
+  @StorageLink('2in1title') title:string='首页'
+  @StorageLink('2in1page_judge') page_judge:string = 'index'
   build() {
     Scroll() {
       Row() {
@@ -148,10 +150,22 @@ export struct HorizontalScroll {
             .width(this.coverWidth)
             .padding(this.segmentPadding)
             .onClick(async () => {
-              PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
+              if (PreferencesCache.getUserPreference('zhishi_UI','0')==='1'){
                 const playlist = await SourceAdapter.getPlaylistDetail(item)
+                  AppStorage.setOrCreate('2in1title',playlist.name)
+                AppStorage.setOrCreate('2in1page_judge',"playlist")
+                // const playlistitem = await SourceAdapter.getPlaylistDetail(playlist)
                 AppStorage.setOrCreate('current_playlist_data', playlist)
-              })
+                // this.page_judge= 'playlist'
+                console.log('jizhishi_ok: '+playlist.name)
+
+              }else {
+                PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
+                  const playlist = await SourceAdapter.getPlaylistDetail(item)
+                  AppStorage.setOrCreate('current_playlist_data', playlist)
+                })
+              }
+
             })
         }
         .key(`${item.name}-${index}`)

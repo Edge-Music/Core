@@ -43,6 +43,8 @@ export struct Index_page {
   @StorageLink("index_recommend_songs") recommendSongs: Song[] = []
   @StorageLink("index_recommend_artists") recommendArtists: Artist[] = []
   @StorageLink("index_recommend_toplist") topList: Playlist[] = []
+  @StorageLink('2in1title') title:string='首页'
+  @StorageLink('2in1page_judge') page_judge:string = 'index'
   @State loading: boolean = true
   // 避让导航栏高度
   @StorageProp('bottomRect') bottomRect: number = 0
