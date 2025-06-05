@@ -93,7 +93,7 @@ struct Index_page {
     componentTag: TAG
   }).linkController(this.scroller)
   //2in1 UI控制
-  @State zhishi_UI:string =  PreferencesCache.getUserPreference('zhishi_UI','0')
+  @StorageProp('zhishi_UI') zhishi_UI: string =  PreferencesCache.getUserPreference('zhishi_UI','0')
   async aboutToAppear() {
     avPlayerManager.setAudioSession()
 
@@ -391,9 +391,8 @@ struct Index_page {
 
   build() {
     NavDestination() {
-      if (this.zhishi_UI==='1'){
+      if (this.zhishi_UI === '1'){
         IS_2IN1_UI()
-          .expandSafeArea()
       }else {
         Stack({ alignContent: Alignment.Bottom }) {
           Column(){
@@ -472,7 +471,6 @@ struct Index_page {
         .height(StyleConstants.FULL_HEIGHT)
         .width(StyleConstants.FULL_WIDTH)
       }
-
     }
     .height(StyleConstants.FULL_HEIGHT)
     .width(StyleConstants.FULL_WIDTH)

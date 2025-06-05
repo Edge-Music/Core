@@ -20,7 +20,7 @@ import { SourceAdapter } from "../adapter";
 const TAG = 'PlayList'
 
 @Component
-export struct PlayListfor2in1 {
+export struct PlayListFor2in1 {
   @State searchContext: string = ResourceManager.getStringValueSync($r('app.string.search'))
   @State groupHeight: number = 0;
   @Consume('NavPathStack') pageStack: NavPathStack;
@@ -38,6 +38,7 @@ export struct PlayListfor2in1 {
   @StorageLink("cache_data_create_time") cacheTime: number = -1
   @StorageLink("current_playing_song") song: Song | null = null
   @StorageProp('bottomRect') bottomRect: number = 0;
+  @StorageProp('decorHeight') decorHeight: number = 0
   @StorageProp('topRect') topRect: number = 0;
   @StorageProp('winHeight') winHeight: number = 0;
   // 搜索相关状态
@@ -225,10 +226,6 @@ export struct PlayListfor2in1 {
       // })
 
       List({ scroller: this.scroller }) {
-        ListItem() {
-          // 下拉提示动画
-          HeaderAnimation({ scrollController: this.scrollController })
-        }
 
         ListItem() {
           // 轮播图部分（如果符合条件）
@@ -280,12 +277,8 @@ export struct PlayListfor2in1 {
 
         ListItem() {
           Row() {
-            // 底部避让空间，高度为播控高度(64) + 播控底部padding高度(16)
-            Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + 16)
+            Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + px2vp(this.bottomRect) + px2vp(this.topRect) + this.decorHeight + 50 + 16)
           }
-        }
-        ListItem(){
-          Column().height(120)
         }
       }
       .backToTop(true)

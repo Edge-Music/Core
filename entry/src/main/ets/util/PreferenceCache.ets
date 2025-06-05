@@ -1,4 +1,4 @@
-import { ID, Song, SourceConfig } from "../type/Adapter";
+import { Artist, ID, Playlist, Song, SourceConfig } from "../type/Adapter";
 import { PreferencesUtil } from '@pura/harmony-utils';
 
 // 比特率类型
@@ -314,5 +314,41 @@ export class PreferencesCache {
       PreferencesCache.setUserPreference('show_translation_lyric', value ? '1' : '0');
     }
     return PreferencesCache.getUserPreference('show_translation_lyric') === '1';
+  }
+
+  /**
+   * 获取缓存
+   */
+  static getPlaylistCache(strIndex: string): Playlist[] {
+    const cache = PreferencesCache.getCache(strIndex, '[]');
+    return JSON.parse(cache);
+  }
+
+  static getArtistCache(strIndex: string): Artist[] {
+    const cache = PreferencesCache.getCache(strIndex, '[]');
+    return JSON.parse(cache);
+  }
+
+  static getSongCache(strIndex: string): Song[] {
+    const cache = PreferencesCache.getCache(strIndex, '[]');
+    return JSON.parse(cache);
+  }
+
+  /**
+   * 设置缓存
+   */
+  static setPlaylistCache(strIndex: string, sourceConfig: Playlist[]): void {
+    PreferencesCache.setCache(strIndex, JSON.stringify(sourceConfig));
+    AppStorage.setOrCreate(strIndex, sourceConfig);
+  }
+
+  static setArtistCache(strIndex: string, sourceConfig: Artist[]): void {
+    PreferencesCache.setCache(strIndex, JSON.stringify(sourceConfig));
+    AppStorage.setOrCreate(strIndex, sourceConfig);
+  }
+
+  static setSongCache(strIndex: string, sourceConfig: Song[]): void {
+    PreferencesCache.setCache(strIndex, JSON.stringify(sourceConfig));
+    AppStorage.setOrCreate(strIndex, sourceConfig);
   }
 }

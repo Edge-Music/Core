@@ -127,4 +127,8 @@ export class StyleConstants {
    * Number of value: -1.
    */
   static readonly MINUS_ONE: number = -1;
+  /**
+   * The height of the Title component is 64.
+   */
+  static readonly TITLE_HEIGHT: number = 50;
 }

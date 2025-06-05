@@ -39,10 +39,10 @@ export struct Index_page {
   private scroller: Scroller = new Scroller()
   @StorageLink("user_data_source") adapters: SourceConfig[] = PreferencesCache.getUserDataSource()
   // 使用StorageLink保持数据同步
-  @StorageLink("index_recommend_playlist") recommendPlaylist: Playlist[] = []
-  @StorageLink("index_recommend_songs") recommendSongs: Song[] = []
-  @StorageLink("index_recommend_artists") recommendArtists: Artist[] = []
-  @StorageLink("index_recommend_toplist") topList: Playlist[] = []
+  @StorageLink("index_recommend_playlist") recommendPlaylist: Playlist[] = PreferencesCache.getPlaylistCache('index_recommend_playlist')
+  @StorageLink("index_recommend_songs") recommendSongs: Song[] = PreferencesCache.getSongCache('index_recommend_songs')
+  @StorageLink("index_recommend_artists") recommendArtists: Artist[] = PreferencesCache.getArtistCache('index_recommend_artists')
+  @StorageLink("index_recommend_toplist") topList: Playlist[] = PreferencesCache.getPlaylistCache('index_recommend_toplist')
   @State loading: boolean = true
   // 避让导航栏高度
   @StorageProp('bottomRect') bottomRect: number = 0
@@ -120,7 +120,8 @@ export struct Index_page {
     HorizontalMode(this.HorizontalMode_ctrl === '1')
     AppStorage.setOrCreate("pageStack", this.pageStack)
     // 立即初始化数据
-    this.initData()
+    // this.initData()
+    this.loading = false
     let productSeries:string=deviceInfo.productSeries
     let devicetype:string =deviceInfo.deviceType
     if (devicetype!='phone'&&productSeries!='VDE'){
@@ -407,7 +408,7 @@ export struct Index_page {
 
               ListItem() {
                 Row() {
-                  Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + px2vp(this.bottomRect))
+                  Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + px2vp(this.bottomRect) + px2vp(this.topRect) + this.decorHeight + 50)
                 }
               }
             }
@@ -427,8 +428,6 @@ export struct Index_page {
         }
         .height(StyleConstants.FULL_HEIGHT)
         .width(StyleConstants.FULL_WIDTH)
-
-
     }
     .height(StyleConstants.FULL_HEIGHT)
     .width(StyleConstants.FULL_WIDTH)
@@ -438,6 +437,9 @@ export struct Index_page {
     .hideBackButton(true)
     .backgroundColor($r('app.color.page_background'))
     .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM, LayoutSafeAreaEdge.TOP])
+    .keyboardShortcut(FunctionKey.F5, [], () => {
+      this.initData()
+    })
   }
 
   getBlankHeight(): number {

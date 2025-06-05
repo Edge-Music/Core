@@ -211,6 +211,7 @@ export class SourceAdapter {
       AppStorage.setOrCreate('index_recommend_playlist', result);
     }
 
+    PreferencesCache.setPlaylistCache('index_recommend_playlist', result)
     return result;
   }
 
@@ -265,6 +266,8 @@ export class SourceAdapter {
     if (storageLink) {
       AppStorage.setOrCreate('index_recommend_songs', result);
     }
+
+    PreferencesCache.setSongCache('index_recommend_songs', result)
 
     return result;
   }
@@ -321,6 +324,8 @@ export class SourceAdapter {
       AppStorage.setOrCreate('index_recommend_artists', result);
     }
 
+    PreferencesCache.setArtistCache('index_recommend_artists', result)
+
     return result;
   }
 
@@ -375,6 +380,8 @@ export class SourceAdapter {
     if (storageLink) {
       AppStorage.setOrCreate('index_recommend_toplist', result);
     }
+
+    PreferencesCache.setPlaylistCache('index_recommend_toplist', result)
 
     return result;
   }

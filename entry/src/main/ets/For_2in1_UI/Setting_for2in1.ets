@@ -58,6 +58,7 @@ export struct Setting_2in1 {
   @StorageProp('winHeight') winHeight: number = 0;
   @StorageProp('bottomRect') bottomRect: number = 0;
   @StorageProp('topRect') topRect: number = 0;
+  @StorageProp('decorHeight') decorHeight: number = 0
   @State groupHeight: number = 0
   @State Pura_X: boolean =  PreferencesCache.getUserPreference('is_Pura_X', '0') === '1' ? true : false //pura_x尝试适配
   @State scrollController: ScrollController = new ScrollController({
@@ -691,10 +692,6 @@ export struct Setting_2in1 {
       Column() {
         // this.Title()
         List({ scroller: this.scroller }) {
-          ListItem() {
-            HeaderAnimation({ scrollController: this.scrollController })
-          }
-
           ListItemGroup({ header: this.SourceButton() }) {
             ListItem() {
               SettingGroup({
@@ -736,8 +733,8 @@ export struct Setting_2in1 {
           }
 
           ListItem(){
-            Row(){
-              Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + px2vp(this.bottomRect))
+            Row() {
+              Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + px2vp(this.bottomRect) + px2vp(this.topRect) + this.decorHeight + 50)
             }
           }
         }
