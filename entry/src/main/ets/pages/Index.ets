@@ -168,6 +168,13 @@ struct Index_page {
     }
     AppStorage.setOrCreate("devicetype", devicetype)
     PreferencesCache.setUserPreference('devicetype', devicetype)
+    if ((AppStorage.get("first_2in1_judge")??'0')!='1'){
+      AppStorage.setOrCreate("first_2in1_judge",'1')
+      if (devicetype==='2in1') {
+        PreferencesCache.setUserPreference('zhishi_UI','1')
+        this.zhishi_UI =  PreferencesCache.getUserPreference('zhishi_UI','0')
+      }
+    }
     if(productSeries=='VDE') {
       PreferencesCache.setUserPreference('is_Pura_X', '1')
     }else {
