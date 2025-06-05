@@ -78,7 +78,7 @@ export  struct IS_2IN1_UI{
       Button('设置').onClick(()=>{
         this.page_judge='Setting'
         this.title ='设置'
-      }).margin({right:16})
+      }).margin({right: AppStorage.get("devicetype")==='2in1'?150:16})
     }.width('100%').alignItems(VerticalAlign.Center).justifyContent(FlexAlign.Start).padding({left:16})
 
   }
