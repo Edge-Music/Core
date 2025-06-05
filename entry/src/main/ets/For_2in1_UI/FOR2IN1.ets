@@ -12,6 +12,7 @@ import { InputMethodListDialog } from '@ohos.inputMethodList';
 import { Index_page } from './Index_2in1';
 import { MiniPlaybackControl } from '../component/MiniPlaybackControl';
 import { Setting_2in1 } from './Setting_for2in1';
+import { MultiSearch_2in1 } from './MultiSearch_2in1';
 
 // import { Index_page } from '../pages/Index';
 
@@ -94,7 +95,16 @@ export  struct IS_2IN1_UI{
       Stack(){
         SideBarContainer(this.currentBreakpoint==='sm'? SideBarContainerType.Overlay:SideBarContainerType.Embed){
           Column(){
-            Column().height(50)
+            Column(){
+              Row(){
+
+                Button('搜索').onClick(()=>{
+                  this.page_judge='search'
+                  AppStorage.setOrCreate('2in1page_judge',"search")
+                  this.title='搜索'
+                })
+              }
+            }.height(50).width('100%').padding({left:50})
             List({space:8}){
               ListItem(){
                 Column(){
@@ -163,8 +173,10 @@ export  struct IS_2IN1_UI{
                Setting_2in1()
             }else if (this.page_judge==='playlist'){
               PlayListfor2in1()
-            }
+            }else if (this.page_judge==='search'){
+              MultiSearch_2in1()
 
+            }
           }
           .scale(this.sidebar_ctrl&&this.currentBreakpoint==='sm'?{x:0.95,y:0.95}:{})
           .blur(this.sidebar_ctrl&&this.currentBreakpoint==='sm'?20:1)
