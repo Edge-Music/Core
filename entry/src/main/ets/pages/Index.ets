@@ -20,7 +20,7 @@ import { HeaderAnimation } from '../component/HeaderAnimation'
 import { deviceInfo } from '@kit.BasicServicesKit'
 import { PipManager } from '../util/PipManager';
 import { avPlayerManager } from '../util/AVPlayerManager';
-
+import {FOR_2IN1_UI, IS_2IN1_UI}from '../For_2in1_UI/FOR2IN1'
 // 缓存常用值以避免重复计算
 const COLUMNS_TEMPLATE_LG = '1fr 1fr 1fr 1fr'
 const COLUMNS_TEMPLATE_SM = '1fr 1fr'
@@ -92,9 +92,13 @@ struct Index_page {
     },
     componentTag: TAG
   }).linkController(this.scroller)
-
+  //2in1 UI控制
+  @State zhishi_UI:string =  PreferencesCache.getUserPreference('zhishi_UI','0')
   async aboutToAppear() {
     avPlayerManager.setAudioSession()
+
+    this.zhishi_UI =  PreferencesCache.getUserPreference('zhishi_UI','0')
+
     // avPlayerManager.avPlayer?.setVolume(Number(PreferencesCache.getUserPreference('Volume','100'))/100)
     if (PreferencesCache.getUserPreference('Lyic_desktop','0')==='1') {
       PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
@@ -387,82 +391,88 @@ struct Index_page {
 
   build() {
     NavDestination() {
-      Stack({ alignContent: Alignment.Bottom }) {
-        Column(){
-          this.Title()
+      if (this.zhishi_UI==='1'){
+        IS_2IN1_UI()
+          .expandSafeArea()
+      }else {
+        Stack({ alignContent: Alignment.Bottom }) {
+          Column(){
+            this.Title()
 
-          List({ scroller: this.scroller }) {
-            ListItem() {
-              HeaderAnimation({ scrollController: this.scrollController, isShowLoadingProgress: true })
-            }
-
-            if (this.adapters.length > 0) {
+            List({ scroller: this.scroller }) {
               ListItem() {
-                this.MenuGrid()
+                HeaderAnimation({ scrollController: this.scrollController, isShowLoadingProgress: true })
               }
 
-              if (this.loading || (this.recommendPlaylist.length > 0 || this.recommendSongs.length > 0
-                || this.recommendArtists.length > 0 || this.topList.length > 0)) {
-                if(this.recommendPlaylist.length > 0){
-                  this.RecommendedSongs()
-                }
-
-                if(this.recommendSongs.length > 0){
-                  this.RecommendedPlaylists()
-                }
-
-                if(this.recommendArtists.length > 0){
-                  this.RecommendedArtists()
-                }
-
-                if(this.topList.length > 0){
-                  this.TopLists()
-                }
-              } else if(!this.loading) {
+              if (this.adapters.length > 0) {
                 ListItem() {
-                  Row() {
-                    Column() {
-                      Text($r('app.string.no_recommendations'))
-                        .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-                        .fontColor($r('app.color.text_hint'))
-                        .fontSize(16)
-                    }
-                    .width(StyleConstants.FULL_WIDTH)
-                    .height(StyleConstants.FULL_HEIGHT)
-                    .justifyContent(FlexAlign.Center)
+                  this.MenuGrid()
+                }
+
+                if (this.loading || (this.recommendPlaylist.length > 0 || this.recommendSongs.length > 0
+                  || this.recommendArtists.length > 0 || this.topList.length > 0)) {
+                  if(this.recommendPlaylist.length > 0){
+                    this.RecommendedSongs()
                   }
-                  .height(this.getBlankHeight())
+
+                  if(this.recommendSongs.length > 0){
+                    this.RecommendedPlaylists()
+                  }
+
+                  if(this.recommendArtists.length > 0){
+                    this.RecommendedArtists()
+                  }
+
+                  if(this.topList.length > 0){
+                    this.TopLists()
+                  }
+                } else if(!this.loading) {
+                  ListItem() {
+                    Row() {
+                      Column() {
+                        Text($r('app.string.no_recommendations'))
+                          .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
+                          .fontColor($r('app.color.text_hint'))
+                          .fontSize(16)
+                      }
+                      .width(StyleConstants.FULL_WIDTH)
+                      .height(StyleConstants.FULL_HEIGHT)
+                      .justifyContent(FlexAlign.Center)
+                    }
+                    .height(this.getBlankHeight())
+                  }
+                }
+              } else {
+                ListItem() {
+                  this.EmptyDataSource()
                 }
               }
-            } else {
-              ListItem() {
-                this.EmptyDataSource()
-              }
-            }
 
-            ListItem() {
-              Row() {
-                Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + px2vp(this.bottomRect))
+              ListItem() {
+                Row() {
+                  Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + px2vp(this.bottomRect))
+                }
               }
             }
+            .width(StyleConstants.FULL_WIDTH)
+            .height(StyleConstants.FULL_HEIGHT)
+            .layoutWeight(1)
+            .backToTop(true)
+            .scrollBar(BarState.Off)
+            .edgeEffect(EdgeEffect.Spring)
+            .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
+            .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
+            .scrollBarColor('#e7bb7c')
           }
           .width(StyleConstants.FULL_WIDTH)
           .height(StyleConstants.FULL_HEIGHT)
-          .layoutWeight(1)
-          .backToTop(true)
-          .scrollBar(BarState.Off)
-          .edgeEffect(EdgeEffect.Spring)
-          .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
-          .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
-          .scrollBarColor('#e7bb7c')
-        }
-        .width(StyleConstants.FULL_WIDTH)
-        .height(StyleConstants.FULL_HEIGHT)
 
-        MiniPlaybackControl()
+          MiniPlaybackControl()
+        }
+        .height(StyleConstants.FULL_HEIGHT)
+        .width(StyleConstants.FULL_WIDTH)
       }
-      .height(StyleConstants.FULL_HEIGHT)
-      .width(StyleConstants.FULL_WIDTH)
+
     }
     .height(StyleConstants.FULL_HEIGHT)
     .width(StyleConstants.FULL_WIDTH)
