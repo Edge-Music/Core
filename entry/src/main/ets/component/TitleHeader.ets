@@ -7,6 +7,7 @@ export struct TitleHeader {
   @StorageProp('decorHeight') decorHeight: number = 0
   @Consume('NavPathStack') pageStack: NavPathStack;
   @Prop title: ResourceStr = $r("app.string.homepage")
+  @BuilderParam leftContent: () => void;
   @BuilderParam rightContent: () => void;
   @BuilderParam midContent: () => void;
   @State isFirstPage: boolean = true
@@ -84,9 +85,9 @@ export struct TitleHeader {
 
         Row() {
           Row() {
-            // if (this.is_2in1){
-            //   this.BackButton()
-            // }
+            if (this.leftContent) {
+              this.leftContent()
+            }
 
             Text(this.title)
               .fontColor($r('app.color.text_title'))

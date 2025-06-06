@@ -93,7 +93,7 @@ struct Index_page {
     componentTag: TAG
   }).linkController(this.scroller)
   //2in1 UI控制
-    @State zhishi_UI:string =  PreferencesCache.getUserPreference('zhishi_UI','0')
+  @StorageProp('zhishi_UI') zhishi_UI: string =  PreferencesCache.getUserPreference('zhishi_UI','0')
   async aboutToAppear() {
     avPlayerManager.setAudioSession()
 
@@ -168,16 +168,6 @@ struct Index_page {
     }
     AppStorage.setOrCreate("devicetype", devicetype)
     PreferencesCache.setUserPreference('devicetype', devicetype)
-    if ((PreferencesCache.getUserPreference('first_2in1_judge','0'))!='1'){
-
-      if (devicetype==='2in1') {
-        // AppStorage.setOrCreate("first_2in1_judge",'1')
-        PreferencesCache.setUserPreference('first_2in1_judge','1')
-
-        PreferencesCache.setUserPreference('zhishi_UI','1')
-        this.zhishi_UI =  PreferencesCache.getUserPreference('zhishi_UI','0')
-      }
-    }
     if(productSeries=='VDE') {
       PreferencesCache.setUserPreference('is_Pura_X', '1')
     }else {
@@ -401,9 +391,8 @@ struct Index_page {
 
   build() {
     NavDestination() {
-      if (this.zhishi_UI==='1'){
+      if (this.zhishi_UI === '1'){
         IS_2IN1_UI()
-          .expandSafeArea()
       }else {
         Stack({ alignContent: Alignment.Bottom }) {
           Column(){
@@ -482,9 +471,7 @@ struct Index_page {
         .height(StyleConstants.FULL_HEIGHT)
         .width(StyleConstants.FULL_WIDTH)
       }
-
     }
-
     .height(StyleConstants.FULL_HEIGHT)
     .width(StyleConstants.FULL_WIDTH)
     .systemTransition(NavigationSystemTransitionType.SLIDE_RIGHT)
