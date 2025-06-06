@@ -109,14 +109,15 @@ export struct IS_2IN1_UI{
   TitleBar(){
     Column(){
       // PC工具栏适配
-      if(this.decorHeight > 0){
+      if(this.topRect > 0){
         Row(){
         }
-        .height(this.decorHeight)
-        .width('100%')
-      }else if(this.topRect > 0){
-        Row(){}
         .height(px2vp(this.topRect))
+        .width('100%')
+      }
+      if(this.decorHeight > 0){
+        Row(){}
+        .height(this.decorHeight)
         .width('100%')
       }
 
@@ -174,6 +175,10 @@ export struct IS_2IN1_UI{
   ButtonShowList(){
     Column(){
       // PC工具栏适配
+      if(this.topRect > 0){
+        Row()
+          .height(px2vp(this.topRect))
+      }
       if(this.decorHeight > 0){
         Row(){
           Image($r('app.media.icon'))
@@ -189,14 +194,11 @@ export struct IS_2IN1_UI{
         .justifyContent(FlexAlign.Start)
         .alignItems(VerticalAlign.Center)
         .height(this.decorHeight)
-      }else if(this.topRect > 0){
-        Row(){}
-        .height(px2vp(this.topRect))
       }
 
       this.button_list()
     }
-    .height(px2vp(this.topRect)+50+this.decorHeight)
+    .height(this.decorHeight+px2vp(this.topRect)+StyleConstants.TITLE_HEIGHT)
     .alignItems(HorizontalAlign.Start)
     .justifyContent(FlexAlign.Center)
   }

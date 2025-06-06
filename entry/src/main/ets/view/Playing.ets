@@ -1438,6 +1438,12 @@ struct Playing {
   Title(judge:boolean=false) {
     Column(){
       // PC工具栏适配
+      if(this.topRect > 0){
+        Row(){}
+        .height(px2vp(this.topRect))
+        .backgroundColor('transparent')
+        .width('100%')
+      }
       if(this.decorHeight > 0){
         Row(){
           Image($r('app.media.icon'))
@@ -1449,10 +1455,9 @@ struct Playing {
         }
         .justifyContent(FlexAlign.Start)
         .alignItems(VerticalAlign.Center)
-        .height(this.decorHeight).backgroundColor('transparent').width('100%')
-      }else if(this.topRect > 0){
-        Row(){}
-        .height(px2vp(this.topRect)).backgroundColor('transparent').width('100%')
+        .height(this.decorHeight)
+        .backgroundColor('transparent')
+        .width('100%')
       }
 
       Row() {
@@ -1568,14 +1573,8 @@ struct Playing {
           })
           .onClick(() => {
             if (PreferencesCache.getUserPreference('Lyic_desktop','0')==='0') {
-              PreferencesCache.setUserPreference('Lyic_desktop','1')
-              this.Lyic_desktop = '1'
-              PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
               PipManager.getInstance().startPip()
             }else {
-              PipManager.getInstance().setAutoStart(false)
-              PreferencesCache.setUserPreference('Lyic_desktop','0')
-              this.Lyic_desktop ='0'
               PipManager.getInstance().stopPip()
             }
             // 重置按钮状态
@@ -1584,11 +1583,12 @@ struct Playing {
       }
       .width(StyleConstants.FULL_WIDTH)
       .alignItems(VerticalAlign.Center)
-      .height(48) // 固定标题栏高度
+      .height(50) // 固定标题栏高度
     }
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
     .width(StyleConstants.FULL_WIDTH)
+    .height(this.decorHeight+px2vp(this.topRect)+StyleConstants.TITLE_HEIGHT)
   }
 
   build() {

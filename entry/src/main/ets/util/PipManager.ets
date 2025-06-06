@@ -284,9 +284,11 @@ export class PipManager {
   startPip() {
     avPlayerManager.getAVPlayerInstance().then(player => {
       this.isPlaying = player.state === 'playing';
-
     });
     this.pipController?.startPiP().then(() => {
+      PreferencesCache.setUserPreference('Lyic_desktop','1')
+      AppStorage.setOrCreate('Lyic_desktop', '1')
+      PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
       console.info(TAG, `Succeeded in starting pip.`);
     }).catch((err: BusinessError) => {
       console.error(TAG, `Failed to start pip. Cause:${err.code}, message:${err.message}`);
@@ -310,6 +312,9 @@ export class PipManager {
     }
     let promise: Promise<void> = this.pipController.stopPiP();
     promise.then(() => {
+      PipManager.getInstance().setAutoStart(false)
+      PreferencesCache.setUserPreference('Lyic_desktop','0')
+      AppStorage.setOrCreate('Lyic_desktop', '0')
       console.info(TAG, `Succeeded in stopping pip.`);
     }).catch((err: BusinessError) => {
       console.error(TAG, `Failed to stop pip. Cause:${err.code}, message:${err.message}`);
