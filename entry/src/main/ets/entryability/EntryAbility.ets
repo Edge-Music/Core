@@ -14,6 +14,8 @@ import { CallMethod } from '../widget/model/FormCardConstant';
 import { SongDownloadManager } from '../util/SongDownloadManager';
 import WindowUtil from '../util/WindowUtil';
 import { DialogHelper } from '@pura/harmony-dialog';
+import { PipManager } from '../util/PipManager';
+import { PreferencesCache } from '../util/PreferenceCache';
 
 const TAG = 'EntryAbility'
 export default class EntryAbility extends UIAbility {
@@ -91,6 +93,8 @@ export default class EntryAbility extends UIAbility {
 
   onDestroy(): void {
     LogUtil.info(`[${TAG}]`, 'Ability onDestroy');
+    PipManager.getInstance().setAutoStart(false)
+    PreferencesCache.setUserPreference('Lyic_desktop','0')
     FormUtils.updateCardPlayStatus(false);
   }
 
