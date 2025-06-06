@@ -66,7 +66,7 @@ struct Index {
 @Component
 struct Index_page {
   @StorageProp('decorHeight') decorHeight: number = 0
-  @State version: string = '2.2.0'
+  @State version: string = '2.2.0.y'
 
   @State blankHeight: number = 0
   @Consume('NavPathStack') pageStack: NavPathStack
@@ -110,7 +110,7 @@ struct Index_page {
           {
             title: '更新提示',
             subtitle: '此版本',
-            message: '播放页双击歌曲两侧即可弹出调节软件音量，个性化设置中增加允许同时播放（需暂停再次播放后触发），临时解决2in1设备无法使用的问题，全新2in1适配施工中',
+            message: '多种优化，2in1内部开发版（待完善），个性化设置中增加2in1UI开关（需重启后触发），2in1UI较为毛坯，同时可能具备难以预料的BUG，2in1用户可以选择进入个性化设置关闭2in1UI，以便更好的体验。关闭后的padui可通过点击标题栏来进行返回上一页面操作',
             autoCancel: true,
             alignment: DialogAlignment.Bottom,
             gridCount: 4,

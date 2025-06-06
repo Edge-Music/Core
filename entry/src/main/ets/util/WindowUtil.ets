@@ -120,7 +120,11 @@ class WindowUtil {
         if(canIUse('SystemCapability.Window.SessionManager')){
           let promise = windowClass.setSpecificSystemBarEnabled('navigationIndicator', enable, true);
           promise.then(() => {
-            LogUtil.info(`[${TAG}]`, 'Succeeded in setting the system bar to be invisible.');
+            if(enable){
+              LogUtil.info(`[${TAG}]`, 'Succeeded in setting the system bar to be visible.');
+            }else{
+              LogUtil.info(`[${TAG}]`, 'Succeeded in setting the system bar to be invisible.');
+            }
           }).catch((err: BusinessError) => {
             LogUtil.error(`[${TAG}]`, `Failed to set the system bar to be invisible. Cause code: ${err.code}, message: ${err.message}`);
           });

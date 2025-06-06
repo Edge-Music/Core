@@ -2,25 +2,18 @@ import { BreakpointSystem } from '../component/BreakpointSystem'
 import { MenuButton } from '../component/MenuButton'
 import { StyleConstants } from '../constants/StyleConstants'
 import { HomePageMenu } from '../model/HomePageMenu'
-import { ComingSoon } from '../view/ComingSoon'
 import { HomePageMenuData } from '../viewmodel/HomePageMenuData'
 import { MenuIcon } from '../component/MenuIcon'
-import { Setting } from '../view/Setting'
 import { PreferencesCache } from '../util/PreferenceCache'
 import { Artist, Playlist, Song, SourceConfig } from '../type/Adapter'
 import { SourceAdapter } from '../adapter'
 import { Segment } from '../component/Segment'
-import { PlayList } from '../view/Playlist'
-import { MiniPlaybackControl } from '../component/MiniPlaybackControl'
-import { MultiSearch } from '../view/MultiSearch'
 import { HorizontalMode } from '../util/HorizontalCheck'
-import { Download } from '../view/Download'
 import { ScrollController } from '../util/ScrollController'
 import { HeaderAnimation } from '../component/HeaderAnimation'
 import { deviceInfo } from '@kit.BasicServicesKit'
-import { PipManager } from '../util/PipManager';
+// import { PipManager } from '../util/PipManager';
 import { avPlayerManager } from '../util/AVPlayerManager';
-import {FOR_2IN1_UI, IS_2IN1_UI}from '../For_2in1_UI/FOR2IN1'
 // 缓存常用值以避免重复计算
 const COLUMNS_TEMPLATE_LG = '1fr 1fr 1fr 1fr'
 const COLUMNS_TEMPLATE_SM = '1fr 1fr'
@@ -160,19 +153,19 @@ export struct Index_page {
 
   onPageShow(): void {
     console.info(TAG, 'onPageShow')
-    PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
-    PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
-    PipManager.getInstance().startPip();
+    // PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
+    // PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
+    // PipManager.getInstance().startPip();
   }
 
   onPageHide(): void {
     console.info(TAG, 'onPageHide')
-    PipManager.getInstance().setAutoStart(false);
+    // PipManager.getInstance().setAutoStart(false);
   }
 
   aboutToDisappear() {
     this.breakpointSystem.unregister()
-    PipManager.getInstance().unregisterPipStateChangeListener(); // 解注册画中画生命周期及状态回调
+    // PipManager.getInstance().unregisterPipStateChangeListener(); // 解注册画中画生命周期及状态回调
 
   }
 

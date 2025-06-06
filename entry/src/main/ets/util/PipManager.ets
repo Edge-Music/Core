@@ -244,6 +244,8 @@ export class PipManager {
       this.pipController = controller;
       // 通过画中画控制器实例的setAutoStartEnabled接口设置是否需要在应用返回桌面时自动启动画中画
       this.pipController.setAutoStartEnabled(PreferencesCache.getUserPreference('Lyic_desktop','0')==='1');
+      playing_judge = AppStorage.get('playing_judge') ?? false
+      this.pipController?.updatePiPControlStatus(controlType, playing_judge ? status_play : status_pause)
       // 通过画中画控制器实例的on('stateChange')接口注册生命周期事件回调
       this.pipController.on('stateChange', (state: PiPWindow.PiPState, reason: string) => {
         if (state == 3) {
@@ -251,6 +253,7 @@ export class PipManager {
           console.info(TAG, `pip_Timer_off.`+state);
           PreferencesCache.setUserPreference('Lyic_desktop','0')
           AppStorage.setOrCreate('Lyic_desktop', '0')
+          PipManager.getInstance().setAutoStart(false)
 
           EventHelper.unSubscribePipLyric()
         }else if (state == 1) {
