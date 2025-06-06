@@ -150,21 +150,11 @@ export struct HorizontalScroll {
             .width(this.coverWidth)
             .padding(this.segmentPadding)
             .onClick(async () => {
-              if (PreferencesCache.getUserPreference('zhishi_UI','0')==='1'){
-                const playlist = await SourceAdapter.getPlaylistDetail(item)
-                  AppStorage.setOrCreate('2in1title',playlist.name)
-                AppStorage.setOrCreate('2in1page_judge',"playlist")
-                // const playlistitem = await SourceAdapter.getPlaylistDetail(playlist)
-                AppStorage.setOrCreate('current_playlist_data', playlist)
-                // this.page_judge= 'playlist'
-                console.log('jizhishi_ok: '+playlist.name)
-
-              }else {
                 PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
                   const playlist = await SourceAdapter.getPlaylistDetail(item)
                   AppStorage.setOrCreate('current_playlist_data', playlist)
                 })
-              }
+
 
             })
         }

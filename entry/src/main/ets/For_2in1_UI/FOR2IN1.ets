@@ -291,13 +291,15 @@ export struct IS_2IN1_UI{
                   this.TitleBar()
                 }
                 .backgroundColor($r('app.color.page_background'))
-                if (this.page_judge === 'index'){
+                Stack(){
                   Index_page()//index_2in1 等待适配
-                }else if (this.page_judge === 'Setting'){
-                  Setting_2in1()
-                }else if (this.page_judge === 'playlist'){
-                  PlayListFor2in1()
+                  if (this.page_judge === 'Setting'){
+                    Setting_2in1()
+                  }else if (this.page_judge === 'playlist'){
+                    PlayListFor2in1()
+                  }
                 }
+
               }
               .zIndex(1)
               .scale(this.sidebar_ctrl && this.currentBreakpoint === 'sm' ? { x: 0.95, y: 0.95 } : {})

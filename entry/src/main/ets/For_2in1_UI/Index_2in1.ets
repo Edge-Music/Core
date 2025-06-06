@@ -160,9 +160,9 @@ export struct Index_page {
 
   onPageShow(): void {
     console.info(TAG, 'onPageShow')
-    PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
-    PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
-    PipManager.getInstance().startPip();
+    // PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
+    // PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
+    // PipManager.getInstance().startPip();
   }
 
   onPageHide(): void {
