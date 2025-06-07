@@ -144,7 +144,7 @@ class LyricsManager {
    */
   private parseLyricsText(lrcText: string): LyricsLine[] {
     const lines = lrcText.split('\n')
-    const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/
+    const timeRegex = /\[(\d{2}):(\d{2})[\.:](\d{2,3})\]/
     const tempLyrics: LyricsLine[] = []
 
     lines.forEach(line => {

@@ -229,16 +229,23 @@ export struct IS_2IN1_UI{
 
           SideBarContainer(this.currentBreakpoint === 'sm' ? SideBarContainerType.Overlay : SideBarContainerType.Embed){
             Column(){
-              if(this.decorHeight > 0){
-                Row(){
+              Column(){
+                if(this.topRect > 0){
+                  Row(){}
+                  .height(px2vp(this.topRect))
                 }
-                .justifyContent(FlexAlign.Start)
-                .alignItems(VerticalAlign.Center)
-                .height(this.decorHeight+StyleConstants.TITLE_HEIGHT)
-              }else if(this.topRect > 0){
-                Row(){}
-                .height(px2vp(this.topRect)+StyleConstants.TITLE_HEIGHT)
+                if(this.decorHeight > 0){
+                  Row(){
+                  }
+                  .justifyContent(FlexAlign.Start)
+                  .alignItems(VerticalAlign.Center)
+                  .height(this.decorHeight)
+                }
+                Row()
+                  .height(StyleConstants.TITLE_HEIGHT)
               }
+              .height(this.decorHeight+px2vp(this.topRect)+StyleConstants.TITLE_HEIGHT)
+
 
               List({space:8}){
                 ForEach(this.playlists, (playlist: Playlist) => {
