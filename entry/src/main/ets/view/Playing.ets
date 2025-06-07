@@ -1564,7 +1564,7 @@ struct Playing {
           }.width(this.buttonSize)
           .height(this.buttonSize)
           .backgroundColor(Color.Transparent)
-          .rotate({ angle: this.isMoreButtonPressed ? 90 : 0 })
+          .clickEffect({ level: ClickEffectLevel.LIGHT })
           .animation({
             duration: 300,
             curve: Curve.EaseInOut,

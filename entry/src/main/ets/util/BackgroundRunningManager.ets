@@ -2,7 +2,7 @@ import { bundleManager, Context, wantAgent } from "@kit.AbilityKit"
 import { backgroundTaskManager } from "@kit.BackgroundTasksKit"
 import { LogUtil } from "@pura/harmony-utils";
 
-const TAG = 'BackgroundRunningManager ';
+const TAG = 'BackgroundRunningManager';
 
 class BackgroundRunningManager {
   // 申请长时任务
@@ -46,8 +46,9 @@ class BackgroundRunningManager {
         backgroundTaskManager.BackgroundMode.AUDIO_PLAYBACK,
         wantObj
       )
+      LogUtil.info(`${TAG}`, `长时任务申请成功`)
     } catch (error) {
-      LogUtil.error(TAG, error.message)
+      LogUtil.error(`${TAG}`, `长时任务申请失败, err.code: ${error.code}, err.message: ${error.message}`)
     }
   }
 
