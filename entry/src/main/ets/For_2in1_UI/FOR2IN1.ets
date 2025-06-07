@@ -63,10 +63,6 @@ export struct IS_2IN1_UI{
           .width(25)
           .height(25)
         }
-        .margin({
-          left: 4,
-          right: 4
-        })
         .width(36)
         .height(36)
         .backgroundColor(Color.Transparent)
@@ -82,23 +78,29 @@ export struct IS_2IN1_UI{
           });
         })
 
-        if(this.sidebar_ctrl){
-          Text($r('app.string.library'))
-            .fontColor($r('app.color.text_title'))
-            .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-            .fontSize($r('app.float.title_font_size'))
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-            .maxLines(1)
+        Row(){
+          if(this.sidebar_ctrl){
+            Text($r('app.string.library'))
+              .fontColor($r('app.color.text_title'))
+              .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
+              .fontSize($r('app.float.title_font_size'))
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .maxLines(1)
+          }
         }
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(VerticalAlign.Center)
       }
-      .padding({ left: 16, right: 16})
+      .margin({ left: 12 })
       .justifyContent(FlexAlign.Start)
       .alignItems(VerticalAlign.Center)
-
     }
+    .justifyContent(FlexAlign.Center)
+    .alignItems(VerticalAlign.Center)
     .backgroundColor(Color.Transparent)
     .height(StyleConstants.TITLE_HEIGHT)
-    .width(200)
+    .width(300)
     .animation({
       duration: 250,
       curve: Curve.FastOutSlowIn
