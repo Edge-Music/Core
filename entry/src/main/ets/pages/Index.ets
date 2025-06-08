@@ -209,7 +209,6 @@ struct Index_page {
   aboutToDisappear() {
     this.breakpointSystem.unregister()
     PipManager.getInstance().unregisterPipStateChangeListener(); // 解注册画中画生命周期及状态回调
-
   }
 
   @Builder

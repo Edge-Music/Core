@@ -8,6 +8,7 @@ import { Song } from "../type/Adapter";
 import { cover } from './AdapterHelper';
 import { PreferencesCache } from './PreferenceCache';
 import { EventHelper } from './EventHelper';
+import { LogUtil } from '@pura/harmony-utils';
 
 let song: Song
 let Is_PAD:boolean
@@ -208,6 +209,8 @@ export class PipManager {
   // 解注册监听
   unregisterPipStateChangeListener() {
     console.info(TAG, 'aboutToDisappear');
+    PreferencesCache.setUserPreference('Lyic_desktop','0')
+    AppStorage.setOrCreate('Lyic_desktop', '0')
     this.pipController?.off('stateChange');
     this.pipController?.off('controlEvent');
   }
@@ -294,6 +297,14 @@ export class PipManager {
       console.error(TAG, `Failed to start pip. Cause:${err.code}, message:${err.message}`);
     });
 
+    EventHelper.subscribeSongState(async (data) => {
+      LogUtil.info(`[${TAG}]`, `收到[on_song_state]事件订阅，状态为：[${data}]`);
+      if (data === 'PLAY') {
+        this.pipController?.updatePiPControlStatus(controlType, status_play)
+      } else if (data === 'PAUSE') {
+        this.pipController?.updatePiPControlStatus(controlType, status_pause)
+      }
+    })
 
   }
 
@@ -310,7 +321,7 @@ export class PipManager {
     if (this.pipController === null || this.pipController === undefined) {
       return;
     }
-    let promise: Promise<void> = this.pipController.stopPiP();
+    let promise: Promise<void> = this.pipController?.stopPiP();
     promise.then(() => {
       PipManager.getInstance().setAutoStart(false)
       PreferencesCache.setUserPreference('Lyic_desktop','0')

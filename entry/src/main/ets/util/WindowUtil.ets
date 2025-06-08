@@ -1,7 +1,6 @@
 import { window } from '@kit.ArkUI';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { PipManager } from './PipManager';
-import { hilog } from '@kit.PerformanceAnalysisKit';
 import { EventHelper } from './EventHelper';
 import { LogUtil } from '@pura/harmony-utils';
 
@@ -113,7 +112,7 @@ class WindowUtil {
     windowStage.getMainWindow((err: BusinessError, windowClass) => {
       const errCode: number = err.code;
       if (errCode) {
-        LogUtil.error(`[${TAG}]`, `Failed to obtain the main window. Cause code: ${err.code}, message: ${err.message}`);
+        LogUtil.info(`[${TAG}]`, `窗口资源已经释放，无需再设置导航栏状态`);
         return;
       }
       try {
