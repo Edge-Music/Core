@@ -1,6 +1,7 @@
 import { Song } from "../type/Adapter";
 import { avPlayerManager } from "./AVPlayerManager";
 import { EventHelper } from "./EventHelper";
+import FormUtils from "./FormUtils";
 
 export class LyricsLine {
   time: number; // 时间点（毫秒）
@@ -9,7 +10,7 @@ export class LyricsLine {
   transliteration?: string; //音译
   showTranslation?: boolean; // 是否显示翻译
 
-  constructor(time: number, text: string, translation?: string, transliteration?: string, showTranslation?: boolean) {
+  constructor(time: number = 0, text: string = '当前歌曲没有歌词啊', translation?: string, transliteration?: string, showTranslation?: boolean) {
     this.time = time;
     this.text = text;
     this.translation = translation;
@@ -26,7 +27,7 @@ class LyricsManager {
   private hasTranslation: boolean = false
   private hasTransliteration: boolean = false
   private currentTimeMs: number = 0
-  private parsedLyrics: Array<LyricsLine> = []
+  private parsedLyrics: LyricsLine[] = []
   private lyricsTimer: number = -1
   private lastIndex: number = -1
   private currentIndex: number = 0
@@ -42,6 +43,8 @@ class LyricsManager {
     let tmpSongName: string = this.song?.name + ' - ' + this.song?.artists[0].name
     if(this.currentSongName !== tmpSongName){
       this.currentSongName = tmpSongName
+      FormUtils.updateCardCurrentLyrics(tmpSongName)
+      // FormUtils.updateCardLyricsIndex(this.currentIndex)
       AppStorage.setOrCreate<string>('test_index', tmpSongName)
       if(EventHelper.getPipLyricListenerCount() > 0){
         EventHelper.postPipLyric(tmpSongName)
@@ -133,6 +136,7 @@ class LyricsManager {
     AppStorage.setOrCreate<boolean>('current_lyrics_has_translation', this.hasTranslation)
     AppStorage.setOrCreate<boolean>('current_lyrics_has_transliteration', this.hasTransliteration)
     AppStorage.setOrCreate<Array<LyricsLine>>('current_parsed_lyrics', this.parsedLyrics)
+    // FormUtils.updateCardLyrics(this.parsedLyrics)
     console.info(`完成解析[${this.song?.name}]歌词`)
     console.info(`歌词：${JSON.stringify(this.parsedLyrics)}`)
   }
@@ -239,6 +243,8 @@ class LyricsManager {
             AppStorage.setOrCreate<LyricsLine>('current_line_lyrics', this.parsedLyrics[this.currentIndex])
             AppStorage.setOrCreate<string>('test_index', this.parsedLyrics[this.currentIndex].text)
             AppStorage.setOrCreate<number>('current_lyrics_index', this.currentIndex)
+            // FormUtils.updateCardLyricsIndex(this.currentIndex)
+            FormUtils.updateCardCurrentLyrics(this.parsedLyrics[this.currentIndex].text)
             if(EventHelper.getPipLyricListenerCount() > 0) {
               EventHelper.postPipLyric(this.parsedLyrics[this.currentIndex].text)
             }
@@ -254,6 +260,8 @@ class LyricsManager {
             AppStorage.setOrCreate<LyricsLine>('current_line_lyrics', this.parsedLyrics[this.currentIndex])
             AppStorage.setOrCreate<string>('test_index', this.parsedLyrics[this.currentIndex].text)
             AppStorage.setOrCreate<number>('current_lyrics_index', this.currentIndex)
+            // FormUtils.updateCardLyricsIndex(this.currentIndex)
+            FormUtils.updateCardCurrentLyrics(this.parsedLyrics[this.currentIndex].text)
             if(EventHelper.getPipLyricListenerCount() > 0) {
               EventHelper.postPipLyric(this.parsedLyrics[this.currentIndex].text)
             }
