@@ -5,20 +5,7 @@ import { App, LengthMetrics } from '@kit.ArkUI'
 import { LyricsLine } from "../util/LyricsManager";
 import { VibrationControl } from "../util/DeviceController";
 import { EventHelper } from "../util/EventHelper";
-
-class LyricStyle {
-  fontWeight: FontWeight;
-  fontColor: string | Color;
-  background: string;
-  opacity: number;
-
-  constructor(fontWeight: FontWeight, fontColor: string | Color, background: string, opacity: number) {
-    this.fontWeight = fontWeight;
-    this.fontColor = fontColor;
-    this.background = background;
-    this.opacity = opacity;
-  }
-}
+import { LyricItem } from "./LyricItem";
 
 @Component
 export struct LyricsView {
@@ -32,7 +19,6 @@ export struct LyricsView {
   @StorageProp('current_lyrics_has_translation') private hasTranslation: boolean = false // 是否有翻译歌词
   @StorageProp('current_lyrics_has_transliteration') private hasTransliteration: boolean = false
   private scroller: Scroller = new Scroller()
-  private readonly ANIMATION_DURATION: number = 300
   private readonly SCROLL_ANIMATION_DURATION: number = 400
   private lastTriggerTime: number = 0;
   @State private manualScrollTimeoutId: number = -1; // 手动滚动超时ID
@@ -45,8 +31,6 @@ export struct LyricsView {
 
   aboutToDisappear() {
   }
-
-
 
   // 监听当前播放时间更新
   onTimeUpdate() {
@@ -62,38 +46,19 @@ export struct LyricsView {
     if (index < 0) {
       return
     }
-
     this.isAutoScroll = true
     // 保持在视图中间偏上的位置，很显然这是一个经验修正
     const targetIndex = Math.max(0, this.mode_judge ? index - (10 * (this.showTranslation ? 0.1 : 0.3)) : index - (this.showTranslation ? 0 : 1))
-
     animateTo({
       duration: this.SCROLL_ANIMATION_DURATION,
       curve: Curve.EaseOut,
       onFinish: () => {
         this.isAnimating = false
         this.isAutoScroll = false
-
       }
     }, () => {
       this.scroller.scrollToIndex(targetIndex)
     })
-  }
-
-  // 歌词点击处理
-  private handleLyricClick(time: number, index: number) {
-    // 更新UI状态
-    this.isAnimating = true
-    this.isManualScroll = false
-    this.currentLyricsIndex = index
-    AppStorage.setOrCreate('test_index', this.parsedLyrics[index].text)
-    EventHelper.postPipLyric(this.parsedLyrics[index].text)
-
-    // 滚动到目标位置
-    this.scrollToLyric(index)
-
-    // 跳转到指定时间
-    avPlayerManager.seek(time)
   }
 
   // 切换翻译显示状态
@@ -104,18 +69,6 @@ export struct LyricsView {
       PreferencesCache.showTranslationLyric(this.showTranslation)
       VibrationControl.handlePresetVibration()
     })
-  }
-
-  // 获取歌词显示样式
-  private getLyricStyle(index: number) {
-    const isCurrent = index === this.currentLyricsIndex
-
-    return new LyricStyle(
-      isCurrent ? StyleConstants.FONT_WEIGHT_SEVEN : StyleConstants.FONT_WEIGHT_FIVE,
-      isCurrent ? Color.White : 'rgba(255, 255, 255, 0.6)',
-      isCurrent ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
-      isCurrent ? 1 : 0.7
-    )
   }
 
   /**
@@ -142,87 +95,27 @@ export struct LyricsView {
           List({ scroller: this.scroller }) {
             ForEach(this.parsedLyrics, (item: LyricsLine, index) => {
               ListItem() {
-                Column() {
-                  // 原文歌词
-                  Text(item.text)
-                    .fontSize(20)
-                    .fontWeight(this.getLyricStyle(index).fontWeight)
-                    .fontColor(this.getLyricStyle(index).fontColor)
-                    .margin({ top: 4, bottom: this.showTranslation && item.translation ? 0 : 4 })
-                    .padding({
-                      left: 16,
-                      right: 16,
-                      top: 8,
-                      bottom: 8
-                    })
-                    .textAlign(TextAlign.Center)
-                    .borderRadius(8)
-                    .backgroundColor(this.getLyricStyle(index).background)
-                    .opacity(this.getLyricStyle(index).opacity)
-                    .animation({
-                      duration: this.ANIMATION_DURATION,
-                      curve: Curve.EaseInOut
-                    })
-
-                  // 翻译歌词 (仅当启用显示翻译且该行有翻译时显示)
-                  if (this.showTranslation && item.translation) {
-                    Text(item.translation)
-                      .fontSize(16)
-                      .fontWeight(FontWeight.Normal)
-                      .fontColor(this.getLyricStyle(index).fontColor)
-                      .opacity(this.getLyricStyle(index).opacity * 0.9)
-                      .margin({ bottom: 4 })
-                      .padding({
-                        left: 16,
-                        right: 16,
-                        top: 4,
-                        bottom: 4
-                      })
-                      .textAlign(TextAlign.Center)
-                      .borderRadius(8)
-                      .backgroundColor('transparent')
-                      .animation({
-                        duration: this.ANIMATION_DURATION,
-                        curve: Curve.EaseInOut
-                      })
-                  }
-
-                  // 音译歌词 (仅当启用显示翻译且该行有翻译时显示)
-                  if (this.showTranslation && item.transliteration) {
-                    Text(item.transliteration)
-                      .fontSize(16)
-                      .fontWeight(FontWeight.Normal)
-                      .fontColor(this.getLyricStyle(index).fontColor)
-                      .opacity(this.getLyricStyle(index).opacity * 0.9)
-                      .margin({ bottom: 4 })
-                      .padding({
-                        left: 16,
-                        right: 16,
-                        top: 4,
-                        bottom: 4
-                      })
-                      .textAlign(TextAlign.Center)
-                      .borderRadius(8)
-                      .backgroundColor('transparent')
-                      .animation({
-                        duration: this.ANIMATION_DURATION,
-                        curve: Curve.EaseInOut
-                      })
-                  }
-                }
-                .width(StyleConstants.FULL_WIDTH)
-                .onClick(() => {
-                  this.handleLyricClick(item.time, index)
+                LyricItem({
+                  item: item,
+                  index: index,
+                  showTranslation: this.showTranslation,
+                  currentLyricsIndex: this.currentLyricsIndex,
                 })
               }
+              .key('lyricItem'+index)
+              .onClick(() => {
+                this.handleLyricClick(item.time, index)
+              })
               .width(StyleConstants.FULL_WIDTH)
             })
           }
           .width(StyleConstants.FULL_WIDTH)
           .height(StyleConstants.FULL_HEIGHT)
+          .chainAnimation(true)
+          .edgeEffect(EdgeEffect.Spring)
           .layoutWeight(1)
           .scrollBar(BarState.Off)
-          .onDidScroll(() => {
+          .onDidScroll((scrollOffset: number, scrollState: ScrollState) => {
             // 检测到手动滚动时启动计时器
             if (!this.isAutoScroll) {
               this.startManualScrollTimer()
@@ -286,6 +179,22 @@ export struct LyricsView {
     )
   }
 
+  // 歌词点击处理
+  private handleLyricClick(time: number, index: number) {
+    // 更新UI状态
+    this.isAnimating = true
+    this.isManualScroll = false
+    this.currentLyricsIndex = index
+    AppStorage.setOrCreate('test_index', this.parsedLyrics[index].text)
+    EventHelper.postPipLyric(this.parsedLyrics[index].text)
+
+    // 滚动到目标位置
+    this.scrollToLyric(index)
+
+    // 跳转到指定时间
+    avPlayerManager.seek(time)
+  }
+
   private startManualScrollTimer() {
     // 清除之前的计时器
     if (this.manualScrollTimeoutId) {
@@ -304,3 +213,4 @@ export struct LyricsView {
     }, 7000) as number
   }
 }
+
