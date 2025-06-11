@@ -19,7 +19,7 @@ export struct LyricsView {
   @StorageProp('current_lyrics_has_translation') private hasTranslation: boolean = false // 是否有翻译歌词
   @StorageProp('current_lyrics_has_transliteration') private hasTransliteration: boolean = false
   private scroller: Scroller = new Scroller()
-  private readonly SCROLL_ANIMATION_DURATION: number = 400
+  private readonly SCROLL_ANIMATION_DURATION: number = 600
   private lastTriggerTime: number = 0;
   @State private manualScrollTimeoutId: number = -1; // 手动滚动超时ID
   @State private isManualScroll: boolean = false; // 是否处于手动滚动状态
