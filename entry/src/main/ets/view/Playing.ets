@@ -1249,7 +1249,7 @@ struct Playing {
               this.progress_Volume()
             }
           }
-          .height('70%')
+          .height(150)
           .width(46)
         }
         .height('100%')
@@ -1345,7 +1345,7 @@ struct Playing {
               this.progress_Volume()
             }
           }
-          .height('70%')
+          .height(150)
           .width(46)
         }
         .width(46)
