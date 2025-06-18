@@ -34,10 +34,10 @@ class WindowUtil {
         } else if (avoidArea.type === window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR) {
           AppStorage.setOrCreate('bottomRect', px2vp(avoidArea.area.bottomRect.height));
         } else if (avoidArea.type === window.AvoidAreaType.TYPE_CUTOUT) {
-          AppStorage.setOrCreate('leftCutoutRectHeight', avoidArea.area.leftRect.height)
-          AppStorage.setOrCreate('leftCutoutRectWidth', avoidArea.area.leftRect.width)
-          AppStorage.setOrCreate('rightCutoutRectHeight', avoidArea.area.rightRect.height)
-          AppStorage.setOrCreate('rightCutoutRectWidth', avoidArea.area.rightRect.width)
+          AppStorage.setOrCreate('leftCutoutRectHeight', px2vp(avoidArea.area.leftRect.height))
+          AppStorage.setOrCreate('leftCutoutRectWidth', px2vp(avoidArea.area.leftRect.width))
+          AppStorage.setOrCreate('rightCutoutRectHeight', px2vp(avoidArea.area.rightRect.height))
+          AppStorage.setOrCreate('rightCutoutRectWidth', px2vp(avoidArea.area.rightRect.width))
         }
         LogUtil.info(`[${TAG}]`, 'Succeeded in adding avoidAreaChange listener.');
       });
@@ -54,10 +54,10 @@ class WindowUtil {
       AppStorage.setOrCreate('topRect', px2vp(windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM).topRect.height));
       AppStorage.setOrCreate('bottomRect', px2vp(windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR).bottomRect.height));
       // 刘海屏避让区
-      AppStorage.setOrCreate('leftCutoutRectHeight', windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_CUTOUT).leftRect.height)
-      AppStorage.setOrCreate('leftCutoutRectWidth', windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_CUTOUT).leftRect.width)
-      AppStorage.setOrCreate('rightCutoutRectHeight', windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_CUTOUT).rightRect.height)
-      AppStorage.setOrCreate('rightCutoutRectWidth', windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_CUTOUT).rightRect.width)
+      AppStorage.setOrCreate('leftCutoutRectHeight', px2vp(windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_CUTOUT).leftRect.height))
+      AppStorage.setOrCreate('leftCutoutRectWidth', px2vp(windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_CUTOUT).leftRect.width))
+      AppStorage.setOrCreate('rightCutoutRectHeight', px2vp(windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_CUTOUT).rightRect.height))
+      AppStorage.setOrCreate('rightCutoutRectWidth', px2vp(windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_CUTOUT).rightRect.width))
       LogUtil.info(`[${TAG}]`, 'Succeeded in initting window properties.');
     })
 
