@@ -254,7 +254,7 @@ export struct Index_page {
               this.pageStack.pushPath({ name: item.path })
             }
           })
-        }.key(`${item.title}`)
+        }
         .padding(4)
       })
     }
