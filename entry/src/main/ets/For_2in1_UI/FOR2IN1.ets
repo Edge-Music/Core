@@ -114,7 +114,7 @@ export struct IS_2IN1_UI{
       if(this.topRect > 0){
         Row(){
         }
-        .height(px2vp(this.topRect))
+        .height(this.topRect)
         .width('100%')
       }
       if(this.decorHeight > 0){
@@ -149,7 +149,7 @@ export struct IS_2IN1_UI{
       .alignItems(VerticalAlign.Center)
       .height(50)
     }
-    .height(px2vp(this.topRect)+50+this.decorHeight)
+    .height(this.topRect+50+this.decorHeight)
   }
 
   @Builder
@@ -179,7 +179,7 @@ export struct IS_2IN1_UI{
       // PC工具栏适配
       if(this.topRect > 0){
         Row()
-          .height(px2vp(this.topRect))
+          .height(this.topRect)
       }
       if(this.decorHeight > 0){
         Row(){
@@ -200,7 +200,7 @@ export struct IS_2IN1_UI{
 
       this.button_list()
     }
-    .height(this.decorHeight+px2vp(this.topRect)+StyleConstants.TITLE_HEIGHT)
+    .height(this.decorHeight+this.topRect+StyleConstants.TITLE_HEIGHT)
     .alignItems(HorizontalAlign.Start)
     .justifyContent(FlexAlign.Center)
   }
@@ -234,7 +234,7 @@ export struct IS_2IN1_UI{
               Column(){
                 if(this.topRect > 0){
                   Row(){}
-                  .height(px2vp(this.topRect))
+                  .height(this.topRect)
                 }
                 if(this.decorHeight > 0){
                   Row(){
@@ -246,7 +246,7 @@ export struct IS_2IN1_UI{
                 Row()
                   .height(StyleConstants.TITLE_HEIGHT)
               }
-              .height(this.decorHeight+px2vp(this.topRect)+StyleConstants.TITLE_HEIGHT)
+              .height(this.decorHeight+this.topRect+StyleConstants.TITLE_HEIGHT)
 
 
               List({space:8}){
@@ -288,7 +288,7 @@ export struct IS_2IN1_UI{
                 })
                 ListItem(){
                   Row() {
-                    Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + px2vp(this.bottomRect) + px2vp(this.topRect) + this.decorHeight + 50)
+                    Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + this.bottomRect + this.topRect + this.decorHeight + 50)
                   }
                 }
               }

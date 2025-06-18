@@ -434,7 +434,7 @@ struct Playing {
           .width('45%')
           .height('100%')
           .padding({
-            left: px2vp(this.rightCutoutRectWidth > 0 ? this.rightCutoutRectWidth : this.leftCutoutRectWidth*2),
+            left: (this.rightCutoutRectWidth > 0 ? this.rightCutoutRectWidth : this.leftCutoutRectWidth*2),
             top: 12,
             bottom: 12
           })
@@ -468,12 +468,12 @@ struct Playing {
         }
         .padding({
           left: 18,
-          right: this.leftCutoutRectWidth > 0 ? 18 : px2vp(this.rightCutoutRectWidth)*2,
+          right: this.leftCutoutRectWidth > 0 ? 18 : this.rightCutoutRectWidth*2,
           bottom: 12
         })
         .width('55%')
       }
-      .margin({ bottom: px2vp(this.bottomRect/2) })
+      .margin({ bottom: this.bottomRect/2 })
       .alignItems(VerticalAlign.Center)
       .justifyContent(FlexAlign.SpaceBetween)
       .onAppear(()=>{
@@ -584,7 +584,7 @@ struct Playing {
           .layoutWeight(1)
         }
         .padding({
-          left: px2vp(this.rightCutoutRectWidth > 0 ? this.rightCutoutRectWidth : this.leftCutoutRectWidth*2),
+          left: (this.rightCutoutRectWidth > 0 ? this.rightCutoutRectWidth : this.leftCutoutRectWidth*2),
           top: 12,
           bottom: 12,
           right: 12
@@ -601,11 +601,11 @@ struct Playing {
         }
         .padding({
           left: 18,
-          right: this.leftCutoutRectWidth > 0 ? 18 : px2vp(this.rightCutoutRectWidth)*2
+          right: this.leftCutoutRectWidth > 0 ? 18 : this.rightCutoutRectWidth*2
         })
         .width('60%')
       }
-      .margin({ bottom: px2vp(this.bottomRect/2) })
+      .margin({ bottom: this.bottomRect/2 })
       .alignItems(VerticalAlign.Top)
       .justifyContent(FlexAlign.SpaceBetween)
       .animation({ duration: 500, curve: Curve.FastOutSlowIn })
@@ -1416,7 +1416,7 @@ struct Playing {
       }
 
       // 底部避让
-      Blank().height(px2vp(this.bottomRect/2))
+      Blank().height(this.bottomRect/2)
     }
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
@@ -1440,7 +1440,7 @@ struct Playing {
       // PC工具栏适配
       if(this.topRect > 0){
         Row(){}
-        .height(px2vp(this.topRect))
+        .height(this.topRect)
         .backgroundColor('transparent')
         .width('100%')
       }
@@ -1588,7 +1588,7 @@ struct Playing {
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
     .width(StyleConstants.FULL_WIDTH)
-    .height(this.decorHeight+px2vp(this.topRect)+StyleConstants.TITLE_HEIGHT)
+    .height(this.decorHeight+this.topRect+StyleConstants.TITLE_HEIGHT)
   }
 
   build() {
@@ -1640,8 +1640,8 @@ struct Playing {
             .layoutWeight(1)
           } else if (this.isWideScreen && this.Playing_Next) {
             this.Playing_HorizontalMode()
-          }else if (this.winHeight<1500&&this.winWidth<1500){
-            if(this.winHeight>900&&this.Pura_X==='0'||this.winHeight>600&&this.Pura_X==='1'){
+          }else if (vp2px(this.winHeight)<1500&&vp2px(this.winWidth)<1500){
+            if(vp2px(this.winHeight)>900&&this.Pura_X==='0'||vp2px(this.winHeight)>600&&this.Pura_X==='1'){
               this.playing_50()
             }else{
               this.playing_30()

@@ -10,7 +10,7 @@ export class LyricsLine {
   transliteration?: string; //音译
   showTranslation?: boolean; // 是否显示翻译
 
-  constructor(time: number = 0, text: string = '当前歌曲没有歌词啊', translation?: string, transliteration?: string, showTranslation?: boolean) {
+  constructor(time: number, text: string, translation?: string, transliteration?: string, showTranslation?: boolean) {
     this.time = time;
     this.text = text;
     this.translation = translation;

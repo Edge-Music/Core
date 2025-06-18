@@ -389,7 +389,7 @@ struct Library {
   countSubVp(): number{
     let sub: number = 0
     // 填补高度=屏幕高度 - title高度50 - 上方padding高度12 - 单一组件高度(74+0.5)*歌曲数量 - 状态栏高度 - 导航栏高度
-    sub = px2vp(this.winHeight) - (this.itemHeight+50) - px2vp(this.topRect+this.bottomRect)
+    sub = this.winHeight - (this.itemHeight+50) - (this.topRect+this.bottomRect)
     console.log('最终的高度是：'+sub);
     return sub > 0 ? sub : 0
   }

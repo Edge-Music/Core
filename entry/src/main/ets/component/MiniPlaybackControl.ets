@@ -99,7 +99,7 @@ export struct MiniPlaybackControl {
         type: ProgressType.Capsule
       })
         .height(2)
-        .width(px2vp(this.winWidth*StyleConstants.NINETY_HEIGHT) - StyleConstants.BORDER_RADIUS*2) //进度条调整长度为屏幕宽度的90%-圆角的2倍(12*2)
+        .width((this.winWidth*StyleConstants.NINETY_HEIGHT) - StyleConstants.BORDER_RADIUS*2) //进度条调整长度为屏幕宽度的90%-圆角的2倍(12*2)
         .color($r('app.color.text_click'))
         .backgroundColor('rgba(255, 255, 255, 0.2)')
     }
@@ -331,7 +331,7 @@ export struct MiniPlaybackControl {
 
         if(this.bottom_judge !== '0'){
           Row()
-            .height(px2vp(this.bottomRect/2))
+            .height(this.bottomRect/2)
             .width(StyleConstants.FULL_WIDTH)
         }
       }
@@ -343,8 +343,8 @@ export struct MiniPlaybackControl {
       this.bottom_judge = PreferencesCache.getUserPreference('miniplaying_bottom_judge','0')
     })
     .width(this.bottom_judge === '0' && this.bottomRect > 0 ? "90%" : "100%")
-    .height(this.bottom_judge === '0' ? 64 : 64+px2vp(this.bottomRect/2))
-    .margin(this.bottom_judge === '0' ? px2vp(this.bottomRect) : 0)
+    .height(this.bottom_judge === '0' ? 64 : 64+this.bottomRect/2)
+    .margin(this.bottom_judge === '0' ? this.bottomRect : 0)
     .borderRadius(12)
     .clip(true)
     .shadow({

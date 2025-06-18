@@ -8,7 +8,7 @@ import { PipManager } from '../util/PipManager';
 export struct Personalized_settings_Component {
   @State text_name: string = '';
   @State setUserPreference_name: string = '';
-  private  text_ctrl:string =  PreferencesCache.getUserPreference(this.setUserPreference_name)
+  private text_ctrl:string =  PreferencesCache.getUserPreference(this.setUserPreference_name)
   build() {
     Column(){
       Row(){
@@ -112,10 +112,10 @@ export struct Personalized_settings{
           ListItem(){this.HorizontalMode_Ctrl()}
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.mini_music_control_bottom')), setUserPreference_name:'miniplaying_bottom_judge'})}
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.swipe_cover_switch_songs')), setUserPreference_name:'img_playing_ctrl'})}
-          ListItem(){ Personalized_settings_Component({text_name: '允许同时播放', setUserPreference_name:'playing_mix'})}
-          ListItem(){ Personalized_settings_Component({text_name: '只是UI_阿尔法1_重启生效', setUserPreference_name:'zhishi_UI'})}
+          ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.simultaneous_playback')), setUserPreference_name:'playing_mix'})}
+          ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.enable_sidebar_ui')), setUserPreference_name:'zhishi_UI'})}
           // ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.Lyic_desktop')), setUserPreference_name:'Lyic_desktop'})}
-          ListItem(){ Column().height(16+px2vp(this.bottomRect/2))}
+          ListItem(){ Column().height(16+this.bottomRect/2)}
         }
         .width('100%')
         .height('100%')

@@ -231,7 +231,7 @@ struct Index_page {
       }
       else if(this.topRect > 0){
         Row(){}
-        .height(px2vp(this.topRect)).backgroundColor('transparent').width('100%')
+        .height(this.topRect).backgroundColor('transparent').width('100%')
       }
 
       Row() {
@@ -448,7 +448,7 @@ struct Index_page {
 
               ListItem() {
                 Row() {
-                  Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + px2vp(this.bottomRect))
+                  Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + this.bottomRect)
                 }
               }
             }
@@ -482,7 +482,7 @@ struct Index_page {
   }
 
   getBlankHeight(): number {
-    let sub = px2vp(this.winHeight) - this.blankHeight - 50 - px2vp(this.bottomRect + this.topRect)
+    let sub = this.winHeight - this.blankHeight - 50 - (this.bottomRect + this.topRect)
     return sub > 0 ? sub : 0
   }
 }

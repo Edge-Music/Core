@@ -737,7 +737,7 @@ export struct Setting {
 
           ListItem(){
             Row(){
-              Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + px2vp(this.bottomRect))
+              Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + this.bottomRect)
             }
           }
         }
@@ -771,7 +771,7 @@ export struct Setting {
   }
 
   getBlankHeight(): Length {
-    let sub = px2vp(this.winHeight) - this.groupHeight - 50 - px2vp(this.bottomRect+this.topRect)
+    let sub = this.winHeight - this.groupHeight - 50 - (this.bottomRect+this.topRect)
     return sub > 0 ? sub : 0
   }
 

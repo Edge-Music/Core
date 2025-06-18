@@ -64,7 +64,7 @@ export struct TitleHeader {
         // PC工具栏适配
         if(this.topRect > 0){
           Row(){}
-          .height(px2vp(this.topRect))
+          .height(this.topRect)
           .backgroundColor('transparent')
           .width('100%')
         }

@@ -467,6 +467,14 @@
     {
       "name": "Lyic_desktop",
       "value": "画中画歌词"
+    },
+    {
+      "name": "simultaneous_playback",
+      "value": "允许同时播放"
+    },
+    {
+      "name": "enable_sidebar_ui",
+      "value": "开启侧边栏UI"
     }
   ]
 }

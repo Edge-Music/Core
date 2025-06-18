@@ -22,17 +22,17 @@ class WindowUtil {
     windowStage.getMainWindow().then((windowClass) => {
       // 监听窗口尺寸变化
       windowClass.on('windowSizeChange', (windowSize) => {
-        AppStorage.setOrCreate('winWidth', windowSize.width);
-        AppStorage.setOrCreate('winHeight', windowSize.height);
+        AppStorage.setOrCreate('winWidth', px2vp(windowSize.width));
+        AppStorage.setOrCreate('winHeight', px2vp(windowSize.height));
         LogUtil.info(`[${TAG}]`, 'Succeeded in adding windowSizeChange listener.');
       });
 
       // 监听避让高度变化
       windowClass.on('avoidAreaChange', (avoidArea) => {
         if (avoidArea.type === window.AvoidAreaType.TYPE_SYSTEM) {
-          AppStorage.setOrCreate('topRect', avoidArea.area.topRect.height);
+          AppStorage.setOrCreate('topRect', px2vp(avoidArea.area.topRect.height));
         } else if (avoidArea.type === window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR) {
-          AppStorage.setOrCreate('bottomRect', avoidArea.area.bottomRect.height);
+          AppStorage.setOrCreate('bottomRect', px2vp(avoidArea.area.bottomRect.height));
         } else if (avoidArea.type === window.AvoidAreaType.TYPE_CUTOUT) {
           AppStorage.setOrCreate('leftCutoutRectHeight', avoidArea.area.leftRect.height)
           AppStorage.setOrCreate('leftCutoutRectWidth', avoidArea.area.leftRect.width)
@@ -48,11 +48,11 @@ class WindowUtil {
     if (!windowStage) return;
     windowStage.getMainWindow().then((windowClass) => {
       // 获取窗口尺寸，存入AppStorage
-      AppStorage.setOrCreate('winWidth', windowClass.getWindowProperties().windowRect.width);
-      AppStorage.setOrCreate('winHeight', windowClass.getWindowProperties().windowRect.height);
+      AppStorage.setOrCreate('winWidth', px2vp(windowClass.getWindowProperties().windowRect.width));
+      AppStorage.setOrCreate('winHeight', px2vp(windowClass.getWindowProperties().windowRect.height));
       // 获取避让高度，存入AppStorage
-      AppStorage.setOrCreate('topRect', windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM).topRect.height);
-      AppStorage.setOrCreate('bottomRect', windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR).bottomRect.height);
+      AppStorage.setOrCreate('topRect', px2vp(windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM).topRect.height));
+      AppStorage.setOrCreate('bottomRect', px2vp(windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR).bottomRect.height));
       // 刘海屏避让区
       AppStorage.setOrCreate('leftCutoutRectHeight', windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_CUTOUT).leftRect.height)
       AppStorage.setOrCreate('leftCutoutRectWidth', windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_CUTOUT).leftRect.width)
