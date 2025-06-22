@@ -227,7 +227,7 @@ export struct IS_2IN1_UI{
       .height('100%')
       .backgroundColor(Color.Transparent)
       .onClick(() => {
-        animateTo({
+        this.uiContext?.animateTo({
           duration: 250,
           curve: Curve.EaseOut,
           delay: 0,
@@ -338,12 +338,24 @@ export struct IS_2IN1_UI{
             }
 
           }
-          .showSideBar($$this.sidebar_ctrl)
+          .showSideBar(this.sidebar_ctrl)
           .sideBarWidth(300)
           .maxSideBarWidth(300)
           .minSideBarWidth(300)
           .showControlButton(false)
+          .onChange((value: boolean) => {
+            console.info('status:' + value);
+            this.uiContext?.animateTo({
+              duration: 250,
+              curve: Curve.EaseOut,
+              delay: 0,
+              onFinish: () => {
+              }
+            }, () => {
+              this.sidebar_ctrl = value
 
+            });
+          })
           MiniPlaybackControl()
         }
         .alignContent(Alignment.Bottom)
