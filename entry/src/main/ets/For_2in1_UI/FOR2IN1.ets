@@ -86,6 +86,15 @@ export struct IS_2IN1_UI{
               .fontSize($r('app.float.title_font_size'))
               .textOverflow({ overflow: TextOverflow.Ellipsis })
               .maxLines(1)
+            Blank()
+            Text('󰀩')
+              .fontColor($r('app.color.text_title'))
+              .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
+              .fontSize($r('app.float.title_font_size'))
+              .onClick(()=>{
+                this.pageStack.pushPath({ name: 'MultiSearch' })
+              })
+              .margin({right:16})
           }
         }
         .layoutWeight(1)
