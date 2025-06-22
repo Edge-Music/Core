@@ -23,8 +23,14 @@ export struct IS_2IN1_UI{
   @State title: string = '首页'
   @StorageProp('bottomRect') bottomRect: number = 0
   @StorageProp('topRect') topRect: number = 0
+  uiContext: UIContext | undefined = undefined;
   aboutToAppear(): void {
    this.sidebar_ctrl = this.currentBreakpoint === 'sm' ? false : true
+    this.uiContext = this.getUIContext();
+    if (!this.uiContext) {
+      console.warn("no uiContext");
+      return;
+    }
   }
   @Builder
   /**
@@ -67,7 +73,7 @@ export struct IS_2IN1_UI{
         .height(36)
         .backgroundColor(Color.Transparent)
         .onClick(()=>{
-          animateTo({
+          this.uiContext?.animateTo({
             duration: 250,
             curve: Curve.EaseOut,
             delay: 0,
