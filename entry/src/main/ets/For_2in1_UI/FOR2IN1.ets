@@ -375,7 +375,7 @@ export struct IS_2IN1_UI{
           // 更新滑动偏移量
             let test =event.offsetX;
           if (test > 70) {
-            animateTo({
+            this.uiContext?.animateTo({
               duration: 250,
               curve: Curve.EaseOut,
               delay: 0,
@@ -387,7 +387,7 @@ export struct IS_2IN1_UI{
             });
 
           }else if (test < -70){
-            animateTo({
+            this.uiContext?.animateTo({
               duration: 250,
               curve: Curve.EaseOut,
               delay: 0,
