@@ -50,6 +50,7 @@ export struct Setting_2in1 {
   @State qrCodeVisible: boolean = false
   @State qrCodeScale: number = 0.8
   private qrCodeCheckTimer: number = 0
+  uiContext: UIContext | undefined = undefined;
   // 设置存储
   @StorageLink("PlayerSetting") playerSetting: SettingItem[] = PlayerSetting
   @StorageLink("SoftwareSetting") softwareSetting: SettingItem[] = SoftwareSetting
@@ -164,7 +165,7 @@ export struct Setting_2in1 {
 
       // 使用setTimeout确保DOM先更新，再开始动画
       setTimeout(() => {
-        animateTo({
+        this.uiContext?.animateTo({
           duration: 350,
           curve: Curve.EaseOut,
         }, () => {
@@ -467,7 +468,7 @@ export struct Setting_2in1 {
                 .enabled(this.formData.name.trim() !== '' && this.formData.url.trim() !== '' &&
                 this.validateUrl(this.formData.url))
                 .onClick(() => {
-                  animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
+                  this.uiContext?.animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
                     this.currentStep = 1
                   })
                 })
@@ -505,7 +506,7 @@ export struct Setting_2in1 {
               .backgroundColor($r('app.color.back_button_normal'))
               .onClick(() => {
                 // 只处理页面切换，不重置二维码状态
-                animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
+                this.uiContext?.animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
                   this.currentStep = 0
                   this.clearQRCodeTimer()
                 })
@@ -659,7 +660,7 @@ export struct Setting_2in1 {
         .margin({ left: 8 })
     }
     .onClick(() => {
-      animateTo({
+      this.uiContext?.animateTo({
         duration: 250,
         curve: Curve.FastOutSlowIn
       }, () => {
@@ -686,6 +687,9 @@ export struct Setting_2in1 {
     }else if (this.nowSheet === "Personalized_settings"){
       this.Personalized_Settings()
     }
+  }
+  aboutToAppear(): void {
+    this.uiContext = this.getUIContext();
   }
   build() {
     NavDestination() {

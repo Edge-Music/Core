@@ -29,12 +29,13 @@ export struct MiniPlaybackControl {
   private updateTimer: number = -1;
   private playerManager = avPlayerManager;
   private readonly SWIPE_THRESHOLD: number = 80; // 触发切换的阈值
-
+  uiContext: UIContext | undefined = undefined;
   aboutToAppear() {
     // 获取初始状态
     this.playerManager.getAVPlayerInstance().then(player => {
       this.currentTimeMs = player.currentTime;
       this.durationMs = player.duration;
+      this.uiContext = this.getUIContext();
       this.isPlaying = player.state === 'playing';
     });
 
@@ -65,7 +66,7 @@ export struct MiniPlaybackControl {
 
   // 处理歌曲切换
   handleSongChange(direction: 'next' | 'prev') {
-    animateTo({
+    this.uiContext?.animateTo({
       duration: 350,
       curve: Curve.EaseInOut,
       delay: 0,
@@ -242,11 +243,11 @@ export struct MiniPlaybackControl {
             })
             .onTouch((event) => {
               if (event.type === TouchType.Down) {
-                animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+                this.uiContext?.animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
                   this.playBtnScale = 0.8
                 })
               } else if (event.type === TouchType.Up) {
-                animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+                this.uiContext?.animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
                   this.playBtnScale = 1
                 })
               }
@@ -274,11 +275,11 @@ export struct MiniPlaybackControl {
             })
             .onTouch((event) => {
               if (event.type === TouchType.Down) {
-                animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+                this.uiContext?.animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
                   this.nextBtnScale = 0.8
                 })
               } else if (event.type === TouchType.Up) {
-                animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+                this.uiContext?.animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
                   this.nextBtnScale = 1
                 })
               }
@@ -302,11 +303,11 @@ export struct MiniPlaybackControl {
             })
             .onTouch((event) => {
               if (event.type === TouchType.Down) {
-                animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+                this.uiContext?.animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
                   this.playListBtnScale = 0.8
                 })
               } else if (event.type === TouchType.Up) {
-                animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+                this.uiContext?.animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
                   this.playListBtnScale = 1
                 })
               }
@@ -381,7 +382,7 @@ export struct MiniPlaybackControl {
             this.handleSongChange('next');
           } else {
             // 未达到阈值，回弹
-            animateTo({
+            this.uiContext?.animateTo({
               duration: 250,
               curve: Curve.EaseOut,
               delay: 0,
@@ -398,7 +399,7 @@ export struct MiniPlaybackControl {
     .onClick(() => {
       // 只有在没有滑动时才响应点击事件
       if (!this.isSwipingActive && this.currentSong) {
-        // animateTo({
+        // this.uiContext?.animateTo({
         //   duration: 100,
         //   // 构造插值器弹簧曲线对象，生成一条从0到1的动画曲线
         //   curve: curves.interpolatingSpring(0, 1, 324, 38),

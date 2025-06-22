@@ -24,9 +24,10 @@ export struct LyricsView {
   @State private manualScrollTimeoutId: number = -1; // 手动滚动超时ID
   @State private isManualScroll: boolean = false; // 是否处于手动滚动状态
   @State private isAutoScroll: boolean = false; // 是否处于自动滚动状态
-
+  uiContext: UIContext | undefined = undefined;
   aboutToAppear() {
     this.scrollToLyric(this.currentLyricsIndex)
+    this.uiContext = this.getUIContext();
   }
 
   aboutToDisappear() {
@@ -49,7 +50,7 @@ export struct LyricsView {
     this.isAutoScroll = true
     // 保持在视图中间偏上的位置，很显然这是一个经验修正
     const targetIndex = Math.max(0, this.mode_judge ? index - (10 * (this.showTranslation ? 0.1 : 0.3)) : index - (this.showTranslation ? 0 : 1))
-    animateTo({
+    this.uiContext?.animateTo({
       duration: this.SCROLL_ANIMATION_DURATION,
       curve: Curve.EaseOut,
       onFinish: () => {
@@ -63,7 +64,7 @@ export struct LyricsView {
 
   // 切换翻译显示状态
   private toggleTranslation() {
-    animateTo({ duration: 300, curve: Curve.EaseInOut }, () => {
+    this.uiContext?.animateTo({ duration: 300, curve: Curve.EaseInOut }, () => {
       this.showTranslation = !this.showTranslation
       this.scrollToLyric(this.currentLyricsIndex)
       PreferencesCache.showTranslationLyric(this.showTranslation)

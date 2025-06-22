@@ -64,7 +64,7 @@ export struct Setting {
     onIndexChange: (index): void => this.onMenuIconClick(index),
     componentTag: TAG
   }).linkController(this.scroller)
-
+  uiContext: UIContext | undefined = undefined;
   calculateCurrentIndex(offset: number): number {
     offset = Math.abs(offset)
     return offset < 40 ? -1 : 0
@@ -75,7 +75,9 @@ export struct Setting {
       this.pageStack.pop()
     }
   }
-
+  aboutToAppear(): void {
+    this.uiContext = this.getUIContext();
+  }
   private validateUrl(url: string): boolean {
     const urlPattern = /^(http|https):\/\/[a-zA-Z0-9-.]+(:\d+)?(\/[a-zA-Z0-9-._?&=]*)?$/
     return urlPattern.test(url)
@@ -163,7 +165,7 @@ export struct Setting {
 
       // 使用setTimeout确保DOM先更新，再开始动画
       setTimeout(() => {
-        animateTo({
+        this.uiContext?.animateTo({
           duration: 350,
           curve: Curve.EaseOut,
         }, () => {
@@ -466,7 +468,7 @@ export struct Setting {
                 .enabled(this.formData.name.trim() !== '' && this.formData.url.trim() !== '' &&
                 this.validateUrl(this.formData.url))
                 .onClick(() => {
-                  animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
+                  this.uiContext?.animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
                     this.currentStep = 1
                   })
                 })
@@ -504,7 +506,7 @@ export struct Setting {
               .backgroundColor($r('app.color.back_button_normal'))
               .onClick(() => {
                 // 只处理页面切换，不重置二维码状态
-                animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
+                this.uiContext?.animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
                   this.currentStep = 0
                   this.clearQRCodeTimer()
                 })
@@ -658,7 +660,7 @@ export struct Setting {
         .margin({ left: 8 })
     }
     .onClick(() => {
-      animateTo({
+      this.uiContext?.animateTo({
         duration: 250,
         curve: Curve.FastOutSlowIn
       }, () => {

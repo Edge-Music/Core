@@ -31,7 +31,7 @@ class BackgroundRunningManager {
       let wantAgentInfo: wantAgent.WantAgentInfo = {
         wants: [
           {
-            bundleName: bundleInfo.name,
+            bundleName: "zone.jzs.seamusic",
             abilityName: "EntryAbility",
           },
         ],

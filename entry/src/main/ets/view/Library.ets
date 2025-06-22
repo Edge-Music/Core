@@ -42,6 +42,7 @@ struct Library {
   private readonly BUTTON_GAP: number = 10
   @State capsuleScaleX: number = 0.9
   @State capsuleScaleY: number = 1.0
+  uiContext: UIContext | undefined = undefined;
   @State avatarScale: number = 1
   @State scrollController: ScrollController = new ScrollController({
     onIndexChange: (index) => {
@@ -75,6 +76,7 @@ struct Library {
   }
 
   aboutToAppear(): void {
+    this.uiContext = this.getUIContext();
     if (this.playlists[1]?.cover){
       FormUtils.updateRecommendedCards(this.playlists[1].cover)
     }
@@ -135,12 +137,12 @@ struct Library {
       .layoutWeight(1)
       .onTouch((event) => {
         if (event.type === TouchType.Down) {
-          animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+          this.uiContext?.animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
             this.capsuleScaleX = 0.75
             this.capsuleScaleY = 1.1
           })
         } else if (event.type === TouchType.Up) {
-          animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+          this.uiContext?.animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
             this.capsuleScaleX = 0.9
             this.capsuleScaleY = 1.0
           })
@@ -234,11 +236,11 @@ struct Library {
       offset += (this.titleWidths[i] || 0) + this.BUTTON_GAP
     }
 
-    animateTo({ duration: 200, curve: Curve.EaseInOut }, () => {
+    this.uiContext?.animateTo({ duration: 200, curve: Curve.EaseInOut }, () => {
       this.capsuleOffset = offset
     })
 
-    animateTo({ duration: 150, curve: Curve.EaseIn }, () => {
+    this.uiContext?.animateTo({ duration: 150, curve: Curve.EaseIn }, () => {
       this.capsuleScaleX = 0.9
       this.capsuleScaleY = 1
       this.capsuleWidth = this.titleWidths[index]

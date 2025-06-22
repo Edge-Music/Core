@@ -67,7 +67,6 @@ struct Index {
 struct Index_page {
   @StorageProp('decorHeight') decorHeight: number = 0
   @State version: string = '2.2.0.y'
-
   @State blankHeight: number = 0
   @Consume('NavPathStack') pageStack: NavPathStack
   @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
