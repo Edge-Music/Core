@@ -157,7 +157,6 @@ export class PlaylistManager {
    * @returns 下一首歌曲
    */
   public static playNext(forceNext: boolean = false): Song | null {
-    AppStorage.setOrCreate<number>('current_lyrics_index', 0)
     const instance = PlaylistManager.getInstance();
     const currentIndex = instance.getCurrentIndex();
 
@@ -215,7 +214,6 @@ export class PlaylistManager {
    * @returns 上一首歌曲
    */
   public static playPrevious(): Song | null {
-    AppStorage.setOrCreate<number>('current_lyrics_index', 0)
     const instance = PlaylistManager.getInstance();
     const currentIndex = instance.getCurrentIndex();
 

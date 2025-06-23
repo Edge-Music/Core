@@ -31,9 +31,6 @@ export struct LyricItem {
         .borderRadius(8)
         .backgroundColor(this.getLyricStyle(this.index).background)
         .opacity(this.getLyricStyle(this.index).opacity)
-        .animation({
-          duration: 400
-        })
 
       // 翻译歌词 (仅当启用显示翻译且该行有翻译时显示)
       if (this.showTranslation && this.item.translation) {
@@ -52,9 +49,6 @@ export struct LyricItem {
           .textAlign(TextAlign.Center)
           .borderRadius(8)
           .backgroundColor('transparent')
-          .animation({
-            duration: 400
-          })
       }
 
       // 音译歌词 (仅当启用显示翻译且该行有翻译时显示)
@@ -74,9 +68,7 @@ export struct LyricItem {
           .textAlign(TextAlign.Center)
           .borderRadius(8)
           .backgroundColor('transparent')
-          .animation({
-            duration: 400
-          })
+
       }
     }
     .width(StyleConstants.FULL_WIDTH)

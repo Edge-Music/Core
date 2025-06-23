@@ -36,6 +36,7 @@ class LyricsManager {
   private currentSongName: string = ''
 
   async init(){
+    AppStorage.setOrCreate<number>('current_lyrics_index', 0)
     this.song = AppStorage.get<Song>('current_playing_song')
     this.originalLyrics = this.song?.meta?.lyric?.normal ?? ''
     this.translatedLyrics = this.song?.meta?.lyric?.translation ?? ''

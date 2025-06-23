@@ -6,6 +6,7 @@ import { LyricsLine } from "../util/LyricsManager";
 import { VibrationControl } from "../util/DeviceController";
 import { EventHelper } from "../util/EventHelper";
 import { LyricItem } from "./LyricItem";
+import { LogUtil } from "@pura/harmony-utils";
 
 @Component
 export struct LyricsView {
@@ -26,8 +27,8 @@ export struct LyricsView {
   @State private isAutoScroll: boolean = false; // 是否处于自动滚动状态
   uiContext: UIContext | undefined = undefined;
   aboutToAppear() {
-    this.scrollToLyric(this.currentLyricsIndex)
     this.uiContext = this.getUIContext();
+    this.scrollToLyric(this.currentLyricsIndex)
   }
 
   aboutToDisappear() {
