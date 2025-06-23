@@ -13,7 +13,7 @@ import { MiniPlaybackControl } from "../component/MiniPlaybackControl";
 import { SongDownloadManager } from "../util/SongDownloadManager";
 import { ScrollController } from "../util/ScrollController";
 import { HeaderAnimation } from "../component/HeaderAnimation";
-import { ResourceManager } from "../util/ResourceManager";
+import ResourceManager from "../util/ResourceManager";
 import { ToastUtil } from "@pura/harmony-utils";
 
 const TAG = 'PlayList'

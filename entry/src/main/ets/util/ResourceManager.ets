@@ -1,13 +1,18 @@
 import { BusinessError } from "@kit.BasicServicesKit";
 import { common } from "@kit.AbilityKit";
 
-export class ResourceManager {
+class ResourceManager {
 
-  static getStringArrayValueSync(res: Resource): string[] {
+  private static context: Context
+
+  init(context: common.UIAbilityContext){
+    ResourceManager.context = context
+  }
+
+  getStringArrayValueSync(res: Resource): string[] {
     let result: string[] = []
     try {
-      const context = getContext() as common.UIAbilityContext
-      result = context.resourceManager.getStringArrayValueSync(res.id);
+      result = ResourceManager.context.resourceManager.getStringArrayValueSync(res.id);
     } catch (error) {
       let code = (error as BusinessError).code;
       let message = (error as BusinessError).message;
@@ -17,11 +22,10 @@ export class ResourceManager {
     }
   }
 
-  static getStringValueSync(res: Resource): string {
+  getStringValueSync(res: Resource): string {
     let result: string = ''
     try {
-      const context = getContext() as common.UIAbilityContext
-      result = context.resourceManager.getStringSync(res.id)
+      result = ResourceManager.context.resourceManager.getStringSync(res.id)
     } catch (error) {
       let code = (error as BusinessError).code;
       let message = (error as BusinessError).message;
@@ -32,3 +36,5 @@ export class ResourceManager {
   }
 
 }
+
+export default new ResourceManager()

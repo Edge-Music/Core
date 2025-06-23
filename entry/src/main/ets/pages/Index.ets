@@ -100,12 +100,12 @@ struct Index_page {
 
     // avPlayerManager.avPlayer?.setVolume(Number(PreferencesCache.getUserPreference('Volume','100'))/100)
     if (PreferencesCache.getUserPreference('Lyic_desktop','0')==='1') {
-      PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
+      PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
       PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
     }
     if (PreferencesCache.getUserPreference(this.version,'0')==='0'){
       try{
-        AlertDialog.show(
+        this.getUIContext().showAlertDialog(
           {
             title: '更新提示',
             subtitle: '此版本',
@@ -152,8 +152,8 @@ struct Index_page {
     }
 
     // 注册断点系统
-    this.breakpointSystem.register()
-    HorizontalMode(this.HorizontalMode_ctrl === '1')
+    this.breakpointSystem.register(this.getUIContext())
+    HorizontalMode(this.getUIContext().getHostContext() as Context, this.HorizontalMode_ctrl === '1')
     AppStorage.setOrCreate("pageStack", this.pageStack)
     // 立即初始化数据
     this.initData()
@@ -195,7 +195,7 @@ struct Index_page {
 
   onPageShow(): void {
     console.info(TAG, 'onPageShow')
-    PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
+    PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
     PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
     PipManager.getInstance().startPip();
   }

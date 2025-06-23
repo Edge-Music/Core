@@ -1,8 +1,8 @@
 import { window } from '@kit.ArkUI';
 
-export function  screen_on(judge:boolean){
+export function screen_on(context: Context, judge:boolean){
   try {
-      window.getLastWindow(getContext(), (err, data) => { // 获取window实例
+      window.getLastWindow(context, (err, data) => { // 获取window实例
         let windowClass = data;
         windowClass.setWindowKeepScreenOn(judge)
       });

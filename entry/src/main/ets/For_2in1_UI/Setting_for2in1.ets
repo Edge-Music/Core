@@ -12,9 +12,8 @@ import { PreferencesCache } from "../util/PreferenceCache";
 import { AboutSetting, PlayerSetting, SoftwareSetting } from "../viewmodel/SettingGroupData";
 import { About } from "../view/About";
 import {Personalized_settings}from '../view/Personalized_settings'
-import { HeaderAnimation } from "../component/HeaderAnimation";
 import { ScrollController } from "../util/ScrollController";
-import { ResourceManager } from "../util/ResourceManager";
+import ResourceManager from "../util/ResourceManager";
 
 const TAG = 'Setting'
 

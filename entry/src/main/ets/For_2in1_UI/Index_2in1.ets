@@ -12,7 +12,6 @@ import { HorizontalMode } from '../util/HorizontalCheck'
 import { ScrollController } from '../util/ScrollController'
 import { HeaderAnimation } from '../component/HeaderAnimation'
 import { deviceInfo } from '@kit.BasicServicesKit'
-// import { PipManager } from '../util/PipManager';
 import { avPlayerManager } from '../util/AVPlayerManager';
 // 缓存常用值以避免重复计算
 const COLUMNS_TEMPLATE_LG = '1fr 1fr 1fr 1fr'
@@ -62,7 +61,7 @@ export struct Index_page {
     // }
     if (PreferencesCache.getUserPreference(this.version,'0')==='0'){
       try{
-        AlertDialog.show(
+        this.getUIContext().showAlertDialog(
           {
             title: '更新提示',
             subtitle: '此版本',
@@ -109,8 +108,8 @@ export struct Index_page {
     }
 
     // 注册断点系统
-    this.breakpointSystem.register()
-    HorizontalMode(this.HorizontalMode_ctrl === '1')
+    this.breakpointSystem.register(this.getUIContext())
+    HorizontalMode(this.getUIContext().getHostContext() as Context,this.HorizontalMode_ctrl === '1')
     AppStorage.setOrCreate("pageStack", this.pageStack)
     // 立即初始化数据
     // this.initData()

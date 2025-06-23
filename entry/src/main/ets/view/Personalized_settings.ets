@@ -1,6 +1,6 @@
 import { PreferencesCache } from "../util/PreferenceCache";
 import {HorizontalMode}from '../util/HorizontalCheck'
-import { ResourceManager } from "../util/ResourceManager";
+import ResourceManager from "../util/ResourceManager";
 import { PipManager } from '../util/PipManager';
 
 @Component
@@ -45,7 +45,7 @@ export struct Personalized_settings_Component {
     }
 
     if (PreferencesCache.getUserPreference('Lyic_desktop','0')==='1') {
-      PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
+      PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
       PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
     }else {
       PipManager.getInstance().setAutoStart(false)
@@ -85,11 +85,11 @@ export struct Personalized_settings{
           .onChange((isOn: boolean) => {
             if (isOn) {
               this.HorizontalMode_ctrl ='1'
-              HorizontalMode(this.HorizontalMode_ctrl==='1')
+              HorizontalMode(this.getUIContext().getHostContext() as Context, this.HorizontalMode_ctrl==='1')
               PreferencesCache.setUserPreference('HorizontalMode_ctrl', this.HorizontalMode_ctrl)
             }else {
               this.HorizontalMode_ctrl ='0'
-              HorizontalMode(this.HorizontalMode_ctrl==='1')
+              HorizontalMode(this.getUIContext().getHostContext() as Context, this.HorizontalMode_ctrl==='1')
               PreferencesCache.setUserPreference('HorizontalMode_ctrl', this.HorizontalMode_ctrl)
             }
 

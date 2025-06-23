@@ -3,19 +3,17 @@ import { SongInfo } from "../component/SongInfo";
 import { TitleHeader } from "../component/TitleHeader";
 import { StyleConstants } from "../constants/StyleConstants";
 import { Playlist, Song } from "../type/Adapter";
-import { BasicPrefetcher, ColorMetrics, LengthMetrics } from '@kit.ArkUI';
+import { BasicPrefetcher } from '@kit.ArkUI';
 import { SongDataSourcePrefetching } from "../util/SongDataSourcePrefetching";
 import { BreakpointConstants } from "../constants/BreakpointConstants";
 import { cover } from "../util/AdapterHelper";
 import { PushPathHelper } from "../util/PushPathHelper";
 import { PlaylistManager, PlayMode } from "../util/PlaylistManager";
-import { MiniPlaybackControl } from "../component/MiniPlaybackControl";
 import { SongDownloadManager } from "../util/SongDownloadManager";
 import { ScrollController } from "../util/ScrollController";
 import { HeaderAnimation } from "../component/HeaderAnimation";
-import { ResourceManager } from "../util/ResourceManager";
+import ResourceManager from "../util/ResourceManager";
 import { ToastUtil } from "@pura/harmony-utils";
-import { SourceAdapter } from "../adapter";
 
 const TAG = 'PlayList'
 

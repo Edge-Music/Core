@@ -1,4 +1,4 @@
-import { bundleManager, Context, wantAgent } from "@kit.AbilityKit"
+import { Context, wantAgent } from "@kit.AbilityKit"
 import { backgroundTaskManager } from "@kit.BackgroundTasksKit"
 import { LogUtil } from "@pura/harmony-utils";
 
@@ -8,12 +8,11 @@ class BackgroundRunningManager {
   // 申请长时任务
   async startBackgroundRunning(ctx?: Context) {
     try {
-      const context = getContext()
 
       // 获取 bundle 应用信息
-      const bundleInfo = bundleManager.getBundleInfoForSelfSync(
-        bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION
-      )
+      // const bundleInfo = bundleManager.getBundleInfoForSelfSync(
+      //   bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION
+      // )
 
       // // 通过wantAgent模块下getWantAgent方法获取WantAgent对象
       // const wantAgentObj = await wantAgent.getWantAgent({
@@ -31,7 +30,7 @@ class BackgroundRunningManager {
       let wantAgentInfo: wantAgent.WantAgentInfo = {
         wants: [
           {
-            bundleName: "zone.jzs.seamusic",
+            bundleName: "zone.yby.seamusic",
             abilityName: "EntryAbility",
           },
         ],
@@ -42,13 +41,13 @@ class BackgroundRunningManager {
 
       const wantObj = await wantAgent.getWantAgent(wantAgentInfo)
       await backgroundTaskManager.startBackgroundRunning(
-        context ? context : ctx,
+        ctx,
         backgroundTaskManager.BackgroundMode.AUDIO_PLAYBACK,
         wantObj
       )
-      LogUtil.info(`${TAG}`, `长时任务申请成功`)
+      LogUtil.info(`[${TAG}]`, `长时任务申请成功`)
     } catch (error) {
-      LogUtil.error(`${TAG}`, `长时任务申请失败, err.code: ${error.code}, err.message: ${error.message}`)
+      LogUtil.error(`[${TAG}]`, `长时任务申请失败, err.code: ${error.code}, err.message: ${error.message}`)
     }
   }
 
@@ -56,10 +55,10 @@ class BackgroundRunningManager {
   async stopBackgroundRunning(ctx?: Context) {
     try {
       // 停止后台任务
-      const context = getContext()
-      await backgroundTaskManager.stopBackgroundRunning(context ? context : ctx)
+      await backgroundTaskManager.stopBackgroundRunning(ctx)
+      LogUtil.info(`[${TAG}]`, `长时任务停止成功`)
     } catch (error) {
-      LogUtil.error(TAG, error.message)
+      LogUtil.error(`[${TAG}]`, `长时任务停止失败, err.code: ${error.code}, err.message: ${error.message}`)
     }
   }
 }

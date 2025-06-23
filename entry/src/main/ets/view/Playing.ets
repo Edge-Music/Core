@@ -75,6 +75,8 @@ struct Playing {
   @State IMG_ctrl: boolean = false
   @StorageLink('winWidth') @Watch('onWinWidthChange') winWidth: number = 0
   @StorageLink('winHeight') @Watch('onWinWidthChange') winHeight: number = 0
+  @StorageLink('winWidthWithPx') @Watch('onWinWidthChange') winWidthWithPx: number = 0
+  @StorageLink('winHeightWithPx') @Watch('onWinWidthChange') winHeightWithPx: number = 0
   @State isSliderVisible: boolean = false
   @State isSliderVisible1: boolean = false
   private timerId: number = -1
@@ -503,7 +505,6 @@ struct Playing {
             })
             .onAppear(async ()=>{
               try {
-                const context = getContext(this);
                 let netFile = this.song?.album?.cover + "?param=64y64" ?? "";
                 let httpRequest = http.createHttp()
                 let data = await httpRequest.request(netFile);
@@ -642,9 +643,9 @@ struct Playing {
       }else{
         this.swiperController.changeIndex(0)
       }
-      screen_on(true)
+      screen_on(this.getUIContext().getHostContext() as Context, true)
     }).onDisAppear(() => {
-      screen_on(false)
+      screen_on(this.getUIContext().getHostContext() as Context, false)
     })
   }
 
@@ -1642,8 +1643,8 @@ struct Playing {
             .layoutWeight(1)
           } else if (this.isWideScreen && this.Playing_Next) {
             this.Playing_HorizontalMode()
-          }else if (vp2px(this.winHeight)<1500&&vp2px(this.winWidth)<1500){
-            if(vp2px(this.winHeight)>900&&this.Pura_X==='0'||vp2px(this.winHeight)>600&&this.Pura_X==='1'){
+          }else if (this.winHeightWithPx<1500&&this.winWidthWithPx<1500){
+            if(this.winHeightWithPx>900&&this.Pura_X==='0'||this.winHeightWithPx>600&&this.Pura_X==='1'){
               this.playing_50()
             }else{
               this.playing_30()
@@ -1698,7 +1699,7 @@ struct Playing {
     .mode(NavDestinationMode.STANDARD)
     .onAppear(()=>{
       this.img_playing_ctrl=  PreferencesCache.getUserPreference('img_playing_ctrl','0')
-      PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
+      PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
 
     })
     .width(StyleConstants.FULL_WIDTH)

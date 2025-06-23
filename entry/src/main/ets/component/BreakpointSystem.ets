@@ -33,6 +33,7 @@ export class BreakpointSystem {
   private mdListener?: mediaQuery.MediaQueryListener;
   private lgListener?: mediaQuery.MediaQueryListener;
   private orientationListener?: mediaQuery.MediaQueryListener;
+  private static uiContext: UIContext
 
   private updateCurrentBreakpoint(breakpoint: string) {
     // 应用特殊逻辑，考虑设备类型和方向
@@ -96,11 +97,11 @@ export class BreakpointSystem {
   // 检测当前断点
   private detectCurrentBreakpoint() {
     try {
-      if (mediaQuery.matchMediaSync(BreakpointConstants.RANGE_SM).matches) {
+      if (BreakpointSystem.uiContext.getMediaQuery().matchMediaSync(BreakpointConstants.RANGE_SM).matches) {
         this.updateCurrentBreakpoint(BreakpointConstants.BREAKPOINT_SM);
-      } else if (mediaQuery.matchMediaSync(BreakpointConstants.RANGE_MD).matches) {
+      } else if (BreakpointSystem.uiContext.getMediaQuery().matchMediaSync(BreakpointConstants.RANGE_MD).matches) {
         this.updateCurrentBreakpoint(BreakpointConstants.BREAKPOINT_MD);
-      } else if (mediaQuery.matchMediaSync(BreakpointConstants.RANGE_LG).matches) {
+      } else if (BreakpointSystem.uiContext.getMediaQuery().matchMediaSync(BreakpointConstants.RANGE_LG).matches) {
         this.updateCurrentBreakpoint(BreakpointConstants.BREAKPOINT_LG);
       }
     } catch (error) {
@@ -131,27 +132,28 @@ export class BreakpointSystem {
     this.detectDeviceType();
 
     // 2. 初始化设备方向
-    const landscapeQuery = mediaQuery.matchMediaSync('(orientation: landscape)');
+    const landscapeQuery = BreakpointSystem.uiContext.getMediaQuery().matchMediaSync('(orientation: landscape)');
     this.orientationChange({ matches: landscapeQuery.matches } as mediaQuery.MediaQueryResult);
 
     // 3. 检测当前断点
     this.detectCurrentBreakpoint();
   }
 
-  public register() {
+  public register(uiContext: UIContext) {
     try {
+      BreakpointSystem.uiContext = uiContext
       // 注册断点监听器
-      this.smListener = mediaQuery.matchMediaSync(BreakpointConstants.RANGE_SM);
+      this.smListener = BreakpointSystem.uiContext.getMediaQuery().matchMediaSync(BreakpointConstants.RANGE_SM);
       this.smListener.on('change', this.isBreakpointSM);
 
-      this.mdListener = mediaQuery.matchMediaSync(BreakpointConstants.RANGE_MD);
+      this.mdListener = BreakpointSystem.uiContext.getMediaQuery().matchMediaSync(BreakpointConstants.RANGE_MD);
       this.mdListener.on('change', this.isBreakpointMD);
 
-      this.lgListener = mediaQuery.matchMediaSync(BreakpointConstants.RANGE_LG);
+      this.lgListener = BreakpointSystem.uiContext.getMediaQuery().matchMediaSync(BreakpointConstants.RANGE_LG);
       this.lgListener.on('change', this.isBreakpointLG);
 
       // 注册方向监听器 (横屏查询)
-      this.orientationListener = mediaQuery.matchMediaSync('(orientation: landscape)');
+      this.orientationListener = BreakpointSystem.uiContext.getMediaQuery().matchMediaSync('(orientation: landscape)');
       this.orientationListener.on('change', this.orientationChange);
 
       // 初始化所有状态

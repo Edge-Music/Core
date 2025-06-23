@@ -92,23 +92,31 @@ export struct IS_2IN1_UI{
               .fontSize($r('app.float.title_font_size'))
               .textOverflow({ overflow: TextOverflow.Ellipsis })
               .maxLines(1)
-            Blank()
-            Text('󰀩')
-              .fontColor($r('app.color.text_title'))
-              .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-              .fontSize($r('app.float.title_font_size'))
-              .onClick(()=>{
-                this.pageStack.pushPath({ name: 'MultiSearch' })
-              })
-              .margin({right:16})
           }
         }
         .layoutWeight(1)
         .justifyContent(FlexAlign.Center)
         .alignItems(VerticalAlign.Center)
+
+        if(this.sidebar_ctrl){
+          Button({ type: ButtonType.Circle }){
+            Text('󰀩')
+              .fontColor($r('app.color.text_title'))
+              .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
+              .fontSize($r('app.float.title_font_size'))
+          }
+          .width(36)
+          .height(36)
+          .backgroundColor(Color.Transparent)
+          .clickEffect({ level: ClickEffectLevel.LIGHT })
+          .onClick(()=>{
+            this.pageStack.pushPath({ name: 'MultiSearch' })
+          })
+          .margin({ right:16 })
+        }
       }
       .margin({ left: 12 })
-      .justifyContent(FlexAlign.Start)
+      .justifyContent(FlexAlign.SpaceBetween)
       .alignItems(VerticalAlign.Center)
     }
     .justifyContent(FlexAlign.Center)
@@ -127,13 +135,12 @@ export struct IS_2IN1_UI{
     Column(){
       // PC工具栏适配
       if(this.topRect > 0){
-        Row(){
-        }
+        Row()
         .height(this.topRect)
         .width('100%')
       }
       if(this.decorHeight > 0){
-        Row(){}
+        Row()
         .height(this.decorHeight)
         .width('100%')
       }
