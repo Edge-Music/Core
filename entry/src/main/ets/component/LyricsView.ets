@@ -153,10 +153,6 @@ export struct LyricsView {
         .position({ x: '100%', y: '100%' })
         .translate({ x: -72, y: -72 })
         .onClick(() => this.toggleTranslation())
-        .animation({
-          duration: 300,
-          curve: Curve.EaseInOut
-        })
       }
     }
     .width(StyleConstants.FULL_WIDTH)
