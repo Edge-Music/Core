@@ -22,8 +22,8 @@ const TAG = 'Index'
 export struct Index_page {
   @StorageProp('decorHeight') decorHeight: number = 0
   @State version: string = '2.2.0'
-
   @State blankHeight: number = 0
+  @State limit: number = 10
   @Consume('NavPathStack') pageStack: NavPathStack
   @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
   private breakpointSystem = new BreakpointSystem()
@@ -53,6 +53,9 @@ export struct Index_page {
     avPlayerManager.setAudioSession()
 
     this.zhishi_UI =  PreferencesCache.getUserPreference('zhishi_UI','0')
+    if(this.zhishi_UI === '1'){
+      this.limit = 20
+    }
 
     // avPlayerManager.avPlayer?.setVolume(Number(PreferencesCache.getUserPreference('Volume','100'))/100)
     // if (PreferencesCache.getUserPreference('Lyic_desktop','0')==='1') {
@@ -137,10 +140,10 @@ export struct Index_page {
     try {
       // 并行加载数据并捕获异常
       await Promise.all([
-        SourceAdapter.getRecommendList(),
-        SourceAdapter.getRecommendSongs(),
-        SourceAdapter.getRecommendArtists(),
-        SourceAdapter.getTopList(),
+        SourceAdapter.getRecommendList(this.limit),
+        SourceAdapter.getRecommendSongs(this.limit),
+        SourceAdapter.getRecommendArtists(this.limit),
+        SourceAdapter.getTopList(this.limit),
         SourceAdapter.getUserPlaylist()
       ])
     } catch (error) {
@@ -273,7 +276,7 @@ export struct Index_page {
       actionText: $r('app.string.rotate'),
       loading: this.loading,
       onActionClick: async () => {
-        this.recommendSongs = await SourceAdapter.getRecommendSongs()
+        this.recommendSongs = await SourceAdapter.getRecommendSongs(this.limit)
       },
     }).key('Index-R')
   }
@@ -287,7 +290,7 @@ export struct Index_page {
       actionText: $r('app.string.rotate'),
       loading: this.loading,
       onActionClick: async () => {
-        this.recommendPlaylist = await SourceAdapter.getRecommendList()
+        this.recommendPlaylist = await SourceAdapter.getRecommendList(this.limit)
       },
     }).key('Index-R')
   }
@@ -302,7 +305,7 @@ export struct Index_page {
       loading: this.loading,
       radius: "100%",
       onActionClick: async () => {
-        this.recommendArtists = await SourceAdapter.getRecommendArtists()
+        this.recommendArtists = await SourceAdapter.getRecommendArtists(this.limit)
       },
     }).key('Index-R')
   }
