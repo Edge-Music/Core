@@ -13,6 +13,7 @@ import { SourceAdapter } from '../adapter';
 import { rpc } from '@kit.IPCKit';
 import { CollectAction, PlayActionType } from '../widget/model/FormCardConstant';
 import { PlaylistManager } from './PlaylistManager';
+import { LyricsLine } from './LyricsManager';
 
 const TAG = 'FormUtils';
 
@@ -50,6 +51,45 @@ class FormUtils {
     let data = new CardUpdateData();
     let formList: Array<FormInfo> = await FormRdbHelper.getInstance(FormUtils.context!).queryFormByName('PlayControlCard');
     LogUtil.info(TAG, `updateCardPlayStatus formList length:  ${formList.length}`);
+    formList.forEach(formInfo => {
+      this.updateForm(formInfo.formId, data);
+    });
+  }
+
+  public async updateCardLyrics(parsedLyrics: LyricsLine[]) {
+    class CardLyricsUpdateData {
+      parsedLyrics: LyricsLine[] = parsedLyrics
+    }
+
+    let data = new CardLyricsUpdateData();
+    let formList: Array<FormInfo> = await FormRdbHelper.getInstance(FormUtils.context!).queryFormByName('PlayControlCardWithLyrics');
+    LogUtil.info(TAG, `updateCardPlayLyrics formList length:  ${formList.length}`);
+    formList.forEach(formInfo => {
+      this.updateForm(formInfo.formId, data);
+    });
+  }
+
+  public async updateCardLyricsIndex(currentLyricsIndex: number) {
+    class CardLyricsUpdateData {
+      currentLyricsIndex: number = currentLyricsIndex
+    }
+
+    let data = new CardLyricsUpdateData();
+    let formList: Array<FormInfo> = await FormRdbHelper.getInstance(FormUtils.context!).queryFormByName('PlayControlCardWithLyrics');
+    LogUtil.info(TAG, `updateCardPlayLyricsIndex formList length:  ${formList.length}`);
+    formList.forEach(formInfo => {
+      this.updateForm(formInfo.formId, data);
+    });
+  }
+
+  public async updateCardCurrentLyrics(currentLyric: string) {
+    class CardCurrentLyricsUpdateData {
+      currentLyric: string = currentLyric
+    }
+
+    let data = new CardCurrentLyricsUpdateData();
+    let formList: Array<FormInfo> = await FormRdbHelper.getInstance(FormUtils.context!).queryFormByName('PlayControlCard2x4');
+    LogUtil.info(TAG, `updateCardCurrentLyrics formList length:  ${formList.length}`);
     formList.forEach(formInfo => {
       this.updateForm(formInfo.formId, data);
     });

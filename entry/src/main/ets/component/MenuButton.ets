@@ -1,10 +1,8 @@
 import { StyleConstants } from "../constants/StyleConstants"
 
-@Reusable
 @Component
 export struct MenuButton {
   @State private isAnimating: boolean = false
-  @State private isPressed: boolean = false
   title: ResourceStr = ''
   onNavigate?: (event: ClickEvent) => void
   private animationTimer: number | undefined
@@ -54,7 +52,10 @@ export struct MenuButton {
     .width(StyleConstants.FULL_WIDTH)
     .height(48)
     .padding({ left: 16, right: 16 })
-    .backgroundColor(this.isPressed ? $r("app.color.homepage_menu_button_pressed") : $r("app.color.homepage_menu_button_normal"))
+    .stateStyles({
+      normal: this.normalStyles,
+      pressed: this.pressedStyles
+    })
     .border({ width: 0.5, color: $r("app.color.homepage_menu_button_divider") })
     .borderRadius(8)
     .onClick((event: ClickEvent) => {
@@ -67,13 +68,14 @@ export struct MenuButton {
       }
     })
     .backgroundBlurStyle(BlurStyle.COMPONENT_ULTRA_THIN)
-    .onTouch((event: TouchEvent) => {
-      if (event.type === TouchType.Down) {
-        this.isPressed = true
-      } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
-        this.isPressed = false
-      }
-    })
     .clickEffect({ level: ClickEffectLevel.LIGHT })
+  }
+
+  @Styles normalStyles(){
+    .backgroundColor($r("app.color.homepage_menu_button_normal"))
+  }
+
+  @Styles pressedStyles(){
+    .backgroundColor($r("app.color.homepage_menu_button_pressed"))
   }
 }

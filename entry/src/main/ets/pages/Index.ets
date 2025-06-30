@@ -20,7 +20,7 @@ import { HeaderAnimation } from '../component/HeaderAnimation'
 import { deviceInfo } from '@kit.BasicServicesKit'
 import { PipManager } from '../util/PipManager';
 import { avPlayerManager } from '../util/AVPlayerManager';
-
+import {FOR_2IN1_UI, IS_2IN1_UI}from '../For_2in1_UI/FOR2IN1'
 // 缓存常用值以避免重复计算
 const COLUMNS_TEMPLATE_LG = '1fr 1fr 1fr 1fr'
 const COLUMNS_TEMPLATE_SM = '1fr 1fr'
@@ -66,9 +66,9 @@ struct Index {
 @Component
 struct Index_page {
   @StorageProp('decorHeight') decorHeight: number = 0
-  @State version: string = '2.2.0'
-
+  @State version: string = '2.2.0.y'
   @State blankHeight: number = 0
+  @State limit: number = 10
   @Consume('NavPathStack') pageStack: NavPathStack
   @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
   private breakpointSystem = new BreakpointSystem()
@@ -92,21 +92,28 @@ struct Index_page {
     },
     componentTag: TAG
   }).linkController(this.scroller)
-
+  //2in1 UI控制
+  @StorageProp('zhishi_UI') zhishi_UI: string =  PreferencesCache.getUserPreference('zhishi_UI','0')
   async aboutToAppear() {
     avPlayerManager.setAudioSession()
+
+    this.zhishi_UI = PreferencesCache.getUserPreference('zhishi_UI','0')
+    if(this.zhishi_UI === '1'){
+      this.limit = 20
+    }
+
     // avPlayerManager.avPlayer?.setVolume(Number(PreferencesCache.getUserPreference('Volume','100'))/100)
     if (PreferencesCache.getUserPreference('Lyic_desktop','0')==='1') {
-      PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
+      PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
       PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
     }
     if (PreferencesCache.getUserPreference(this.version,'0')==='0'){
       try{
-        AlertDialog.show(
+        this.getUIContext().showAlertDialog(
           {
             title: '更新提示',
             subtitle: '此版本',
-            message: '播放页双击歌曲两侧即可弹出调节软件音量，个性化设置中增加允许同时播放（需暂停再次播放后触发），临时解决2in1设备无法使用的问题，全新2in1适配施工中',
+            message: '多种优化，2in1内部开发版（待完善），个性化设置中增加2in1UI开关（需重启后触发），2in1UI较为毛坯，同时可能具备难以预料的BUG，2in1用户可以选择进入个性化设置关闭2in1UI，以便更好的体验。关闭后的padui可通过点击标题栏来进行返回上一页面操作',
             autoCancel: true,
             alignment: DialogAlignment.Bottom,
             gridCount: 4,
@@ -149,8 +156,8 @@ struct Index_page {
     }
 
     // 注册断点系统
-    this.breakpointSystem.register()
-    HorizontalMode(this.HorizontalMode_ctrl === '1')
+    this.breakpointSystem.register(this.getUIContext())
+    HorizontalMode(this.getUIContext().getHostContext() as Context, this.HorizontalMode_ctrl === '1')
     AppStorage.setOrCreate("pageStack", this.pageStack)
     // 立即初始化数据
     this.initData()
@@ -177,10 +184,10 @@ struct Index_page {
     try {
       // 并行加载数据并捕获异常
       await Promise.all([
-        SourceAdapter.getRecommendList(),
-        SourceAdapter.getRecommendSongs(),
-        SourceAdapter.getRecommendArtists(),
-        SourceAdapter.getTopList(),
+        SourceAdapter.getRecommendList(this.limit),
+        SourceAdapter.getRecommendSongs(this.limit),
+        SourceAdapter.getRecommendArtists(this.limit),
+        SourceAdapter.getTopList(this.limit),
         SourceAdapter.getUserPlaylist()
       ])
     } catch (error) {
@@ -192,7 +199,7 @@ struct Index_page {
 
   onPageShow(): void {
     console.info(TAG, 'onPageShow')
-    PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
+    PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
     PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
     PipManager.getInstance().startPip();
   }
@@ -205,7 +212,6 @@ struct Index_page {
   aboutToDisappear() {
     this.breakpointSystem.unregister()
     PipManager.getInstance().unregisterPipStateChangeListener(); // 解注册画中画生命周期及状态回调
-
   }
 
   @Builder
@@ -228,7 +234,7 @@ struct Index_page {
       }
       else if(this.topRect > 0){
         Row(){}
-        .height(px2vp(this.topRect)).backgroundColor('transparent').width('100%')
+        .height(this.topRect).backgroundColor('transparent').width('100%')
       }
 
       Row() {
@@ -293,7 +299,7 @@ struct Index_page {
               this.pageStack.pushPath({ name: item.path })
             }
           })
-        }.key(`${item.title}`)
+        }
         .padding(4)
       })
     }
@@ -313,7 +319,7 @@ struct Index_page {
       actionText: $r('app.string.rotate'),
       loading: this.loading,
       onActionClick: async () => {
-        this.recommendSongs = await SourceAdapter.getRecommendSongs()
+        this.recommendSongs = await SourceAdapter.getRecommendSongs(this.limit)
       },
     }).key('Index-R')
   }
@@ -327,7 +333,7 @@ struct Index_page {
       actionText: $r('app.string.rotate'),
       loading: this.loading,
       onActionClick: async () => {
-        this.recommendPlaylist = await SourceAdapter.getRecommendList()
+        this.recommendPlaylist = await SourceAdapter.getRecommendList(this.limit)
       },
     }).key('Index-R')
   }
@@ -342,7 +348,7 @@ struct Index_page {
       loading: this.loading,
       radius: "100%",
       onActionClick: async () => {
-        this.recommendArtists = await SourceAdapter.getRecommendArtists()
+        this.recommendArtists = await SourceAdapter.getRecommendArtists(this.limit)
       },
     }).key('Index-R')
   }
@@ -387,82 +393,86 @@ struct Index_page {
 
   build() {
     NavDestination() {
-      Stack({ alignContent: Alignment.Bottom }) {
-        Column(){
-          this.Title()
+      if (this.zhishi_UI === '1'){
+        IS_2IN1_UI()
+      }else {
+        Stack({ alignContent: Alignment.Bottom }) {
+          Column(){
+            this.Title()
 
-          List({ scroller: this.scroller }) {
-            ListItem() {
-              HeaderAnimation({ scrollController: this.scrollController, isShowLoadingProgress: true })
-            }
-
-            if (this.adapters.length > 0) {
+            List({ scroller: this.scroller }) {
               ListItem() {
-                this.MenuGrid()
+                HeaderAnimation({ scrollController: this.scrollController, isShowLoadingProgress: true })
               }
 
-              if (this.loading || (this.recommendPlaylist.length > 0 || this.recommendSongs.length > 0
-                || this.recommendArtists.length > 0 || this.topList.length > 0)) {
-                if(this.recommendPlaylist.length > 0){
-                  this.RecommendedSongs()
-                }
-
-                if(this.recommendSongs.length > 0){
-                  this.RecommendedPlaylists()
-                }
-
-                if(this.recommendArtists.length > 0){
-                  this.RecommendedArtists()
-                }
-
-                if(this.topList.length > 0){
-                  this.TopLists()
-                }
-              } else if(!this.loading) {
+              if (this.adapters.length > 0) {
                 ListItem() {
-                  Row() {
-                    Column() {
-                      Text($r('app.string.no_recommendations'))
-                        .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-                        .fontColor($r('app.color.text_hint'))
-                        .fontSize(16)
-                    }
-                    .width(StyleConstants.FULL_WIDTH)
-                    .height(StyleConstants.FULL_HEIGHT)
-                    .justifyContent(FlexAlign.Center)
+                  this.MenuGrid()
+                }
+
+                if (this.loading || (this.recommendPlaylist.length > 0 || this.recommendSongs.length > 0
+                  || this.recommendArtists.length > 0 || this.topList.length > 0)) {
+                  if(this.recommendPlaylist.length > 0){
+                    this.RecommendedSongs()
                   }
-                  .height(this.getBlankHeight())
+
+                  if(this.recommendSongs.length > 0){
+                    this.RecommendedPlaylists()
+                  }
+
+                  if(this.recommendArtists.length > 0){
+                    this.RecommendedArtists()
+                  }
+
+                  if(this.topList.length > 0){
+                    this.TopLists()
+                  }
+                } else if(!this.loading) {
+                  ListItem() {
+                    Row() {
+                      Column() {
+                        Text($r('app.string.no_recommendations'))
+                          .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
+                          .fontColor($r('app.color.text_hint'))
+                          .fontSize(16)
+                      }
+                      .width(StyleConstants.FULL_WIDTH)
+                      .height(StyleConstants.FULL_HEIGHT)
+                      .justifyContent(FlexAlign.Center)
+                    }
+                    .height(this.getBlankHeight())
+                  }
+                }
+              } else {
+                ListItem() {
+                  this.EmptyDataSource()
                 }
               }
-            } else {
-              ListItem() {
-                this.EmptyDataSource()
-              }
-            }
 
-            ListItem() {
-              Row() {
-                Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + px2vp(this.bottomRect))
+              ListItem() {
+                Row() {
+                  Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + this.bottomRect)
+                }
               }
             }
+            .width(StyleConstants.FULL_WIDTH)
+            .height(StyleConstants.FULL_HEIGHT)
+            .layoutWeight(1)
+            .backToTop(true)
+            .scrollBar(BarState.Off)
+            .edgeEffect(EdgeEffect.Spring)
+            .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
+            .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
+            .scrollBarColor('#e7bb7c')
           }
           .width(StyleConstants.FULL_WIDTH)
           .height(StyleConstants.FULL_HEIGHT)
-          .layoutWeight(1)
-          .backToTop(true)
-          .scrollBar(BarState.Off)
-          .edgeEffect(EdgeEffect.Spring)
-          .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
-          .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
-          .scrollBarColor('#e7bb7c')
-        }
-        .width(StyleConstants.FULL_WIDTH)
-        .height(StyleConstants.FULL_HEIGHT)
 
-        MiniPlaybackControl()
+          MiniPlaybackControl()
+        }
+        .height(StyleConstants.FULL_HEIGHT)
+        .width(StyleConstants.FULL_WIDTH)
       }
-      .height(StyleConstants.FULL_HEIGHT)
-      .width(StyleConstants.FULL_WIDTH)
     }
     .height(StyleConstants.FULL_HEIGHT)
     .width(StyleConstants.FULL_WIDTH)
@@ -475,7 +485,7 @@ struct Index_page {
   }
 
   getBlankHeight(): number {
-    let sub = px2vp(this.winHeight) - this.blankHeight - 50 - px2vp(this.bottomRect + this.topRect)
+    let sub = this.winHeight - this.blankHeight - 50 - (this.bottomRect + this.topRect)
     return sub > 0 ? sub : 0
   }
 }

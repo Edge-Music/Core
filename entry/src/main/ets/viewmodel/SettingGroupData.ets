@@ -5,7 +5,7 @@ import { getQualityLevel, PreferencesCache, qualityLevels } from "../util/Prefer
 import { DialogAction, DialogHelper } from "@pura/harmony-dialog";
 import { ResponseCacheUtil } from "../util/ResponseCacheUtil";
 import { SongCacheManager } from "../util/SongCacheManager";
-import { ResourceManager } from "../util/ResourceManager";
+import ResourceManager from "../util/ResourceManager";
 
 // 音乐播放设置组
 export const PlayerSetting = [

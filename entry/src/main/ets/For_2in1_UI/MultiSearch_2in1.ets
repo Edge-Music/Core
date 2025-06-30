@@ -15,7 +15,7 @@ import { ScrollController } from "../util/ScrollController";
 const TAG = 'MultiSearch'
 
 @Component
-export struct MultiSearch {
+export struct MultiSearch_2in1 {
   @State groupHeight: number = 0
   @Consume('NavPathStack') pageStack: NavPathStack;
   @State keywords: string = '';
@@ -82,7 +82,7 @@ export struct MultiSearch {
     NavDestination() {
       Stack({ alignContent: Alignment.Bottom }){
         Column(){
-          this.Title()
+          // this.Title()
 
           List({ scroller: this.scroller}){
 

@@ -9,7 +9,6 @@ import { BreakpointConstants } from "../constants/BreakpointConstants";
 import { cover } from "../util/AdapterHelper";
 import { PushPathHelper } from "../util/PushPathHelper";
 import { PlaylistManager, PlayMode } from "../util/PlaylistManager";
-import { MiniPlaybackControl } from "../component/MiniPlaybackControl";
 import { SongDownloadManager } from "../util/SongDownloadManager";
 import { ScrollController } from "../util/ScrollController";
 import { HeaderAnimation } from "../component/HeaderAnimation";
@@ -19,11 +18,11 @@ import { ToastUtil } from "@pura/harmony-utils";
 const TAG = 'PlayList'
 
 @Component
-export struct PlayList {
+export struct PlayListFor2in1 {
   @State searchContext: string = ResourceManager.getStringValueSync($r('app.string.search'))
   @State groupHeight: number = 0;
   @Consume('NavPathStack') pageStack: NavPathStack;
-  @StorageLink("current_playlist_data") playlist: Playlist | null = null
+  @Watch('onplaylistChange') @StorageLink("current_playlist_data") playlist: Playlist | null = null
   @Watch('onBreakpointChange') @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
   private songDataSource: SongDataSourcePrefetching = new SongDataSourcePrefetching(null);
   private prefetcher: BasicPrefetcher | null = null;
@@ -37,6 +36,7 @@ export struct PlayList {
   @StorageLink("cache_data_create_time") cacheTime: number = -1
   @StorageLink("current_playing_song") song: Song | null = null
   @StorageProp('bottomRect') bottomRect: number = 0;
+  @StorageProp('decorHeight') decorHeight: number = 0
   @StorageProp('topRect') topRect: number = 0;
   @StorageProp('winHeight') winHeight: number = 0;
   // 搜索相关状态
@@ -50,15 +50,31 @@ export struct PlayList {
     componentTag: TAG
   }).linkController(this.scroller)
 
+  onplaylistChange(){
+    this.sourceOk = false;
+    // this.songDataSource = new SongDataSourcePrefetching(this.playlist);
+    this.songDataSource.reloadData(this.playlist)
+    // 创建预取器
+    console.log('jizhishitest2in1')
+    this.prefetcher = new BasicPrefetcher(this.songDataSource);
+    // 设置屏幕模式
+    this.isWideScreen = this.currentBreakpoint !== BreakpointConstants.BREAKPOINT_SM;
+
+    this.sourceOk = true;
+
+  }
   @Builder
   Title() {
-    TitleHeader({
-      title: this.playlist?.name,
-      backActive: this.scrollController.currentIndex === 0,
-    })
+    Row(){
+      TitleHeader({
+        title: this.playlist?.name,
+        backActive: this.scrollController.currentIndex === 0,
+      })
+    }
+
   }
 
-  aboutToAppear(): void {
+  async aboutToAppear(): Promise<void> {
     // 初始化数据源
     this.songDataSource = new SongDataSourcePrefetching(this.playlist);
     // 创建预取器
@@ -67,6 +83,10 @@ export struct PlayList {
     this.isWideScreen = this.currentBreakpoint !== BreakpointConstants.BREAKPOINT_SM;
 
     this.sourceOk = true;
+    /*    if (this.playlist!=null) {
+          const playlistitem = await SourceAdapter.getPlaylistDetail(this.playlist)
+          AppStorage.setOrCreate('current_playlist_data', playlistitem)
+        }*/
   }
 
   // 监听屏幕断点变化
@@ -204,10 +224,6 @@ export struct PlayList {
       // })
 
       List({ scroller: this.scroller }) {
-        ListItem() {
-          // 下拉提示动画
-          HeaderAnimation({ scrollController: this.scrollController })
-        }
 
         ListItem() {
           // 轮播图部分（如果符合条件）
@@ -231,7 +247,7 @@ export struct PlayList {
               .key(`${song.id}-${index}`)
             })
           } else {
-            LazyForEach(this.songDataSource, (song: Song, index: number) => {
+            ForEach(this.playlist?.songs, (song: Song, index: number) => {
               ListItem() {
                 SongInfo({
                   song: song,
@@ -259,8 +275,7 @@ export struct PlayList {
 
         ListItem() {
           Row() {
-            // 底部避让空间，高度为播控高度(64) + 播控底部padding高度(16)
-            Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + this.bottomRect)
+            Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + this.bottomRect + this.topRect + this.decorHeight + 50 + 16)
           }
         }
       }
@@ -269,6 +284,7 @@ export struct PlayList {
       .height(StyleConstants.FULL_HEIGHT)
       .width(StyleConstants.FULL_WIDTH)
       .layoutWeight(1)
+      .expandSafeArea()
       .edgeEffect(EdgeEffect.Spring)
       .listDirection(Axis.Vertical)
       .divider({ strokeWidth: 0 })
@@ -297,6 +313,7 @@ export struct PlayList {
       })
 
     }
+    .expandSafeArea()
     .width(StyleConstants.FULL_WIDTH)
     .layoutWeight(1)
   }
@@ -356,6 +373,7 @@ export struct PlayList {
     Column() {
       this.SongListSection()
     }
+    .expandSafeArea()
     .height(StyleConstants.FULL_HEIGHT)
     .width(StyleConstants.FULL_WIDTH)
   }
@@ -494,7 +512,7 @@ export struct PlayList {
       Stack({ alignContent: Alignment.Bottom }) {
         Column() {
           // 标题区域
-          this.Title()
+          // this.Title()
 
           Column() {
             if (this.playlist && this.playlist.songs && this.playlist.songs.length > 0) {
@@ -546,7 +564,7 @@ export struct PlayList {
         .height(StyleConstants.FULL_HEIGHT)
 
         // 底部迷你播放控制器 - 直接放在Stack底部
-        MiniPlaybackControl()
+        // MiniPlaybackControl()
       }
       .width(StyleConstants.FULL_WIDTH)
       .height(StyleConstants.FULL_HEIGHT)
@@ -558,7 +576,7 @@ export struct PlayList {
     .mode(NavDestinationMode.STANDARD)
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
-    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM, LayoutSafeAreaEdge.TOP])
+    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM])
   }
 
   @Builder
@@ -745,7 +763,7 @@ export struct PlayList {
   }
 
   countSubVp(): number {
-    let sub: number = this.winHeight - 50 - this.groupHeight - (this.bottomRect+this.topRect)
+    let sub: number = this.winHeight - 50 - this.groupHeight - (this.bottomRect + this.topRect)
     // if(this.songDataSource.totalCount() <= 15){
     //   // 填补高度=屏幕高度 - title高度50 - (播放组件高度40+上下padding高度2*4) - 状态栏高度 - 导航栏高度
     //   sub = px2vp(this.winHeight) - (50+40+12*2+(68+2*4)*this.songDataSource.totalCount()) - px2vp(this.topRect) - px2vp(this.bottomRect)
@@ -766,9 +784,9 @@ export struct PlayList {
 
     const keywords = this.searchKeywords.toLowerCase().trim()
     this.filteredSongs = this.playlist.songs.filter(song =>
-    song.name?.toLowerCase().includes(keywords) ||
-    song.artists?.some(artist => artist?.name?.toLowerCase().includes(keywords)) ||
-    song.album?.name?.toLowerCase().includes(keywords)
+    song.name.toLowerCase().includes(keywords) ||
+    song.artists.some(artist => artist.name.toLowerCase().includes(keywords)) ||
+    song.album.name.toLowerCase().includes(keywords)
     )
     this.isSearching = true
   }

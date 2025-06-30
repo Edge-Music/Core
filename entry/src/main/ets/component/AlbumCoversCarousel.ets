@@ -30,10 +30,11 @@ export struct AlbumCoversCarousel {
   private timer: number = -1;
   // 容器宽度
   private containerWidth: number = 0;
-
+  uiContext: UIContext | undefined = undefined;
   aboutToAppear() {
     // 预先排列所有歌曲
     this.arrangeAllSongs();
+    this.uiContext = this.getUIContext();
   }
 
   aboutToDisappear() {
@@ -89,7 +90,7 @@ export struct AlbumCoversCarousel {
 
       // 当滚动位置超过总宽度时重置
       if (Math.abs(this.scrollPosition) >= totalWidth) {
-        animateTo({
+        this.uiContext?.animateTo({
           duration: 500,
           curve: Curve.FastOutSlowIn
         }, () => {

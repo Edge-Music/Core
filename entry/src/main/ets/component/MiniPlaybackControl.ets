@@ -22,19 +22,20 @@ export struct MiniPlaybackControl {
   @State swipeDirection: string = ''; // 滑动方向
   @StorageLink('winWidth') winWidth: number = 0
   @StorageProp('bottomRect') bottomRect: number = 0
-  @State bottom_judge: string = PreferencesCache.getUserPreference('miniplaying_bottom_judge','0')
+  @StorageLink('miniplaying_bottom_judge') bottom_judge: string = PreferencesCache.getUserPreference('miniplaying_bottom_judge','0')
   @State playBtnScale: number = 1
   @State nextBtnScale: number = 1
   @State playListBtnScale: number = 1
   private updateTimer: number = -1;
   private playerManager = avPlayerManager;
   private readonly SWIPE_THRESHOLD: number = 80; // 触发切换的阈值
-
+  uiContext: UIContext | undefined = undefined;
   aboutToAppear() {
     // 获取初始状态
     this.playerManager.getAVPlayerInstance().then(player => {
       this.currentTimeMs = player.currentTime;
       this.durationMs = player.duration;
+      this.uiContext = this.getUIContext();
       this.isPlaying = player.state === 'playing';
     });
 
@@ -65,7 +66,7 @@ export struct MiniPlaybackControl {
 
   // 处理歌曲切换
   handleSongChange(direction: 'next' | 'prev') {
-    animateTo({
+    this.uiContext?.animateTo({
       duration: 350,
       curve: Curve.EaseInOut,
       delay: 0,
@@ -99,7 +100,7 @@ export struct MiniPlaybackControl {
         type: ProgressType.Capsule
       })
         .height(2)
-        .width(px2vp(this.winWidth*StyleConstants.NINETY_HEIGHT) - StyleConstants.BORDER_RADIUS*2) //进度条调整长度为屏幕宽度的90%-圆角的2倍(12*2)
+        .width((this.winWidth*StyleConstants.NINETY_HEIGHT) - StyleConstants.BORDER_RADIUS*2) //进度条调整长度为屏幕宽度的90%-圆角的2倍(12*2)
         .color($r('app.color.text_click'))
         .backgroundColor('rgba(255, 255, 255, 0.2)')
     }
@@ -242,11 +243,11 @@ export struct MiniPlaybackControl {
             })
             .onTouch((event) => {
               if (event.type === TouchType.Down) {
-                animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+                this.uiContext?.animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
                   this.playBtnScale = 0.8
                 })
               } else if (event.type === TouchType.Up) {
-                animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+                this.uiContext?.animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
                   this.playBtnScale = 1
                 })
               }
@@ -274,11 +275,11 @@ export struct MiniPlaybackControl {
             })
             .onTouch((event) => {
               if (event.type === TouchType.Down) {
-                animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+                this.uiContext?.animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
                   this.nextBtnScale = 0.8
                 })
               } else if (event.type === TouchType.Up) {
-                animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+                this.uiContext?.animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
                   this.nextBtnScale = 1
                 })
               }
@@ -302,11 +303,11 @@ export struct MiniPlaybackControl {
             })
             .onTouch((event) => {
               if (event.type === TouchType.Down) {
-                animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+                this.uiContext?.animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
                   this.playListBtnScale = 0.8
                 })
               } else if (event.type === TouchType.Up) {
-                animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+                this.uiContext?.animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
                   this.playListBtnScale = 1
                 })
               }
@@ -331,7 +332,7 @@ export struct MiniPlaybackControl {
 
         if(this.bottom_judge !== '0'){
           Row()
-            .height(px2vp(this.bottomRect/2))
+            .height(this.bottomRect/2)
             .width(StyleConstants.FULL_WIDTH)
         }
       }
@@ -343,8 +344,8 @@ export struct MiniPlaybackControl {
       this.bottom_judge = PreferencesCache.getUserPreference('miniplaying_bottom_judge','0')
     })
     .width(this.bottom_judge === '0' && this.bottomRect > 0 ? "90%" : "100%")
-    .height(this.bottom_judge === '0' ? 64 : 64+px2vp(this.bottomRect/2))
-    .margin(this.bottom_judge === '0' ? px2vp(this.bottomRect) : 0)
+    .height(this.bottom_judge === '0' ? 64 : 64+this.bottomRect/2)
+    .margin(this.bottom_judge === '0' ? this.bottomRect : 0)
     .borderRadius(12)
     .clip(true)
     .shadow({
@@ -381,7 +382,7 @@ export struct MiniPlaybackControl {
             this.handleSongChange('next');
           } else {
             // 未达到阈值，回弹
-            animateTo({
+            this.uiContext?.animateTo({
               duration: 250,
               curve: Curve.EaseOut,
               delay: 0,
@@ -398,7 +399,7 @@ export struct MiniPlaybackControl {
     .onClick(() => {
       // 只有在没有滑动时才响应点击事件
       if (!this.isSwipingActive && this.currentSong) {
-        // animateTo({
+        // this.uiContext?.animateTo({
         //   duration: 100,
         //   // 构造插值器弹簧曲线对象，生成一条从0到1的动画曲线
         //   curve: curves.interpolatingSpring(0, 1, 324, 38),

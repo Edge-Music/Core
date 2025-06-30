@@ -14,6 +14,9 @@ import { CallMethod } from '../widget/model/FormCardConstant';
 import { SongDownloadManager } from '../util/SongDownloadManager';
 import WindowUtil from '../util/WindowUtil';
 import { DialogHelper } from '@pura/harmony-dialog';
+import { PipManager } from '../util/PipManager';
+import { PreferencesCache } from '../util/PreferenceCache';
+import ResourceManager from '../util/ResourceManager';
 
 const TAG = 'EntryAbility'
 export default class EntryAbility extends UIAbility {
@@ -41,6 +44,7 @@ export default class EntryAbility extends UIAbility {
     CrashUtil.onError(); // 注册错误处理
     ContextHelper.init(this.context) // 初始化上下文工具类
     DownloadManager.init(this.context) // 初始化下载工具类
+    ResourceManager.init(this.context)
     await avPlayerManager.init(this.context); // 初始化播放器
     FormUtils.init(this.context) //初始化服务卡片工具
     // 事件监听注册
@@ -91,6 +95,8 @@ export default class EntryAbility extends UIAbility {
 
   onDestroy(): void {
     LogUtil.info(`[${TAG}]`, 'Ability onDestroy');
+    PipManager.getInstance().setAutoStart(false)
+    PreferencesCache.setUserPreference('Lyic_desktop','0')
     FormUtils.updateCardPlayStatus(false);
   }
 

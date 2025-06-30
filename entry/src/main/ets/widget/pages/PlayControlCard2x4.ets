@@ -7,11 +7,17 @@ const CollectAlignRules: Record<string, Record<string, string | VerticalAlign | 
 };
 
 const TitleAlignRules: Record<string, Record<string, string | VerticalAlign | HorizontalAlign>> = {
+  'top' : { 'anchor': '__container__', 'align': VerticalAlign.Top },
   'left': { 'anchor': 'musicCover', 'align': HorizontalAlign.End }
 };
 
 const SingerAlignRules: Record<string, Record<string, string | VerticalAlign | HorizontalAlign>> = {
   'top': { 'anchor': 'musicTitle', 'align': VerticalAlign.Bottom },
+  'left': { 'anchor': 'musicCover', 'align': HorizontalAlign.End }
+};
+
+const LyricsAlignRules: Record<string, Record<string, string | VerticalAlign | HorizontalAlign>> = {
+  'bottom': { 'anchor': 'musicControl', 'align': VerticalAlign.Top },
   'left': { 'anchor': 'musicCover', 'align': HorizontalAlign.End }
 };
 
@@ -36,6 +42,7 @@ struct PlayControlCard2x4 {
   @LocalStorageProp('imageColor') imageColor: string = 'rgba(122,162,202,1)';
   @LocalStorageProp('imageColorHex') imageColorHex: string = '7aa2ca';
   @LocalStorageProp('loaded') loaded: boolean = false;
+  @LocalStorageProp('currentLyric') currentLyric: string = '';
 
   requestData() {
     ActionUtils.updateControlCardAction(this, this.formId);
@@ -71,13 +78,12 @@ struct PlayControlCard2x4 {
         .fontColor(Color.White)
         .maxLines(1)
         .margin({
-          top: 30,
           left: 24
         })
         .alignRules(TitleAlignRules)
         .id('musicTitle')
         .textOverflow({overflow: TextOverflow.Ellipsis})
-        .width(150)
+        .width(140)
 
       Text(this.singer)
         .fontSize(14)
@@ -85,6 +91,7 @@ struct PlayControlCard2x4 {
         .fontWeight(500)
         .opacity(0.6)
         .maxLines(1)
+        .id('musicSinger')
         .alignSelf(ItemAlign.Start)
         .margin({
           top: 5,
@@ -92,6 +99,24 @@ struct PlayControlCard2x4 {
         })
         .alignRules(SingerAlignRules)
         .textOverflow({overflow: TextOverflow.Ellipsis})
+        .width(150)
+
+      Text(this.currentLyric)
+        .fontSize(14)
+        .maxFontSize(14)
+        .minFontSize(10)
+        .fontWeight(700)
+        .fontColor(Color.White)
+        .opacity(0.8)
+        .maxLines(2)
+        .margin({
+          left: 24,
+          bottom: 16
+        })
+        .alignRules(LyricsAlignRules)
+        .textAlign(TextAlign.Center)
+        .id('musicLyric')
+        .textOverflow({overflow: TextOverflow.Ellipsis })
         .width(150)
 
       Row() {
@@ -129,6 +154,7 @@ struct PlayControlCard2x4 {
       .margin({ left: 24 })
       .justifyContent(FlexAlign.SpaceBetween)
       .alignRules(ControlAlignRules)
+      .id('musicControl')
     }
     .height('100%')
     .width('100%')

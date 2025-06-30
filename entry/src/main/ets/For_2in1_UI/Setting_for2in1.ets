@@ -10,16 +10,15 @@ import { SettingItem } from "../model/SettingItem";
 import { SourceConfig } from "../type/Adapter";
 import { PreferencesCache } from "../util/PreferenceCache";
 import { AboutSetting, PlayerSetting, SoftwareSetting } from "../viewmodel/SettingGroupData";
-import { About } from "./About";
+import { About } from "../view/About";
 import {Personalized_settings}from '../view/Personalized_settings'
-import { HeaderAnimation } from "../component/HeaderAnimation";
 import { ScrollController } from "../util/ScrollController";
 import ResourceManager from "../util/ResourceManager";
 
 const TAG = 'Setting'
 
 @Component
-export struct Setting {
+export struct Setting_2in1 {
   @State translateY: number = 16;
   @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
   @Consume('NavPathStack') pageStack: NavPathStack;
@@ -50,6 +49,7 @@ export struct Setting {
   @State qrCodeVisible: boolean = false
   @State qrCodeScale: number = 0.8
   private qrCodeCheckTimer: number = 0
+  uiContext: UIContext | undefined = undefined;
   // 设置存储
   @StorageLink("PlayerSetting") playerSetting: SettingItem[] = PlayerSetting
   @StorageLink("SoftwareSetting") softwareSetting: SettingItem[] = SoftwareSetting
@@ -58,13 +58,14 @@ export struct Setting {
   @StorageProp('winHeight') winHeight: number = 0;
   @StorageProp('bottomRect') bottomRect: number = 0;
   @StorageProp('topRect') topRect: number = 0;
+  @StorageProp('decorHeight') decorHeight: number = 0
   @State groupHeight: number = 0
   @State Pura_X: boolean =  PreferencesCache.getUserPreference('is_Pura_X', '0') === '1' ? true : false //pura_x尝试适配
   @State scrollController: ScrollController = new ScrollController({
     onIndexChange: (index): void => this.onMenuIconClick(index),
     componentTag: TAG
   }).linkController(this.scroller)
-  uiContext: UIContext | undefined = undefined;
+
   calculateCurrentIndex(offset: number): number {
     offset = Math.abs(offset)
     return offset < 40 ? -1 : 0
@@ -75,9 +76,7 @@ export struct Setting {
       this.pageStack.pop()
     }
   }
-  aboutToAppear(): void {
-    this.uiContext = this.getUIContext();
-  }
+
   private validateUrl(url: string): boolean {
     const urlPattern = /^(http|https):\/\/[a-zA-Z0-9-.]+(:\d+)?(\/[a-zA-Z0-9-._?&=]*)?$/
     return urlPattern.test(url)
@@ -688,15 +687,14 @@ export struct Setting {
       this.Personalized_Settings()
     }
   }
+  aboutToAppear(): void {
+    this.uiContext = this.getUIContext();
+  }
   build() {
     NavDestination() {
       Column() {
-        this.Title()
+        // this.Title()
         List({ scroller: this.scroller }) {
-          ListItem() {
-            HeaderAnimation({ scrollController: this.scrollController })
-          }
-
           ListItemGroup({ header: this.SourceButton() }) {
             ListItem() {
               SettingGroup({
@@ -738,8 +736,8 @@ export struct Setting {
           }
 
           ListItem(){
-            Row(){
-              Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + this.bottomRect)
+            Row() {
+              Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + this.bottomRect + this.topRect + this.decorHeight + 50)
             }
           }
         }

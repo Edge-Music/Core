@@ -12,9 +12,10 @@ export struct TimerSelector {
   private timerId: number | null = null
   // 预设时间选项（分钟）
   private readonly timeOptions: number[] = [10, 15, 20, 30, 45, 60, 90, 120]
-
+  uiContext: UIContext | undefined = undefined;
   aboutToAppear() {
     this.startCountdown()
+    this.uiContext = this.getUIContext();
     // Initialize selected option if timer is active
     if (this.pauseAt > 0) {
       const remainingMinutes = Math.floor((this.pauseAt - Date.now()) / 60000)
@@ -79,7 +80,7 @@ export struct TimerSelector {
   }
 
   private setTimer(minutes: number) {
-    animateTo({
+    this.uiContext?.animateTo({
       duration: 300,
       curve: Curve.EaseInOut
     }, () => {
@@ -93,7 +94,7 @@ export struct TimerSelector {
   }
 
   private cancelTimer() {
-    animateTo({
+    this.uiContext?.animateTo({
       duration: 300,
       curve: Curve.EaseInOut
     }, () => {

@@ -7,6 +7,7 @@ export struct TitleHeader {
   @StorageProp('decorHeight') decorHeight: number = 0
   @Consume('NavPathStack') pageStack: NavPathStack;
   @Prop title: ResourceStr = $r("app.string.homepage")
+  @BuilderParam leftContent: () => void;
   @BuilderParam rightContent: () => void;
   @BuilderParam midContent: () => void;
   @State isFirstPage: boolean = true
@@ -61,6 +62,12 @@ export struct TitleHeader {
     Stack({ alignContent: Alignment.Start }) {
       Column(){
         // PC工具栏适配
+        if(this.topRect > 0){
+          Row(){}
+          .height(this.topRect)
+          .backgroundColor('transparent')
+          .width('100%')
+        }
         if(this.decorHeight > 0){
           Row(){
             Image($r('app.media.icon'))
@@ -75,18 +82,13 @@ export struct TitleHeader {
           .height(this.decorHeight)
           .backgroundColor('transparent')
           .width('100%')
-        }else if(this.topRect > 0){
-          Row(){}
-          .height(px2vp(this.topRect))
-          .backgroundColor('transparent')
-          .width('100%')
         }
 
         Row() {
           Row() {
-            // if (this.is_2in1){
-            //   this.BackButton()
-            // }
+            if (this.leftContent) {
+              this.leftContent()
+            }
 
             Text(this.title)
               .fontColor($r('app.color.text_title'))

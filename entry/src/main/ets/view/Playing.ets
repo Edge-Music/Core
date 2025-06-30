@@ -68,11 +68,15 @@ struct Playing {
   @State isBackButtonPressed: boolean = false
   @State Playing_Next: boolean = true
   @State Fold_judge: boolean = true
+  uiContext: UIContext | undefined = undefined;
+
   @State is_backblur: boolean = true
   @State rotateAngle:number=0
   @State IMG_ctrl: boolean = false
   @StorageLink('winWidth') @Watch('onWinWidthChange') winWidth: number = 0
   @StorageLink('winHeight') @Watch('onWinWidthChange') winHeight: number = 0
+  @StorageLink('winWidthWithPx') @Watch('onWinWidthChange') winWidthWithPx: number = 0
+  @StorageLink('winHeightWithPx') @Watch('onWinWidthChange') winHeightWithPx: number = 0
   @State isSliderVisible: boolean = false
   @State isSliderVisible1: boolean = false
   private timerId: number = -1
@@ -148,7 +152,7 @@ struct Playing {
           avPlayerManager.avPlayer?.setVolume(value/100)
           PreferencesCache.setUserPreference('Volume', value.toString())
           console.info('value:' + value + 'mode:' + mode.toString())
-          animateTo({ duration: 100, curve: Curve.EaseOut }, () => {
+          this.uiContext?.animateTo({ duration: 100, curve: Curve.EaseOut }, () => {
             this.rotateAngle = value
           })
         })
@@ -214,7 +218,7 @@ struct Playing {
     .clip(false)
     .barHeight(0)
     .onChange((index: number) => {
-      animateTo({ duration: 400, curve: Curve.EaseInOut }, () => {
+      this.uiContext?.animateTo({ duration: 400, curve: Curve.EaseInOut }, () => {
         this.selectedTabIndex = index
       })
     })
@@ -263,7 +267,7 @@ struct Playing {
     .clip(false)
     .barHeight(0)
     .onChange((index: number) => {
-      animateTo({ duration: 400, curve: Curve.EaseInOut }, () => {
+      this.uiContext?.animateTo({ duration: 400, curve: Curve.EaseInOut }, () => {
         this.selectedTabIndex = index
       })
     })
@@ -307,7 +311,7 @@ struct Playing {
     .transition({ type: TransitionType.Delete, scale: { y: 0.8, x: 1.0 }, opacity: 0.0 })
   }
   handleSongChange(direction: 'next' | 'prev') {
-    animateTo({
+    this.uiContext?.animateTo({
       duration: 350,
       curve: Curve.EaseInOut,
       delay: 0,
@@ -386,7 +390,7 @@ struct Playing {
                         this.handleSongChange('next');
                       } else {
                         // 未达到阈值，回弹
-                        animateTo({
+                        this.uiContext?.animateTo({
                           duration: 250,
                           curve: Curve.EaseOut,
                           delay: 0,
@@ -434,7 +438,7 @@ struct Playing {
           .width('45%')
           .height('100%')
           .padding({
-            left: px2vp(this.rightCutoutRectWidth > 0 ? this.rightCutoutRectWidth : this.leftCutoutRectWidth*2),
+            left: (this.rightCutoutRectWidth > 0 ? this.rightCutoutRectWidth : this.leftCutoutRectWidth*2),
             top: 12,
             bottom: 12
           })
@@ -468,12 +472,12 @@ struct Playing {
         }
         .padding({
           left: 18,
-          right: this.leftCutoutRectWidth > 0 ? 18 : px2vp(this.rightCutoutRectWidth)*2,
+          right: this.leftCutoutRectWidth > 0 ? 18 : this.rightCutoutRectWidth*2,
           bottom: 12
         })
         .width('55%')
       }
-      .margin({ bottom: px2vp(this.bottomRect/2) })
+      .margin({ bottom: this.bottomRect/2 })
       .alignItems(VerticalAlign.Center)
       .justifyContent(FlexAlign.SpaceBetween)
       .onAppear(()=>{
@@ -501,7 +505,6 @@ struct Playing {
             })
             .onAppear(async ()=>{
               try {
-                const context = getContext(this);
                 let netFile = this.song?.album?.cover + "?param=64y64" ?? "";
                 let httpRequest = http.createHttp()
                 let data = await httpRequest.request(netFile);
@@ -543,7 +546,7 @@ struct Playing {
                     this.handleSongChange('next');
                   } else {
                     // 未达到阈值，回弹
-                    animateTo({
+                    this.uiContext?.animateTo({
                       duration: 250,
                       curve: Curve.EaseOut,
                       delay: 0,
@@ -584,7 +587,7 @@ struct Playing {
           .layoutWeight(1)
         }
         .padding({
-          left: px2vp(this.rightCutoutRectWidth > 0 ? this.rightCutoutRectWidth : this.leftCutoutRectWidth*2),
+          left: (this.rightCutoutRectWidth > 0 ? this.rightCutoutRectWidth : this.leftCutoutRectWidth*2),
           top: 12,
           bottom: 12,
           right: 12
@@ -601,11 +604,11 @@ struct Playing {
         }
         .padding({
           left: 18,
-          right: this.leftCutoutRectWidth > 0 ? 18 : px2vp(this.rightCutoutRectWidth)*2
+          right: this.leftCutoutRectWidth > 0 ? 18 : this.rightCutoutRectWidth*2
         })
         .width('60%')
       }
-      .margin({ bottom: px2vp(this.bottomRect/2) })
+      .margin({ bottom: this.bottomRect/2 })
       .alignItems(VerticalAlign.Top)
       .justifyContent(FlexAlign.SpaceBetween)
       .animation({ duration: 500, curve: Curve.FastOutSlowIn })
@@ -640,9 +643,9 @@ struct Playing {
       }else{
         this.swiperController.changeIndex(0)
       }
-      screen_on(true)
+      screen_on(this.getUIContext().getHostContext() as Context, true)
     }).onDisAppear(() => {
-      screen_on(false)
+      screen_on(this.getUIContext().getHostContext() as Context, false)
     })
   }
 
@@ -654,7 +657,7 @@ struct Playing {
     this.isPlaying = player.state === 'playing'
 
     this.isFavorite = this.song?.meta?.isFavorite || false
-
+    this.uiContext = this.getUIContext();
     // 初始化宽屏检测
     this.isWideScreen = this.currentBreakpoint !== BreakpointConstants.BREAKPOINT_SM;
 
@@ -667,7 +670,7 @@ struct Playing {
 
     // 初始化监听
     EventHelper.subscribeLoopMode((mode: number) => {
-      animateTo({ duration: 300, curve: Curve.EaseInOut }, () => {
+      this.uiContext?.animateTo({ duration: 300, curve: Curve.EaseInOut }, () => {
         this.playMode = mode;
         this.isShuffleButtonPressed = true;
         setTimeout(() => {
@@ -677,13 +680,13 @@ struct Playing {
     })
 
     EventHelper.subscribeSongState((state: "PLAY" | "PAUSE") => {
-      animateTo({ duration: 400, curve: Curve.EaseInOut }, () => {
+      this.uiContext?.animateTo({ duration: 400, curve: Curve.EaseInOut }, () => {
         this.isPlaying = state === "PLAY";
       })
     })
 
     EventHelper.subscribeFavoriteToggle(() => {
-      animateTo({ duration: 400, curve: Curve.EaseInOut }, () => {
+      this.uiContext?.animateTo({ duration: 400, curve: Curve.EaseInOut }, () => {
         this.isFavorite = !this.isFavorite;
       })
     })
@@ -821,7 +824,7 @@ struct Playing {
           playMode: PlayMode.Normal
         })
         .onChange((value: number) => {
-          animateTo({ duration: 100, curve: Curve.EaseOut }, () => {
+          this.uiContext?.animateTo({ duration: 100, curve: Curve.EaseOut }, () => {
             this.currentTime = value;
           })
         })
@@ -904,7 +907,7 @@ struct Playing {
         playMode: PlayMode.Normal
       })
       .onClick(() => {
-        animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
+        this.uiContext?.animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
           this.isShuffleButtonPressed = true
           PlaylistManager.switchPlayMode();
           setTimeout(() => {
@@ -942,7 +945,7 @@ struct Playing {
       })
       .onClick(() => {
         ClickUtil.debounce(async () => {
-          animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
+          this.uiContext?.animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
             const prevSong = PlaylistManager.playPrevious()
             if (prevSong) {
               PlaylistManager.playSong(prevSong)
@@ -1021,7 +1024,7 @@ struct Playing {
       })
       .onClick(() => {
         ClickUtil.debounce(async () => {
-          animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
+          this.uiContext?.animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
             const nextSong = PlaylistManager.playNext()
             if (nextSong) {
               PlaylistManager.playSong(nextSong)
@@ -1050,7 +1053,7 @@ struct Playing {
       })
       .onClick(() => {
         this.isListButtonPressed = true
-        animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
+        this.uiContext?.animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
           this.sheetType = "playlist"; // 设置当前类型为播放列表
           this.showPlaylist = true;
           setTimeout(() => {
@@ -1087,7 +1090,7 @@ struct Playing {
       {
         value: '布局翻转',
         action: () => {
-          animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
+          this.uiContext?.animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
             this.flipCoverLyric = !this.flipCoverLyric
             PreferencesCache.flipCoverLyric(this.flipCoverLyric)
           })
@@ -1096,7 +1099,7 @@ struct Playing {
       {
         value: $r('app.string.download_this_song'),
         action: () => {
-          animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
+          this.uiContext?.animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
             this.downloadSong()
           })
         }
@@ -1104,7 +1107,7 @@ struct Playing {
       {
         value: $r('app.string.scheduled_shutdown'),
         action: () => {
-          animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
+          this.uiContext?.animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
             this.sheetType = "timer";
             this.showPlaylist = true;
           })
@@ -1118,7 +1121,7 @@ struct Playing {
       {
         value: $r('app.string.download_this_song'),
         action: () => {
-          animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
+          this.uiContext?.animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
             this.downloadSong()
           })
         }
@@ -1126,7 +1129,7 @@ struct Playing {
       {
         value: $r('app.string.scheduled_shutdown'),
         action: () => {
-          animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
+          this.uiContext?.animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
             this.sheetType = "timer";
             this.showPlaylist = true;
           })
@@ -1163,7 +1166,7 @@ struct Playing {
       })
       .onClick(() => {
         this.isHeartButtonPressed = true
-        animateTo({ duration: 400, curve: Curve.EaseOut }, () => {
+        this.uiContext?.animateTo({ duration: 400, curve: Curve.EaseOut }, () => {
           if (this.song) {
             SourceAdapter.likeSong(this.song, !this.isFavorite)
           }
@@ -1249,7 +1252,7 @@ struct Playing {
               this.progress_Volume()
             }
           }
-          .height('70%')
+          .height(150)
           .width(46)
         }
         .height('100%')
@@ -1310,7 +1313,7 @@ struct Playing {
                     this.handleSongChange('next');
                   } else {
                     // 未达到阈值，回弹
-                    animateTo({
+                    this.uiContext?.animateTo({
                       duration: 250,
                       curve: Curve.EaseOut,
                       delay: 0,
@@ -1345,7 +1348,7 @@ struct Playing {
               this.progress_Volume()
             }
           }
-          .height('70%')
+          .height(150)
           .width(46)
         }
         .width(46)
@@ -1416,7 +1419,7 @@ struct Playing {
       }
 
       // 底部避让
-      Blank().height(px2vp(this.bottomRect/2))
+      Blank().height(this.bottomRect/2)
     }
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
@@ -1438,6 +1441,12 @@ struct Playing {
   Title(judge:boolean=false) {
     Column(){
       // PC工具栏适配
+      if(this.topRect > 0){
+        Row(){}
+        .height(this.topRect)
+        .backgroundColor('transparent')
+        .width('100%')
+      }
       if(this.decorHeight > 0){
         Row(){
           Image($r('app.media.icon'))
@@ -1449,10 +1458,9 @@ struct Playing {
         }
         .justifyContent(FlexAlign.Start)
         .alignItems(VerticalAlign.Center)
-        .height(this.decorHeight).backgroundColor('transparent').width('100%')
-      }else if(this.topRect > 0){
-        Row(){}
-        .height(px2vp(this.topRect)).backgroundColor('transparent').width('100%')
+        .height(this.decorHeight)
+        .backgroundColor('transparent')
+        .width('100%')
       }
 
       Row() {
@@ -1509,7 +1517,7 @@ struct Playing {
           })
           .onClick(() => {
             this.isHeartButtonPressed = true
-            animateTo({ duration: 400, curve: Curve.EaseOut }, () => {
+            this.uiContext?.animateTo({ duration: 400, curve: Curve.EaseOut }, () => {
               if (this.song) {
                 SourceAdapter.likeSong(this.song, !this.isFavorite)
               }
@@ -1559,7 +1567,7 @@ struct Playing {
           }.width(this.buttonSize)
           .height(this.buttonSize)
           .backgroundColor(Color.Transparent)
-          .rotate({ angle: this.isMoreButtonPressed ? 90 : 0 })
+          .clickEffect({ level: ClickEffectLevel.LIGHT })
           .animation({
             duration: 300,
             curve: Curve.EaseInOut,
@@ -1568,14 +1576,8 @@ struct Playing {
           })
           .onClick(() => {
             if (PreferencesCache.getUserPreference('Lyic_desktop','0')==='0') {
-              PreferencesCache.setUserPreference('Lyic_desktop','1')
-              this.Lyic_desktop = '1'
-              PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
               PipManager.getInstance().startPip()
             }else {
-              PipManager.getInstance().setAutoStart(false)
-              PreferencesCache.setUserPreference('Lyic_desktop','0')
-              this.Lyic_desktop ='0'
               PipManager.getInstance().stopPip()
             }
             // 重置按钮状态
@@ -1584,11 +1586,12 @@ struct Playing {
       }
       .width(StyleConstants.FULL_WIDTH)
       .alignItems(VerticalAlign.Center)
-      .height(48) // 固定标题栏高度
+      .height(50) // 固定标题栏高度
     }
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
     .width(StyleConstants.FULL_WIDTH)
+    .height(this.decorHeight+this.topRect+StyleConstants.TITLE_HEIGHT)
   }
 
   build() {
@@ -1640,8 +1643,8 @@ struct Playing {
             .layoutWeight(1)
           } else if (this.isWideScreen && this.Playing_Next) {
             this.Playing_HorizontalMode()
-          }else if (this.winHeight<1500&&this.winWidth<1500){
-            if(this.winHeight>900&&this.Pura_X==='0'||this.winHeight>600&&this.Pura_X==='1'){
+          }else if (this.winHeightWithPx<1500&&this.winWidthWithPx<1500){
+            if(this.winHeightWithPx>900&&this.Pura_X==='0'||this.winHeightWithPx>600&&this.Pura_X==='1'){
               this.playing_50()
             }else{
               this.playing_30()
@@ -1670,7 +1673,7 @@ struct Playing {
             .layoutWeight(1)
             .barHeight(0)
             .onChange((index: number) => {
-              animateTo({ duration: 400, curve: Curve.EaseInOut }, () => {
+              this.uiContext?.animateTo({ duration: 400, curve: Curve.EaseInOut }, () => {
                 this.selectedTabIndex = index
               })
             })
@@ -1696,13 +1699,13 @@ struct Playing {
     .mode(NavDestinationMode.STANDARD)
     .onAppear(()=>{
       this.img_playing_ctrl=  PreferencesCache.getUserPreference('img_playing_ctrl','0')
-      PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
+      PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
 
     })
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
     // .onBackPressed(()=> {
-    //   animateTo({
+    //   this.uiContext?.animateTo({
     //     duration: 100,
     //     // 构造插值器弹簧曲线对象，生成一条从0到1的动画曲线
     //     curve: curves.interpolatingSpring(0, 1, 324, 38),
@@ -1719,7 +1722,7 @@ struct Playing {
       }).onAction((event) => {
         if (event.angle < -45 && event.angle > -135) {
           // 向上滑，显示播放列表
-          animateTo({ duration: 400, curve: Curve.EaseInOut }, () => {
+          this.uiContext?.animateTo({ duration: 400, curve: Curve.EaseInOut }, () => {
             this.sheetType = "playlist";
             this.showPlaylist = true;
           })
