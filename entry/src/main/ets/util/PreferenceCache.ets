@@ -2,7 +2,7 @@ import { Artist, ID, Playlist, Song, SourceConfig } from "../type/Adapter";
 import { PreferencesUtil } from '@pura/harmony-utils';
 
 // 比特率类型
-export type BitrateType = 128000 | 192000 | 320000 | 350000 | 999000;
+export type BitrateType = 128000 | 192000 | 320000 | 350000 | 999000 | number;
 
 export interface QualityLevel {
   level: string;
@@ -15,7 +15,8 @@ export const qualityLevels: QualityLevel[] = [
   { level: 'higher', description: $r('app.string.quality_higher'), bitrate: 192000 },
   { level: 'exhigh', description: $r('app.string.quality_ex_high'), bitrate: 320000 },
   { level: 'lossless', description: $r('app.string.quality_lossless'), bitrate: 350000 },
-  { level: 'hires', description: $r('app.string.quality_hires'), bitrate: 999000 }
+  { level: 'hires', description: $r('app.string.quality_hires'), bitrate: 999000 },
+  { level: 'vivid', description: $r('app.string.vivid'), bitrate: 999900 },
 ];
 
 /**

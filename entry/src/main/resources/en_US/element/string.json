@@ -475,6 +475,10 @@
     {
       "name": "enable_sidebar_ui",
       "value": "Enable Sidebar UI"
+    },
+    {
+      "name": "vivid",
+      "value": "Audio Vivid"
     }
   ]
 }
