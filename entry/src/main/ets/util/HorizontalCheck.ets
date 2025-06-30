@@ -34,10 +34,10 @@ export function isHorizontalMode(): boolean {
 //true为设置窗口方向为传感器跟随系统自动旋转模式。
 //false为设置窗口方向为传感器自动旋转模式。
 
-export function  HorizontalMode(judge:boolean){
+export function HorizontalMode(context: Context, judge:boolean){
   try {
     if(judge===true){
-      window.getLastWindow(getContext(), (err, data) => { // 获取window实例
+      window.getLastWindow(context, (err, data) => { // 获取window实例
         if (err.code) {
           console.error(TAG, 'Failed to obtain the top window. Cause: ' + JSON.stringify(err));
           return;
@@ -59,7 +59,7 @@ export function  HorizontalMode(judge:boolean){
         ;
       });
     }else if(judge==false){
-      window.getLastWindow(getContext(), (err, data) => { // 获取window实例
+      window.getLastWindow(context, (err, data) => { // 获取window实例
         if (err.code) {
           console.error(TAG, 'Failed to obtain the top window. Cause: ' + JSON.stringify(err));
           return;

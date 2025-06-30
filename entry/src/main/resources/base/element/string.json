@@ -164,7 +164,6 @@
       "name": "collection_playlists",
       "value": "收藏"
     },
-
     {
       "name": "hot_songs",
       "value": "热门歌曲"
@@ -468,6 +467,18 @@
     {
       "name": "Lyic_desktop",
       "value": "画中画歌词"
+    },
+    {
+      "name": "simultaneous_playback",
+      "value": "允许同时播放"
+    },
+    {
+      "name": "enable_sidebar_ui",
+      "value": "开启侧边栏UI"
+    },
+    {
+      "name": "vivid",
+      "value": "Audio Vivid"
     }
   ]
 }

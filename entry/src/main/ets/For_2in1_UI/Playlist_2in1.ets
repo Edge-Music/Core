@@ -3,19 +3,17 @@ import { SongInfo } from "../component/SongInfo";
 import { TitleHeader } from "../component/TitleHeader";
 import { StyleConstants } from "../constants/StyleConstants";
 import { Playlist, Song } from "../type/Adapter";
-import { BasicPrefetcher, ColorMetrics, LengthMetrics } from '@kit.ArkUI';
+import { BasicPrefetcher } from '@kit.ArkUI';
 import { SongDataSourcePrefetching } from "../util/SongDataSourcePrefetching";
 import { BreakpointConstants } from "../constants/BreakpointConstants";
 import { cover } from "../util/AdapterHelper";
 import { PushPathHelper } from "../util/PushPathHelper";
 import { PlaylistManager, PlayMode } from "../util/PlaylistManager";
-import { MiniPlaybackControl } from "../component/MiniPlaybackControl";
 import { SongDownloadManager } from "../util/SongDownloadManager";
 import { ScrollController } from "../util/ScrollController";
 import { HeaderAnimation } from "../component/HeaderAnimation";
-import { ResourceManager } from "../util/ResourceManager";
+import ResourceManager from "../util/ResourceManager";
 import { ToastUtil } from "@pura/harmony-utils";
-import { SourceAdapter } from "../adapter";
 
 const TAG = 'PlayList'
 
@@ -277,7 +275,7 @@ export struct PlayListFor2in1 {
 
         ListItem() {
           Row() {
-            Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + px2vp(this.bottomRect) + px2vp(this.topRect) + this.decorHeight + 50 + 16)
+            Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + this.bottomRect + this.topRect + this.decorHeight + 50 + 16)
           }
         }
       }
@@ -459,7 +457,7 @@ export struct PlayListFor2in1 {
           .width(StyleConstants.FULL_WIDTH)
         }
         .width(StyleConstants.FULL_WIDTH)
-        .height(`calc(100% - ${StyleConstants.PLAYER_CONTROL_HEIGHT + px2vp(this.bottomRect)}px)`) // 避让播放控制器
+        .height(`calc(100% - ${StyleConstants.PLAYER_CONTROL_HEIGHT + this.bottomRect}px)`) // 避让播放控制器
         .backgroundColor($r('app.color.card_background'))
         .opacity(0.8)
         .borderRadius(24)
@@ -765,7 +763,7 @@ export struct PlayListFor2in1 {
   }
 
   countSubVp(): number {
-    let sub: number = px2vp(this.winHeight) - 50 - this.groupHeight - (this.bottomRect + this.topRect)
+    let sub: number = this.winHeight - 50 - this.groupHeight - (this.bottomRect + this.topRect)
     // if(this.songDataSource.totalCount() <= 15){
     //   // 填补高度=屏幕高度 - title高度50 - (播放组件高度40+上下padding高度2*4) - 状态栏高度 - 导航栏高度
     //   sub = px2vp(this.winHeight) - (50+40+12*2+(68+2*4)*this.songDataSource.totalCount()) - px2vp(this.topRect) - px2vp(this.bottomRect)

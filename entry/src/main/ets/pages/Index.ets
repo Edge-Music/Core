@@ -67,8 +67,8 @@ struct Index {
 struct Index_page {
   @StorageProp('decorHeight') decorHeight: number = 0
   @State version: string = '2.2.0.y'
-
   @State blankHeight: number = 0
+  @State limit: number = 10
   @Consume('NavPathStack') pageStack: NavPathStack
   @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
   private breakpointSystem = new BreakpointSystem()
@@ -97,16 +97,19 @@ struct Index_page {
   async aboutToAppear() {
     avPlayerManager.setAudioSession()
 
-    this.zhishi_UI =  PreferencesCache.getUserPreference('zhishi_UI','0')
+    this.zhishi_UI = PreferencesCache.getUserPreference('zhishi_UI','0')
+    if(this.zhishi_UI === '1'){
+      this.limit = 20
+    }
 
     // avPlayerManager.avPlayer?.setVolume(Number(PreferencesCache.getUserPreference('Volume','100'))/100)
     if (PreferencesCache.getUserPreference('Lyic_desktop','0')==='1') {
-      PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
+      PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
       PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
     }
     if (PreferencesCache.getUserPreference(this.version,'0')==='0'){
       try{
-        AlertDialog.show(
+        this.getUIContext().showAlertDialog(
           {
             title: '更新提示',
             subtitle: '此版本',
@@ -153,8 +156,8 @@ struct Index_page {
     }
 
     // 注册断点系统
-    this.breakpointSystem.register()
-    HorizontalMode(this.HorizontalMode_ctrl === '1')
+    this.breakpointSystem.register(this.getUIContext())
+    HorizontalMode(this.getUIContext().getHostContext() as Context, this.HorizontalMode_ctrl === '1')
     AppStorage.setOrCreate("pageStack", this.pageStack)
     // 立即初始化数据
     this.initData()
@@ -181,10 +184,10 @@ struct Index_page {
     try {
       // 并行加载数据并捕获异常
       await Promise.all([
-        SourceAdapter.getRecommendList(),
-        SourceAdapter.getRecommendSongs(),
-        SourceAdapter.getRecommendArtists(),
-        SourceAdapter.getTopList(),
+        SourceAdapter.getRecommendList(this.limit),
+        SourceAdapter.getRecommendSongs(this.limit),
+        SourceAdapter.getRecommendArtists(this.limit),
+        SourceAdapter.getTopList(this.limit),
         SourceAdapter.getUserPlaylist()
       ])
     } catch (error) {
@@ -196,7 +199,7 @@ struct Index_page {
 
   onPageShow(): void {
     console.info(TAG, 'onPageShow')
-    PipManager.getInstance().init(getContext(this)); // 创建画中画控制器
+    PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
     PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
     PipManager.getInstance().startPip();
   }
@@ -209,7 +212,6 @@ struct Index_page {
   aboutToDisappear() {
     this.breakpointSystem.unregister()
     PipManager.getInstance().unregisterPipStateChangeListener(); // 解注册画中画生命周期及状态回调
-
   }
 
   @Builder
@@ -232,7 +234,7 @@ struct Index_page {
       }
       else if(this.topRect > 0){
         Row(){}
-        .height(px2vp(this.topRect)).backgroundColor('transparent').width('100%')
+        .height(this.topRect).backgroundColor('transparent').width('100%')
       }
 
       Row() {
@@ -297,7 +299,7 @@ struct Index_page {
               this.pageStack.pushPath({ name: item.path })
             }
           })
-        }.key(`${item.title}`)
+        }
         .padding(4)
       })
     }
@@ -317,7 +319,7 @@ struct Index_page {
       actionText: $r('app.string.rotate'),
       loading: this.loading,
       onActionClick: async () => {
-        this.recommendSongs = await SourceAdapter.getRecommendSongs()
+        this.recommendSongs = await SourceAdapter.getRecommendSongs(this.limit)
       },
     }).key('Index-R')
   }
@@ -331,7 +333,7 @@ struct Index_page {
       actionText: $r('app.string.rotate'),
       loading: this.loading,
       onActionClick: async () => {
-        this.recommendPlaylist = await SourceAdapter.getRecommendList()
+        this.recommendPlaylist = await SourceAdapter.getRecommendList(this.limit)
       },
     }).key('Index-R')
   }
@@ -346,7 +348,7 @@ struct Index_page {
       loading: this.loading,
       radius: "100%",
       onActionClick: async () => {
-        this.recommendArtists = await SourceAdapter.getRecommendArtists()
+        this.recommendArtists = await SourceAdapter.getRecommendArtists(this.limit)
       },
     }).key('Index-R')
   }
@@ -449,7 +451,7 @@ struct Index_page {
 
               ListItem() {
                 Row() {
-                  Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + px2vp(this.bottomRect))
+                  Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + this.bottomRect)
                 }
               }
             }
@@ -483,7 +485,7 @@ struct Index_page {
   }
 
   getBlankHeight(): number {
-    let sub = px2vp(this.winHeight) - this.blankHeight - 50 - px2vp(this.bottomRect + this.topRect)
+    let sub = this.winHeight - this.blankHeight - 50 - (this.bottomRect + this.topRect)
     return sub > 0 ? sub : 0
   }
 }

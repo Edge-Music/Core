@@ -9,7 +9,7 @@ import { StyleConstants } from "../constants/StyleConstants";
 import { Album, Artist, Playlist, SearchResult, Song } from "../type/Adapter";
 import { PlaylistManager } from "../util/PlaylistManager";
 import { PushPathHelper } from "../util/PushPathHelper";
-import { ResourceManager } from "../util/ResourceManager";
+import ResourceManager from "../util/ResourceManager";
 import { ScrollController } from "../util/ScrollController";
 
 const TAG = 'MultiSearch'
@@ -156,7 +156,7 @@ export struct MultiSearch_2in1 {
             ListItem(){
               Row(){
                 // 搜索页底部避让高度：播控组件高度(64) + 导航栏避让高度 + 播控组件下方margin值(16)
-                Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + px2vp(this.bottomRect))
+                Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + this.bottomRect)
               }
             }
           }
@@ -201,7 +201,7 @@ export struct MultiSearch_2in1 {
   }
 
   getBlankHeight(): Length {
-    let sub = px2vp(this.winHeight) - this.groupHeight - 50 - px2vp(this.bottomRect+this.topRect)
+    let sub = this.winHeight - this.groupHeight - 50 - (this.bottomRect+this.topRect)
     return sub > 0 ? sub : 0
   }
 

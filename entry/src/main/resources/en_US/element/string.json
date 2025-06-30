@@ -462,7 +462,23 @@
     },
     {
       "name": "Lyic_desktop",
-      "value": "Lyic can in desktop"
+      "value": "Lyric Can In Desktop"
+    },
+    {
+      "name": "simultaneous_playback",
+      "value": "Allow Simultaneous Playback"
+    },
+    {
+      "name": "no_lyric_available",
+      "value": "No Lyric Available"
+    },
+    {
+      "name": "enable_sidebar_ui",
+      "value": "Enable Sidebar UI"
+    },
+    {
+      "name": "vivid",
+      "value": "Audio Vivid"
     }
   ]
 }

@@ -552,7 +552,7 @@ export class SourceAdapter {
     }
   }
 
-  static async search(keywords: string, limit = 10): Promise<SearchResult> {
+  static async search(keywords: string, limit = 20): Promise<SearchResult> {
     const sourceConfigGroup = PreferencesCache.getUserDataSource();
     keywords = encodeURIComponent(keywords);
 

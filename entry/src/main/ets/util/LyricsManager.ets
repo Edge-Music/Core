@@ -1,6 +1,7 @@
 import { Song } from "../type/Adapter";
 import { avPlayerManager } from "./AVPlayerManager";
 import { EventHelper } from "./EventHelper";
+import FormUtils from "./FormUtils";
 
 export class LyricsLine {
   time: number; // 时间点（毫秒）
@@ -26,7 +27,7 @@ class LyricsManager {
   private hasTranslation: boolean = false
   private hasTransliteration: boolean = false
   private currentTimeMs: number = 0
-  private parsedLyrics: Array<LyricsLine> = []
+  private parsedLyrics: LyricsLine[] = []
   private lyricsTimer: number = -1
   private lastIndex: number = -1
   private currentIndex: number = 0
@@ -35,13 +36,17 @@ class LyricsManager {
   private currentSongName: string = ''
 
   async init(){
+
     this.song = AppStorage.get<Song>('current_playing_song')
     this.originalLyrics = this.song?.meta?.lyric?.normal ?? ''
     this.translatedLyrics = this.song?.meta?.lyric?.translation ?? ''
     this.transliteratedLyrics = this.song?.meta?.lyric?.transliteration ?? ''
     let tmpSongName: string = this.song?.name + ' - ' + this.song?.artists[0].name
     if(this.currentSongName !== tmpSongName){
+      AppStorage.setOrCreate<number>('current_lyrics_index', 0)
       this.currentSongName = tmpSongName
+      FormUtils.updateCardCurrentLyrics(tmpSongName)
+      // FormUtils.updateCardLyricsIndex(this.currentIndex)
       AppStorage.setOrCreate<string>('test_index', tmpSongName)
       if(EventHelper.getPipLyricListenerCount() > 0){
         EventHelper.postPipLyric(tmpSongName)
@@ -133,6 +138,7 @@ class LyricsManager {
     AppStorage.setOrCreate<boolean>('current_lyrics_has_translation', this.hasTranslation)
     AppStorage.setOrCreate<boolean>('current_lyrics_has_transliteration', this.hasTransliteration)
     AppStorage.setOrCreate<Array<LyricsLine>>('current_parsed_lyrics', this.parsedLyrics)
+    // FormUtils.updateCardLyrics(this.parsedLyrics)
     console.info(`完成解析[${this.song?.name}]歌词`)
     console.info(`歌词：${JSON.stringify(this.parsedLyrics)}`)
   }
@@ -144,7 +150,7 @@ class LyricsManager {
    */
   private parseLyricsText(lrcText: string): LyricsLine[] {
     const lines = lrcText.split('\n')
-    const timeRegex = /\[(\d{2}):(\d{2})\.(\d{2,3})\]/
+    const timeRegex = /\[(\d{2}):(\d{2})[\.:](\d{2,3})\]/
     const tempLyrics: LyricsLine[] = []
 
     lines.forEach(line => {
@@ -239,6 +245,8 @@ class LyricsManager {
             AppStorage.setOrCreate<LyricsLine>('current_line_lyrics', this.parsedLyrics[this.currentIndex])
             AppStorage.setOrCreate<string>('test_index', this.parsedLyrics[this.currentIndex].text)
             AppStorage.setOrCreate<number>('current_lyrics_index', this.currentIndex)
+            // FormUtils.updateCardLyricsIndex(this.currentIndex)
+            FormUtils.updateCardCurrentLyrics(this.parsedLyrics[this.currentIndex].text)
             if(EventHelper.getPipLyricListenerCount() > 0) {
               EventHelper.postPipLyric(this.parsedLyrics[this.currentIndex].text)
             }
@@ -254,6 +262,8 @@ class LyricsManager {
             AppStorage.setOrCreate<LyricsLine>('current_line_lyrics', this.parsedLyrics[this.currentIndex])
             AppStorage.setOrCreate<string>('test_index', this.parsedLyrics[this.currentIndex].text)
             AppStorage.setOrCreate<number>('current_lyrics_index', this.currentIndex)
+            // FormUtils.updateCardLyricsIndex(this.currentIndex)
+            FormUtils.updateCardCurrentLyrics(this.parsedLyrics[this.currentIndex].text)
             if(EventHelper.getPipLyricListenerCount() > 0) {
               EventHelper.postPipLyric(this.parsedLyrics[this.currentIndex].text)
             }

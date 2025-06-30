@@ -42,6 +42,7 @@ struct Library {
   private readonly BUTTON_GAP: number = 10
   @State capsuleScaleX: number = 0.9
   @State capsuleScaleY: number = 1.0
+  uiContext: UIContext | undefined = undefined;
   @State avatarScale: number = 1
   @State scrollController: ScrollController = new ScrollController({
     onIndexChange: (index) => {
@@ -75,6 +76,7 @@ struct Library {
   }
 
   aboutToAppear(): void {
+    this.uiContext = this.getUIContext();
     if (this.playlists[1]?.cover){
       FormUtils.updateRecommendedCards(this.playlists[1].cover)
     }
@@ -135,12 +137,12 @@ struct Library {
       .layoutWeight(1)
       .onTouch((event) => {
         if (event.type === TouchType.Down) {
-          animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+          this.uiContext?.animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
             this.capsuleScaleX = 0.75
             this.capsuleScaleY = 1.1
           })
         } else if (event.type === TouchType.Up) {
-          animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+          this.uiContext?.animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
             this.capsuleScaleX = 0.9
             this.capsuleScaleY = 1.0
           })
@@ -234,11 +236,11 @@ struct Library {
       offset += (this.titleWidths[i] || 0) + this.BUTTON_GAP
     }
 
-    animateTo({ duration: 200, curve: Curve.EaseInOut }, () => {
+    this.uiContext?.animateTo({ duration: 200, curve: Curve.EaseInOut }, () => {
       this.capsuleOffset = offset
     })
 
-    animateTo({ duration: 150, curve: Curve.EaseIn }, () => {
+    this.uiContext?.animateTo({ duration: 150, curve: Curve.EaseIn }, () => {
       this.capsuleScaleX = 0.9
       this.capsuleScaleY = 1
       this.capsuleWidth = this.titleWidths[index]
@@ -389,7 +391,7 @@ struct Library {
   countSubVp(): number{
     let sub: number = 0
     // 填补高度=屏幕高度 - title高度50 - 上方padding高度12 - 单一组件高度(74+0.5)*歌曲数量 - 状态栏高度 - 导航栏高度
-    sub = px2vp(this.winHeight) - (this.itemHeight+50) - px2vp(this.topRect+this.bottomRect)
+    sub = this.winHeight - (this.itemHeight+50) - (this.topRect+this.bottomRect)
     console.log('最终的高度是：'+sub);
     return sub > 0 ? sub : 0
   }

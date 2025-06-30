@@ -23,8 +23,14 @@ export struct IS_2IN1_UI{
   @State title: string = '首页'
   @StorageProp('bottomRect') bottomRect: number = 0
   @StorageProp('topRect') topRect: number = 0
+  uiContext: UIContext | undefined = undefined;
   aboutToAppear(): void {
    this.sidebar_ctrl = this.currentBreakpoint === 'sm' ? false : true
+    this.uiContext = this.getUIContext();
+    if (!this.uiContext) {
+      console.warn("no uiContext");
+      return;
+    }
   }
   @Builder
   /**
@@ -63,15 +69,11 @@ export struct IS_2IN1_UI{
           .width(25)
           .height(25)
         }
-        .margin({
-          left: 4,
-          right: 4
-        })
         .width(36)
         .height(36)
         .backgroundColor(Color.Transparent)
         .onClick(()=>{
-          animateTo({
+          this.uiContext?.animateTo({
             duration: 250,
             curve: Curve.EaseOut,
             delay: 0,
@@ -82,23 +84,46 @@ export struct IS_2IN1_UI{
           });
         })
 
+        Row(){
+          if(this.sidebar_ctrl){
+            Text($r('app.string.library'))
+              .fontColor($r('app.color.text_title'))
+              .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
+              .fontSize($r('app.float.title_font_size'))
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .maxLines(1)
+          }
+        }
+        .layoutWeight(1)
+        .justifyContent(FlexAlign.Center)
+        .alignItems(VerticalAlign.Center)
+
         if(this.sidebar_ctrl){
-          Text($r('app.string.library'))
-            .fontColor($r('app.color.text_title'))
-            .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-            .fontSize($r('app.float.title_font_size'))
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-            .maxLines(1)
+          Button({ type: ButtonType.Circle }){
+            Text('󰀩')
+              .fontColor($r('app.color.text_title'))
+              .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
+              .fontSize($r('app.float.title_font_size'))
+          }
+          .width(36)
+          .height(36)
+          .backgroundColor(Color.Transparent)
+          .clickEffect({ level: ClickEffectLevel.LIGHT })
+          .onClick(()=>{
+            this.pageStack.pushPath({ name: 'MultiSearch' })
+          })
+          .margin({ right:16 })
         }
       }
-      .padding({ left: 16, right: 16})
-      .justifyContent(FlexAlign.Start)
+      .margin({ left: 12 })
+      .justifyContent(FlexAlign.SpaceBetween)
       .alignItems(VerticalAlign.Center)
-
     }
+    .justifyContent(FlexAlign.Center)
+    .alignItems(VerticalAlign.Center)
     .backgroundColor(Color.Transparent)
     .height(StyleConstants.TITLE_HEIGHT)
-    .width(200)
+    .width(300)
     .animation({
       duration: 250,
       curve: Curve.FastOutSlowIn
@@ -109,14 +134,14 @@ export struct IS_2IN1_UI{
   TitleBar(){
     Column(){
       // PC工具栏适配
-      if(this.decorHeight > 0){
-        Row(){
-        }
-        .height(this.decorHeight)
+      if(this.topRect > 0){
+        Row()
+        .height(this.topRect)
         .width('100%')
-      }else if(this.topRect > 0){
-        Row(){}
-        .height(px2vp(this.topRect))
+      }
+      if(this.decorHeight > 0){
+        Row()
+        .height(this.decorHeight)
         .width('100%')
       }
 
@@ -146,7 +171,7 @@ export struct IS_2IN1_UI{
       .alignItems(VerticalAlign.Center)
       .height(50)
     }
-    .height(px2vp(this.topRect)+50+this.decorHeight)
+    .height(this.topRect+50+this.decorHeight)
   }
 
   @Builder
@@ -174,6 +199,10 @@ export struct IS_2IN1_UI{
   ButtonShowList(){
     Column(){
       // PC工具栏适配
+      if(this.topRect > 0){
+        Row()
+          .height(this.topRect)
+      }
       if(this.decorHeight > 0){
         Row(){
           Image($r('app.media.icon'))
@@ -189,14 +218,11 @@ export struct IS_2IN1_UI{
         .justifyContent(FlexAlign.Start)
         .alignItems(VerticalAlign.Center)
         .height(this.decorHeight)
-      }else if(this.topRect > 0){
-        Row(){}
-        .height(px2vp(this.topRect))
       }
 
       this.button_list()
     }
-    .height(px2vp(this.topRect)+50+this.decorHeight)
+    .height(this.decorHeight+this.topRect+StyleConstants.TITLE_HEIGHT)
     .alignItems(HorizontalAlign.Start)
     .justifyContent(FlexAlign.Center)
   }
@@ -208,7 +234,7 @@ export struct IS_2IN1_UI{
       .height('100%')
       .backgroundColor(Color.Transparent)
       .onClick(() => {
-        animateTo({
+        this.uiContext?.animateTo({
           duration: 250,
           curve: Curve.EaseOut,
           delay: 0,
@@ -227,16 +253,23 @@ export struct IS_2IN1_UI{
 
           SideBarContainer(this.currentBreakpoint === 'sm' ? SideBarContainerType.Overlay : SideBarContainerType.Embed){
             Column(){
-              if(this.decorHeight > 0){
-                Row(){
+              Column(){
+                if(this.topRect > 0){
+                  Row(){}
+                  .height(this.topRect)
                 }
-                .justifyContent(FlexAlign.Start)
-                .alignItems(VerticalAlign.Center)
-                .height(this.decorHeight+StyleConstants.TITLE_HEIGHT)
-              }else if(this.topRect > 0){
-                Row(){}
-                .height(px2vp(this.topRect)+StyleConstants.TITLE_HEIGHT)
+                if(this.decorHeight > 0){
+                  Row(){
+                  }
+                  .justifyContent(FlexAlign.Start)
+                  .alignItems(VerticalAlign.Center)
+                  .height(this.decorHeight)
+                }
+                Row()
+                  .height(StyleConstants.TITLE_HEIGHT)
               }
+              .height(this.decorHeight+this.topRect+StyleConstants.TITLE_HEIGHT)
+
 
               List({space:8}){
                 ForEach(this.playlists, (playlist: Playlist) => {
@@ -277,7 +310,7 @@ export struct IS_2IN1_UI{
                 })
                 ListItem(){
                   Row() {
-                    Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + px2vp(this.bottomRect) + px2vp(this.topRect) + this.decorHeight + 50)
+                    Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + this.bottomRect + this.topRect + this.decorHeight + 50)
                   }
                 }
               }
@@ -312,12 +345,24 @@ export struct IS_2IN1_UI{
             }
 
           }
-          .showSideBar($$this.sidebar_ctrl)
+          .showSideBar(this.sidebar_ctrl)
           .sideBarWidth(300)
           .maxSideBarWidth(300)
           .minSideBarWidth(300)
           .showControlButton(false)
+          .onChange((value: boolean) => {
+            console.info('status:' + value);
+            this.uiContext?.animateTo({
+              duration: 250,
+              curve: Curve.EaseOut,
+              delay: 0,
+              onFinish: () => {
+              }
+            }, () => {
+              this.sidebar_ctrl = value
 
+            });
+          })
           MiniPlaybackControl()
         }
         .alignContent(Alignment.Bottom)
@@ -349,7 +394,7 @@ export struct IS_2IN1_UI{
           // 更新滑动偏移量
             let test =event.offsetX;
           if (test > 70) {
-            animateTo({
+            this.uiContext?.animateTo({
               duration: 250,
               curve: Curve.EaseOut,
               delay: 0,
@@ -361,7 +406,7 @@ export struct IS_2IN1_UI{
             });
 
           }else if (test < -70){
-            animateTo({
+            this.uiContext?.animateTo({
               duration: 250,
               curve: Curve.EaseOut,
               delay: 0,

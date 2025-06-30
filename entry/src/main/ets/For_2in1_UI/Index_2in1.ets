@@ -12,7 +12,6 @@ import { HorizontalMode } from '../util/HorizontalCheck'
 import { ScrollController } from '../util/ScrollController'
 import { HeaderAnimation } from '../component/HeaderAnimation'
 import { deviceInfo } from '@kit.BasicServicesKit'
-// import { PipManager } from '../util/PipManager';
 import { avPlayerManager } from '../util/AVPlayerManager';
 // 缓存常用值以避免重复计算
 const COLUMNS_TEMPLATE_LG = '1fr 1fr 1fr 1fr'
@@ -23,8 +22,8 @@ const TAG = 'Index'
 export struct Index_page {
   @StorageProp('decorHeight') decorHeight: number = 0
   @State version: string = '2.2.0'
-
   @State blankHeight: number = 0
+  @State limit: number = 10
   @Consume('NavPathStack') pageStack: NavPathStack
   @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
   private breakpointSystem = new BreakpointSystem()
@@ -54,6 +53,9 @@ export struct Index_page {
     avPlayerManager.setAudioSession()
 
     this.zhishi_UI =  PreferencesCache.getUserPreference('zhishi_UI','0')
+    if(this.zhishi_UI === '1'){
+      this.limit = 20
+    }
 
     // avPlayerManager.avPlayer?.setVolume(Number(PreferencesCache.getUserPreference('Volume','100'))/100)
     // if (PreferencesCache.getUserPreference('Lyic_desktop','0')==='1') {
@@ -62,7 +64,7 @@ export struct Index_page {
     // }
     if (PreferencesCache.getUserPreference(this.version,'0')==='0'){
       try{
-        AlertDialog.show(
+        this.getUIContext().showAlertDialog(
           {
             title: '更新提示',
             subtitle: '此版本',
@@ -109,8 +111,8 @@ export struct Index_page {
     }
 
     // 注册断点系统
-    this.breakpointSystem.register()
-    HorizontalMode(this.HorizontalMode_ctrl === '1')
+    this.breakpointSystem.register(this.getUIContext())
+    HorizontalMode(this.getUIContext().getHostContext() as Context,this.HorizontalMode_ctrl === '1')
     AppStorage.setOrCreate("pageStack", this.pageStack)
     // 立即初始化数据
     // this.initData()
@@ -138,10 +140,10 @@ export struct Index_page {
     try {
       // 并行加载数据并捕获异常
       await Promise.all([
-        SourceAdapter.getRecommendList(),
-        SourceAdapter.getRecommendSongs(),
-        SourceAdapter.getRecommendArtists(),
-        SourceAdapter.getTopList(),
+        SourceAdapter.getRecommendList(this.limit),
+        SourceAdapter.getRecommendSongs(this.limit),
+        SourceAdapter.getRecommendArtists(this.limit),
+        SourceAdapter.getTopList(this.limit),
         SourceAdapter.getUserPlaylist()
       ])
     } catch (error) {
@@ -189,7 +191,7 @@ export struct Index_page {
       }
       else if(this.topRect > 0){
         Row(){}
-        .height(px2vp(this.topRect)).backgroundColor('transparent').width('100%')
+        .height(this.topRect).backgroundColor('transparent').width('100%')
       }
 
       Row() {
@@ -254,7 +256,7 @@ export struct Index_page {
               this.pageStack.pushPath({ name: item.path })
             }
           })
-        }.key(`${item.title}`)
+        }
         .padding(4)
       })
     }
@@ -274,7 +276,7 @@ export struct Index_page {
       actionText: $r('app.string.rotate'),
       loading: this.loading,
       onActionClick: async () => {
-        this.recommendSongs = await SourceAdapter.getRecommendSongs()
+        this.recommendSongs = await SourceAdapter.getRecommendSongs(this.limit)
       },
     }).key('Index-R')
   }
@@ -288,7 +290,7 @@ export struct Index_page {
       actionText: $r('app.string.rotate'),
       loading: this.loading,
       onActionClick: async () => {
-        this.recommendPlaylist = await SourceAdapter.getRecommendList()
+        this.recommendPlaylist = await SourceAdapter.getRecommendList(this.limit)
       },
     }).key('Index-R')
   }
@@ -303,7 +305,7 @@ export struct Index_page {
       loading: this.loading,
       radius: "100%",
       onActionClick: async () => {
-        this.recommendArtists = await SourceAdapter.getRecommendArtists()
+        this.recommendArtists = await SourceAdapter.getRecommendArtists(this.limit)
       },
     }).key('Index-R')
   }
@@ -401,7 +403,7 @@ export struct Index_page {
 
               ListItem() {
                 Row() {
-                  Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + px2vp(this.bottomRect) + px2vp(this.topRect) + this.decorHeight + 50 + 32)
+                  Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + this.bottomRect + this.topRect + this.decorHeight + 50 + 32)
                 }
               }
             }
@@ -436,7 +438,7 @@ export struct Index_page {
   }
 
   getBlankHeight(): number {
-    let sub = px2vp(this.winHeight) - this.blankHeight - 50 - px2vp(this.bottomRect + this.topRect)
+    let sub = this.winHeight - this.blankHeight - 50 - (this.bottomRect + this.topRect)
     return sub > 0 ? sub : 0
   }
 }
