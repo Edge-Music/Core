@@ -32,47 +32,53 @@ export struct LyricItem {
         .backgroundColor(this.getLyricStyle(this.index).background)
         .opacity(this.getLyricStyle(this.index).opacity)
         .animation({
-          duration: 400
+          duration: 500,
+          curve: Curve.FastOutSlowIn
         })
 
       // 翻译歌词 (仅当启用显示翻译且该行有翻译时显示)
-      if (this.showTranslation && this.item.translation) {
-        Text(this.item.translation)
-          .fontSize(16)
-          .fontWeight(FontWeight.Normal)
-          .fontColor(this.getLyricStyle(this.index).fontColor)
-          .opacity(this.getLyricStyle(this.index).opacity * 0.9)
-          .margin({ bottom: 4 })
-          .padding({
-            left: 16,
-            right: 16,
-            top: 4,
-            bottom: 4
-          })
-          .textAlign(TextAlign.Center)
-          .borderRadius(8)
-          .backgroundColor('transparent')
-      }
+      Text(this.item.translation)
+        .fontSize(16)
+        .fontWeight(FontWeight.Normal)
+        .fontColor(this.getLyricStyle(this.index).fontColor)
+        .opacity(this.getLyricStyle(this.index).opacity * 0.9)
+        .margin({ bottom: 4 })
+        .padding({
+          left: 16,
+          right: 16,
+          top: 4,
+          bottom: 4
+        })
+        .textAlign(TextAlign.Center)
+        .borderRadius(8)
+        .backgroundColor('transparent')
+        .visibility(this.showTranslation && this.item.translation ? Visibility.Visible : Visibility.None)
+        .animation({
+          duration: 500,
+          curve: Curve.FastOutSlowIn
+        })
 
       // 音译歌词 (仅当启用显示翻译且该行有翻译时显示)
-      if (this.showTranslation && this.item.transliteration) {
-        Text(this.item.transliteration)
-          .fontSize(16)
-          .fontWeight(FontWeight.Normal)
-          .fontColor(this.getLyricStyle(this.index).fontColor)
-          .opacity(this.getLyricStyle(this.index).opacity * 0.9)
-          .margin({ bottom: 4 })
-          .padding({
-            left: 16,
-            right: 16,
-            top: 4,
-            bottom: 4
-          })
-          .textAlign(TextAlign.Center)
-          .borderRadius(8)
-          .backgroundColor('transparent')
-
-      }
+      Text(this.item.transliteration)
+        .fontSize(16)
+        .fontWeight(FontWeight.Normal)
+        .fontColor(this.getLyricStyle(this.index).fontColor)
+        .opacity(this.getLyricStyle(this.index).opacity * 0.9)
+        .margin({ bottom: 4 })
+        .padding({
+          left: 16,
+          right: 16,
+          top: 4,
+          bottom: 4
+        })
+        .textAlign(TextAlign.Center)
+        .borderRadius(8)
+        .backgroundColor('transparent')
+        .visibility(this.showTranslation && this.item.translation ? Visibility.Visible : Visibility.None)
+        .animation({
+          duration: 500,
+          curve: Curve.FastOutSlowIn
+        })
     }
     .width(StyleConstants.FULL_WIDTH)
   }
