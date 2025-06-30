@@ -176,6 +176,12 @@ export struct Index_page {
 
     Column(){
       // PC工具栏适配
+      if(this.topRect > 0){
+        Row(){}
+        .height(this.topRect)
+        .backgroundColor('transparent')
+        .width('100%')
+      }
       if(this.decorHeight > 0){
         Row(){
           Image($r('app.media.icon'))
@@ -187,11 +193,9 @@ export struct Index_page {
         }
         .justifyContent(FlexAlign.Start)
         .alignItems(VerticalAlign.Center)
-        .height(this.decorHeight).backgroundColor('transparent').width('100%')
-      }
-      else if(this.topRect > 0){
-        Row(){}
-        .height(this.topRect).backgroundColor('transparent').width('100%')
+        .height(this.decorHeight)
+        .backgroundColor('transparent')
+        .width('100%')
       }
 
       Row() {
