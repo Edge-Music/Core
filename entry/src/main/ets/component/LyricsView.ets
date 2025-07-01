@@ -1,7 +1,7 @@
 import { StyleConstants } from "../constants/StyleConstants";
 import { avPlayerManager } from "../util/AVPlayerManager";
 import { PreferencesCache } from "../util/PreferenceCache";
-import { App, LengthMetrics } from '@kit.ArkUI'
+import { App, LengthMetrics, LengthUnit } from '@kit.ArkUI'
 import { LyricsLine } from "../util/LyricsManager";
 import { VibrationControl } from "../util/DeviceController";
 import { EventHelper } from "../util/EventHelper";
@@ -50,7 +50,7 @@ export struct LyricsView {
     }
     this.isAutoScroll = true
     // 保持在视图中间偏上的位置，很显然这是一个经验修正
-    const targetIndex = Math.max(0, this.mode_judge ? index - (10 * (this.showTranslation ? 0.1 : 0.3)) : index - (this.showTranslation ? 0 : 1))
+    const targetIndex = this.getTargetIndex(index)
     this.uiContext?.animateTo({
       duration: this.SCROLL_ANIMATION_DURATION,
       curve: Curve.EaseOut,
@@ -61,6 +61,10 @@ export struct LyricsView {
     }, () => {
       this.scroller.scrollToIndex(targetIndex)
     })
+  }
+
+  private getTargetIndex(index: number) {
+    return Math.max(0, this.mode_judge ? index - (10 * (this.showTranslation ? 0.1 : 0.3)) : index - (this.showTranslation ? 0 : 1))
   }
 
   // 切换翻译显示状态
@@ -94,7 +98,10 @@ export struct LyricsView {
             .fontColor('rgba(255, 255, 255, 0.5)')
             .margin(16)
         } else {
-          List({ scroller: this.scroller }) {
+          List({
+            initialIndex: this.getTargetIndex(this.currentLyricsIndex),
+            scroller: this.scroller
+          }) {
             ForEach(this.parsedLyrics, (item: LyricsLine, index) => {
               ListItem() {
                 LyricItem({
@@ -113,11 +120,9 @@ export struct LyricsView {
           }
           .width(StyleConstants.FULL_WIDTH)
           .height(StyleConstants.FULL_HEIGHT)
-          .chainAnimation(true)
-          .edgeEffect(EdgeEffect.Spring)
           .layoutWeight(1)
           .scrollBar(BarState.Off)
-          .onDidScroll((scrollOffset: number, scrollState: ScrollState) => {
+          .onDidScroll(() => {
             // 检测到手动滚动时启动计时器
             if (!this.isAutoScroll) {
               this.startManualScrollTimer()
@@ -129,11 +134,11 @@ export struct LyricsView {
               this.startManualScrollTimer()
             }
           })
-          .fadingEdge(true, {
-            fadingEdgeLength:LengthMetrics.vp(80)
-          })
-          .contentStartOffset(50)
+          .contentStartOffset(100)
           .contentEndOffset(100)
+          .fadingEdge(true, {
+            fadingEdgeLength: LengthMetrics.vp(80)
+          })
         }
       }
       .width(StyleConstants.FULL_WIDTH)
