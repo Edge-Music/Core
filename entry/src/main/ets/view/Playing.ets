@@ -96,7 +96,7 @@ struct Playing {
   private swiperController: SwiperController = new SwiperController()
   // 歌曲封面-歌词翻转
   @State flipCoverLyric: boolean = PreferencesCache.flipCoverLyric()
-  @State  Pura_X:string =  PreferencesCache.getUserPreference('is_Pura_X', '0')//pura_x尝试适配
+  @State Pura_X: string = PreferencesCache.getUserPreference('is_Pura_X', '0')//pura_x尝试适配
   // 监听屏幕断点变化
   onBreakpointChange() {
     this.isWideScreen = this.currentBreakpoint !== BreakpointConstants.BREAKPOINT_SM;
@@ -452,13 +452,13 @@ struct Playing {
           LyricsView({
             mode_judge: false
           })
-            .width(StyleConstants.FULL_WIDTH)
+            .width('95%')
             .height(StyleConstants.SEVENTY_HEIGHT)
 
           Column(){
             this.PlayerControls(this.Pura_X === '1' ? false : true)
           }
-          .width('90%')
+          .width('100%')
           .layoutWeight(1)
 
           Blank()
@@ -466,7 +466,7 @@ struct Playing {
           Column(){
             this.ProgressBar(true, 0, false)
           }
-          .width('90%')
+          .width('100%')
           .layoutWeight(0.6)
 
         }
@@ -577,13 +577,13 @@ struct Playing {
           Column(){
             this.ProgressBar(false)
           }
-          .width('100%')
+          .width('120%')
           .layoutWeight(0.5)
 
           Column(){
             this.PlayerControls(this.Pura_X === '1' ? false : true)
           }
-          .width('100%')
+          .width('120%')
           .layoutWeight(1)
         }
         .padding({
@@ -710,10 +710,12 @@ struct Playing {
     }else{
       WindowUtil.setSystemBarEnabled(this.windowStage, true)
     }
+    WindowUtil.setWindowScreenOn(this.windowStage, true)
   }
 
   aboutToDisappear() {
     WindowUtil.setSystemBarEnabled(this.windowStage, true)
+    WindowUtil.setWindowScreenOn(this.windowStage, false)
     if (this.updateTimer !== -1) {
       clearInterval(this.updateTimer)
       this.updateTimer = -1

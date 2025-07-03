@@ -27,8 +27,8 @@ class WindowUtil {
         AppStorage.setOrCreate('winHeight', uiContext.px2vp(windowSize.height));
         AppStorage.setOrCreate('winWidthWithPx', windowSize.width);
         AppStorage.setOrCreate('winHeightWithPx', windowSize.height);
-        LogUtil.info(`[${TAG}]`, 'Succeeded in adding windowSizeChange listener.');
       });
+      LogUtil.info(`[${TAG}]`, 'Succeeded in adding windowSizeChange listener.');
 
       // 监听避让高度变化
       windowClass.on('avoidAreaChange', (avoidArea) => {
@@ -42,8 +42,8 @@ class WindowUtil {
           AppStorage.setOrCreate('rightCutoutRectHeight', uiContext.px2vp(avoidArea.area.rightRect.height))
           AppStorage.setOrCreate('rightCutoutRectWidth', uiContext.px2vp(avoidArea.area.rightRect.width))
         }
-        LogUtil.info(`[${TAG}]`, 'Succeeded in adding avoidAreaChange listener.');
       });
+      LogUtil.info(`[${TAG}]`, 'Succeeded in adding avoidAreaChange listener.');
     })
   }
 
@@ -138,6 +138,37 @@ class WindowUtil {
         LogUtil.error(`[${TAG}]`, `Failed to set the system bar to be invisible. Cause code: ${exception.code}, message: ${exception.message}`);
       }
     });
+  }
+
+  setWindowScreenOn(windowStage: window.WindowStage, isKeepScreenOn: boolean){
+    windowStage.getMainWindow().then((windowClass) => {
+      try {
+        windowClass.setWindowKeepScreenOn(isKeepScreenOn, (err: BusinessError) => {
+          const errCode: number = err.code;
+          if (errCode) {
+            LogUtil.error(`[${TAG}]`, `Failed to set the screen to be always on. Cause code: ${err.code}, message: ${err.message}`);
+            return;
+          }
+          LogUtil.info(`[${TAG}]`, `Succeeded in setting the screen to be always on: ${isKeepScreenOn}.`);
+        });
+      } catch (exception) {
+        LogUtil.error(`[${TAG}]`, `Failed to set the screen to be always on. Cause code: ${exception.code}, message: ${exception.message}`);
+      }
+    })
+  }
+
+  setWindowFullScreen(windowStage: window.WindowStage, isKeepScreenFull: boolean){
+    windowStage.getMainWindow().then((windowClass) => {
+      windowClass.setWindowLayoutFullScreen(isKeepScreenFull).then(() => {
+        if(isKeepScreenFull){
+          LogUtil.info(`[${TAG}]`, `Succeeded in setting the window to be full screen: ${isKeepScreenFull}.`);
+        }else{
+          LogUtil.info(`[${TAG}]`, `Succeeded in setting the window to be full screen: ${isKeepScreenFull}.`);
+        }
+      }).catch((err: BusinessError) => {
+        LogUtil.error(`[${TAG}]`, `Failed to set the window to be full screen. Cause code: ${err.code}, message: ${err.message}`);
+      });
+    })
   }
 
 }

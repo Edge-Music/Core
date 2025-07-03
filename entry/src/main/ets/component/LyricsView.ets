@@ -15,7 +15,6 @@ export struct LyricsView {
   @StorageProp('current_parsed_lyrics') private parsedLyrics: Array<LyricsLine> = []
   @StorageLink('current_lyrics_index') @Watch("onTimeUpdate") private currentLyricsIndex: number = 0
   @State mode_judge: boolean = false
-  @State private isAnimating: boolean = false
   @State private showTranslation: boolean = PreferencesCache.showTranslationLyric()
   @StorageProp('current_lyrics_has_translation') private hasTranslation: boolean = false // 是否有翻译歌词
   @StorageProp('current_lyrics_has_transliteration') private hasTransliteration: boolean = false
@@ -37,8 +36,7 @@ export struct LyricsView {
   // 监听当前播放时间更新
   onTimeUpdate() {
     // 如果索引变化且不在动画中，则更新并滚动
-    if (this.currentLyricsIndex !== -1 && !this.isAnimating && !this.isManualScroll) {
-      this.isAnimating = true
+    if (this.currentLyricsIndex !== -1 && !this.isManualScroll) {
       this.scrollToLyric(this.currentLyricsIndex)
     }
   }
@@ -55,7 +53,6 @@ export struct LyricsView {
       duration: this.SCROLL_ANIMATION_DURATION,
       curve: Curve.EaseOut,
       onFinish: () => {
-        this.isAnimating = false
         this.isAutoScroll = false
       }
     }, () => {
@@ -64,7 +61,7 @@ export struct LyricsView {
   }
 
   private getTargetIndex(index: number) {
-    return Math.max(0, this.mode_judge ? index - (10 * (this.showTranslation ? 0.1 : 0.3)) : index - (this.showTranslation ? 0 : 1))
+    return Math.max(0, this.mode_judge ? index - (this.showTranslation ? 1 : 3) : index - (this.showTranslation ? 0 : 1))
   }
 
   // 切换翻译显示状态
@@ -100,7 +97,8 @@ export struct LyricsView {
         } else {
           List({
             initialIndex: this.getTargetIndex(this.currentLyricsIndex),
-            scroller: this.scroller
+            scroller: this.scroller,
+            space: 12
           }) {
             ForEach(this.parsedLyrics, (item: LyricsLine, index) => {
               ListItem() {
@@ -136,9 +134,6 @@ export struct LyricsView {
           })
           .contentStartOffset(100)
           .contentEndOffset(100)
-          .fadingEdge(true, {
-            fadingEdgeLength: LengthMetrics.vp(80)
-          })
         }
       }
       .width(StyleConstants.FULL_WIDTH)
@@ -185,7 +180,6 @@ export struct LyricsView {
   // 歌词点击处理
   private handleLyricClick(time: number, index: number) {
     // 更新UI状态
-    this.isAnimating = true
     this.isManualScroll = false
     this.currentLyricsIndex = index
     AppStorage.setOrCreate('test_index', this.parsedLyrics[index].text)

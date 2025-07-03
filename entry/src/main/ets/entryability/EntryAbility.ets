@@ -106,11 +106,15 @@ export default class EntryAbility extends UIAbility {
     WindowUtil.setWindowProperties(windowStage)
     WindowUtil.setWindowListeners(windowStage)
     WindowUtil.setPipManager(windowStage)
+    WindowUtil.setWindowFullScreen(windowStage, true)
 
     if (this.page){
       WindowUtil.setPageJump(this.page)
     }
+  }
 
+  onWindowStageWillDestroy(windowStage: window.WindowStage){
+    WindowUtil.setWindowFullScreen(windowStage, false)
   }
 
   onWindowStageDestroy(): void {
