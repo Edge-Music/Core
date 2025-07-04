@@ -479,6 +479,10 @@
     {
       "name": "vivid",
       "value": "Audio Vivid"
+    },
+    {
+      "name": "double_tap_switch_songs",
+      "value": "Double Tap To Switch Songs"
     }
   ]
 }

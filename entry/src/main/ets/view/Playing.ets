@@ -21,6 +21,7 @@ import ImageUtils from '../util/ImageUtils';
 import { curves, promptAction } from '@kit.ArkUI'
 import { PipManager } from '../util/PipManager'
 import WindowUtil from '../util/WindowUtil'
+import SensorUtil from '../util/SensorUtil'
 
 
 @Builder
@@ -52,6 +53,7 @@ struct Playing {
   @State imageColorHex:string='1a2a3a'
   @State currentIndex: number = -1
   @StorageLink('Lyic_desktop') Lyic_desktop: string = PreferencesCache.getUserPreference('Lyic_desktop','0')
+  @StorageProp('double_tap_switch_songs') isOnDoubleTap: string = PreferencesCache.getUserPreference('double_tap_switch_songs','0')
   // 独立的按钮动画状态
   @State swipeOffset: number = 0; // 滑动偏移量
   @State isSwipingActive: boolean = false; // 是否正在滑动中
@@ -711,11 +713,18 @@ struct Playing {
       WindowUtil.setSystemBarEnabled(this.windowStage, true)
     }
     WindowUtil.setWindowScreenOn(this.windowStage, true)
+
+    if(this.isOnDoubleTap === '1'){
+      SensorUtil.onAccelerometer()
+    }
   }
 
   aboutToDisappear() {
     WindowUtil.setSystemBarEnabled(this.windowStage, true)
     WindowUtil.setWindowScreenOn(this.windowStage, false)
+    if(this.isOnDoubleTap === '1'){
+      SensorUtil.offAccelerometer()
+    }
     if (this.updateTimer !== -1) {
       clearInterval(this.updateTimer)
       this.updateTimer = -1

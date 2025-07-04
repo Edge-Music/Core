@@ -40,7 +40,7 @@ export struct Index_page {
   @StorageProp('bottomRect') bottomRect: number = 0
   @StorageProp('topRect') topRect: number = 0
   @StorageProp('winHeight') winHeight: number = 0
-  @State HorizontalMode_ctrl: string = PreferencesCache.getUserPreference('HorizontalMode_ctrl', '0')
+  @State HorizontalMode_ctrl: string = PreferencesCache.getUserPreference('HorizontalMode_ctrl', '1')
   @State scrollController: ScrollController = new ScrollController({
     onIndexChange: (index) => {
       this.onMenuIconClick(index)
