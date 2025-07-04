@@ -1,7 +1,9 @@
+import { LogUtil } from "@pura/harmony-utils";
 import { Song } from "../type/Adapter";
 import { avPlayerManager } from "./AVPlayerManager";
 import { EventHelper } from "./EventHelper";
 import FormUtils from "./FormUtils";
+import { PreferencesCache } from "./PreferenceCache";
 
 export class LyricsLine {
   time: number; // 时间点（毫秒）
@@ -19,6 +21,7 @@ export class LyricsLine {
   }
 }
 
+const TAG = 'LyricsManager'
 class LyricsManager {
   private song: Song | undefined
   private originalLyrics: string = ''
@@ -31,12 +34,14 @@ class LyricsManager {
   private lyricsTimer: number = -1
   private lastIndex: number = -1
   private currentIndex: number = 0
-  private readonly PRE_HIGHLIGHT_TIME: number = 500 // 提前切换时间
+  private BASE_PRE_TIME: number = 500 // 基础提前时间
+  private PRE_HIGHLIGHT_TIME: number = 0 // 提前切换时间
   private isInit: boolean = false
   private currentSongName: string = ''
 
   async init(){
 
+    this.PRE_HIGHLIGHT_TIME = PreferencesCache.currentLyricsOffsetTime() + this.BASE_PRE_TIME
     this.song = AppStorage.get<Song>('current_playing_song')
     this.originalLyrics = this.song?.meta?.lyric?.normal ?? ''
     this.translatedLyrics = this.song?.meta?.lyric?.translation ?? ''
@@ -54,6 +59,11 @@ class LyricsManager {
     }
     this.parseLyrics()
     this.isInit = true
+  }
+
+  setPreTime(preTime: number){
+    this.PRE_HIGHLIGHT_TIME = this.BASE_PRE_TIME + preTime
+    LogUtil.info(`${TAG}`, ` currentLyricsOffsetTime: ${preTime}`)
   }
 
   async start(){

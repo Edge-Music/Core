@@ -2,11 +2,11 @@ import { StyleConstants } from "../constants/StyleConstants";
 import { avPlayerManager } from "../util/AVPlayerManager";
 import { PreferencesCache } from "../util/PreferenceCache";
 import { App, LengthMetrics, LengthUnit } from '@kit.ArkUI'
-import { LyricsLine } from "../util/LyricsManager";
+import LyricsManager, { LyricsLine } from "../util/LyricsManager";
 import { VibrationControl } from "../util/DeviceController";
 import { EventHelper } from "../util/EventHelper";
 import { LyricItem } from "./LyricItem";
-import { LogUtil } from "@pura/harmony-utils";
+import { LogUtil, ToastUtil } from "@pura/harmony-utils";
 
 @Component
 export struct LyricsView {
@@ -24,6 +24,10 @@ export struct LyricsView {
   @State private manualScrollTimeoutId: number = -1; // 手动滚动超时ID
   @State private isManualScroll: boolean = false; // 是否处于手动滚动状态
   @State private isAutoScroll: boolean = false; // 是否处于自动滚动状态
+  @State private currentLyricsOffsetTime: number = PreferencesCache.currentLyricsOffsetTime()
+  @State private lastLyricsOffsetTime: number = PreferencesCache.currentLyricsOffsetTime()
+  @State private lastStep: number = 0
+  @State private isShow: boolean = false;
   uiContext: UIContext | undefined = undefined;
   aboutToAppear() {
     this.uiContext = this.getUIContext();
@@ -87,7 +91,7 @@ export struct LyricsView {
   }
 
   build() {
-    Stack({ alignContent: Alignment.TopEnd }) {
+    Stack({ alignContent: Alignment.Bottom }) {
       Column() {
         if (this.parsedLyrics.length === 0) {
           Text($r('app.string.no_lyric_available'))
@@ -154,27 +158,86 @@ export struct LyricsView {
         .translate({ x: -72, y: -72 })
         .onClick(() => this.toggleTranslation())
       }
+
+      Column() {
+        Text(`历史偏移：${this.lastLyricsOffsetTime}MS`)
+          .fontSize(16)
+          .fontColor(Color.White)
+          .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
+          .animation({
+            duration: 200
+          })
+        Text(`当前偏移：${this.currentLyricsOffsetTime}MS`)
+          .fontSize(16)
+          .fontColor(Color.White)
+          .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
+          .animation({
+            duration: 200
+          })
+      }
+      .alignItems(HorizontalAlign.Center)
+      .justifyContent(FlexAlign.Center)
+      .margin({ bottom: '30%' })
+      .backgroundBlurStyle(BlurStyle.BACKGROUND_THICK)
+      .height(60)
+      .width(200)
+      .borderRadius(15)
+      .visibility(this.isShow ? Visibility.Visible : Visibility.None)
+
     }
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
     .gesture(
-      PinchGesture()
-        .onActionUpdate((event: PinchGestureEvent) => {
-          if (event.scale > 1.1) {
-            this.debounce(() => {
-              if(!this.showTranslation && (this.hasTranslation || this.hasTransliteration)){
+      GestureGroup(GestureMode.Exclusive,
+
+        PanGesture({ fingers: 3 , direction: PanDirection.Vertical, distance: 1 })
+          .onActionEnd((event: GestureEvent)=> {
+            const currentStep = Math.floor(event.offsetY / 20)
+            if(currentStep < 1){
+              LyricsManager.setPreTime(0)
+              PreferencesCache.currentLyricsOffsetTime(0)
+              this.currentLyricsOffsetTime = 0
+              this.lastLyricsOffsetTime = 0
+              VibrationControl.handlePresetVibration(1)
+              ToastUtil.showToast(`当前歌词偏移：${this.currentLyricsOffsetTime}MS`)
+            }
+            if(currentStep > 1){
+              if(this.hasTranslation || this.hasTransliteration){
                 this.toggleTranslation()
               }
-            });
-          } else if (event.scale < 0.9) {
-            this.debounce(() => {
-              if(this.showTranslation && (this.hasTranslation || this.hasTransliteration)){
-                this.toggleTranslation()
-              }
-            });
-          }
-        })
+            }
+          }),
+
+        PanGesture({ fingers: 2 , direction: PanDirection.Vertical, distance: 1 })
+          .onActionStart(() => {
+            this.isShow = true
+          })
+          .onActionUpdate((event: GestureEvent)=> {
+            const newStep = Math.floor(event.offsetY / 50)
+            if(this.handleUpdate(newStep)){
+              this.currentLyricsOffsetTime = this.lastLyricsOffsetTime + this.lastStep*100
+              LyricsManager.setPreTime(this.currentLyricsOffsetTime)
+              PreferencesCache.currentLyricsOffsetTime(this.currentLyricsOffsetTime)
+              VibrationControl.handlePresetVibration(1)
+            }
+          })
+          .onActionEnd(() => {
+            this.lastStep = 0
+            this.isShow = false
+            this.lastLyricsOffsetTime = this.currentLyricsOffsetTime
+            ToastUtil.showToast(`当前歌词偏移：${this.currentLyricsOffsetTime}MS`)
+          }),
+
+      )
     )
+  }
+
+  handleUpdate(newStep: number): boolean {
+    if (newStep !== this.lastStep) {
+      this.lastStep = newStep
+      return true // 需要触发震动
+    }
+    return false
   }
 
   // 歌词点击处理
@@ -194,7 +257,7 @@ export struct LyricsView {
 
   private startManualScrollTimer() {
     // 清除之前的计时器
-    if (this.manualScrollTimeoutId) {
+    if (this.manualScrollTimeoutId !== -1) {
       clearTimeout(this.manualScrollTimeoutId)
     }
 

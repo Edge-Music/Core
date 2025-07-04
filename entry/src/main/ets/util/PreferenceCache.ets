@@ -1,5 +1,5 @@
 import { Artist, ID, Playlist, Song, SourceConfig } from "../type/Adapter";
-import { PreferencesUtil } from '@pura/harmony-utils';
+import { LogUtil, PreferencesUtil } from '@pura/harmony-utils';
 
 // 比特率类型
 export type BitrateType = 128000 | 192000 | 320000 | 350000 | 999000 | number;
@@ -30,6 +30,7 @@ export function getQualityLevel(bitrate: BitrateType): QualityLevel {
 /**
  * 系统设置偏好
  */
+const TAG = 'PreferencesCache'
 export class PreferencesCache {
   private static CACHE_MAP = new Map<string, string>();
 
@@ -351,5 +352,18 @@ export class PreferencesCache {
   static setSongCache(strIndex: string, sourceConfig: Song[]): void {
     PreferencesCache.setCache(strIndex, JSON.stringify(sourceConfig));
     AppStorage.setOrCreate(strIndex, sourceConfig);
+  }
+
+  /**
+   * 显示翻译/音译歌词
+   * @param value 是否显示
+   * @returns 是否显示
+   */
+  static currentLyricsOffsetTime(value?: number): number {
+    if (value !== undefined) {
+      PreferencesCache.setUserPreference('current_lyrics_offset_time', value > 0 ? `+${value}` : `-${value}`);
+      LogUtil.info(`[${TAG}]`, ` currentLyricsOffsetTime: ${value}`)
+    }
+    return parseInt(PreferencesCache.getUserPreference('current_lyrics_offset_time', '0'))
   }
 }
