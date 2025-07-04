@@ -101,10 +101,11 @@ class WindowUtil {
         let isVisible = false;
         // 调用setWindowDecorVisible接口
         try {
+          const uiContext = windowClass.getUIContext()
           if(canIUse('SystemCapability.Window.SessionManager')){
             windowClass?.setWindowDecorVisible(isVisible);
             let height = windowClass?.getWindowDecorHeight();
-            AppStorage.setOrCreate('decorHeight', height);
+            AppStorage.setOrCreate('decorHeight', uiContext.px2vp(height));
           }
         } catch (exception) {
           LogUtil.error(`[${TAG}]`, `Failed to set the visibility of window decor. Cause code: ${exception.code}, message: ${exception.message}`);
@@ -169,6 +170,19 @@ class WindowUtil {
         LogUtil.error(`[${TAG}]`, `Failed to set the window to be full screen. Cause code: ${err.code}, message: ${err.message}`);
       });
     })
+  }
+
+  setWindowStatus(windowStage: window.WindowStage){
+    if(canIUse('SystemCapability.Window.SessionManager')) {
+      windowStage.getMainWindow().then((windowClass) => {
+        let windowStatus: window.WindowStatusType = windowClass.getWindowStatus()
+        AppStorage.setOrCreate<window.WindowStatusType>('windowStatus', windowStatus)
+
+        windowClass.on('windowStatusChange', (windowStatus: window.WindowStatusType) => {
+          AppStorage.setOrCreate('windowStatus', windowStatus)
+        })
+      })
+    }
   }
 
 }

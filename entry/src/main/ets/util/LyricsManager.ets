@@ -150,7 +150,7 @@ class LyricsManager {
    */
   private parseLyricsText(lrcText: string): LyricsLine[] {
     const lines = lrcText.split('\n')
-    const timeRegex = /\[(\d{2}):(\d{2})[\.:](\d{2,3})\]/
+    const timeRegex = /\[(\d{2}):(\d{2})(?:[\.:](\d{2,3}))?\]/
     const tempLyrics: LyricsLine[] = []
 
     lines.forEach(line => {
@@ -158,7 +158,7 @@ class LyricsManager {
       if (match) {
         const minutes = parseInt(match[1])
         const seconds = parseInt(match[2])
-        const ms = parseInt(match[3])
+        const ms = match[3] ? parseInt(match[3]) : 0
         // 统一转换为毫秒
         const time = minutes * 60 * 1000 + seconds * 1000 + (ms < 100 ? ms * 10 : ms)
         const text = line.replace(timeRegex, '').trim()
