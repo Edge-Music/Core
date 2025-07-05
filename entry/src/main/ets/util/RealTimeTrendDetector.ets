@@ -9,23 +9,15 @@ class StrictTrendDetector {
   private readonly minTrendDiff: number;
   private dataWindow: number[];
   private trendSequence: Trend[]; // 当前正在构建的趋势序列
-  private coolDownCounter: number;
-  private readonly coolDownPeriod: number = 20;
 
-  constructor(windowSize: number = 6, minTrendDiff: number = 4) { // 提高默认阈值
+  constructor(windowSize: number = 20, minTrendDiff: number = 3) {
     this.windowSize = windowSize;
     this.minTrendDiff = minTrendDiff;
     this.dataWindow = [];
     this.trendSequence = [];
-    this.coolDownCounter = 0;
   }
 
   update(newValue: number): void {
-    // if (this.coolDownCounter > 0) {
-    //   this.coolDownCounter--;
-    //   return;
-    // }
-
     // 更新数据窗口
     this.dataWindow.push(newValue);
     if (this.dataWindow.length > this.windowSize) {
