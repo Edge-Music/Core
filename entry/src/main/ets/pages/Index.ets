@@ -325,7 +325,7 @@ struct Index_page {
       onActionClick: async () => {
         this.recommendSongs = await SourceAdapter.getRecommendSongs(this.limit)
       },
-    }).key('Index-R')
+    })
   }
 
   @Builder
@@ -339,7 +339,7 @@ struct Index_page {
       onActionClick: async () => {
         this.recommendPlaylist = await SourceAdapter.getRecommendList(this.limit)
       },
-    }).key('Index-R')
+    })
   }
 
   @Builder
@@ -354,7 +354,7 @@ struct Index_page {
       onActionClick: async () => {
         this.recommendArtists = await SourceAdapter.getRecommendArtists(this.limit)
       },
-    }).key('Index-R')
+    })
   }
 
   @Builder
@@ -364,7 +364,7 @@ struct Index_page {
       type: 'TopPlaylist',
       title: $r('app.string.chart'),
       loading: this.loading
-    }).key('Index-R')
+    })
   }
 
   @Builder

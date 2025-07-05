@@ -25,10 +25,10 @@ export struct SongInfo {
   updateHighlightState() {
     if (this.highlight) {
       this.isHighlighting = true;
-      // 高亮持续1.5秒后自动消失
+      // 高亮持续0.3秒后自动消失
       setTimeout(() => {
         this.isHighlighting = false;
-      }, 1500);
+      }, 300);
     }
   }
 
