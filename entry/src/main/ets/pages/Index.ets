@@ -20,7 +20,7 @@ import { HeaderAnimation } from '../component/HeaderAnimation'
 import { deviceInfo } from '@kit.BasicServicesKit'
 import { PipManager } from '../util/PipManager';
 import { avPlayerManager } from '../util/AVPlayerManager';
-import {FOR_2IN1_UI, IS_2IN1_UI}from '../For_2in1_UI/FOR2IN1'
+import { IS_2IN1_UI }from '../For_2in1_UI/FOR2IN1'
 // 缓存常用值以避免重复计算
 const COLUMNS_TEMPLATE_LG = '1fr 1fr 1fr 1fr'
 const COLUMNS_TEMPLATE_SM = '1fr 1fr'
@@ -69,6 +69,8 @@ struct Index_page {
   @State version: string = '2.2.0.y'
   @State blankHeight: number = 0
   @State limit: number = 10
+  @State page_judge: string = 'index'
+  @State title: string = '首页'
   @Consume('NavPathStack') pageStack: NavPathStack
   @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
   private breakpointSystem = new BreakpointSystem()
@@ -398,7 +400,10 @@ struct Index_page {
   build() {
     NavDestination() {
       if (this.zhishi_UI === '1'){
-        IS_2IN1_UI()
+        IS_2IN1_UI({
+          page_judge: this.page_judge,
+          title: this.title
+        })
       }else {
         Stack({ alignContent: Alignment.Bottom }) {
           Column(){
@@ -486,6 +491,14 @@ struct Index_page {
     .hideBackButton(true)
     .backgroundColor($r('app.color.page_background'))
     .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM, LayoutSafeAreaEdge.TOP])
+    .onBackPressed(() => {
+      if(this.page_judge !== 'index'){
+        this.page_judge = 'index'
+        this.title = '首页'
+        return true
+      }
+      return false
+    })
   }
 
   getBlankHeight(): number {
