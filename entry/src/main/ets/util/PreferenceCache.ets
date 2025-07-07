@@ -361,7 +361,7 @@ export class PreferencesCache {
    */
   static currentLyricsOffsetTime(value?: number): number {
     if (value !== undefined) {
-      PreferencesCache.setUserPreference('current_lyrics_offset_time', value > 0 ? `+${value}` : `-${value}`);
+      PreferencesCache.setUserPreference('current_lyrics_offset_time', `${value}`);
       LogUtil.info(`[${TAG}]`, ` currentLyricsOffsetTime: ${value}`)
     }
     return parseInt(PreferencesCache.getUserPreference('current_lyrics_offset_time', '0'))
