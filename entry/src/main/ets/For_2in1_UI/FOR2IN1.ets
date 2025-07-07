@@ -130,16 +130,15 @@ export struct IS_2IN1_UI{
   TitleBar(){
     Column(){
       // PC工具栏适配
-      if(this.topRect > 0){
-        Row()
+      Row()
         .height(this.topRect)
         .width('100%')
-      }
-      if(this.decorHeight > 0){
-        Row()
+        .visibility(this.topRect > 0 ? Visibility.Visible : Visibility.None)
+
+      Row()
         .height(this.decorHeight)
         .width('100%')
-      }
+        .visibility(this.decorHeight > 0 ? Visibility.Visible : Visibility.None)
 
       Row() {
         Row()
@@ -167,7 +166,7 @@ export struct IS_2IN1_UI{
       .alignItems(VerticalAlign.Center)
       .height(50)
     }
-    .height(this.topRect+50+this.decorHeight)
+    .height(this.topRect+StyleConstants.TITLE_HEIGHT+this.decorHeight)
   }
 
   @Builder
@@ -250,17 +249,16 @@ export struct IS_2IN1_UI{
           SideBarContainer(this.currentBreakpoint === 'sm' ? SideBarContainerType.Overlay : SideBarContainerType.Embed){
             Column(){
               Column(){
-                if(this.topRect > 0){
-                  Row(){}
+                Row()
                   .height(this.topRect)
-                }
-                if(this.decorHeight > 0){
-                  Row(){
-                  }
+                  .visibility(this.topRect > 0 ? Visibility.Visible : Visibility.None)
+
+                Row()
                   .justifyContent(FlexAlign.Start)
                   .alignItems(VerticalAlign.Center)
                   .height(this.decorHeight)
-                }
+                  .visibility(this.decorHeight > 0 ? Visibility.Visible : Visibility.None)
+
                 Row()
                   .height(StyleConstants.TITLE_HEIGHT)
               }

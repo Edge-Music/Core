@@ -164,15 +164,15 @@ struct Index_page {
     // 立即初始化数据
     this.initData()
     let productSeries:string=deviceInfo.productSeries
-    let devicetype:string =deviceInfo.deviceType
-    if (devicetype!='phone'&&productSeries!='VDE'){
+    let deviceType: string =deviceInfo.deviceType
+    if (deviceType!='phone'&&productSeries!='VDE'){
       AppStorage.setOrCreate<boolean>('isWideScreen', true)
     }else {
       AppStorage.setOrCreate<boolean>('isWideScreen', false)
 
     }
-    AppStorage.setOrCreate("devicetype", devicetype)
-    PreferencesCache.setUserPreference('devicetype', devicetype)
+    AppStorage.setOrCreate("devicetype", deviceType)
+    PreferencesCache.setUserPreference('devicetype', deviceType)
     if(productSeries=='VDE') {
       PreferencesCache.setUserPreference('is_Pura_X', '1')
     }else {
@@ -221,27 +221,26 @@ struct Index_page {
 
     Column(){
       // PC工具栏适配
-      if(this.topRect > 0){
-        Row(){}
+      Row()
         .height(this.topRect)
         .backgroundColor('transparent')
         .width('100%')
+        .visibility(this.topRect > 0 ? Visibility.Visible : Visibility.None)
+
+      Row(){
+        Image($r('app.media.icon'))
+          .height(this.decorHeight/2)
+          .width(this.decorHeight/2)
+          .margin({ left: 16 })
+        Blank().width(5)
+        Text('云享社').fontSize(14).fontWeight(FontWeight.Bold)
       }
-      if(this.decorHeight > 0){
-        Row(){
-          Image($r('app.media.icon'))
-            .height(this.decorHeight/2)
-            .width(this.decorHeight/2)
-            .margin({ left: 16 })
-          Blank().width(5)
-          Text('云享社').fontSize(14).fontWeight(FontWeight.Bold)
-        }
-        .justifyContent(FlexAlign.Start)
-        .alignItems(VerticalAlign.Center)
-        .height(this.decorHeight)
-        .backgroundColor('transparent')
-        .width('100%')
-      }
+      .justifyContent(FlexAlign.Start)
+      .alignItems(VerticalAlign.Center)
+      .height(this.decorHeight)
+      .backgroundColor('transparent')
+      .width('100%')
+      .visibility(this.decorHeight > 0 ? Visibility.Visible : Visibility.None)
 
       Row() {
         Text($r("app.string.homepage"))
