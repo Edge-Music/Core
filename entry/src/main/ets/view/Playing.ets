@@ -1133,7 +1133,7 @@ struct Playing {
           DialogHelper.showSelectDialog({
             title: $r('app.string.add_to_playlist'),
             confirm: $r('app.string.back'),
-            selectedIndex: 0,
+            selectedIndex: -1,
             radioContent: this.aggregationPlaylist.map(playlist => playlist?.name),
             onCheckedChanged: (index) => {
               this.selectedIndex = index
@@ -1178,7 +1178,7 @@ struct Playing {
           DialogHelper.showSelectDialog({
             title: $r('app.string.add_to_playlist'),
             confirm: $r('app.string.back'),
-            selectedIndex: 0,
+            selectedIndex: -1,
             radioContent: this.aggregationPlaylist.map(playlist => playlist?.name),
             onCheckedChanged: (index) => {
               this.selectedIndex = index
