@@ -11,6 +11,7 @@ import { LogUtil } from '@pura/harmony-utils';
 export struct PlaylistView {
   @StorageLink('current_playing_song') currentSong: Song | null = null;
   @StorageLink('current_playing_playlist') @Watch('onPlaylistChanged') playlist: Array<Song> = [];
+  @StorageLink("current_playlist_data") curPlaylist: Playlist | null = null
   @State isLoading: boolean = false;
   @State highlightIndex: number = -1;
   @State currentIndex: number = -1
@@ -186,12 +187,14 @@ export struct PlaylistView {
           LazyForEach(this.songDataSource, (song: Song, index: number) => {
             ListItem() {
               SongInfo({
+                playlistId: this.curPlaylist?.id,
                 song: song,
                 showIndex: false,
                 active: this.currentSong?.id === song.id,
                 highlight: this.highlightIndex === index,
                 disabled: song.privilege && !song.privilege.playable,
-                onTap: (song: Song) => this.handleSongTap(song)
+                onTap: (song: Song) => this.handleSongTap(song),
+                isShowMenu: false
               }) {
                 // 使用rightSlot插槽添加删除按钮
                 this.DeleteButton(song)

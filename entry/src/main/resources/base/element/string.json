@@ -41,6 +41,10 @@
       "value": "歌曲"
     },
     {
+      "name": "aggregation",
+      "value": "聚合"
+    },
+    {
       "name": "album",
       "value": "专辑"
     },
@@ -187,6 +191,10 @@
     {
       "name": "no_download_tasks",
       "value": "暂无下载任务"
+    },
+    {
+      "name": "no_aggregation_playlist",
+      "value": "暂无聚合歌单"
     },
     {
       "name": "no_recommendations",
@@ -483,6 +491,26 @@
     {
       "name": "double_tap_switch_songs",
       "value": "双敲后壳切歌（实验性）"
+    },
+    {
+      "name": "create_playlist",
+      "value": "创建歌单"
+    },
+    {
+      "name": "edit_playlist_info",
+      "value": "编辑歌单信息"
+    },
+    {
+      "name": "add_to_playlist",
+      "value": "添加到歌单"
+    },
+    {
+      "name": "delete_playlist",
+      "value": "删除歌单"
+    },
+    {
+      "name": "delete_song",
+      "value": "删除歌曲"
     }
   ]
 }

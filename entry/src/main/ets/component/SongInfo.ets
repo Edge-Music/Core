@@ -1,21 +1,30 @@
+import { DialogAction, DialogHelper } from "@pura/harmony-dialog";
+import { LogUtil, ToastUtil } from "@pura/harmony-utils";
 import { StyleConstants } from "../constants/StyleConstants";
-import { Song } from "../type/Adapter";
+import { Playlist, PlaylistType, Song } from "../type/Adapter";
+import { PreferencesCache } from "../util/PreferenceCache";
+const TAG = 'SongInfo'
 
 @Reusable
 @Component
 export struct SongInfo {
+  @StorageLink('aggregation_playlist') aggregationPlaylist: Playlist[] = PreferencesCache.getPlaylistCache('aggregation_playlist')
+  @Prop playlistId: number | string
+  @Prop playlistType: PlaylistType
   @Prop song: Song
   showBorder: boolean = true;
   onTap?: (song: Song) => void;
   @Prop active: boolean = false;
   @Prop disabled: boolean = false;
   @Prop index: number = 0;
+  @Prop isShowMenu: boolean
   @Prop showIndex: boolean = true;
   @Watch('updateHighlightState') @Prop highlight: boolean = false; // 新增高亮参数
   @BuilderParam rightSlot?: () => void;
   @State On_Mouse:boolean =false
   // 用于高亮动画的状态变量
   @State private isHighlighting: boolean = false;
+  @State selectedIndex: number = 0
 
   // 监听highlight属性变化
   aboutToAppear() {
@@ -111,6 +120,24 @@ export struct SongInfo {
         .alignItems(HorizontalAlign.Start)
         .layoutWeight(1)
 
+        if(this.isShowMenu){
+          Button({ type: ButtonType.Circle }) {
+            Image($r('app.media.ic_more'))
+              .width(20)
+              .height(20)
+              .fillColor($r('app.color.icon_normal'))
+              .opacity(0.9)
+          }
+          .width(48)
+          .height(48)
+          .bindMenu(this.generateSongMenu(this.song))
+          .clickEffect({ level: ClickEffectLevel.LIGHT })
+          .stateStyles({
+            pressed: this.pressedMenuStyles,
+            normal: this.normalMenuStyles
+          })
+        }
+
         // 右侧插槽 - 简约处理
         if (this.rightSlot) {
           this.rightSlot()
@@ -152,6 +179,88 @@ export struct SongInfo {
     .padding({ left: 12, right: 12, top: 4, bottom: 4 })
   }
 
+  generateSongMenu(song: Song): Array<MenuElement> {
+    if(this.playlistType === PlaylistType.AGGREGATION) {
+      return [
+        {
+          value: $r('app.string.add_to_playlist'),
+          action: () => {
+            DialogHelper.showSelectDialog({
+              title: $r('app.string.add_to_playlist'),
+              confirm: $r('app.string.back'),
+              selectedIndex: 0,
+              radioContent: this.aggregationPlaylist.map(playlist => playlist.name),
+              onCheckedChanged: (index) => {
+                this.selectedIndex = index
+                if(PreferencesCache.addSongToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], song)){
+                  ToastUtil.showShort(`已存在于[${this.aggregationPlaylist[index].name}]`)
+                }else{
+                  ToastUtil.showShort(`已添加到[${this.aggregationPlaylist[index].name}]`)
+                }
+                if(this.playlistId === this.aggregationPlaylist[this.selectedIndex].id){
+                  AppStorage.setOrCreate('current_playlist_data', this.aggregationPlaylist[this.selectedIndex])
+                }
+              },
+              onAction: (): void => {}
+            })
+          }
+        },
+        {
+          value: $r('app.string.delete_song'),
+          action: () => {
+            DialogHelper.showAlertDialog({
+              primaryTitle: `是否删除歌曲[${song.name}]？`,
+              primaryButton: $r('app.string.cancel'),
+              secondaryButton: $r('app.string.confirm'),
+              onAction: (action: number): void => {
+                if(action === DialogAction.TWO){
+                  this.deleteFromAggregationSongs(this.playlistId, song)
+                }
+              }
+            })
+          }
+        }
+      ]
+    } else {
+      return [
+        {
+          value: $r('app.string.add_to_playlist'),
+          action: () => {
+            DialogHelper.showSelectDialog({
+              title: $r('app.string.add_to_playlist'),
+              confirm: $r('app.string.back'),
+              selectedIndex: 0,
+              radioContent: this.aggregationPlaylist.map(playlist => playlist.name),
+              onCheckedChanged: (index) => {
+                this.selectedIndex = index
+                if(PreferencesCache.addSongToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], song)){
+                  ToastUtil.showShort(`已存在于[${this.aggregationPlaylist[index].name}]`)
+                }else{
+                  ToastUtil.showShort(`已添加到[${this.aggregationPlaylist[index].name}]`)
+                }
+                if(this.playlistId === this.aggregationPlaylist[this.selectedIndex].id){
+                  AppStorage.setOrCreate('current_playlist_data', this.aggregationPlaylist[this.selectedIndex])
+                }
+              },
+              onAction: (): void => {}
+            })
+          }
+        }
+      ]
+    }
+  }
+
+  deleteFromAggregationSongs(playlistId: number | string, song: Song){
+    try {
+      PreferencesCache.deleteSongCache('aggregation_playlist', playlistId, song)
+      ToastUtil.showShort("成功删除歌曲")
+      LogUtil.info(`[${TAG}]`, `歌曲[${song.name}]删除成功`)
+    } catch(error) {
+      ToastUtil.showShort("删除歌曲失败!")
+      LogUtil.info(`[${TAG}]`, `歌曲[${song.name}]删除失败: ${JSON.stringify(error)}`)
+    }
+  }
+
   @Styles pressedStyles(): void {
     .borderWidth(1)
     .borderColor($r('app.color.text_click'))
@@ -159,5 +268,15 @@ export struct SongInfo {
 
   @Styles normalStyles(): void {
     .borderWidth(0)
+  }
+
+  @Styles pressedMenuStyles(): void {
+    .backgroundColor($r("app.color.homepage_menu_button_pressed"))
+    .animation({ duration: 300, curve: Curve.LinearOutSlowIn })
+  }
+
+  @Styles normalMenuStyles(): void {
+    .backgroundColor('transparent')
+    .animation({ duration: 300, curve: Curve.LinearOutSlowIn })
   }
 }

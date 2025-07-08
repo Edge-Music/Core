@@ -128,6 +128,7 @@ export struct TitleHeader {
               .maxLines(1)
               .padding({ left: 16 })
           }
+          .visibility(this.backActive ? Visibility.Visible : Visibility.None)
           .width(StyleConstants.FULL_WIDTH)
           .onHover((isHover: boolean) => {
             if(isHover){

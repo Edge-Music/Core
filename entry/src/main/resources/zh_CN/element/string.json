@@ -479,6 +479,34 @@
     {
       "name": "double_tap_switch_songs",
       "value": "双敲后壳切歌（实验性）"
+    },
+    {
+      "name": "aggregation",
+      "value": "聚合"
+    },
+    {
+      "name": "no_aggregation_playlist",
+      "value": "暂无聚合歌单"
+    },
+    {
+      "name": "create_playlist",
+      "value": "创建歌单"
+    },
+    {
+      "name": "edit_playlist_info",
+      "value": "编辑歌单信息"
+    },
+    {
+      "name": "add_to_playlist",
+      "value": "添加到歌单"
+    },
+    {
+      "name": "delete_playlist",
+      "value": "删除歌单"
+    },
+    {
+      "name": "delete_song",
+      "value": "删除歌曲"
     }
   ]
 }

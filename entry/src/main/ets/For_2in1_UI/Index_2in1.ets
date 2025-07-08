@@ -13,6 +13,8 @@ import { ScrollController } from '../util/ScrollController'
 import { HeaderAnimation } from '../component/HeaderAnimation'
 import { deviceInfo } from '@kit.BasicServicesKit'
 import { avPlayerManager } from '../util/AVPlayerManager';
+import { LogUtil } from '@pura/harmony-utils'
+
 // 缓存常用值以避免重复计算
 const COLUMNS_TEMPLATE_LG = '1fr 1fr 1fr 1fr'
 const COLUMNS_TEMPLATE_SM = '1fr 1fr'
@@ -35,7 +37,7 @@ export struct Index_page {
   @StorageLink("index_recommend_songs") recommendSongs: Song[] = PreferencesCache.getSongCache('index_recommend_songs')
   @StorageLink("index_recommend_artists") recommendArtists: Artist[] = PreferencesCache.getArtistCache('index_recommend_artists')
   @StorageLink("index_recommend_toplist") topList: Playlist[] = PreferencesCache.getPlaylistCache('index_recommend_toplist')
-  @State loading: boolean = true
+  @State loading: boolean = false
   // 避让导航栏高度
   @StorageProp('bottomRect') bottomRect: number = 0
   @StorageProp('topRect') topRect: number = 0
@@ -114,9 +116,6 @@ export struct Index_page {
     this.breakpointSystem.register(this.getUIContext())
     HorizontalMode(this.getUIContext().getHostContext() as Context,this.HorizontalMode_ctrl === '1')
     AppStorage.setOrCreate("pageStack", this.pageStack)
-    // 立即初始化数据
-    // this.initData()
-    this.loading = false
     let productSeries:string=deviceInfo.productSeries
     let devicetype:string =deviceInfo.deviceType
     if (devicetype!='phone'&&productSeries!='VDE'){
@@ -136,21 +135,12 @@ export struct Index_page {
 
   async initData() {
     this.loading = true
-
-    try {
-      // 并行加载数据并捕获异常
-      await Promise.all([
-        SourceAdapter.getRecommendList(this.limit),
-        SourceAdapter.getRecommendSongs(this.limit),
-        SourceAdapter.getRecommendArtists(this.limit),
-        SourceAdapter.getTopList(this.limit),
-        SourceAdapter.getUserPlaylist()
-      ])
-    } catch (error) {
-      console.error('Failed to load data', error)
-    } finally {
+    SourceAdapter.getAllRecommend().then(() => {
+      LogUtil.info(`[${TAG}]`, `首页刷新数据成功`)
+    }).finally(() => {
       this.loading = false
-    }
+    })
+
   }
 
   onPageShow(): void {

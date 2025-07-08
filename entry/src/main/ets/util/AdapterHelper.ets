@@ -1,5 +1,9 @@
-export function cover(url?: string, size = 100) {
-  return `${url}?param=${size}y${size}`
+export function cover(url?: string | Resource, size = 100): string | Resource{
+  if(typeof url === 'string') {
+    return `${url}?param=${size}y${size}`
+  } else {
+    return url as Resource
+  }
 }
 
 export function sample<T>(arr: Array<T>) {
