@@ -2,7 +2,7 @@ import { AlbumCoversCarousel } from "../component/AlbumCoversCarousel";
 import { SongInfo } from "../component/SongInfo";
 import { TitleHeader } from "../component/TitleHeader";
 import { StyleConstants } from "../constants/StyleConstants";
-import { Playlist, Song } from "../type/Adapter";
+import { Playlist, PlaylistType, Song } from "../type/Adapter";
 import { BasicPrefetcher } from '@kit.ArkUI';
 import { SongDataSourcePrefetching } from "../util/SongDataSourcePrefetching";
 import { BreakpointConstants } from "../constants/BreakpointConstants";
@@ -25,8 +25,8 @@ export struct PlayList {
   @Consume('NavPathStack') pageStack: NavPathStack;
   @StorageLink("current_playlist_data") playlist: Playlist | null = null
   @Watch('onBreakpointChange') @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
-  private songDataSource: SongDataSourcePrefetching = new SongDataSourcePrefetching(null);
-  private prefetcher: BasicPrefetcher | null = null;
+  @State private songDataSource: SongDataSourcePrefetching = new SongDataSourcePrefetching(null);
+  @State private prefetcher: BasicPrefetcher | null = null;
   private sourceOk: boolean = false;
   private scroller: Scroller = new Scroller();
   @State isLoading: boolean = false;
@@ -219,32 +219,59 @@ export struct PlayList {
             ForEach(this.filteredSongs, (song: Song, index: number) => {
               ListItem() {
                 SongInfo({
+                  playlistId: this.playlist?.id,
                   song: song,
                   index: index,
                   active: this.song?.id === song.id,
                   highlight: this.billingIndex === index,
                   onTap: (song: Song) => {
                     this.onSongTap(song, index);
-                  }
+                  },
+                  rightSlot: () => {
+                  },
+                  isShowMenu: true
                 })
               }
               .key(`${song.id}-${index}`)
             })
           } else {
-            LazyForEach(this.songDataSource, (song: Song, index: number) => {
-              ListItem() {
-                SongInfo({
-                  song: song,
-                  index: index,
-                  active: this.song?.id === song.id,
-                  highlight: this.billingIndex === index,
-                  onTap: (song: Song) => {
-                    this.onSongTap(song, index);
-                  }
-                })
-              }
-              .key(`${song.id}-${index}`)
-            }, (song: Song, index: number) => `${song.id}-${index}`)
+            if(this.playlist?.type === PlaylistType.AGGREGATION) {
+              ForEach(this.playlist.songs, (song: Song, index: number) => {
+                ListItem() {
+                  SongInfo({
+                    playlistId: this.playlist?.id,
+                    playlistType: this.playlist?.type,
+                    song: song,
+                    index: index,
+                    active: this.song?.id === song.id,
+                    highlight: this.billingIndex === index,
+                    onTap: (song: Song) => {
+                      this.onSongTap(song, index);
+                    },
+                    isShowMenu: true
+                  })
+                }
+                .key(`${song.id}-${index}`)
+              }, (song: Song, index: number) => `${song.id}-${index}`)
+            } else {
+              LazyForEach(this.songDataSource, (song: Song, index: number) => {
+                ListItem() {
+                  SongInfo({
+                    playlistId: this.playlist?.id,
+                    playlistType: this.playlist?.type,
+                    song: song,
+                    index: index,
+                    active: this.song?.id === song.id,
+                    highlight: this.billingIndex === index,
+                    onTap: (song: Song) => {
+                      this.onSongTap(song, index);
+                    },
+                    isShowMenu: true
+                  })
+                }
+                .key(`${song.id}-${index}`)
+              }, (song: Song, index: number) => `${song.id}-${index}`)
+            }
           }
         }
         .onAreaChange((_oldValue: Area, newValue: Area) => {

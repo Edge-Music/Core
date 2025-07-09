@@ -13,6 +13,8 @@ import { ScrollController } from '../util/ScrollController'
 import { HeaderAnimation } from '../component/HeaderAnimation'
 import { deviceInfo } from '@kit.BasicServicesKit'
 import { avPlayerManager } from '../util/AVPlayerManager';
+import { LogUtil } from '@pura/harmony-utils'
+
 // 缓存常用值以避免重复计算
 const COLUMNS_TEMPLATE_LG = '1fr 1fr 1fr 1fr'
 const COLUMNS_TEMPLATE_SM = '1fr 1fr'
@@ -35,12 +37,12 @@ export struct Index_page {
   @StorageLink("index_recommend_songs") recommendSongs: Song[] = PreferencesCache.getSongCache('index_recommend_songs')
   @StorageLink("index_recommend_artists") recommendArtists: Artist[] = PreferencesCache.getArtistCache('index_recommend_artists')
   @StorageLink("index_recommend_toplist") topList: Playlist[] = PreferencesCache.getPlaylistCache('index_recommend_toplist')
-  @State loading: boolean = true
+  @State loading: boolean = false
   // 避让导航栏高度
   @StorageProp('bottomRect') bottomRect: number = 0
   @StorageProp('topRect') topRect: number = 0
   @StorageProp('winHeight') winHeight: number = 0
-  @State HorizontalMode_ctrl: string = PreferencesCache.getUserPreference('HorizontalMode_ctrl', '0')
+  @State HorizontalMode_ctrl: string = PreferencesCache.getUserPreference('HorizontalMode_ctrl', '1')
   @State scrollController: ScrollController = new ScrollController({
     onIndexChange: (index) => {
       this.onMenuIconClick(index)
@@ -114,9 +116,6 @@ export struct Index_page {
     this.breakpointSystem.register(this.getUIContext())
     HorizontalMode(this.getUIContext().getHostContext() as Context,this.HorizontalMode_ctrl === '1')
     AppStorage.setOrCreate("pageStack", this.pageStack)
-    // 立即初始化数据
-    // this.initData()
-    this.loading = false
     let productSeries:string=deviceInfo.productSeries
     let devicetype:string =deviceInfo.deviceType
     if (devicetype!='phone'&&productSeries!='VDE'){
@@ -136,21 +135,12 @@ export struct Index_page {
 
   async initData() {
     this.loading = true
-
-    try {
-      // 并行加载数据并捕获异常
-      await Promise.all([
-        SourceAdapter.getRecommendList(this.limit),
-        SourceAdapter.getRecommendSongs(this.limit),
-        SourceAdapter.getRecommendArtists(this.limit),
-        SourceAdapter.getTopList(this.limit),
-        SourceAdapter.getUserPlaylist()
-      ])
-    } catch (error) {
-      console.error('Failed to load data', error)
-    } finally {
+    SourceAdapter.getAllRecommend().then(() => {
+      LogUtil.info(`[${TAG}]`, `首页刷新数据成功`)
+    }).finally(() => {
       this.loading = false
-    }
+    })
+
   }
 
   onPageShow(): void {
@@ -176,27 +166,26 @@ export struct Index_page {
 
     Column(){
       // PC工具栏适配
-      if(this.topRect > 0){
-        Row(){}
+      Row()
         .height(this.topRect)
         .backgroundColor('transparent')
         .width('100%')
+        .visibility(this.topRect > 0 ? Visibility.Visible : Visibility.None)
+
+      Row(){
+        Image($r('app.media.icon'))
+          .height(this.decorHeight/2)
+          .width(this.decorHeight/2)
+          .margin({ left: 16 })
+        Blank().width(5)
+        Text('云享社').fontSize(14).fontWeight(FontWeight.Bold)
       }
-      if(this.decorHeight > 0){
-        Row(){
-          Image($r('app.media.icon'))
-            .height(this.decorHeight/2)
-            .width(this.decorHeight/2)
-            .margin({ left: 16 })
-          Blank().width(5)
-          Text('云享社').fontSize(14).fontWeight(FontWeight.Bold)
-        }
-        .justifyContent(FlexAlign.Start)
-        .alignItems(VerticalAlign.Center)
-        .height(this.decorHeight)
-        .backgroundColor('transparent')
-        .width('100%')
-      }
+      .justifyContent(FlexAlign.Start)
+      .alignItems(VerticalAlign.Center)
+      .height(this.decorHeight)
+      .backgroundColor('transparent')
+      .width('100%')
+      .visibility(this.decorHeight > 0 ? Visibility.Visible : Visibility.None)
 
       Row() {
         Text($r("app.string.homepage"))
@@ -282,7 +271,7 @@ export struct Index_page {
       onActionClick: async () => {
         this.recommendSongs = await SourceAdapter.getRecommendSongs(this.limit)
       },
-    }).key('Index-R')
+    })
   }
 
   @Builder
@@ -296,7 +285,7 @@ export struct Index_page {
       onActionClick: async () => {
         this.recommendPlaylist = await SourceAdapter.getRecommendList(this.limit)
       },
-    }).key('Index-R')
+    })
   }
 
   @Builder
@@ -311,7 +300,7 @@ export struct Index_page {
       onActionClick: async () => {
         this.recommendArtists = await SourceAdapter.getRecommendArtists(this.limit)
       },
-    }).key('Index-R')
+    })
   }
 
   @Builder
@@ -321,7 +310,7 @@ export struct Index_page {
       type: 'TopPlaylist',
       title: $r('app.string.chart'),
       loading: this.loading
-    }).key('Index-R')
+    })
   }
 
   @Builder

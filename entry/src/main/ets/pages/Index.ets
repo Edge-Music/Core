@@ -20,7 +20,10 @@ import { HeaderAnimation } from '../component/HeaderAnimation'
 import { deviceInfo } from '@kit.BasicServicesKit'
 import { PipManager } from '../util/PipManager';
 import { avPlayerManager } from '../util/AVPlayerManager';
-import {FOR_2IN1_UI, IS_2IN1_UI}from '../For_2in1_UI/FOR2IN1'
+import { IS_2IN1_UI }from '../For_2in1_UI/FOR2IN1'
+import { Aggregation } from '../view/Aggregation'
+import { LogUtil } from '@pura/harmony-utils'
+
 // 缓存常用值以避免重复计算
 const COLUMNS_TEMPLATE_LG = '1fr 1fr 1fr 1fr'
 const COLUMNS_TEMPLATE_SM = '1fr 1fr'
@@ -45,6 +48,8 @@ struct Index {
       Index_page()
     } else if (name === 'Download') {
       Download()
+    } else if (name === 'Aggregation') {
+      Aggregation()
     }
   }
 
@@ -69,6 +74,8 @@ struct Index_page {
   @State version: string = '2.2.0.y'
   @State blankHeight: number = 0
   @State limit: number = 10
+  @State page_judge: string = 'index'
+  @State title: string = '首页'
   @Consume('NavPathStack') pageStack: NavPathStack
   @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
   private breakpointSystem = new BreakpointSystem()
@@ -76,16 +83,16 @@ struct Index_page {
   private scroller: Scroller = new Scroller()
   @StorageLink("user_data_source") adapters: SourceConfig[] = PreferencesCache.getUserDataSource()
   // 使用StorageLink保持数据同步
-  @StorageLink("index_recommend_playlist") recommendPlaylist: Playlist[] = []
-  @StorageLink("index_recommend_songs") recommendSongs: Song[] = []
-  @StorageLink("index_recommend_artists") recommendArtists: Artist[] = []
-  @StorageLink("index_recommend_toplist") topList: Playlist[] = []
-  @State loading: boolean = true
+  @StorageLink("index_recommend_playlist") recommendPlaylist: Playlist[] = PreferencesCache.getPlaylistCache('index_recommend_playlist')
+  @StorageLink("index_recommend_songs") recommendSongs: Song[] = PreferencesCache.getSongCache('index_recommend_songs')
+  @StorageLink("index_recommend_artists") recommendArtists: Artist[] = PreferencesCache.getArtistCache('index_recommend_artists')
+  @StorageLink("index_recommend_toplist") topList: Playlist[] = PreferencesCache.getPlaylistCache('index_recommend_toplist')
+  @State loading: boolean = false
   // 避让导航栏高度
   @StorageProp('bottomRect') bottomRect: number = 0
   @StorageProp('topRect') topRect: number = 0
   @StorageProp('winHeight') winHeight: number = 0
-  @State HorizontalMode_ctrl: string = PreferencesCache.getUserPreference('HorizontalMode_ctrl', '0')
+  @State HorizontalMode_ctrl: string = PreferencesCache.getUserPreference('HorizontalMode_ctrl', '1')
   @State scrollController: ScrollController = new ScrollController({
     onIndexChange: (index) => {
       this.onMenuIconClick(index)
@@ -159,18 +166,16 @@ struct Index_page {
     this.breakpointSystem.register(this.getUIContext())
     HorizontalMode(this.getUIContext().getHostContext() as Context, this.HorizontalMode_ctrl === '1')
     AppStorage.setOrCreate("pageStack", this.pageStack)
-    // 立即初始化数据
-    this.initData()
     let productSeries:string=deviceInfo.productSeries
-    let devicetype:string =deviceInfo.deviceType
-    if (devicetype!='phone'&&productSeries!='VDE'){
+    let deviceType: string =deviceInfo.deviceType
+    if (deviceType!='phone'&&productSeries!='VDE'){
       AppStorage.setOrCreate<boolean>('isWideScreen', true)
     }else {
       AppStorage.setOrCreate<boolean>('isWideScreen', false)
 
     }
-    AppStorage.setOrCreate("devicetype", devicetype)
-    PreferencesCache.setUserPreference('devicetype', devicetype)
+    AppStorage.setOrCreate("devicetype", deviceType)
+    PreferencesCache.setUserPreference('devicetype', deviceType)
     if(productSeries=='VDE') {
       PreferencesCache.setUserPreference('is_Pura_X', '1')
     }else {
@@ -180,21 +185,12 @@ struct Index_page {
 
   async initData() {
     this.loading = true
-
-    try {
-      // 并行加载数据并捕获异常
-      await Promise.all([
-        SourceAdapter.getRecommendList(this.limit),
-        SourceAdapter.getRecommendSongs(this.limit),
-        SourceAdapter.getRecommendArtists(this.limit),
-        SourceAdapter.getTopList(this.limit),
-        SourceAdapter.getUserPlaylist()
-      ])
-    } catch (error) {
-      console.error('Failed to load data', error)
-    } finally {
+    SourceAdapter.getAllRecommend().then(() => {
+      LogUtil.info(`[${TAG}]`, `首页刷新数据成功`)
+    }).finally(() => {
       this.loading = false
-    }
+    })
+
   }
 
   onPageShow(): void {
@@ -219,27 +215,26 @@ struct Index_page {
 
     Column(){
       // PC工具栏适配
-      if(this.topRect > 0){
-        Row(){}
+      Row()
         .height(this.topRect)
         .backgroundColor('transparent')
         .width('100%')
+        .visibility(this.topRect > 0 ? Visibility.Visible : Visibility.None)
+
+      Row(){
+        Image($r('app.media.icon'))
+          .height(this.decorHeight/2)
+          .width(this.decorHeight/2)
+          .margin({ left: 16 })
+        Blank().width(5)
+        Text('云享社').fontSize(14).fontWeight(FontWeight.Bold)
       }
-      if(this.decorHeight > 0){
-        Row(){
-          Image($r('app.media.icon'))
-            .height(this.decorHeight/2)
-            .width(this.decorHeight/2)
-            .margin({ left: 16 })
-          Blank().width(5)
-          Text('云享社').fontSize(14).fontWeight(FontWeight.Bold)
-        }
-        .justifyContent(FlexAlign.Start)
-        .alignItems(VerticalAlign.Center)
-        .height(this.decorHeight)
-        .backgroundColor('transparent')
-        .width('100%')
-      }
+      .justifyContent(FlexAlign.Start)
+      .alignItems(VerticalAlign.Center)
+      .height(this.decorHeight)
+      .backgroundColor('transparent')
+      .width('100%')
+      .visibility(this.decorHeight > 0 ? Visibility.Visible : Visibility.None)
 
       Row() {
         Text($r("app.string.homepage"))
@@ -325,7 +320,7 @@ struct Index_page {
       onActionClick: async () => {
         this.recommendSongs = await SourceAdapter.getRecommendSongs(this.limit)
       },
-    }).key('Index-R')
+    })
   }
 
   @Builder
@@ -339,7 +334,7 @@ struct Index_page {
       onActionClick: async () => {
         this.recommendPlaylist = await SourceAdapter.getRecommendList(this.limit)
       },
-    }).key('Index-R')
+    })
   }
 
   @Builder
@@ -354,7 +349,7 @@ struct Index_page {
       onActionClick: async () => {
         this.recommendArtists = await SourceAdapter.getRecommendArtists(this.limit)
       },
-    }).key('Index-R')
+    })
   }
 
   @Builder
@@ -364,7 +359,7 @@ struct Index_page {
       type: 'TopPlaylist',
       title: $r('app.string.chart'),
       loading: this.loading
-    }).key('Index-R')
+    })
   }
 
   @Builder
@@ -398,7 +393,10 @@ struct Index_page {
   build() {
     NavDestination() {
       if (this.zhishi_UI === '1'){
-        IS_2IN1_UI()
+        IS_2IN1_UI({
+          page_judge: this.page_judge,
+          title: this.title
+        })
       }else {
         Stack({ alignContent: Alignment.Bottom }) {
           Column(){
@@ -414,39 +412,42 @@ struct Index_page {
                   this.MenuGrid()
                 }
 
-                if (this.loading || (this.recommendPlaylist.length > 0 || this.recommendSongs.length > 0
-                  || this.recommendArtists.length > 0 || this.topList.length > 0)) {
-                  if(this.recommendPlaylist.length > 0){
-                    this.RecommendedSongs()
-                  }
-
-                  if(this.recommendSongs.length > 0){
-                    this.RecommendedPlaylists()
-                  }
-
-                  if(this.recommendArtists.length > 0){
-                    this.RecommendedArtists()
-                  }
-
-                  if(this.topList.length > 0){
-                    this.TopLists()
-                  }
-                } else if(!this.loading) {
-                  ListItem() {
-                    Row() {
-                      Column() {
-                        Text($r('app.string.no_recommendations'))
-                          .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-                          .fontColor($r('app.color.text_hint'))
-                          .fontSize(16)
-                      }
-                      .width(StyleConstants.FULL_WIDTH)
-                      .height(StyleConstants.FULL_HEIGHT)
-                      .justifyContent(FlexAlign.Center)
-                    }
-                    .height(this.getBlankHeight())
-                  }
+                ListItem(){
+                  this.RecommendedSongs()
                 }
+                .visibility(this.loading || this.recommendPlaylist.length > 0 ? Visibility.Visible : Visibility.None)
+
+                ListItem(){
+                  this.RecommendedPlaylists()
+                }
+                .visibility(this.loading || this.recommendSongs.length > 0 ? Visibility.Visible : Visibility.None)
+
+                ListItem(){
+                  this.RecommendedArtists()
+                }
+                .visibility(this.loading || this.recommendArtists.length > 0 ? Visibility.Visible : Visibility.None)
+
+                ListItem(){
+                  this.TopLists()
+                }
+                .visibility(this.loading || this.topList.length > 0 ? Visibility.Visible : Visibility.None)
+
+                ListItem() {
+                  Row() {
+                    Column() {
+                      Text($r('app.string.no_recommendations'))
+                        .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
+                        .fontColor($r('app.color.text_hint'))
+                        .fontSize(16)
+                    }
+                    .width(StyleConstants.FULL_WIDTH)
+                    .height(StyleConstants.FULL_HEIGHT)
+                    .justifyContent(FlexAlign.Center)
+                  }
+                  .height(this.getBlankHeight())
+                }
+                .visibility(this.hasRecommendation() ? Visibility.Visible : Visibility.None)
+
               } else {
                 ListItem() {
                   this.EmptyDataSource()
@@ -486,6 +487,22 @@ struct Index_page {
     .hideBackButton(true)
     .backgroundColor($r('app.color.page_background'))
     .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM, LayoutSafeAreaEdge.TOP])
+    .onBackPressed(() => {
+      if(this.page_judge !== 'index'){
+        this.page_judge = 'index'
+        this.title = '首页'
+        return true
+      }
+      return false
+    })
+  }
+
+  hasRecommendation(): boolean {
+    return !this.loading
+      && this.recommendPlaylist.length === 0
+      && this.recommendSongs.length === 0
+      && this.recommendArtists.length === 0
+      && this.topList.length === 0
   }
 
   getBlankHeight(): number {

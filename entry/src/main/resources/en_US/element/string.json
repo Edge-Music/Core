@@ -479,6 +479,38 @@
     {
       "name": "vivid",
       "value": "Audio Vivid"
+    },
+    {
+      "name": "double_tap_switch_songs",
+      "value": "Double Tap To Switch Songs"
+    },
+    {
+      "name": "aggregation",
+      "value": "Aggregation"
+    },
+    {
+      "name": "no_aggregation_playlist",
+      "value": "No Aggregation Playlists"
+    },
+    {
+      "name": "create_playlist",
+      "value": "Create Playlist"
+    },
+    {
+      "name": "edit_playlist_info",
+      "value": "Edit Playlist Info"
+    },
+    {
+      "name": "add_to_playlist",
+      "value": "Add To Playlist"
+    },
+    {
+      "name": "delete_playlist",
+      "value": "Delete The Playlist"
+    },
+    {
+      "name": "delete_song",
+      "value": "Delete The Song"
     }
   ]
 }

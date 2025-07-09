@@ -17,6 +17,7 @@ import { DialogHelper } from '@pura/harmony-dialog';
 import { PipManager } from '../util/PipManager';
 import { PreferencesCache } from '../util/PreferenceCache';
 import ResourceManager from '../util/ResourceManager';
+import { SourceAdapter } from '../adapter';
 
 const TAG = 'EntryAbility'
 export default class EntryAbility extends UIAbility {
@@ -91,6 +92,8 @@ export default class EntryAbility extends UIAbility {
     this.callee.on(CallMethod.REQUEST_UPDATE_CARD, FormUtils.requestUpdatePlayCard);
     this.callee.on(CallMethod.PLAY_BY_ACTION, FormUtils.playByActionCall);
     this.callee.on(CallMethod.COLLECT_ACTION, FormUtils.collectActionCall);
+
+    SourceAdapter.getAllRecommend()
   }
 
   onDestroy(): void {
@@ -102,15 +105,14 @@ export default class EntryAbility extends UIAbility {
 
   async onWindowStageCreate(windowStage: window.WindowStage): Promise<void> {
     LogUtil.info(`[${TAG}]`, 'Ability onWindowStageCreate');
-    WindowUtil.loadContent(windowStage);
-    WindowUtil.setWindowProperties(windowStage)
-    WindowUtil.setWindowListeners(windowStage)
-    WindowUtil.setPipManager(windowStage)
+    WindowUtil.loadContent(windowStage, this.page);
 
-    if (this.page){
-      WindowUtil.setPageJump(this.page)
-    }
+  }
 
+  onWindowStageWillDestroy(windowStage: window.WindowStage){
+    windowStage.getMainWindow().then((windowClass) => {
+      WindowUtil.setWindowFullScreen(windowClass, false)
+    })
   }
 
   onWindowStageDestroy(): void {

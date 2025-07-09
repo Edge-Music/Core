@@ -285,21 +285,21 @@ class AVPlayerManager {
     });
 
     this.avSession.on('playNext', () => {
-      ClickUtil.debounce(async () => {
+      ClickUtil.throttle(async () => {
         const nextSong = PlaylistManager.playNext()
         if (nextSong) {
           PlaylistManager.playSong(nextSong)
         }
-      }, 500, "playNext")
+      }, 500)
     })
 
     this.avSession.on('playPrevious', () => {
-      ClickUtil.debounce(async () => {
+      ClickUtil.throttle(async () => {
         const prevSong = PlaylistManager.playPrevious()
         if (prevSong) {
           PlaylistManager.playSong(prevSong)
         }
-      }, 500, "playPrevious")
+      }, 500)
     })
 
     this.avSession.on('setLoopMode', () => {

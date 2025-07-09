@@ -1,14 +1,20 @@
-import { ToastUtil } from "@pura/harmony-utils";
+import { CustomContentOptions, DialogAction, DialogHelper } from "@pura/harmony-dialog";
+import { LogUtil, ToastUtil } from "@pura/harmony-utils";
 import { SourceAdapter } from "../adapter";
 import { StyleConstants } from "../constants/StyleConstants";
-import { Playlist } from "../type/Adapter";
+import { Playlist, PlaylistType, Song } from "../type/Adapter";
 import { cover } from "../util/AdapterHelper";
 import { PlaylistManager } from "../util/PlaylistManager";
+import { PreferencesCache } from "../util/PreferenceCache";
 import { PushPathHelper } from "../util/PushPathHelper";
+import { AddAggregationPlaylist } from "./CustomTextBuilder";
+const TAG = 'PlaylistItem'
 
 @Reusable
 @Component
 export struct PlaylistItem {
+  @State playlistName: string | undefined = ''
+  @State playlistDesc: string | undefined = ''
   @Prop playlist: Playlist
   onPlaylistSelected?: (playlist: Playlist) => void;
 
@@ -16,7 +22,7 @@ export struct PlaylistItem {
     Row() {
       // 封面图 - 现代直角设计
       Stack({ alignContent: Alignment.BottomStart }) {
-        Image(cover(this.playlist?.cover || '', 120))
+        Image(cover(this.playlist?.cover || '', 120) ?? this.playlist?.cover)
           .width(58)
           .height(58)
           .objectFit(ImageFit.Cover)
@@ -34,7 +40,7 @@ export struct PlaylistItem {
           .textOverflow({ overflow: TextOverflow.Ellipsis })
 
         // 歌曲信息
-        if (this.playlist?.size) {
+        if (this.playlist?.size || this.playlist?.size === 0) {
           Text(`${this.playlist.size}首`)
             .fontSize(12)
             .fontColor($r('app.color.text_secondary'))
@@ -85,35 +91,132 @@ export struct PlaylistItem {
   }
 
   private generatePlaylistMenu(playlist: Playlist): Array<MenuElement> {
-    return [
-      {
-        value: $r('app.string.play_this_playlist'),
-        action: () => {
-          PushPathHelper.loading("Playing", async () => {
-            const playlistDetail = await SourceAdapter.getPlaylistDetail(playlist)
-            const songs = playlistDetail?.songs?.filter(song => song.privilege.playable)
-            if (!songs || songs.length === 0) {
-              ToastUtil.showShort("此歌单无可播放歌曲")
-              return
+    if(playlist?.type === PlaylistType.AGGREGATION){
+      return [
+        {
+          value: $r('app.string.play_this_playlist'),
+          action: () => {
+            PushPathHelper.loading("Playing", async () => {
+              const playlistDetail = await SourceAdapter.getAggregationPlaylistDetail(playlist)
+              const songs = playlistDetail?.songs?.filter(song => song.privilege.playable)
+              if (!songs || songs.length === 0) {
+                ToastUtil.showShort("此歌单无可播放歌曲")
+                return
+              }
+              PlaylistManager.loadPlaylist(songs, songs[0])
+            })
+          }
+        },
+        {
+          value: $r('app.string.add_to_play_next'),
+          action: () => {
+            PushPathHelper.loading("Playing", async () => {
+              const playlistDetail = await SourceAdapter.getAggregationPlaylistDetail(playlist)
+              const songs = playlistDetail?.songs?.filter(song => song.privilege.playable)
+              if (!songs || songs.length === 0) {
+                ToastUtil.showShort("此歌单无可播放歌曲")
+                return
+              }
+              PlaylistManager.insertSongs(songs)
+            })
+          }
+        },
+        {
+          value: $r('app.string.edit_playlist_info'),
+          action: () => {
+            let options: CustomContentOptions = {
+              title: $r('app.string.create_playlist'),
+              contentBuilder: (): void => {
+                this.CustomTextBuilder()
+              },
+              onAction: (action) => {
+                if(action === DialogAction.TWO){
+                  this.updateAggregationPlaylist(playlist)
+                }
+              }
             }
-            PlaylistManager.loadPlaylist(songs, songs[0])
-          })
+            this.playlistName = playlist.name
+            this.playlistDesc = playlist.description
+            DialogHelper.showCustomContentDialog(options)
+          }
+        },
+        {
+          value: $r('app.string.delete_playlist'),
+          action: () => {
+            DialogHelper.showAlertDialog({
+              primaryTitle: `是否删除歌单[${playlist.name}]？`,
+              primaryButton: $r('app.string.cancel'),
+              secondaryButton: $r('app.string.confirm'),
+              onAction: (action: number, dialogId: string): void => {
+                if(action === DialogAction.TWO){
+                  this.deleteFromAggregationPlaylist(playlist)
+                }
+              }
+            })
+          }
         }
-      },
-      {
-        value: $r('app.string.add_to_play_next'),
-        action: () => {
-          PushPathHelper.loading("Playing", async () => {
-            const playlistDetail = await SourceAdapter.getPlaylistDetail(playlist)
-            const songs = playlistDetail?.songs?.filter(song => song.privilege.playable)
-            if (!songs || songs.length === 0) {
-              ToastUtil.showShort("此歌单无可播放歌曲")
-              return
-            }
-            PlaylistManager.insertSongs(songs)
-          })
+      ]
+    }else{
+      return [
+        {
+          value: $r('app.string.play_this_playlist'),
+          action: () => {
+            PushPathHelper.loading("Playing", async () => {
+              const playlistDetail = await SourceAdapter.getPlaylistDetail(playlist)
+              const songs = playlistDetail?.songs?.filter(song => song.privilege.playable)
+              if (!songs || songs.length === 0) {
+                ToastUtil.showShort("此歌单无可播放歌曲")
+                return
+              }
+              PlaylistManager.loadPlaylist(songs, songs[0])
+            })
+          }
+        },
+        {
+          value: $r('app.string.add_to_play_next'),
+          action: () => {
+            PushPathHelper.loading("Playing", async () => {
+              const playlistDetail = await SourceAdapter.getPlaylistDetail(playlist)
+              const songs = playlistDetail?.songs?.filter(song => song.privilege.playable)
+              if (!songs || songs.length === 0) {
+                ToastUtil.showShort("此歌单无可播放歌曲")
+                return
+              }
+              PlaylistManager.insertSongs(songs)
+            })
+          }
         }
-      }
-    ]
+      ]
+    }
+  }
+
+  updateAggregationPlaylist(playlist: Playlist) {
+    try {
+      PreferencesCache.updatePlaylistsCache('aggregation_playlist', playlist, this.playlistName, this.playlistDesc)
+      this.playlistName = ''
+      this.playlistDesc = ''
+      LogUtil.info(`[${TAG}]`, `歌单[${this.playlistName}]更新成功`)
+    } catch(error) {
+      LogUtil.info(`[${TAG}]`, `歌单[${this.playlistName}]更新失败: ${JSON.stringify(error)}`)
+    }
+  }
+
+  deleteFromAggregationPlaylist(playlist: Playlist) {
+    try {
+      PreferencesCache.deletePlaylistCache('aggregation_playlist', playlist)
+      ToastUtil.showShort("成功删除歌单")
+      LogUtil.info(`[${TAG}]`, `歌单[${playlist.name}]删除成功`)
+    } catch(error) {
+      ToastUtil.showShort("删除歌单失败!")
+      LogUtil.info(`[${TAG}]`, `歌单[${playlist.name}]删除失败: ${JSON.stringify(error)}`)
+    }
+  }
+
+  @Builder
+  CustomTextBuilder() {
+    AddAggregationPlaylist({
+      playlistName: this.playlistName,
+      playlistDesc: this.playlistDesc
+    })
   }
 }

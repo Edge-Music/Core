@@ -42,12 +42,11 @@ export struct LyricItem {
         .fontWeight(FontWeight.Normal)
         .fontColor(this.getLyricStyle(this.index).fontColor)
         .opacity(this.getLyricStyle(this.index).opacity * 0.9)
-        .margin({ bottom: 4 })
+        .margin({ bottom: 2 })
         .padding({
           left: 16,
           right: 16,
-          top: 4,
-          bottom: 4
+          top: 4
         })
         .textAlign(TextAlign.Center)
         .borderRadius(8)
@@ -64,12 +63,11 @@ export struct LyricItem {
         .fontWeight(FontWeight.Normal)
         .fontColor(this.getLyricStyle(this.index).fontColor)
         .opacity(this.getLyricStyle(this.index).opacity * 0.9)
-        .margin({ bottom: 4 })
+        .margin({ bottom: 2 })
         .padding({
           left: 16,
           right: 16,
-          top: 4,
-          bottom: 4
+          top: 4
         })
         .textAlign(TextAlign.Center)
         .borderRadius(8)

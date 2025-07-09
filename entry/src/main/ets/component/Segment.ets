@@ -3,13 +3,12 @@ import { Artist, Playlist, Song } from "../type/Adapter"
 import { Cover } from "./Cover"
 import { HorizontalScroll } from "./HorizontalScroll"
 
-@Reusable
 @Component
 export struct Segment {
   @Prop loading: boolean = false
   @Prop lists: Object[]
   @Prop type: string
-  title: string | Resource = ''
+  @State title: string | Resource = ''
   actionText: string | undefined | Resource = undefined
   onActionClick?: () => void
   radius: string | number = 8

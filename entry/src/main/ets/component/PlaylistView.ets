@@ -11,8 +11,10 @@ import { LogUtil } from '@pura/harmony-utils';
 export struct PlaylistView {
   @StorageLink('current_playing_song') currentSong: Song | null = null;
   @StorageLink('current_playing_playlist') @Watch('onPlaylistChanged') playlist: Array<Song> = [];
+  @StorageLink("current_playlist_data") curPlaylist: Playlist | null = null
   @State isLoading: boolean = false;
   @State highlightIndex: number = -1;
+  @State currentIndex: number = -1
 
   // 数据源和预取器
   private songDataSource: SongDataSourcePrefetching = new SongDataSourcePrefetching(null);
@@ -114,27 +116,27 @@ export struct PlaylistView {
     }
 
     // 查找当前歌曲的索引
-    const currentIndex = this.playlist.findIndex(song =>
+    this.currentIndex = this.playlist.findIndex(song =>
     song.id === this.currentSong?.id
     );
 
 
-    if (currentIndex !== -1) {
+    if (this.currentIndex !== -1) {
       // 确保数据被预取
       if (this.prefetcher) {
-        this.songDataSource.prefetch(currentIndex);
+        this.songDataSource.prefetch(this.currentIndex);
       }
 
       // 设置高亮效果
-      this.highlightIndex = currentIndex;
+      this.highlightIndex = this.currentIndex;
       setTimeout(() => {
         this.highlightIndex = -1;
-      }, 1500);
+      }, 300)
 
       // 滚动到指定位置
-      setTimeout(() => {
-        this.scrollController.scrollToIndex(Math.max(0, currentIndex), true);
-      }, 100);
+      // setTimeout(() => {
+      //   this.scrollController.scrollToIndex(Math.max(0, this.currentIndex), true);
+      // }, 100);
     }
   }
 
@@ -180,17 +182,19 @@ export struct PlaylistView {
       if (!this.playlist || this.playlist.length === 0) {
         this.EmptyState()
       } else {
-        List({ scroller: this.scrollController }) {
+        List({ initialIndex: this.currentIndex, scroller: this.scrollController }) {
           // 使用LazyForEach实现懒加载歌曲列表
           LazyForEach(this.songDataSource, (song: Song, index: number) => {
             ListItem() {
               SongInfo({
+                playlistId: this.curPlaylist?.id,
                 song: song,
                 showIndex: false,
                 active: this.currentSong?.id === song.id,
                 highlight: this.highlightIndex === index,
                 disabled: song.privilege && !song.privilege.playable,
-                onTap: (song: Song) => this.handleSongTap(song)
+                onTap: (song: Song) => this.handleSongTap(song),
+                isShowMenu: false
               }) {
                 // 使用rightSlot插槽添加删除按钮
                 this.DeleteButton(song)

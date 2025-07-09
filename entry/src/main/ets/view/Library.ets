@@ -78,7 +78,7 @@ struct Library {
   aboutToAppear(): void {
     this.uiContext = this.getUIContext();
     if (this.playlists[1]?.cover){
-      FormUtils.updateRecommendedCards(this.playlists[1].cover)
+      FormUtils.updateRecommendedCards(this.playlists[1].cover as string)
     }
   }
 

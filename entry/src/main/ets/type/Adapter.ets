@@ -66,7 +66,9 @@ export enum PlaylistType {
   // 歌手
   ARTIST = 'artist',
   // 播控/电台
-  DJ = 'dj'
+  DJ = 'dj',
+  // 聚合
+  AGGREGATION = 'aggregation'
 }
 
 export interface PlayListMeta {
@@ -79,7 +81,7 @@ export interface Playlist {
   // 歌单名称
   name?: string;
   // 歌单封面
-  cover?: string;
+  cover?: string | Resource;
   // 歌曲数量
   size?: number;
   // 创建者
