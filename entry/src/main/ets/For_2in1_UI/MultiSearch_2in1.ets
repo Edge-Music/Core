@@ -99,7 +99,7 @@ export struct MultiSearch_2in1 {
                     type: 'Song',
                     title: "歌曲",
                     loading: this.loading,
-                  }).key('search')
+                  })
                 }
                 // 歌单
                 if(this.isNullResult(this.result.playlists)){
@@ -108,7 +108,7 @@ export struct MultiSearch_2in1 {
                     type: 'Playlist',
                     title: "歌单",
                     loading: this.loading,
-                  }).key('search')
+                  })
                 }
                 // 艺人
                 if(this.isNullResult(this.result.artists)){
@@ -118,7 +118,7 @@ export struct MultiSearch_2in1 {
                     title: "歌手",
                     loading: this.loading,
                     radius: "100%",
-                  }).key('search')
+                  })
                 }
                 // 专辑
                 if(this.isNullResult(this.result.albums)){
@@ -127,7 +127,7 @@ export struct MultiSearch_2in1 {
                     type: 'Album',
                     title: "专辑",
                     loading: this.loading,
-                  }).key('search')
+                  })
                 }
                 // 如果结果为空
                 if(this.nullResultFlag){

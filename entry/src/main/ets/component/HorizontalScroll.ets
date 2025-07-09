@@ -64,7 +64,7 @@ export struct HorizontalScroll {
 
   @Builder
   TemplateCover(){
-    ForEach([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], () => {
+    ForEach([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20], () => {
       ListItem(){
         Cover({
           loading: true,
@@ -75,7 +75,7 @@ export struct HorizontalScroll {
           .width(120)
           .padding(4)
       }
-      .key('Template')
+      .reuseId('Template')
     })
   }
 
@@ -99,7 +99,7 @@ export struct HorizontalScroll {
               })
             })
         }
-        .key(`${item.name}-${index}`)
+        .reuseId(`${item.name}-${index}`)
       })
     }
     .width('100%')
@@ -118,7 +118,7 @@ export struct HorizontalScroll {
             src: cover(item.avatar, DEFAULT_COVER_SIZE),
             title: item.name,
             radius: "100%",
-            titleAlign: HorizontalAlign.Center
+            titleAlign: TextAlign.Center
           })
             .width(this.coverWidth)
             .padding(this.segmentPadding)
@@ -130,7 +130,7 @@ export struct HorizontalScroll {
               })
             })
         }
-        .key(`${item.name}-${index}`)
+        .reuseId(`${item.name}-${index}`)
       })
     }
     .width('100%')
@@ -161,7 +161,7 @@ export struct HorizontalScroll {
 
             })
         }
-        .key(`${item.name}-${index}`)
+        .reuseId(`${item.name}-${index}`)
       })
     }
     .width('100%')
@@ -190,7 +190,7 @@ export struct HorizontalScroll {
               })
             })
         }
-        .key(`${item.name}-${index}`)
+        .reuseId(`${item.name}-${index}`)
       })
     }
     .width('100%')
