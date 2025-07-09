@@ -5,6 +5,7 @@ import { PreferencesCache } from "../util/PreferenceCache";
 export struct TitleHeader {
   @StorageProp('topRect') topRect: number = 0
   @StorageProp('decorHeight') decorHeight: number = 0
+  @StorageProp('windowStatus') windowStatus: string = 'FULL_SCREEN'
   @Consume('NavPathStack') pageStack: NavPathStack;
   @Prop title: ResourceStr = $r("app.string.homepage")
   @BuilderParam leftContent: () => void;
@@ -63,25 +64,9 @@ export struct TitleHeader {
       Column(){
         // PC工具栏适配
         Row()
-          .height(this.topRect)
+          .height(this.topRect > this.decorHeight ? this.topRect : this.decorHeight)
           .backgroundColor('transparent')
           .width('100%')
-          .visibility(this.topRect > 0 ? Visibility.Visible : Visibility.None)
-
-        Row(){
-          Image($r('app.media.icon'))
-            .height(this.decorHeight/2)
-            .width(this.decorHeight/2)
-            .margin({ left: 16 })
-          Blank().width(5)
-          Text('云享社').fontSize(14).fontWeight(FontWeight.Bold)
-        }
-        .justifyContent(FlexAlign.Start)
-        .alignItems(VerticalAlign.Center)
-        .height(this.decorHeight)
-        .backgroundColor('transparent')
-        .width('100%')
-        .visibility(this.decorHeight > 0 ? Visibility.Visible : Visibility.None)
 
         Row() {
           Row() {

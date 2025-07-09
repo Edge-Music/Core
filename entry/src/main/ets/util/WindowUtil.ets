@@ -177,7 +177,12 @@ class WindowUtil {
       AppStorage.setOrCreate<window.WindowStatusType>('windowStatus', windowStatus)
 
       windowClass.on('windowStatusChange', (windowStatus: window.WindowStatusType) => {
-        AppStorage.setOrCreate('windowStatus', windowStatus)
+        if(windowStatus === window.WindowStatusType.FLOATING){
+          AppStorage.setOrCreate('windowStatus', 'FLOATING')
+        }
+        if(windowStatus === window.WindowStatusType.FULL_SCREEN){
+          AppStorage.setOrCreate('windowStatus', 'FULL_SCREEN')
+        }
         LogUtil.info(`[${TAG}]`, `WindowStatus Change: ${windowStatus}.`);
       })
     }

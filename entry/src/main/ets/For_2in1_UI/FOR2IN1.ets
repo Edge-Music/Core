@@ -19,6 +19,7 @@ export struct IS_2IN1_UI{
   @Link title: string
   @StorageProp('bottomRect') bottomRect: number = 0
   @StorageProp('topRect') topRect: number = 0
+  @StorageProp('windowStatus') windowStatus: string = 'FULL_SCREEN'
   uiContext: UIContext | undefined = undefined;
   aboutToAppear(): void {
    this.sidebar_ctrl = this.currentBreakpoint === 'sm' ? false : true
@@ -131,14 +132,8 @@ export struct IS_2IN1_UI{
     Column(){
       // PC工具栏适配
       Row()
-        .height(this.topRect)
+        .height(this.topRect > this.decorHeight ? this.topRect : this.decorHeight)
         .width('100%')
-        .visibility(this.topRect > 0 ? Visibility.Visible : Visibility.None)
-
-      Row()
-        .height(this.decorHeight)
-        .width('100%')
-        .visibility(this.decorHeight > 0 ? Visibility.Visible : Visibility.None)
 
       Row() {
         Row()
@@ -166,7 +161,6 @@ export struct IS_2IN1_UI{
       .alignItems(VerticalAlign.Center)
       .height(50)
     }
-    .height(this.topRect+StyleConstants.TITLE_HEIGHT+this.decorHeight)
   }
 
   @Builder
@@ -194,30 +188,12 @@ export struct IS_2IN1_UI{
   ButtonShowList(){
     Column(){
       // PC工具栏适配
-      if(this.topRect > 0){
-        Row()
-          .height(this.topRect)
-      }
-      if(this.decorHeight > 0){
-        Row(){
-          Image($r('app.media.icon'))
-            .height(this.decorHeight/2)
-            .width(this.decorHeight/2)
-            .margin({ left: 16 })
-          Blank().width(5)
-          Text('云享社')
-            .fontSize(14)
-            .fontWeight(FontWeight.Bold)
-            .fontColor($r('app.color.text_title'))
-        }
-        .justifyContent(FlexAlign.Start)
-        .alignItems(VerticalAlign.Center)
-        .height(this.decorHeight)
-      }
+      Row()
+        .height(this.topRect > this.decorHeight ? this.topRect : this.decorHeight)
+        .backgroundColor('transparent')
 
       this.button_list()
     }
-    .height(this.decorHeight+this.topRect+StyleConstants.TITLE_HEIGHT)
     .alignItems(HorizontalAlign.Start)
     .justifyContent(FlexAlign.Center)
   }
@@ -250,20 +226,12 @@ export struct IS_2IN1_UI{
             Column(){
               Column(){
                 Row()
-                  .height(this.topRect)
-                  .visibility(this.topRect > 0 ? Visibility.Visible : Visibility.None)
-
-                Row()
-                  .justifyContent(FlexAlign.Start)
-                  .alignItems(VerticalAlign.Center)
-                  .height(this.decorHeight)
-                  .visibility(this.decorHeight > 0 ? Visibility.Visible : Visibility.None)
+                  .height(this.topRect > this.decorHeight ? this.topRect : this.decorHeight)
+                  .backgroundColor('transparent')
 
                 Row()
                   .height(StyleConstants.TITLE_HEIGHT)
               }
-              .height(this.decorHeight+this.topRect+StyleConstants.TITLE_HEIGHT)
-
 
               List({space:8}){
                 ForEach(this.playlists, (playlist: Playlist) => {
