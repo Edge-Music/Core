@@ -92,6 +92,7 @@ struct Index_page {
   @StorageProp('bottomRect') bottomRect: number = 0
   @StorageProp('topRect') topRect: number = 0
   @StorageProp('winHeight') winHeight: number = 0
+  @StorageProp('windowStatus') windowStatus: string = 'FULL_SCREEN'
   @State HorizontalMode_ctrl: string = PreferencesCache.getUserPreference('HorizontalMode_ctrl', '1')
   @State scrollController: ScrollController = new ScrollController({
     onIndexChange: (index) => {
@@ -216,25 +217,9 @@ struct Index_page {
     Column(){
       // PC工具栏适配
       Row()
-        .height(this.topRect)
+        .height(this.topRect > this.decorHeight ? this.topRect : this.decorHeight)
         .backgroundColor('transparent')
         .width('100%')
-        .visibility(this.topRect > 0 ? Visibility.Visible : Visibility.None)
-
-      Row(){
-        Image($r('app.media.icon'))
-          .height(this.decorHeight/2)
-          .width(this.decorHeight/2)
-          .margin({ left: 16 })
-        Blank().width(5)
-        Text('云享社').fontSize(14).fontWeight(FontWeight.Bold)
-      }
-      .justifyContent(FlexAlign.Start)
-      .alignItems(VerticalAlign.Center)
-      .height(this.decorHeight)
-      .backgroundColor('transparent')
-      .width('100%')
-      .visibility(this.decorHeight > 0 ? Visibility.Visible : Visibility.None)
 
       Row() {
         Text($r("app.string.homepage"))

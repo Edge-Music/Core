@@ -38,6 +38,7 @@ struct Playing {
   @StorageProp('decorHeight') decorHeight: number = 0
   @StorageProp('leftCutoutRectWidth') leftCutoutRectWidth: number = 0
   @StorageProp('rightCutoutRectWidth') rightCutoutRectWidth: number = 0
+  @StorageProp('windowStatus') windowStatus: string = 'FULL_SCREEN'
 
   @Consume('NavPathStack') pageStack: NavPathStack;
   @Watch('onBreakpointChange') @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
@@ -1501,27 +1502,10 @@ struct Playing {
   Title(judge:boolean=false) {
     Column(){
       // PC工具栏适配
-      if(this.topRect > 0){
-        Row(){}
-        .height(this.topRect)
+      Row()
+        .height(this.topRect > this.decorHeight ? this.topRect : this.decorHeight)
         .backgroundColor('transparent')
         .width('100%')
-      }
-      if(this.decorHeight > 0){
-        Row(){
-          Image($r('app.media.icon'))
-            .height(this.decorHeight/2)
-            .width(this.decorHeight/2)
-            .margin({ left: 16 })
-          Blank().width(5)
-          Text('云享社').fontSize(14).fontWeight(FontWeight.Bold)
-        }
-        .justifyContent(FlexAlign.Start)
-        .alignItems(VerticalAlign.Center)
-        .height(this.decorHeight)
-        .backgroundColor('transparent')
-        .width('100%')
-      }
 
       Row() {
         Image($r('app.media.ic_arrow_down_3'))
@@ -1651,7 +1635,6 @@ struct Playing {
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
     .width(StyleConstants.FULL_WIDTH)
-    .height(this.decorHeight+this.topRect+StyleConstants.TITLE_HEIGHT)
   }
 
   build() {
