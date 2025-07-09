@@ -1,16 +1,14 @@
 import { LazyData } from "@pie/lazy-data";
 import { CustomContentOptions, DialogAction, DialogHelper } from "@pura/harmony-dialog";
-import { SourceAdapter } from "../adapter";
 import { HeaderAnimation } from "../component/HeaderAnimation";
 import { MiniPlaybackControl } from "../component/MiniPlaybackControl";
 import { PlaylistItem } from "../component/PlaylistItem";
 import { TitleHeader } from "../component/TitleHeader";
 import { StyleConstants } from "../constants/StyleConstants";
-import { Playlist, PlaylistType, Song } from "../type/Adapter";
+import { Playlist, PlaylistType } from "../type/Adapter";
 import { PreferencesCache } from "../util/PreferenceCache";
 import { PushPathHelper } from "../util/PushPathHelper";
 import { ScrollController } from "../util/ScrollController";
-import { BusinessError } from "@kit.BasicServicesKit";
 import { LogUtil } from "@pura/harmony-utils";
 import { AddAggregationPlaylist } from "../component/CustomTextBuilder";
 
@@ -28,8 +26,8 @@ export struct Aggregation {
 
   @State groupHeight: number = 0
   @State aggregationData: LazyData<Playlist> = new LazyData<Playlist>(this.aggregationPlaylist)
-  @State playlistName: string | undefined = ''
-  @State playlistDesc: string | undefined = ''
+  @State playlistName: string | undefined = undefined
+  @State playlistDesc: string | undefined = undefined
   @State playlistCover: Resource | string = $r('app.media.icon_startwindow')
   @State scrollController: ScrollController = new ScrollController({
     onIndexChange: (index): void => this.onMenuIconClick(index),
@@ -192,20 +190,18 @@ export struct Aggregation {
   createAggregationPlaylist(){
     try {
       const timestamp: number = new Date().getTime();
-      const playlistName = this.playlistName ?? ''
-      const playListDesc = this.playlistDesc ?? ''
-      const playlistCover = this.playlistCover
       const playlist: Playlist = {
         id: `aggregation_playlist-${timestamp}`,
-        name: playlistName,
-        description: playListDesc,
-        cover: playlistCover,
+        name: this.playlistName ?? '默认歌单',
+        description: this.playlistDesc ?? '',
+        cover: this.playlistCover,
         size: 0,
         type: PlaylistType.AGGREGATION
       }
       PreferencesCache.addPlaylistsCache('aggregation_playlist', [playlist])
-      this.playlistName = ''
-      this.playlistDesc = ''
+      this.playlistName = undefined
+      this.playlistDesc = undefined
+      this.playlistCover = $r('app.media.icon_startwindow')
       LogUtil.info(`[${TAG}]`, `歌单[${this.playlistName}]添加成功`)
     } catch(error) {
       LogUtil.info(`[${TAG}]`, `歌单[${this.playlistName}]添加失败: ${JSON.stringify(error)}`)
