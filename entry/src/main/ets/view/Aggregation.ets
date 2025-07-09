@@ -177,8 +177,6 @@ export struct Aggregation {
         onAction: (action) => {
           if(action === DialogAction.TWO){
             this.createAggregationPlaylist()
-          }else{
-            PreferencesCache.clearPlaylistsCache('aggregation_playlist')
           }
         }
       }
