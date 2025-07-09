@@ -60,6 +60,11 @@ export struct Personalized_settings_Component {
       PreferencesCache.setUserPreference(this.setUserPreference_name, this.text_ctrl)
       AppStorage.setOrCreate('miniplaying_bottom_judge', this.text_ctrl)
     }
+
+    if(this.setUserPreference_name === 'double_tap_switch_songs'){
+      PreferencesCache.setUserPreference(this.setUserPreference_name, this.text_ctrl)
+      AppStorage.setOrCreate('double_tap_switch_songs', this.text_ctrl)
+    }
   }
 }
 
@@ -67,7 +72,7 @@ export struct Personalized_settings_Component {
 @Component
 export struct Personalized_settings{
   @Consume('NavPathStack') pageStack: NavPathStack;
-  @State HorizontalMode_ctrl:string =  PreferencesCache.getUserPreference('HorizontalMode_ctrl','0')
+  @State HorizontalMode_ctrl:string =  PreferencesCache.getUserPreference('HorizontalMode_ctrl','1')
   @StorageProp('bottomRect') bottomRect: number = 0
   @Builder
   HorizontalMode_Ctrl(){
@@ -114,9 +119,11 @@ export struct Personalized_settings{
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.swipe_cover_switch_songs')), setUserPreference_name:'img_playing_ctrl'})}
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.simultaneous_playback')), setUserPreference_name:'playing_mix'})}
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.enable_sidebar_ui')), setUserPreference_name:'zhishi_UI'})}
+          ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.double_tap_switch_songs')), setUserPreference_name:'double_tap_switch_songs'})}
           // ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.Lyic_desktop')), setUserPreference_name:'Lyic_desktop'})}
           ListItem(){ Column().height(16+this.bottomRect/2)}
         }
+        .scrollBar(BarState.Off)
         .width('100%')
         .height('100%')
       }

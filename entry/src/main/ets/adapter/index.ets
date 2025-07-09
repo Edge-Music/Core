@@ -464,6 +464,17 @@ export class SourceAdapter {
     }
   }
 
+  static async getAggregationPlaylistDetail(playlist: Playlist): Promise<Playlist> {
+    try {
+      return playlist;
+    } catch (error) {
+      LogUtil.error(TAG, `获取歌单详情失败，id：${playlist.id}，错误：${error}`);
+      // 出错时返回空歌曲列表的歌单
+      playlist.songs = [];
+      return playlist;
+    }
+  }
+
   static async getAlbumDetail(album: Album): Promise<Playlist> {
     try {
       const source = album.source as SourceConfig;
@@ -647,6 +658,21 @@ export class SourceAdapter {
     } catch (error) {
       LogUtil.error(TAG, `收藏歌曲操作失败，歌曲id：${song.id}，错误：${error}`);
       // 不抛出异常，只记录日志
+    }
+  }
+
+  static async getAllRecommend(limit: number = 20): Promise<void>{
+    try {
+      // 并行加载数据并捕获异常
+      await Promise.all([
+        SourceAdapter.getRecommendList(limit),
+        SourceAdapter.getRecommendSongs(limit),
+        SourceAdapter.getRecommendArtists(limit),
+        SourceAdapter.getTopList(limit),
+        SourceAdapter.getUserPlaylist()
+      ])
+    } catch (error) {
+      LogUtil.error(`[${TAG}]`, `Failed to load data: ${error}`, )
     }
   }
 }

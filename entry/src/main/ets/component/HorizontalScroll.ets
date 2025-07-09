@@ -1,4 +1,5 @@
 import { LazyData } from "@pie/lazy-data"
+import { DialogHelper } from "@pura/harmony-dialog"
 import { ToastUtil } from "@pura/harmony-utils"
 import { SourceAdapter } from "../adapter"
 import { StyleConstants } from "../constants/StyleConstants"
@@ -15,12 +16,14 @@ const DEFAULT_COVER_SIZE = 256
 export struct HorizontalScroll {
   @Consume('NavPathStack') pageStack: NavPathStack
   @Prop lists: Object[]
+  @State selectedIndex: number = 0
   type: string = ''
   private coverWidth: number = 120
   private segmentPadding: number = 4
   private radius: string | number = 8
   @StorageLink('2in1title') title:string='首页'
   @StorageLink('2in1page_judge') page_judge:string = 'index'
+  @StorageLink('aggregation_playlist') aggregationPlaylist: Playlist[] = PreferencesCache.getPlaylistCache('aggregation_playlist')
   build() {
     Scroll() {
       Row() {
@@ -203,6 +206,29 @@ export struct HorizontalScroll {
         value: $r('app.string.add_to_play_next'),
         action: () => {
           PlaylistManager.insertSongs([song])
+        }
+      },
+      {
+        value: $r('app.string.add_to_playlist'),
+        action: () => {
+          DialogHelper.showSelectDialog({
+            title: $r('app.string.add_to_playlist'),
+            confirm: $r('app.string.back'),
+            selectedIndex: -1,
+            radioContent: this.aggregationPlaylist.map(playlist => playlist.name),
+            onCheckedChanged: (index) => {
+              this.selectedIndex = index
+              if(PreferencesCache.addSongToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], song)){
+                ToastUtil.showShort(`[${song.name}]存在于[${this.aggregationPlaylist[index].name}]`)
+                // if(this.playlistId === this.aggregationPlaylist[this.selectedIndex].id){
+                //   AppStorage.setOrCreate('current_playlist_data', this.aggregationPlaylist[this.selectedIndex])
+                // }
+              }else{
+                ToastUtil.showShort(`[${song.name}]添加到[${this.aggregationPlaylist[index].name}]`)
+              }
+            },
+            onAction: (): void => {}
+          })
         }
       }
     ]

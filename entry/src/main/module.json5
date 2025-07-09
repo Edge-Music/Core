@@ -30,6 +30,9 @@
       {
         "name": "ohos.permission.VIBRATE"
       },
+      {
+        "name": "ohos.permission.ACCELEROMETER"
+      }
 //      {
 //        "name": "ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY",
 //        "reason": "$string:reason_read_write_download_directory",

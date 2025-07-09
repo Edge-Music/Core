@@ -1,5 +1,5 @@
 import { Artist, ID, Playlist, Song, SourceConfig } from "../type/Adapter";
-import { PreferencesUtil } from '@pura/harmony-utils';
+import { LogUtil, PreferencesUtil, ToastUtil } from '@pura/harmony-utils';
 
 // 比特率类型
 export type BitrateType = 128000 | 192000 | 320000 | 350000 | 999000 | number;
@@ -30,6 +30,7 @@ export function getQualityLevel(bitrate: BitrateType): QualityLevel {
 /**
  * 系统设置偏好
  */
+const TAG = 'PreferencesCache'
 export class PreferencesCache {
   private static CACHE_MAP = new Map<string, string>();
 
@@ -351,5 +352,118 @@ export class PreferencesCache {
   static setSongCache(strIndex: string, sourceConfig: Song[]): void {
     PreferencesCache.setCache(strIndex, JSON.stringify(sourceConfig));
     AppStorage.setOrCreate(strIndex, sourceConfig);
+  }
+
+  static addPlaylistsCache(strIndex: string, sourceConfig: Playlist[]): void {
+    let playlists: Playlist[] = JSON.parse(PreferencesCache.getCache(strIndex, '[]'));
+    playlists.push(...sourceConfig)
+    PreferencesCache.setCache(strIndex, JSON.stringify(playlists));
+    AppStorage.setOrCreate(strIndex, playlists);
+  }
+
+  static updatePlaylistsCache(strIndex: string, sourceConfig: Playlist, name: string | undefined, desc: string | undefined): void {
+    let playlists: Playlist[] = JSON.parse(PreferencesCache.getCache(strIndex, '[]'));
+    playlists.filter((item: Playlist) => {
+      if (item.id === sourceConfig.id) {
+        item.name = name
+        item.description = desc
+      }
+    })
+    PreferencesCache.setCache(strIndex, JSON.stringify(playlists));
+    AppStorage.setOrCreate(strIndex, playlists);
+  }
+
+  static deletePlaylistCache(strIndex: string, sourceConfig: Playlist): void {
+    let playlists: Playlist[] = JSON.parse(PreferencesCache.getCache(strIndex, '[]'));
+    playlists.filter((item: Playlist, index: number) => {
+      if (item.id === sourceConfig.id) {
+        playlists.splice(index, 1)
+        LogUtil.info(`[${TAG}]`, `删除后的歌单：${JSON.stringify(playlists)}`)
+        PreferencesCache.setCache(strIndex, JSON.stringify(playlists));
+        AppStorage.setOrCreate(strIndex, playlists);
+      }
+    })
+  }
+
+  static deleteSongCache(strIndex: string, playlistId: number | string, song: Song): void {
+    // 1. 从缓存中获取播放列表数组
+    let playlists: Playlist[] = JSON.parse(PreferencesCache.getCache(strIndex, '[]'));
+
+    // 2. 查找目标播放列表（根据sourceConfig.id）
+    let targetPlaylistIndex: number = -1
+    targetPlaylistIndex = playlists.findIndex(
+      (playlist: Playlist) => playlist.id === playlistId
+    );
+
+    // 3. 如果找到目标播放列表
+    if (targetPlaylistIndex !== -1) {
+      // 4. 从songs数组中移除指定歌曲（根据song.id）
+      playlists[targetPlaylistIndex].songs = playlists[targetPlaylistIndex].songs?.filter(
+        (s: Song) => s.id !== song.id
+      );
+      playlists[targetPlaylistIndex].size = playlists[targetPlaylistIndex].songs?.length
+
+      // 5. 更新缓存
+      PreferencesCache.setCache(strIndex, JSON.stringify(playlists));
+      AppStorage.setOrCreate(strIndex, playlists);
+      AppStorage.setOrCreate('current_playlist_data', playlists[targetPlaylistIndex])
+
+      // 6. 日志记录（可选）
+      LogUtil.info(`[${TAG}]`, `已从播放列表${playlists[targetPlaylistIndex].name}中删除歌曲: ${song.name}`);
+    } else {
+      LogUtil.warn(`[${TAG}]`, `未找到ID为${playlists[targetPlaylistIndex].name}的播放列表`);
+    }
+
+  }
+
+  static addSongToAggregationPlaylist(playlist: Playlist, song: Song): boolean{
+    let playlists: Playlist[] = JSON.parse(PreferencesCache.getCache('aggregation_playlist', '[]'));
+    let resultIndex: number = -1
+    let isExist: boolean = false
+    playlists.filter((item: Playlist, index: number) => {
+      if (item.id === playlist.id) {
+        resultIndex = index
+        if(item.songs){
+          item.songs.filter((s: Song) => {
+            if(!isExist && s.id === song.id){
+              isExist = true
+            }
+          })
+        }
+      }
+    })
+    if(isExist){
+      LogUtil.info(`[${TAG}]`, `[${song.name}]已存在于歌单[${playlists[resultIndex].name}]`)
+    }else{
+      let item: Playlist = playlists[resultIndex]
+      if(item.songs){
+        playlists[resultIndex].songs?.push(song)
+      }else{
+        playlists[resultIndex].songs = [song]
+      }
+      playlists[resultIndex].size = playlists[resultIndex].songs?.length
+      LogUtil.info(`[${TAG}]`, `添加后的歌单：${JSON.stringify(playlists)}`)
+      PreferencesCache.setCache('aggregation_playlist', JSON.stringify(playlists));
+      AppStorage.setOrCreate('aggregation_playlist', playlists);
+    }
+    return isExist
+  }
+
+  static clearPlaylistsCache(strIndex: string): void {
+    PreferencesCache.setCache(strIndex, '[]');
+    AppStorage.setOrCreate(strIndex, JSON.parse('[]'));
+  }
+
+  /**
+   * 显示翻译/音译歌词
+   * @param value 是否显示
+   * @returns 是否显示
+   */
+  static currentLyricsOffsetTime(value?: number): number {
+    if (value !== undefined) {
+      PreferencesCache.setUserPreference('current_lyrics_offset_time', `${value}`);
+      LogUtil.info(`[${TAG}]`, ` currentLyricsOffsetTime: ${value}`)
+    }
+    return parseInt(PreferencesCache.getUserPreference('current_lyrics_offset_time', '0'))
   }
 }

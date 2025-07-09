@@ -1,4 +1,4 @@
-import { Song } from '../type/Adapter'
+import { Playlist, Song } from '../type/Adapter'
 import { StyleConstants } from "../constants/StyleConstants"
 import { BreakpointConstants } from '../constants/BreakpointConstants'
 import { cover } from '../util/AdapterHelper'
@@ -21,6 +21,8 @@ import ImageUtils from '../util/ImageUtils';
 import { curves, promptAction } from '@kit.ArkUI'
 import { PipManager } from '../util/PipManager'
 import WindowUtil from '../util/WindowUtil'
+import SensorUtil from '../util/SensorUtil'
+import { DialogHelper } from '@pura/harmony-dialog'
 
 
 @Builder
@@ -52,6 +54,8 @@ struct Playing {
   @State imageColorHex:string='1a2a3a'
   @State currentIndex: number = -1
   @StorageLink('Lyic_desktop') Lyic_desktop: string = PreferencesCache.getUserPreference('Lyic_desktop','0')
+  @StorageProp('double_tap_switch_songs') isOnDoubleTap: string = PreferencesCache.getUserPreference('double_tap_switch_songs','0')
+  @StorageLink('aggregation_playlist') aggregationPlaylist: Playlist[] = PreferencesCache.getPlaylistCache('aggregation_playlist')
   // 独立的按钮动画状态
   @State swipeOffset: number = 0; // 滑动偏移量
   @State isSwipingActive: boolean = false; // 是否正在滑动中
@@ -79,6 +83,7 @@ struct Playing {
   @StorageLink('winHeightWithPx') @Watch('onWinWidthChange') winHeightWithPx: number = 0
   @State isSliderVisible: boolean = false
   @State isSliderVisible1: boolean = false
+  @State selectedIndex: number = 0
   private timerId: number = -1
   private resetTimer() {
     if (this.timerId !== -1) {
@@ -96,7 +101,7 @@ struct Playing {
   private swiperController: SwiperController = new SwiperController()
   // 歌曲封面-歌词翻转
   @State flipCoverLyric: boolean = PreferencesCache.flipCoverLyric()
-  @State  Pura_X:string =  PreferencesCache.getUserPreference('is_Pura_X', '0')//pura_x尝试适配
+  @State Pura_X: string = PreferencesCache.getUserPreference('is_Pura_X', '0')//pura_x尝试适配
   // 监听屏幕断点变化
   onBreakpointChange() {
     this.isWideScreen = this.currentBreakpoint !== BreakpointConstants.BREAKPOINT_SM;
@@ -452,13 +457,13 @@ struct Playing {
           LyricsView({
             mode_judge: false
           })
-            .width(StyleConstants.FULL_WIDTH)
+            .width('95%')
             .height(StyleConstants.SEVENTY_HEIGHT)
 
           Column(){
             this.PlayerControls(this.Pura_X === '1' ? false : true)
           }
-          .width('90%')
+          .width('100%')
           .layoutWeight(1)
 
           Blank()
@@ -466,7 +471,7 @@ struct Playing {
           Column(){
             this.ProgressBar(true, 0, false)
           }
-          .width('90%')
+          .width('100%')
           .layoutWeight(0.6)
 
         }
@@ -577,13 +582,13 @@ struct Playing {
           Column(){
             this.ProgressBar(false)
           }
-          .width('100%')
+          .width('120%')
           .layoutWeight(0.5)
 
           Column(){
             this.PlayerControls(this.Pura_X === '1' ? false : true)
           }
-          .width('100%')
+          .width('120%')
           .layoutWeight(1)
         }
         .padding({
@@ -710,10 +715,19 @@ struct Playing {
     }else{
       WindowUtil.setSystemBarEnabled(this.windowStage, true)
     }
+    WindowUtil.setWindowScreenOn(this.windowStage, true)
+
+    if(this.isOnDoubleTap === '1'){
+      SensorUtil.onAccelerometer()
+    }
   }
 
   aboutToDisappear() {
     WindowUtil.setSystemBarEnabled(this.windowStage, true)
+    WindowUtil.setWindowScreenOn(this.windowStage, false)
+    if(this.isOnDoubleTap === '1'){
+      SensorUtil.offAccelerometer()
+    }
     if (this.updateTimer !== -1) {
       clearInterval(this.updateTimer)
       this.updateTimer = -1
@@ -1113,6 +1127,29 @@ struct Playing {
           })
         }
       },
+      {
+        value: $r('app.string.add_to_playlist'),
+        action: () => {
+          DialogHelper.showSelectDialog({
+            title: $r('app.string.add_to_playlist'),
+            confirm: $r('app.string.back'),
+            selectedIndex: -1,
+            radioContent: this.aggregationPlaylist.map(playlist => playlist?.name),
+            onCheckedChanged: (index) => {
+              this.selectedIndex = index
+              if(PreferencesCache.addSongToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], this.song!)){
+                ToastUtil.showShort(`[${this.song?.name}]存在于[${this.aggregationPlaylist[index].name}]`)
+                // if(this.playlistId === this.aggregationPlaylist[this.selectedIndex].id){
+                //   AppStorage.setOrCreate('current_playlist_data', this.aggregationPlaylist[this.selectedIndex])
+                // }
+              }else{
+                ToastUtil.showShort(`[${this.song?.name}]添加到[${this.aggregationPlaylist[index].name}]`)
+              }
+            },
+            onAction: (): void => {}
+          })
+        }
+      }
     ]
   }
 
@@ -1135,6 +1172,29 @@ struct Playing {
           })
         }
       },
+      {
+        value: $r('app.string.add_to_playlist'),
+        action: () => {
+          DialogHelper.showSelectDialog({
+            title: $r('app.string.add_to_playlist'),
+            confirm: $r('app.string.back'),
+            selectedIndex: -1,
+            radioContent: this.aggregationPlaylist.map(playlist => playlist?.name),
+            onCheckedChanged: (index) => {
+              this.selectedIndex = index
+              if(PreferencesCache.addSongToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], this.song!)){
+                ToastUtil.showShort(`[${this.song?.name}]存在于[${this.aggregationPlaylist[index].name}]`)
+                // if(this.playlistId === this.aggregationPlaylist[this.selectedIndex].id){
+                //   AppStorage.setOrCreate('current_playlist_data', this.aggregationPlaylist[this.selectedIndex])
+                // }
+              }else{
+                ToastUtil.showShort(`[${this.song?.name}]添加到[${this.aggregationPlaylist[index].name}]`)
+              }
+            },
+            onAction: (): void => {}
+          })
+        }
+      }
     ]
   }
 

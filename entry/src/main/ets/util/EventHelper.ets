@@ -114,7 +114,7 @@ const playSong = async (song: Song, path: string, cached: boolean, pause: boolea
       assetId: `track-${song.id}-${song.source?.id}`,
       duration: song.duration,
       title: song.name,
-      mediaImage: cover(song.album.cover, 512),
+      mediaImage: cover(song.album.cover, 512) as string,
       artist: song.artists.map(a => a.name).join("/"),
       lyric: song.meta?.lyric?.normal,
     })

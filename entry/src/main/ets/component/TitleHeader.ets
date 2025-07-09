@@ -62,27 +62,26 @@ export struct TitleHeader {
     Stack({ alignContent: Alignment.Start }) {
       Column(){
         // PC工具栏适配
-        if(this.topRect > 0){
-          Row(){}
+        Row()
           .height(this.topRect)
           .backgroundColor('transparent')
           .width('100%')
+          .visibility(this.topRect > 0 ? Visibility.Visible : Visibility.None)
+
+        Row(){
+          Image($r('app.media.icon'))
+            .height(this.decorHeight/2)
+            .width(this.decorHeight/2)
+            .margin({ left: 16 })
+          Blank().width(5)
+          Text('云享社').fontSize(14).fontWeight(FontWeight.Bold)
         }
-        if(this.decorHeight > 0){
-          Row(){
-            Image($r('app.media.icon'))
-              .height(this.decorHeight/2)
-              .width(this.decorHeight/2)
-              .margin({ left: 16 })
-            Blank().width(5)
-            Text('云享社').fontSize(14).fontWeight(FontWeight.Bold)
-          }
-          .justifyContent(FlexAlign.Start)
-          .alignItems(VerticalAlign.Center)
-          .height(this.decorHeight)
-          .backgroundColor('transparent')
-          .width('100%')
-        }
+        .justifyContent(FlexAlign.Start)
+        .alignItems(VerticalAlign.Center)
+        .height(this.decorHeight)
+        .backgroundColor('transparent')
+        .width('100%')
+        .visibility(this.decorHeight > 0 ? Visibility.Visible : Visibility.None)
 
         Row() {
           Row() {
@@ -129,6 +128,7 @@ export struct TitleHeader {
               .maxLines(1)
               .padding({ left: 16 })
           }
+          .visibility(this.backActive ? Visibility.Visible : Visibility.None)
           .width(StyleConstants.FULL_WIDTH)
           .onHover((isHover: boolean) => {
             if(isHover){

@@ -8,19 +8,15 @@ import { MiniPlaybackControl } from '../component/MiniPlaybackControl';
 import { Setting_2in1 } from './Setting_for2in1';
 import { MenuIcon } from '../component/MenuIcon';
 
-@Builder
-export function FOR_2IN1_UI(){
-  IS_2IN1_UI()
-}
 @Component
 export struct IS_2IN1_UI{
   @StorageProp('decorHeight') decorHeight: number = 0
   @Consume('NavPathStack') pageStack: NavPathStack;
   @StorageLink('user_playlist') playlists: Playlist[] = [];
   @StorageLink('currentBreakpoint') currentBreakpoint: string = 'sm'
-  @State page_judge: string = 'index'
+  @Link page_judge: string
   @State sidebar_ctrl: boolean = false
-  @State title: string = '首页'
+  @Link title: string
   @StorageProp('bottomRect') bottomRect: number = 0
   @StorageProp('topRect') topRect: number = 0
   uiContext: UIContext | undefined = undefined;
@@ -123,7 +119,7 @@ export struct IS_2IN1_UI{
     .alignItems(VerticalAlign.Center)
     .backgroundColor(Color.Transparent)
     .height(StyleConstants.TITLE_HEIGHT)
-    .width(300)
+    .width(this.sidebar_ctrl ? 300 : 100)
     .animation({
       duration: 250,
       curve: Curve.FastOutSlowIn
@@ -134,16 +130,15 @@ export struct IS_2IN1_UI{
   TitleBar(){
     Column(){
       // PC工具栏适配
-      if(this.topRect > 0){
-        Row()
+      Row()
         .height(this.topRect)
         .width('100%')
-      }
-      if(this.decorHeight > 0){
-        Row()
+        .visibility(this.topRect > 0 ? Visibility.Visible : Visibility.None)
+
+      Row()
         .height(this.decorHeight)
         .width('100%')
-      }
+        .visibility(this.decorHeight > 0 ? Visibility.Visible : Visibility.None)
 
       Row() {
         Row()
@@ -171,7 +166,7 @@ export struct IS_2IN1_UI{
       .alignItems(VerticalAlign.Center)
       .height(50)
     }
-    .height(this.topRect+50+this.decorHeight)
+    .height(this.topRect+StyleConstants.TITLE_HEIGHT+this.decorHeight)
   }
 
   @Builder
@@ -254,17 +249,16 @@ export struct IS_2IN1_UI{
           SideBarContainer(this.currentBreakpoint === 'sm' ? SideBarContainerType.Overlay : SideBarContainerType.Embed){
             Column(){
               Column(){
-                if(this.topRect > 0){
-                  Row(){}
+                Row()
                   .height(this.topRect)
-                }
-                if(this.decorHeight > 0){
-                  Row(){
-                  }
+                  .visibility(this.topRect > 0 ? Visibility.Visible : Visibility.None)
+
+                Row()
                   .justifyContent(FlexAlign.Start)
                   .alignItems(VerticalAlign.Center)
                   .height(this.decorHeight)
-                }
+                  .visibility(this.decorHeight > 0 ? Visibility.Visible : Visibility.None)
+
                 Row()
                   .height(StyleConstants.TITLE_HEIGHT)
               }
@@ -325,14 +319,14 @@ export struct IS_2IN1_UI{
                 }
                 .backgroundColor($r('app.color.page_background'))
                 Stack(){
-                  Index_page()//index_2in1 等待适配
-                  if (this.page_judge === 'Setting'){
+                  if(this.page_judge === 'index'){
+                    Index_page()//index_2in1 等待适配
+                  }else if (this.page_judge === 'Setting'){
                     Setting_2in1()
                   }else if (this.page_judge === 'playlist'){
                     PlayListFor2in1()
                   }
                 }
-
               }
               .zIndex(1)
               .scale(this.sidebar_ctrl && this.currentBreakpoint === 'sm' ? { x: 0.95, y: 0.95 } : {})
