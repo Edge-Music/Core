@@ -193,11 +193,12 @@ export struct PlaylistItem {
   updateAggregationPlaylist(playlist: Playlist) {
     try {
       PreferencesCache.updatePlaylistsCache('aggregation_playlist', playlist, this.playlistName, this.playlistDesc)
-      this.playlistName = ''
-      this.playlistDesc = ''
       LogUtil.info(`[${TAG}]`, `歌单[${this.playlistName}]更新成功`)
     } catch(error) {
       LogUtil.info(`[${TAG}]`, `歌单[${this.playlistName}]更新失败: ${JSON.stringify(error)}`)
+    } finally {
+      this.playlistName = ''
+      this.playlistDesc = ''
     }
   }
 

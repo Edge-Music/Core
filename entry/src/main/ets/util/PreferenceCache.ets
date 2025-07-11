@@ -436,6 +436,7 @@ export class PreferencesCache {
       LogUtil.info(`[${TAG}]`, `[${song.name}]已存在于歌单[${playlists[resultIndex].name}]`)
     }else{
       let item: Playlist = playlists[resultIndex]
+      song.sourceID = song.source?.id
       if(item.songs){
         playlists[resultIndex].songs?.push(song)
       }else{
@@ -447,6 +448,22 @@ export class PreferencesCache {
       AppStorage.setOrCreate('aggregation_playlist', playlists);
     }
     return isExist
+  }
+
+  static deleteSongsOfAggregationPlaylists(sourceId: ID): void{
+    let playlists: Playlist[] = JSON.parse(PreferencesCache.getCache('aggregation_playlist', '[]'));
+    playlists = playlists.map(playlist => {
+      // 过滤掉sourceId匹配的歌曲
+      const filteredSongs = playlist.songs?.filter(song => song.sourceID !== sourceId);
+      playlist.songs = filteredSongs
+      playlist.size = filteredSongs?.length
+      // 返回更新后的歌单（保持其他属性不变）
+      return playlist
+    });
+
+    LogUtil.info(`[${TAG}]`, `删除后的歌单：${JSON.stringify(playlists)}`)
+    PreferencesCache.setCache('aggregation_playlist', JSON.stringify(playlists));
+    AppStorage.setOrCreate('aggregation_playlist', playlists);
   }
 
   static clearPlaylistsCache(strIndex: string): void {

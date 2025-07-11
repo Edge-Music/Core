@@ -511,6 +511,10 @@
     {
       "name": "delete_song",
       "value": "Delete The Song"
+    },
+    {
+      "name": "delete_source_desc",
+      "value": "This will delete all songs from your aggregated playlist that belong to this data source!!!"
     }
   ]
 }

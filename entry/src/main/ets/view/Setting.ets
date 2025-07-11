@@ -594,12 +594,13 @@ export struct Setting {
         .onClick(() => {
           DialogUtil.showPrimaryDialog({
             title: $r('app.string.delete_data_source'),
-            message: ResourceManager.getStringValueSync($r('app.string.whether_to_delete_data_source')) +`[${adapter.name}]？`,
+            message: ResourceManager.getStringValueSync($r('app.string.whether_to_delete_data_source')) +`[${adapter.name}]？`+ResourceManager.getStringValueSync($r('app.string.delete_source_desc')),
             primaryButton: $r('app.string.cancel'),
             secondaryButton: $r('app.string.delete'),
             onAction: (action) => {
               if (action == DialogAction.TWO) {
                 PreferencesCache.deleteUserDataSource(adapter.id)
+                PreferencesCache.deleteSongsOfAggregationPlaylists(adapter.id)
                 PreferencesCache.deleteShowUserDataSource(adapter.id)
                 ToastUtil.showShort($r('app.string.data_source_deleted'))
               }

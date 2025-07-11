@@ -507,6 +507,10 @@
     {
       "name": "delete_song",
       "value": "删除歌曲"
+    },
+    {
+      "name": "delete_source_desc",
+      "value": "这将会删除您的聚合歌单中所有属于本数据源的歌曲！！！"
     }
   ]
 }

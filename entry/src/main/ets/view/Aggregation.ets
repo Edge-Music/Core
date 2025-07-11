@@ -192,19 +192,20 @@ export struct Aggregation {
       const timestamp: number = new Date().getTime();
       const playlist: Playlist = {
         id: `aggregation_playlist-${timestamp}`,
-        name: this.playlistName ?? '默认歌单',
-        description: this.playlistDesc ?? '',
+        name: this.playlistName?.trim() ?? '默认歌单',
+        description: this.playlistDesc?.trim() ?? '',
         cover: this.playlistCover,
         size: 0,
         type: PlaylistType.AGGREGATION
       }
       PreferencesCache.addPlaylistsCache('aggregation_playlist', [playlist])
-      this.playlistName = undefined
-      this.playlistDesc = undefined
-      this.playlistCover = $r('app.media.icon_startwindow')
       LogUtil.info(`[${TAG}]`, `歌单[${this.playlistName}]添加成功`)
+      this.playlistCover = $r('app.media.icon_startwindow')
     } catch(error) {
       LogUtil.info(`[${TAG}]`, `歌单[${this.playlistName}]添加失败: ${JSON.stringify(error)}`)
+    } finally {
+      this.playlistName = undefined
+      this.playlistDesc = undefined
     }
   }
 }
