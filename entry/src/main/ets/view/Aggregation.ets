@@ -11,6 +11,7 @@ import { PushPathHelper } from "../util/PushPathHelper";
 import { ScrollController } from "../util/ScrollController";
 import { LogUtil } from "@pura/harmony-utils";
 import { AddAggregationPlaylist } from "../component/CustomTextBuilder";
+import ResourceManager from "../util/ResourceManager";
 
 const TAG = 'Aggregation'
 
@@ -187,18 +188,20 @@ export struct Aggregation {
   }
 
   createAggregationPlaylist(){
+    let playlistName: string = this.playlistName?.trim() && this.playlistName.trim() !== '' ? this.playlistName.trim() : ResourceManager.getStringValueSync($r('app.string.default_playlist_name'))
+    let playlistDesc: string = this.playlistDesc?.trim() && this.playlistDesc?.trim() !== '' ? this.playlistDesc?.trim() : ResourceManager.getStringValueSync($r('app.string.default_playlist_desc'))
     try {
       const timestamp: number = new Date().getTime();
       const playlist: Playlist = {
         id: `aggregation_playlist-${timestamp}`,
-        name: this.playlistName?.trim() ?? '默认歌单',
-        description: this.playlistDesc?.trim() ?? '',
+        name: playlistName,
+        description: playlistDesc,
         cover: this.playlistCover,
         size: 0,
         type: PlaylistType.AGGREGATION
       }
       PreferencesCache.addPlaylistsCache('aggregation_playlist', [playlist])
-      LogUtil.info(`[${TAG}]`, `歌单[${this.playlistName}]添加成功`)
+      LogUtil.info(`[${TAG}]`, `歌单[${playlist.id}][${playlistName}]添加成功`)
       this.playlistCover = $r('app.media.icon_startwindow')
     } catch(error) {
       LogUtil.info(`[${TAG}]`, `歌单[${this.playlistName}]添加失败: ${JSON.stringify(error)}`)

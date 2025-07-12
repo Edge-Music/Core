@@ -7,14 +7,15 @@ import { cover } from "../util/AdapterHelper";
 import { PlaylistManager } from "../util/PlaylistManager";
 import { PreferencesCache } from "../util/PreferenceCache";
 import { PushPathHelper } from "../util/PushPathHelper";
+import ResourceManager from "../util/ResourceManager";
 import { AddAggregationPlaylist } from "./CustomTextBuilder";
 const TAG = 'PlaylistItem'
 
 @Reusable
 @Component
 export struct PlaylistItem {
-  @State playlistName: string | undefined = ''
-  @State playlistDesc: string | undefined = ''
+  @State playlistName: string | undefined = undefined
+  @State playlistDesc: string | undefined = undefined
   @Prop playlist: Playlist
   onPlaylistSelected?: (playlist: Playlist) => void;
 
@@ -191,14 +192,20 @@ export struct PlaylistItem {
   }
 
   updateAggregationPlaylist(playlist: Playlist) {
+    let playlistName: string = this.playlistName?.trim() && this.playlistName.trim() !== '' ? this.playlistName.trim() : ResourceManager.getStringValueSync($r('app.string.default_playlist_name'))
+    let playlistDesc: string = this.playlistDesc?.trim() && this.playlistDesc?.trim() !== '' ? this.playlistDesc?.trim() : ResourceManager.getStringValueSync($r('app.string.default_playlist_desc'))
     try {
-      PreferencesCache.updatePlaylistsCache('aggregation_playlist', playlist, this.playlistName, this.playlistDesc)
-      LogUtil.info(`[${TAG}]`, `歌单[${this.playlistName}]更新成功`)
+      PreferencesCache.updatePlaylistsCache(
+        'aggregation_playlist',
+        playlist,
+        playlistName,
+        playlistDesc)
+      LogUtil.info(`[${TAG}]`, `歌单[${playlist.id}][${playlistName}]更新成功`)
     } catch(error) {
-      LogUtil.info(`[${TAG}]`, `歌单[${this.playlistName}]更新失败: ${JSON.stringify(error)}`)
+      LogUtil.info(`[${TAG}]`, `歌单[${playlist.id}][${this.playlistName}]更新失败: ${JSON.stringify(error)}`)
     } finally {
-      this.playlistName = ''
-      this.playlistDesc = ''
+      this.playlistName = undefined
+      this.playlistDesc = undefined
     }
   }
 
@@ -206,10 +213,10 @@ export struct PlaylistItem {
     try {
       PreferencesCache.deletePlaylistCache('aggregation_playlist', playlist)
       ToastUtil.showShort("成功删除歌单")
-      LogUtil.info(`[${TAG}]`, `歌单[${playlist.name}]删除成功`)
+      LogUtil.info(`[${TAG}]`, `歌单[${playlist.id}][${playlist.name}]删除成功`)
     } catch(error) {
       ToastUtil.showShort("删除歌单失败!")
-      LogUtil.info(`[${TAG}]`, `歌单[${playlist.name}]删除失败: ${JSON.stringify(error)}`)
+      LogUtil.info(`[${TAG}]`, `歌单[${playlist.id}][${playlist.name}]删除失败: ${JSON.stringify(error)}`)
     }
   }
 

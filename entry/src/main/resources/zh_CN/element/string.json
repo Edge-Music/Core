@@ -527,6 +527,14 @@
     {
       "name": "playlist_desc_placeholder",
       "value": "请输入歌单描述"
+    },
+    {
+      "name": "default_playlist_name",
+      "value": "默认歌单"
+    },
+    {
+      "name": "default_playlist_desc",
+      "value": "这是一个本地聚合歌单"
     }
   ]
 }

@@ -531,6 +531,14 @@
     {
       "name": "playlist_desc_placeholder",
       "value": "Please enter the playlist description"
+    },
+    {
+      "name": "default_playlist_name",
+      "value": "Default Playlist"
+    },
+    {
+      "name": "default_playlist_desc",
+      "value": "This is a local aggregated playlist"
     }
   ]
 }
