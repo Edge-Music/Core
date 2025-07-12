@@ -184,7 +184,6 @@ export struct MultiSearch {
     .mode(NavDestinationMode.STANDARD)
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
-    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM, LayoutSafeAreaEdge.TOP])
   }
 
   /**

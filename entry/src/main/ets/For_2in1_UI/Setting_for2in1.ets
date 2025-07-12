@@ -768,7 +768,6 @@ export struct Setting_2in1 {
       detents:this.Pura_X? [SheetSize.LARGE]:[SheetSize.MEDIUM],
       preferType: this.currentBreakpoint === BreakpointConstants.BREAKPOINT_SM ? SheetType.BOTTOM : SheetType.CENTER
     })
-    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM, LayoutSafeAreaEdge.TOP])
   }
 
   getBlankHeight(): Length {

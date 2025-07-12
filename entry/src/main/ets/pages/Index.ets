@@ -64,7 +64,6 @@ struct Index {
     .navDestination(this.PageMap)
     .hideNavBar(true)
     .mode(NavigationMode.Stack)
-    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM, LayoutSafeAreaEdge.TOP])
   }
 }
 
@@ -466,12 +465,11 @@ struct Index_page {
     }
     .height(StyleConstants.FULL_HEIGHT)
     .width(StyleConstants.FULL_WIDTH)
-    .systemTransition(NavigationSystemTransitionType.SLIDE_RIGHT)
+    // .systemTransition(NavigationSystemTransitionType.SLIDE_RIGHT)
     .hideToolBar(true)
     .hideTitleBar(true)
     .hideBackButton(true)
     .backgroundColor($r('app.color.page_background'))
-    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM, LayoutSafeAreaEdge.TOP])
     .onBackPressed(() => {
       if(this.page_judge !== 'index'){
         this.page_judge = 'index'

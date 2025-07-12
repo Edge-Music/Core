@@ -515,6 +515,22 @@
     {
       "name": "delete_source_desc",
       "value": "这将会删除您的聚合歌单中所有属于本数据源的歌曲！！！"
+    },
+    {
+      "name": "playlist_name",
+      "value": "歌单名称"
+    },
+    {
+      "name": "playlist_description",
+      "value": "歌单描述"
+    },
+    {
+      "name": "playlist_name_placeholder",
+      "value": "请输入歌单名称"
+    },
+    {
+      "name": "playlist_desc_placeholder",
+      "value": "请输入歌单描述"
     }
   ]
 }

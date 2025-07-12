@@ -111,7 +111,6 @@ export struct Aggregation {
 
         ListItem(){
           Row(){
-
             // 监控ListItemGroup高度变化，随时调整List下方补充高度，winHeight - group高度 - 标题高度 - 避让高度
             Blank().height(this.getBlankHeight())
           }
@@ -164,7 +163,7 @@ export struct Aggregation {
     .height(48)
     .margin({
       right: 25,
-      bottom: (this.bottomRect/2+StyleConstants.PLAYER_CONTROL_HEIGHT+25)
+      bottom: (this.bottomRect/2+StyleConstants.PLAYER_CONTROL_HEIGHT+40)
     })
     .onClick(() => {
       let options: CustomContentOptions = {

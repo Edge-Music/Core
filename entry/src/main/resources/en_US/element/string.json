@@ -515,6 +515,22 @@
     {
       "name": "delete_source_desc",
       "value": "This will delete all songs from your aggregated playlist that belong to this data source!!!"
+    },
+    {
+      "name": "playlist_name",
+      "value": "Playlist Name"
+    },
+    {
+      "name": "playlist_description",
+      "value": "Playlist Description"
+    },
+    {
+      "name": "playlist_name_placeholder",
+      "value": "Please enter the playlist name"
+    },
+    {
+      "name": "playlist_desc_placeholder",
+      "value": "Please enter the playlist description"
     }
   ]
 }

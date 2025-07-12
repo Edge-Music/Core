@@ -1734,7 +1734,6 @@ struct Playing {
       .width(StyleConstants.FULL_WIDTH)
       .height(StyleConstants.FULL_HEIGHT)
     }
-    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM, LayoutSafeAreaEdge.TOP])
     .systemTransition(NavigationSystemTransitionType.FADE)
     .hideToolBar(true)
     .hideTitleBar(true)
