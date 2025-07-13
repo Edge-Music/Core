@@ -3,6 +3,8 @@ import { LogUtil, ToastUtil } from "@pura/harmony-utils";
 import { StyleConstants } from "../constants/StyleConstants";
 import { Playlist, PlaylistType, Song } from "../type/Adapter";
 import { PreferencesCache } from "../util/PreferenceCache";
+import { SongDownloadManager } from "../util/SongDownloadManager";
+
 const TAG = 'SongInfo'
 
 @Reusable
@@ -219,6 +221,12 @@ export struct SongInfo {
               }
             })
           }
+        },
+        {
+          value: $r('app.string.download_this_song'),
+          action: () => {
+            this.downloadSong()
+          }
         }
       ]
     } else {
@@ -245,6 +253,12 @@ export struct SongInfo {
               onAction: (): void => {}
             })
           }
+        },
+        {
+          value: $r('app.string.download_this_song'),
+          action: () => {
+            this.downloadSong()
+          }
         }
       ]
     }
@@ -258,6 +272,20 @@ export struct SongInfo {
     } catch(error) {
       ToastUtil.showShort("删除歌曲失败!")
       LogUtil.info(`[${TAG}]`, `歌曲[${song.name}]删除失败: ${JSON.stringify(error)}`)
+    }
+  }
+
+  async downloadSong() {
+    if (this.song) {
+      ToastUtil.showShort($r('app.string.added_to_the_download_queue'))
+      SongDownloadManager.downloadSong(
+        this.song.id.toString(),
+        this.song,
+        undefined,
+        () => {
+          ToastUtil.showShort($r('app.string.download_successful'))
+        },
+      )
     }
   }
 

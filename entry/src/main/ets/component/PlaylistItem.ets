@@ -8,6 +8,7 @@ import { PlaylistManager } from "../util/PlaylistManager";
 import { PreferencesCache } from "../util/PreferenceCache";
 import { PushPathHelper } from "../util/PushPathHelper";
 import ResourceManager from "../util/ResourceManager";
+import { SongDownloadManager } from "../util/SongDownloadManager";
 import { AddAggregationPlaylist } from "./CustomTextBuilder";
 const TAG = 'PlaylistItem'
 
@@ -144,6 +145,15 @@ export struct PlaylistItem {
           }
         },
         {
+          value: $r('app.string.download_all_songs'),
+          action: () => {
+            if (this.playlist?.songs && this.playlist.songs.length > 0) {
+              const songs = this.playlist.songs.filter(song => song.privilege.playable)
+              SongDownloadManager.batchDownloadSongs(songs)
+            }
+          }
+        },
+        {
           value: $r('app.string.edit_playlist_info'),
           action: () => {
             let options: CustomContentOptions = {
@@ -207,6 +217,15 @@ export struct PlaylistItem {
               PlaylistManager.insertSongs(songs)
             })
           }
+        },
+        {
+          value: $r('app.string.download_all_songs'),
+          action: () => {
+            if (this.playlist?.songs && this.playlist.songs.length > 0) {
+              const songs = this.playlist.songs.filter(song => song.privilege.playable)
+              SongDownloadManager.batchDownloadSongs(songs)
+            }
+          }
         }
       ]
     }
@@ -248,4 +267,5 @@ export struct PlaylistItem {
       playlistDesc: this.playlistDesc
     })
   }
+
 }
