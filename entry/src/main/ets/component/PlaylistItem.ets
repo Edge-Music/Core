@@ -16,6 +16,7 @@ const TAG = 'PlaylistItem'
 export struct PlaylistItem {
   @State playlistName: string | undefined = undefined
   @State playlistDesc: string | undefined = undefined
+  @State isShowMenu: boolean = false
   @Prop playlist: Playlist
   onPlaylistSelected?: (playlist: Playlist) => void;
 
@@ -28,6 +29,7 @@ export struct PlaylistItem {
           .height(58)
           .objectFit(ImageFit.Cover)
           .borderRadius(8)
+          .draggable(false)
       }
       .margin({ right: 12 })
 
@@ -60,7 +62,17 @@ export struct PlaylistItem {
       }
       .width(48)
       .height(48)
-      .bindMenu(this.generatePlaylistMenu(this.playlist))
+      .bindMenu(
+        this.isShowMenu,
+        this.generatePlaylistMenu(this.playlist),
+        {
+          onDisappear: () => {
+            this.isShowMenu = false
+         }
+      })
+      .onClick(() => {
+        this.isShowMenu = true
+      })
       .clickEffect({ level: ClickEffectLevel.LIGHT })
       .stateStyles({
         pressed: this.pressedStyles,
@@ -77,6 +89,15 @@ export struct PlaylistItem {
         this.onPlaylistSelected(this.playlist);
       }
     })
+    .gesture(
+      LongPressGesture({
+        fingers: 1,
+        repeat: false
+      })
+        .onAction(() => {
+          this.isShowMenu = true
+        })
+    )
     .clickEffect({ level: ClickEffectLevel.LIGHT })
     .animation({ duration: 300, curve: Curve.LinearOutSlowIn })
   }

@@ -158,6 +158,7 @@ export struct Aggregation {
         .fontWeight(700)
 
     }
+    .clickEffect({ level: ClickEffectLevel.LIGHT })
     .backgroundColor($r('app.color.card_background'))
     .backgroundBlurStyle(BlurStyle.BACKGROUND_THICK)
     .width(48)
