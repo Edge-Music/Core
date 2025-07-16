@@ -1,34 +1,37 @@
 import { StyleConstants } from "../constants/StyleConstants";
 import { avPlayerManager } from "../util/AVPlayerManager";
 import { PreferencesCache } from "../util/PreferenceCache";
-import { App, LengthMetrics, LengthUnit } from '@kit.ArkUI'
 import LyricsManager, { LyricsLine } from "../util/LyricsManager";
 import { VibrationControl } from "../util/DeviceController";
 import { EventHelper } from "../util/EventHelper";
 import { LyricItem } from "./LyricItem";
-import { LogUtil, ToastUtil } from "@pura/harmony-utils";
+import { ToastUtil } from "@pura/harmony-utils";
 
 @Component
 export struct LyricsView {
-  @StorageProp('leftCutoutRectWidth') leftCutoutRectWidth: number = 0
-  @StorageProp('rightCutoutRectWidth') rightCutoutRectWidth: number = 0
-  @StorageProp('current_parsed_lyrics') private parsedLyrics: Array<LyricsLine> = []
-  @StorageLink('current_lyrics_index') @Watch("onTimeUpdate") private currentLyricsIndex: number = 0
-  @State mode_judge: boolean = false
-  @State private showTranslation: boolean = PreferencesCache.showTranslationLyric()
-  @StorageProp('current_lyrics_has_translation') private hasTranslation: boolean = false // 是否有翻译歌词
-  @StorageProp('current_lyrics_has_transliteration') private hasTransliteration: boolean = false
   private scroller: Scroller = new Scroller()
   private readonly SCROLL_ANIMATION_DURATION: number = 600
   private lastTriggerTime: number = 0;
+  private uiContext: UIContext | undefined = undefined;
+
+  @StorageProp('leftCutoutRectWidth') leftCutoutRectWidth: number = 0
+  @StorageProp('rightCutoutRectWidth') rightCutoutRectWidth: number = 0
+  @StorageProp('current_parsed_lyrics') private parsedLyrics: Array<LyricsLine> = []
+  @StorageProp('current_lyrics_has_translation') private hasTranslation: boolean = false // 是否有翻译歌词
+  @StorageProp('current_lyrics_has_transliteration') private hasTransliteration: boolean = false
+  @StorageProp('winHeight') winHeight: number = 0
+  @StorageLink('current_lyrics_index') @Watch("onTimeUpdate") private currentLyricsIndex: number = 0
+
   @State private manualScrollTimeoutId: number = -1; // 手动滚动超时ID
   @State private isManualScroll: boolean = false; // 是否处于手动滚动状态
   @State private isAutoScroll: boolean = false; // 是否处于自动滚动状态
   @State private currentLyricsOffsetTime: number = PreferencesCache.currentLyricsOffsetTime()
   @State private lastLyricsOffsetTime: number = PreferencesCache.currentLyricsOffsetTime()
   @State private lastStep: number = 0
-  @State private isShow: boolean = false;
-  uiContext: UIContext | undefined = undefined;
+  @State private isShow: boolean = false
+  @State mode_judge: boolean = false
+  @State private showTranslation: boolean = PreferencesCache.showTranslationLyric()
+
   aboutToAppear() {
     this.uiContext = this.getUIContext();
     this.scrollToLyric(this.currentLyricsIndex)
@@ -101,8 +104,7 @@ export struct LyricsView {
         } else {
           List({
             initialIndex: this.getTargetIndex(this.currentLyricsIndex),
-            scroller: this.scroller,
-            space: 12
+            scroller: this.scroller
           }) {
             ForEach(this.parsedLyrics, (item: LyricsLine, index) => {
               ListItem() {
@@ -113,11 +115,11 @@ export struct LyricsView {
                   currentLyricsIndex: this.currentLyricsIndex,
                 })
               }
+              .width(StyleConstants.FULL_WIDTH)
               .key('lyricItem'+index)
               .onClick(() => {
                 this.handleLyricClick(item.time, index)
               })
-              .width(StyleConstants.FULL_WIDTH)
             })
           }
           .width(StyleConstants.FULL_WIDTH)
@@ -177,7 +179,7 @@ export struct LyricsView {
       }
       .alignItems(HorizontalAlign.Center)
       .justifyContent(FlexAlign.Center)
-      .margin({ bottom: '30%' })
+      .margin({ bottom: this.winHeight*0.30 })
       .backgroundBlurStyle(BlurStyle.BACKGROUND_THICK)
       .height(60)
       .width(200)
@@ -199,7 +201,7 @@ export struct LyricsView {
               this.currentLyricsOffsetTime = 0
               this.lastLyricsOffsetTime = 0
               VibrationControl.handlePresetVibration(1)
-              ToastUtil.showToast(`当前歌词偏移：${this.currentLyricsOffsetTime}MS`)
+              ToastUtil.showToast(`当前歌词偏移：${this.currentLyricsOffsetTime}MS`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } })
             }
             if(currentStep > 1){
               if(this.hasTranslation || this.hasTransliteration){
@@ -225,7 +227,7 @@ export struct LyricsView {
             this.lastStep = 0
             this.isShow = false
             this.lastLyricsOffsetTime = this.currentLyricsOffsetTime
-            ToastUtil.showToast(`当前歌词偏移：${this.currentLyricsOffsetTime}MS`)
+            ToastUtil.showToast(`当前歌词偏移：${this.currentLyricsOffsetTime}MS`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } })
           }),
 
       )
@@ -235,7 +237,7 @@ export struct LyricsView {
   handleUpdate(newStep: number): boolean {
     if (newStep !== this.lastStep) {
       this.lastStep = newStep
-      return true // 需要触发震动
+      return true
     }
     return false
   }

@@ -7,14 +7,17 @@ import { cover } from "../util/AdapterHelper";
 import { PlaylistManager } from "../util/PlaylistManager";
 import { PreferencesCache } from "../util/PreferenceCache";
 import { PushPathHelper } from "../util/PushPathHelper";
+import ResourceManager from "../util/ResourceManager";
+import { SongDownloadManager } from "../util/SongDownloadManager";
 import { AddAggregationPlaylist } from "./CustomTextBuilder";
 const TAG = 'PlaylistItem'
 
 @Reusable
 @Component
 export struct PlaylistItem {
-  @State playlistName: string | undefined = ''
-  @State playlistDesc: string | undefined = ''
+  @State playlistName: string | undefined = undefined
+  @State playlistDesc: string | undefined = undefined
+  @State isShowMenu: boolean = false
   @Prop playlist: Playlist
   onPlaylistSelected?: (playlist: Playlist) => void;
 
@@ -27,6 +30,7 @@ export struct PlaylistItem {
           .height(58)
           .objectFit(ImageFit.Cover)
           .borderRadius(8)
+          .draggable(false)
       }
       .margin({ right: 12 })
 
@@ -59,7 +63,17 @@ export struct PlaylistItem {
       }
       .width(48)
       .height(48)
-      .bindMenu(this.generatePlaylistMenu(this.playlist))
+      .bindMenu(
+        this.isShowMenu,
+        this.generatePlaylistMenu(this.playlist),
+        {
+          onDisappear: () => {
+            this.isShowMenu = false
+         }
+      })
+      .onClick(() => {
+        this.isShowMenu = true
+      })
       .clickEffect({ level: ClickEffectLevel.LIGHT })
       .stateStyles({
         pressed: this.pressedStyles,
@@ -76,6 +90,15 @@ export struct PlaylistItem {
         this.onPlaylistSelected(this.playlist);
       }
     })
+    .gesture(
+      LongPressGesture({
+        fingers: 1,
+        repeat: false
+      })
+        .onAction(() => {
+          this.isShowMenu = true
+        })
+    )
     .clickEffect({ level: ClickEffectLevel.LIGHT })
     .animation({ duration: 300, curve: Curve.LinearOutSlowIn })
   }
@@ -119,6 +142,15 @@ export struct PlaylistItem {
               }
               PlaylistManager.insertSongs(songs)
             })
+          }
+        },
+        {
+          value: $r('app.string.download_all_songs'),
+          action: () => {
+            if (this.playlist?.songs && this.playlist.songs.length > 0) {
+              const songs = this.playlist.songs.filter(song => song.privilege.playable)
+              SongDownloadManager.batchDownloadSongs(songs)
+            }
           }
         },
         {
@@ -185,19 +217,35 @@ export struct PlaylistItem {
               PlaylistManager.insertSongs(songs)
             })
           }
+        },
+        {
+          value: $r('app.string.download_all_songs'),
+          action: () => {
+            if (this.playlist?.songs && this.playlist.songs.length > 0) {
+              const songs = this.playlist.songs.filter(song => song.privilege.playable)
+              SongDownloadManager.batchDownloadSongs(songs)
+            }
+          }
         }
       ]
     }
   }
 
   updateAggregationPlaylist(playlist: Playlist) {
+    let playlistName: string = this.playlistName?.trim() && this.playlistName.trim() !== '' ? this.playlistName.trim() : ResourceManager.getStringValueSync($r('app.string.default_playlist_name'))
+    let playlistDesc: string = this.playlistDesc?.trim() && this.playlistDesc?.trim() !== '' ? this.playlistDesc?.trim() : ResourceManager.getStringValueSync($r('app.string.default_playlist_desc'))
     try {
-      PreferencesCache.updatePlaylistsCache('aggregation_playlist', playlist, this.playlistName, this.playlistDesc)
-      this.playlistName = ''
-      this.playlistDesc = ''
-      LogUtil.info(`[${TAG}]`, `歌单[${this.playlistName}]更新成功`)
+      PreferencesCache.updatePlaylistsCache(
+        'aggregation_playlist',
+        playlist,
+        playlistName,
+        playlistDesc)
+      LogUtil.info(`[${TAG}]`, `歌单[${playlist.id}][${playlistName}]更新成功`)
     } catch(error) {
-      LogUtil.info(`[${TAG}]`, `歌单[${this.playlistName}]更新失败: ${JSON.stringify(error)}`)
+      LogUtil.info(`[${TAG}]`, `歌单[${playlist.id}][${this.playlistName}]更新失败: ${JSON.stringify(error)}`)
+    } finally {
+      this.playlistName = undefined
+      this.playlistDesc = undefined
     }
   }
 
@@ -205,10 +253,10 @@ export struct PlaylistItem {
     try {
       PreferencesCache.deletePlaylistCache('aggregation_playlist', playlist)
       ToastUtil.showShort("成功删除歌单")
-      LogUtil.info(`[${TAG}]`, `歌单[${playlist.name}]删除成功`)
+      LogUtil.info(`[${TAG}]`, `歌单[${playlist.id}][${playlist.name}]删除成功`)
     } catch(error) {
       ToastUtil.showShort("删除歌单失败!")
-      LogUtil.info(`[${TAG}]`, `歌单[${playlist.name}]删除失败: ${JSON.stringify(error)}`)
+      LogUtil.info(`[${TAG}]`, `歌单[${playlist.id}][${playlist.name}]删除失败: ${JSON.stringify(error)}`)
     }
   }
 
@@ -219,4 +267,5 @@ export struct PlaylistItem {
       playlistDesc: this.playlistDesc
     })
   }
+
 }

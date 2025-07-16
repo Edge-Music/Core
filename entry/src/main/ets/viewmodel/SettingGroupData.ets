@@ -6,7 +6,7 @@ import { DialogAction, DialogHelper } from "@pura/harmony-dialog";
 import { ResponseCacheUtil } from "../util/ResponseCacheUtil";
 import { SongCacheManager } from "../util/SongCacheManager";
 import ResourceManager from "../util/ResourceManager";
-
+const winHeight: number = AppStorage.get<number>('winHeight') as number
 // 音乐播放设置组
 export const PlayerSetting = [
   // new SettingItem("toggle", $r('app.string.setting_interrupting_continue'), "暂无试验出稳定效果，所以这个只是装饰用",

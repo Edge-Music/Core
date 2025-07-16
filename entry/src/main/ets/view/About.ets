@@ -4,6 +4,8 @@ import { BusinessError } from "@kit.BasicServicesKit"
 
 @Component
 export struct About {
+  @StorageProp('winHeight') winHeight: number = 0
+
   @Builder
   AppInfo() {
     Column() {
@@ -45,7 +47,7 @@ export struct About {
           WantUtil.toWebBrowser("https://github.com/Edge-Music")
             .catch((err: BusinessError) => {
               LogUtil.error("AboutPage", "拉起失败！", err.message);
-              ToastUtil.showToast("跳转到GitHub失败！");
+              ToastUtil.showToast("跳转到GitHub失败！", { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } });
             });
         })
 
@@ -67,7 +69,7 @@ export struct About {
           WantUtil.toWebBrowser("https://music.yby.zone/")
             .catch((err: BusinessError) => {
               LogUtil.error("AboutPage", "拉起失败！", err.message);
-              ToastUtil.showToast("跳转到官网失败！");
+              ToastUtil.showToast("跳转到官网失败！", { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } });
             });
         })
       }
@@ -182,7 +184,7 @@ export struct About {
       WantUtil.toWebBrowser("https://beian.miit.gov.cn/")
         .catch((err: BusinessError) => {
           LogUtil.error("AboutPage", "拉起失败！", err.message);
-          ToastUtil.showToast("跳转到浏览器失败！");
+          ToastUtil.showToast("跳转到浏览器失败！", { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } });
         });
     })
   }

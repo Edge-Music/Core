@@ -11,6 +11,7 @@ import { PushPathHelper } from "../util/PushPathHelper";
 import { ScrollController } from "../util/ScrollController";
 import { LogUtil } from "@pura/harmony-utils";
 import { AddAggregationPlaylist } from "../component/CustomTextBuilder";
+import ResourceManager from "../util/ResourceManager";
 
 const TAG = 'Aggregation'
 
@@ -111,7 +112,6 @@ export struct Aggregation {
 
         ListItem(){
           Row(){
-
             // 监控ListItemGroup高度变化，随时调整List下方补充高度，winHeight - group高度 - 标题高度 - 避让高度
             Blank().height(this.getBlankHeight())
           }
@@ -158,13 +158,14 @@ export struct Aggregation {
         .fontWeight(700)
 
     }
+    .clickEffect({ level: ClickEffectLevel.LIGHT })
     .backgroundColor($r('app.color.card_background'))
     .backgroundBlurStyle(BlurStyle.BACKGROUND_THICK)
     .width(48)
     .height(48)
     .margin({
       right: 25,
-      bottom: (this.bottomRect/2+StyleConstants.PLAYER_CONTROL_HEIGHT+25)
+      bottom: (this.bottomRect/2+StyleConstants.PLAYER_CONTROL_HEIGHT+40)
     })
     .onClick(() => {
       let options: CustomContentOptions = {
@@ -188,23 +189,26 @@ export struct Aggregation {
   }
 
   createAggregationPlaylist(){
+    let playlistName: string = this.playlistName?.trim() && this.playlistName.trim() !== '' ? this.playlistName.trim() : ResourceManager.getStringValueSync($r('app.string.default_playlist_name'))
+    let playlistDesc: string = this.playlistDesc?.trim() && this.playlistDesc?.trim() !== '' ? this.playlistDesc?.trim() : ResourceManager.getStringValueSync($r('app.string.default_playlist_desc'))
     try {
       const timestamp: number = new Date().getTime();
       const playlist: Playlist = {
         id: `aggregation_playlist-${timestamp}`,
-        name: this.playlistName ?? '默认歌单',
-        description: this.playlistDesc ?? '',
+        name: playlistName,
+        description: playlistDesc,
         cover: this.playlistCover,
         size: 0,
         type: PlaylistType.AGGREGATION
       }
       PreferencesCache.addPlaylistsCache('aggregation_playlist', [playlist])
-      this.playlistName = undefined
-      this.playlistDesc = undefined
+      LogUtil.info(`[${TAG}]`, `歌单[${playlist.id}][${playlistName}]添加成功`)
       this.playlistCover = $r('app.media.icon_startwindow')
-      LogUtil.info(`[${TAG}]`, `歌单[${this.playlistName}]添加成功`)
     } catch(error) {
       LogUtil.info(`[${TAG}]`, `歌单[${this.playlistName}]添加失败: ${JSON.stringify(error)}`)
+    } finally {
+      this.playlistName = undefined
+      this.playlistDesc = undefined
     }
   }
 }

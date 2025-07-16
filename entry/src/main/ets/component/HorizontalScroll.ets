@@ -8,6 +8,7 @@ import { cover } from "../util/AdapterHelper"
 import { PlaylistManager } from "../util/PlaylistManager"
 import { PreferencesCache } from "../util/PreferenceCache"
 import { PushPathHelper } from "../util/PushPathHelper"
+import { SongDownloadManager } from "../util/SongDownloadManager"
 import { Cover } from "./Cover"
 
 const DEFAULT_COVER_SIZE = 256
@@ -64,7 +65,7 @@ export struct HorizontalScroll {
 
   @Builder
   TemplateCover(){
-    ForEach([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], () => {
+    ForEach([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20], () => {
       ListItem(){
         Cover({
           loading: true,
@@ -75,7 +76,7 @@ export struct HorizontalScroll {
           .width(120)
           .padding(4)
       }
-      .key('Template')
+      .reuseId('Template')
     })
   }
 
@@ -99,7 +100,7 @@ export struct HorizontalScroll {
               })
             })
         }
-        .key(`${item.name}-${index}`)
+        .reuseId(`${item.name}-${index}`)
       })
     }
     .width('100%')
@@ -118,7 +119,7 @@ export struct HorizontalScroll {
             src: cover(item.avatar, DEFAULT_COVER_SIZE),
             title: item.name,
             radius: "100%",
-            titleAlign: HorizontalAlign.Center
+            titleAlign: TextAlign.Center
           })
             .width(this.coverWidth)
             .padding(this.segmentPadding)
@@ -130,7 +131,7 @@ export struct HorizontalScroll {
               })
             })
         }
-        .key(`${item.name}-${index}`)
+        .reuseId(`${item.name}-${index}`)
       })
     }
     .width('100%')
@@ -161,7 +162,7 @@ export struct HorizontalScroll {
 
             })
         }
-        .key(`${item.name}-${index}`)
+        .reuseId(`${item.name}-${index}`)
       })
     }
     .width('100%')
@@ -190,7 +191,7 @@ export struct HorizontalScroll {
               })
             })
         }
-        .key(`${item.name}-${index}`)
+        .reuseId(`${item.name}-${index}`)
       })
     }
     .width('100%')
@@ -230,6 +231,12 @@ export struct HorizontalScroll {
             onAction: (): void => {}
           })
         }
+      },
+      {
+        value: $r('app.string.download_this_song'),
+        action: () => {
+          this.downloadSong(song)
+        }
       }
     ]
   }
@@ -249,7 +256,44 @@ export struct HorizontalScroll {
             PlaylistManager.loadPlaylist(songs, songs[0])
           })
         }
+      },
+      {
+        value: $r('app.string.add_to_play_next'),
+        action: () => {
+          PushPathHelper.loading("Playing", async () => {
+            const playlistDetail = await SourceAdapter.getPlaylistDetail(playlist)
+            const songs = playlistDetail?.songs?.filter(song => song.privilege.playable)
+            if (!songs || songs.length === 0) {
+              ToastUtil.showShort("此歌单无可播放歌曲")
+              return
+            }
+            PlaylistManager.insertSongs(songs)
+          })
+        }
+      },
+      {
+        value: $r('app.string.download_all_songs'),
+        action: () => {
+          if (playlist?.songs && playlist.songs.length > 0) {
+            const songs = playlist.songs.filter(song => song.privilege.playable)
+            SongDownloadManager.batchDownloadSongs(songs)
+          }
+        }
       }
     ]
+  }
+
+  async downloadSong(song: Song) {
+    if (song) {
+      ToastUtil.showShort($r('app.string.added_to_the_download_queue'))
+      SongDownloadManager.downloadSong(
+        song.id.toString(),
+        song,
+        undefined,
+        () => {
+          ToastUtil.showShort($r('app.string.download_successful'))
+        },
+      )
+    }
   }
 }

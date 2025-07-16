@@ -5,6 +5,7 @@ import { EventHelper } from "../util/EventHelper"
 @Component
 export struct TimerSelector {
   @StorageLink('playing_pause_time') pauseAt: number = -1
+  @StorageProp('winHeight') winHeight: number = 0
   @State remainingTime: string = ''
   @State selectedOption: number = -1
   @State isVisible: boolean = false
@@ -271,7 +272,7 @@ export struct TimerSelector {
             if (action == DialogAction.SURE) {
               const min = parseInt(value)
               if (isNaN(min) || min <= 0) {
-                ToastUtil.showToast("请输入一个有效的分钟数")
+                ToastUtil.showToast("请输入一个有效的分钟数", { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } })
                 return
               }
               this.setTimer(min)

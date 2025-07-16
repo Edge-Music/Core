@@ -1437,10 +1437,10 @@ struct Playing {
       // 歌曲信息
       Column({ space: 4 }) {
         Text(this.song?.name || "未知歌曲")
-          .fontSize(this.getFontSize(this.song?.name ?? "", 24, 24))
+          .fontSize(24)
           .fontWeight(FontWeight.Bold)
           .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .textOverflow({ overflow: TextOverflow.MARQUEE })
           .fontColor(Color.White)
           .height(32) // 固定高度确保布局稳定
 
@@ -1448,13 +1448,14 @@ struct Playing {
           .fontSize(16)
           .fontColor('rgba(255, 255, 255, 0.6)')
           .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .textOverflow({ overflow: TextOverflow.MARQUEE })
           .height(24) // 固定高度确保布局稳定
       }
       .width(StyleConstants.FULL_WIDTH)
       .layoutWeight(1)
       .alignItems(HorizontalAlign.Center)
       .margin({ top: 16, bottom: 4 })
+      .padding({ left: 12, right: 12 })
       .height(60) // 固定整个信息区的高度
 
       Blank()
@@ -1734,7 +1735,6 @@ struct Playing {
       .width(StyleConstants.FULL_WIDTH)
       .height(StyleConstants.FULL_HEIGHT)
     }
-    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM, LayoutSafeAreaEdge.TOP])
     .systemTransition(NavigationSystemTransitionType.FADE)
     .hideToolBar(true)
     .hideTitleBar(true)

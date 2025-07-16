@@ -516,7 +516,15 @@ export class SourceAdapter {
 
   static async getSongDetail(song: Song, br: Bitrate = PreferencesCache.playingLevel()): Promise<Song> {
     try {
-      const source = song.source as SourceConfig;
+      // 兼容本地聚合歌单和在线歌单，优先获取Song中的sourceID，从数据源中查找符合的
+      const adapters = AppStorage.get<SourceConfig[]>('user_data_source') as SourceConfig[]
+      let source: SourceConfig
+      if(song.sourceID) {
+        source = adapters.find((item) => item.id === song.sourceID) as SourceConfig
+      } else {
+        source = song.source as SourceConfig;
+      }
+      LogUtil.info(`[${TAG}]`, `Song Source.id: ${song.sourceID} and source.id: ${source.id}`)
       const uid = song.source?.auth?.user?.id;
       const request = createRequest(source);
       const bitRate = song.privilege?.bitrates;

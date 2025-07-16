@@ -585,7 +585,6 @@ export struct PlayList {
     .mode(NavDestinationMode.STANDARD)
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
-    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM, LayoutSafeAreaEdge.TOP])
   }
 
   @Builder
@@ -658,7 +657,7 @@ export struct PlayList {
           value: $r('app.string.download_all_songs'),
           action: () => {
             if (this.playlist?.songs && this.playlist.songs.length > 0) {
-              ToastUtil.showToast("开始下载全部歌曲")
+              ToastUtil.showToast("开始下载全部歌曲", { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } })
               const songs = this.playlist.songs.filter(song => song.privilege.playable)
               SongDownloadManager.batchDownloadSongs(songs)
             }
@@ -748,7 +747,7 @@ export struct PlayList {
           value: $r('app.string.download_all_songs'),
           action: () => {
             if (this.playlist?.songs && this.playlist.songs.length > 0) {
-              ToastUtil.showToast("开始下载全部歌曲")
+              ToastUtil.showToast("开始下载全部歌曲", { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } })
               const songs = this.playlist.songs.filter(song => song.privilege.playable)
               SongDownloadManager.batchDownloadSongs(songs)
             }

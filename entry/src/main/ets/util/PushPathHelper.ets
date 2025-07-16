@@ -50,7 +50,7 @@ export class PushPathHelper {
         }
       }
 
-      pathStack.pushPath({ name })
+      pathStack.pushPath({ name: name })
 
       if (afterFn) {
         afterFn();

@@ -409,7 +409,6 @@ export struct Index_page {
     .hideTitleBar(true)
     .hideBackButton(true)
     .backgroundColor($r('app.color.page_background'))
-    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM, LayoutSafeAreaEdge.TOP])
     .keyboardShortcut(FunctionKey.F5, [], () => {
       this.initData()
     })

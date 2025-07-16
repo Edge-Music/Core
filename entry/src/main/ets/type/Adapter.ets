@@ -134,6 +134,9 @@ export interface Song {
 
   // 数据来源
   source?: SourceConfig;
+
+  // 数据源ID
+  sourceID? : ID
 }
 
 export interface LyricLine {

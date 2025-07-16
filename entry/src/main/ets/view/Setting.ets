@@ -410,7 +410,7 @@ export struct Setting {
       // 第一页表单
       Column({ space: 16 }) {
         Scroll(){
-          Column(){
+          Column({ space: 16 }){
 
             Column({ space: 8 }) {
               Text($r('app.string.data_source_name'))
@@ -478,6 +478,7 @@ export struct Setting {
             }
           }
         }
+        .scrollBar(BarState.Off)
       }
       .width(StyleConstants.FULL_WIDTH)
       .padding(16)
@@ -527,12 +528,12 @@ export struct Setting {
                 .translate({ x: this.currentStep === 1 ? 0 : '20%' })
                 .animation({ delay: 100, duration: 250, curve: Curve.FastOutSlowIn })
 
-              TextInput({
+              TextArea({
                 placeholder: $r('app.string.please_input_token_credential'),
-                text: this.tokenFromQR || (this.formData.auth?.token || '')
+                text: this.tokenFromQR || (this.formData.auth?.token || ''),
               })
                 .width(StyleConstants.FULL_WIDTH)
-                .type(InputType.Password)
+                .height(80)
                 .onChange((value) => {
                   if (!this.formData.auth) {
                     this.formData.auth = { token: '', signAt: Date.now() }
@@ -566,6 +567,7 @@ export struct Setting {
             .margin({ bottom: 16 })
           }
         }
+        .scrollBar(BarState.Off)
 
       }
       .width(StyleConstants.FULL_WIDTH)
@@ -594,12 +596,13 @@ export struct Setting {
         .onClick(() => {
           DialogUtil.showPrimaryDialog({
             title: $r('app.string.delete_data_source'),
-            message: ResourceManager.getStringValueSync($r('app.string.whether_to_delete_data_source')) +`[${adapter.name}]？`,
+            message: ResourceManager.getStringValueSync($r('app.string.whether_to_delete_data_source')) +`[${adapter.name}]？`+ResourceManager.getStringValueSync($r('app.string.delete_source_desc')),
             primaryButton: $r('app.string.cancel'),
             secondaryButton: $r('app.string.delete'),
             onAction: (action) => {
               if (action == DialogAction.TWO) {
                 PreferencesCache.deleteUserDataSource(adapter.id)
+                PreferencesCache.deleteSongsOfAggregationPlaylists(adapter.id)
                 PreferencesCache.deleteShowUserDataSource(adapter.id)
                 ToastUtil.showShort($r('app.string.data_source_deleted'))
               }
@@ -769,7 +772,6 @@ export struct Setting {
       detents:this.Pura_X? [SheetSize.LARGE]:[SheetSize.MEDIUM],
       preferType: this.currentBreakpoint === BreakpointConstants.BREAKPOINT_SM ? SheetType.BOTTOM : SheetType.CENTER
     })
-    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM, LayoutSafeAreaEdge.TOP])
   }
 
   getBlankHeight(): Length {

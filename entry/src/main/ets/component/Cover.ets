@@ -1,7 +1,5 @@
 import { StyleConstants } from "../constants/StyleConstants"
 
-
-@Reusable
 @Component
 export struct Cover {
   loading?: boolean = false
@@ -10,7 +8,7 @@ export struct Cover {
   menuItems?: MenuElement[] = []
   src: ResourceStr = ''
   radius: number | string = 8
-  titleAlign: HorizontalAlign = HorizontalAlign.Start
+  titleAlign: TextAlign = TextAlign.Start
 
   @Builder
   MoreButton() {
@@ -78,6 +76,7 @@ export struct Cover {
               .maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
               .heightAdaptivePolicy(TextHeightAdaptivePolicy.MAX_LINES_FIRST)
+              .textAlign(this.titleAlign)
           }
 
           if (this.subTitle) {
@@ -89,10 +88,12 @@ export struct Cover {
               .maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
               .heightAdaptivePolicy(TextHeightAdaptivePolicy.MAX_LINES_FIRST)
+              .textAlign(this.titleAlign)
           }
         }
       }
-      .alignItems(this.titleAlign)
+      .alignItems(HorizontalAlign.Center)
+      .justifyContent(FlexAlign.Center)
       .width(StyleConstants.FULL_WIDTH)
     }
     .clickEffect({ level: ClickEffectLevel.LIGHT })

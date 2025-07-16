@@ -10,7 +10,7 @@ class StrictTrendDetector {
   private dataWindow: number[];
   private trendSequence: Trend[]; // 当前正在构建的趋势序列
 
-  constructor(windowSize: number = 20, minTrendDiff: number = 3) {
+  constructor(windowSize: number = 5, minTrendDiff: number = 3) {
     this.windowSize = windowSize;
     this.minTrendDiff = minTrendDiff;
     this.dataWindow = [];
