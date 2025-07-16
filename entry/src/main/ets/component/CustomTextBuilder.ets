@@ -29,7 +29,7 @@ export struct AddAggregationPlaylist {
             Text($r('app.string.playlist_description'))
               .fontSize(16)
               .fontWeight(700)
-              .margin({ left: 16 })
+              .margin({ left: 14 })
             TextArea({ placeholder: $r('app.string.playlist_desc_placeholder'), text: this.playlistDesc })
               .width('100%')
               .height(120)
