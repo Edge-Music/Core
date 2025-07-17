@@ -6,7 +6,7 @@ import { ResponseCacheUtil } from "../util/ResponseCacheUtil";
 import { JSON } from "@kit.ArkTS";
 import { EventHelper } from "../util/EventHelper";
 
-const TAG = "SourceAdapter ";
+const TAG = "SourceAdapter";
 
 interface BaseResponse<T> {
   code: number;
@@ -517,9 +517,10 @@ export class SourceAdapter {
   static async getSongDetail(song: Song, br: Bitrate = PreferencesCache.playingLevel()): Promise<Song> {
     try {
       // 兼容本地聚合歌单和在线歌单，优先获取Song中的sourceID，从数据源中查找符合的
-      const adapters = AppStorage.get<SourceConfig[]>('user_data_source') as SourceConfig[]
+      const adapters = PreferencesCache.getUserDataSource()
       let source: SourceConfig
       if(song.sourceID) {
+        LogUtil.info(`[${TAG}]`, `adapters：${JSON.stringify(adapters)}`)
         source = adapters.find((item) => item.id === song.sourceID) as SourceConfig
       } else {
         source = song.source as SourceConfig;
@@ -540,7 +541,7 @@ export class SourceAdapter {
       song.meta = res.data.meta;
       return song;
     } catch (error) {
-      LogUtil.error(TAG, `获取歌曲详情失败，id：${song.id}，错误：${error}`);
+      LogUtil.error(`[${TAG}]`, `获取歌曲详情失败，id：${song.id}，错误：${error}`);
       return song; // 出错时返回原始歌曲
     }
   }
