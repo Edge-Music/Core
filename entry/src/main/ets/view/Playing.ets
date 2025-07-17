@@ -57,6 +57,7 @@ struct Playing {
   @StorageLink('Lyic_desktop') Lyic_desktop: string = PreferencesCache.getUserPreference('Lyic_desktop','0')
   @StorageProp('double_tap_switch_songs') isOnDoubleTap: string = PreferencesCache.getUserPreference('double_tap_switch_songs','0')
   @StorageLink('aggregation_playlist') aggregationPlaylist: Playlist[] = PreferencesCache.getPlaylistCache('aggregation_playlist')
+  @StorageProp('test_index') currentLyric: string = ''
   // 独立的按钮动画状态
   @State swipeOffset: number = 0; // 滑动偏移量
   @State isSwipingActive: boolean = false; // 是否正在滑动中
@@ -76,7 +77,7 @@ struct Playing {
   uiContext: UIContext | undefined = undefined;
 
   @State is_backblur: boolean = true
-  @State rotateAngle:number=0
+  @State rotateAngle: number=0
   @State IMG_ctrl: boolean = false
   @StorageLink('winWidth') @Watch('onWinWidthChange') winWidth: number = 0
   @StorageLink('winHeight') @Watch('onWinWidthChange') winHeight: number = 0
@@ -151,8 +152,19 @@ struct Playing {
           playMode: PlayMode.Normal
         })
 
-      Text(this.rotateAngle > 0 ? '󰁊' : '󰁃')
-        .fontSize(20)
+      if(this.rotateAngle === 0){
+        SymbolGlyph($r('sys.symbol.speaker_slash'))
+          .fontSize(20)
+      } else if(this.rotateAngle > 0 && this.rotateAngle <= 33) {
+        SymbolGlyph($r('sys.symbol.speaker_wave_1'))
+          .fontSize(20)
+      } else if(this.rotateAngle > 33 && this.rotateAngle <= 66) {
+        SymbolGlyph($r('sys.symbol.speaker_wave_2'))
+          .fontSize(20)
+      } else if(this.rotateAngle > 66 && this.rotateAngle <= 100) {
+        SymbolGlyph($r('sys.symbol.speaker_wave_3'))
+          .fontSize(20)
+      }
     }
     .width(36)
     .justifyContent(FlexAlign.Center)
@@ -186,7 +198,7 @@ struct Playing {
             .clickEffect({ level: ClickEffectLevel.LIGHT })
 
           if (this.IMG_ctrl === false){
-            this.ProgressBar(false,2)
+            this.ProgressBar(true)
             this.PlayerControls()
           }
         }
@@ -215,52 +227,74 @@ struct Playing {
   }
   @Builder
   playing_30(){
-    Tabs({ barPosition: BarPosition.End, index: this.selectedTabIndex, controller: this.controller }){
-      TabContent(){
-        Column(){
-          Image(cover(this.song?.album?.cover ?? "", 512))
-            .height(this.IMG_ctrl?'90%':'50%')
-            .aspectRatio(1)
-            .borderRadius(24)
-              // .margin({ top: 36 })
-              // .geometryTransition('song-cover', { follow: true })
-            .transition(TransitionEffect.OPACITY)
-            .onClick(() => {
-              this.IMG_ctrl=!this.IMG_ctrl
-              // if (!this.isWideScreen) {
-              //   this.controller.changeIndex(1)
-              // }
-            }) //点击图片切换到歌词页面
-            .borderRadius(12)
-            .clickEffect({ level: ClickEffectLevel.LIGHT })
-
-          if (this.IMG_ctrl === false){
-              this.ProgressBar(false,2)
-              this.PlayerControls(false)
-          }
-        }
+    Stack(){
+      Column(){
+        Image(cover(this.song?.album?.cover ?? "", this.winWidth))
+          // .width(this.winWidth)
+          .width('100%')
+          .aspectRatio(1)
+          .foregroundBlurStyle(BlurStyle.BACKGROUND_THIN)
       }
-      TabContent(){
-        Column(){
-          LyricsView({
-            mode_judge: false,
-          }).width('100%').layoutWeight(1)
-      }}
-    }
-    .layoutWeight(1)
-    .width('100%')
-    .scrollable(true)
-    .barMode(BarMode.Fixed)
-    .layoutWeight(1)
-    .clip(false)
-    .barHeight(0)
-    .onChange((index: number) => {
-      this.uiContext?.animateTo({ duration: 400, curve: Curve.EaseInOut }, () => {
-        this.selectedTabIndex = index
-      })
-    })
-    .onAppear(()=>{promptAction.showToast({ message: '点击图片可全屏显示封面' })})
+      .justifyContent(FlexAlign.Center)
+      .alignItems(HorizontalAlign.Center)
+      .backgroundBlurStyle(BlurStyle.BACKGROUND_THIN)
 
+      Column(){
+        this.Title(true)
+
+        Tabs({ barPosition: BarPosition.End, index: this.selectedTabIndex, controller: this.controller }){
+          TabContent(){
+            Column(){
+              Column(){
+                Text(this.currentLyric)
+                  .fontSize(20)
+                  .fontWeight(700)
+                  .fontColor(Color.White)
+                  .textAlign(TextAlign.Center)
+                  .borderRadius(8)
+                  .animation({
+                    duration: 500,
+                    curve: Curve.FastOutSlowIn
+                  })
+              }
+              .padding(16)
+              .justifyContent(FlexAlign.Center)
+              .alignItems(HorizontalAlign.Center)
+              .width(StyleConstants.FULL_WIDTH)
+              .layoutWeight(1)
+
+              this.ProgressBar(true)
+              this.PlayerControls(true)
+
+              Blank()
+                .height(this.bottomRect/2)
+            }
+            .width('100%')
+          }
+          TabContent(){
+            Column(){
+              LyricsView({
+                mode_judge: false,
+              }).width('100%').layoutWeight(1)
+            }}
+        }
+        .layoutWeight(1)
+        .width('100%')
+        .scrollable(true)
+        .barMode(BarMode.Fixed)
+        .clip(false)
+        .barHeight(0)
+        .onChange((index: number) => {
+          this.uiContext?.animateTo({ duration: 400, curve: Curve.EaseInOut }, () => {
+            this.selectedTabIndex = index
+          })
+        })
+      }
+    }
+    .width(StyleConstants.FULL_WIDTH)
+    .height(StyleConstants.FULL_HEIGHT)
+    .alignContent(Alignment.Center)
+    .alignSelf(ItemAlign.Center)
   }
   @Builder
   PlayListBuilder() {
@@ -799,7 +833,7 @@ struct Playing {
         }
         .width(StyleConstants.FULL_WIDTH)
         .padding({ left: 8, right: 8 })
-        .height(20) // 固定高度以保持布局稳定
+        .height(16) // 固定高度以保持布局稳定
       }
 
       Slider({
@@ -865,7 +899,7 @@ struct Playing {
       top: judge_time_area ? 8 : 0,
       bottom: 4
     })
-    .height(judge ? 64 : 32) // 固定整个进度条区域的高度
+    .height(judge ? 40 : 30) // 固定整个进度条区域的高度
   }
 
   private coverWidth = new BreakPointType({
@@ -877,7 +911,7 @@ struct Playing {
   private smallButtonSize = 36
 
   @Builder
-  PlayerControls(judge:boolean=true) {
+  PlayerControls(judge: boolean = true) {
     Row() {
       // Shuffle/repeat button (Left)
       if(judge){ Button({ type: ButtonType.Circle }) {
@@ -1251,7 +1285,7 @@ struct Playing {
     }
     .width(StyleConstants.FULL_WIDTH)
     .justifyContent(FlexAlign.SpaceBetween)
-    .padding({ left: 16, right: 16, top: 16 })
+    .padding({ left: 8, right: 8, top: 16 })
     .height(64) // 固定高度保持布局稳定
   }
 
@@ -1412,7 +1446,7 @@ struct Playing {
       }
       .justifyContent(FlexAlign.Center)
       .alignItems(VerticalAlign.Center)
-      .layoutWeight(3)
+      .layoutWeight(4)
 
       Blank()
 
@@ -1434,7 +1468,6 @@ struct Playing {
           .height(24) // 固定高度确保布局稳定
       }
       .width(StyleConstants.FULL_WIDTH)
-      .layoutWeight(1)
       .alignItems(HorizontalAlign.Center)
       .margin({ top: 16, bottom: 4 })
       .padding({ left: 12, right: 12 })
@@ -1444,15 +1477,18 @@ struct Playing {
 
       // 进度条
       Column(){
-        this.ProgressBar()
+        this.ProgressBar(true)
       }
-      .layoutWeight(1)
 
       // 底部控件 - 使用Blank占据空间，将控件推到底部
       Blank()
 
       // 播放控制区
-      this.PlayerControls()
+      Column(){
+        this.PlayerControls()
+      }
+      .justifyContent(FlexAlign.Center)
+      .layoutWeight(1)
 
       // 底部控件 - 使用Blank占据空间，将控件推到底部
       Blank()
@@ -1462,6 +1498,7 @@ struct Playing {
         this.BottomControls()
       }
 
+      Blank()
       // 底部避让
       Blank().height(this.bottomRect/2)
     }
@@ -1495,7 +1532,6 @@ struct Playing {
           .width(36)
           .height(36)
           .fillColor(Color.White)
-          .margin({ left: 24 })
           .rotate({ angle: this.isBackButtonPressed ? 180 : 0 })
           .scale({ x: this.isBackButtonPressed ? 0.8 : 1.0, y: this.isBackButtonPressed ? 0.8 : 1.0 })
           .animation({
@@ -1509,17 +1545,27 @@ struct Playing {
             this.pageStack.pop()
           })
         if (judge){
-          Text((this.song?.name || "未知歌曲") + '/' +
-            (this.song?.artists ? this.song.artists.map(artist => artist.name).join(" / ") : "未知艺术家"))
-            .fontSize(this.getFontSize(this.song?.name ?? "", 16, 16))// .fontWeight(FontWeight.Bold)
-            .maxLines(1)
-            .width('40%')
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-            .fontColor('rgba(255, 255, 255, 0.6)')
-          // .height(24) // 固定高度确保布局稳定
+          Column({ space: 4 }) {
+            Text(this.song?.name || "未知歌曲")
+              .fontSize(16)
+              .fontWeight(FontWeight.Bold)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.MARQUEE })
+              .fontColor(Color.White)
+              .height(16) // 固定高度确保布局稳定
+
+            Text(this.song?.artists ? this.song.artists.map(artist => artist.name).join(" / ") : "未知艺术家")
+              .fontSize(12)
+              .fontColor('rgba(255, 255, 255, 0.6)')
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.MARQUEE })
+              .height(12) // 固定高度确保布局稳定
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
         }
         if (this.Pura_X==='1'||judge){
-          Blank().layoutWeight(1)
+          Blank()
           Button({ type: ButtonType.Circle }) {
             Image(this.isFavorite ? $r('app.media.ic_heart_fill') : $r('app.media.ic_heart'))
               .width(24)
@@ -1612,6 +1658,7 @@ struct Playing {
         }
       }
       .width(StyleConstants.FULL_WIDTH)
+      .padding({ left: 12 })
       .alignItems(VerticalAlign.Center)
       .height(50) // 固定标题栏高度
     }
