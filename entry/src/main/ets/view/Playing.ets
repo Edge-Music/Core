@@ -1471,6 +1471,7 @@ struct Playing {
       .alignItems(HorizontalAlign.Center)
       .margin({ top: 16, bottom: 4 })
       .padding({ left: 12, right: 12 })
+      .layoutWeight(1)
       .height(60) // 固定整个信息区的高度
 
       Blank()
@@ -1479,6 +1480,7 @@ struct Playing {
       Column(){
         this.ProgressBar(true)
       }
+      .layoutWeight(1)
 
       // 底部控件 - 使用Blank占据空间，将控件推到底部
       Blank()
@@ -1519,7 +1521,7 @@ struct Playing {
   }
 
   @Builder
-  Title(judge:boolean=false) {
+  Title(judge: boolean = false) {
     Column(){
       // PC工具栏适配
       Row()
@@ -1528,23 +1530,23 @@ struct Playing {
         .width('100%')
 
       Row() {
-        Image($r('app.media.ic_arrow_down_3'))
-          .width(36)
-          .height(36)
-          .fillColor(Color.White)
-          .rotate({ angle: this.isBackButtonPressed ? 180 : 0 })
-          .scale({ x: this.isBackButtonPressed ? 0.8 : 1.0, y: this.isBackButtonPressed ? 0.8 : 1.0 })
-          .animation({
-            duration: 300,
-            curve: Curve.EaseOut,
-            iterations: 1,
-            playMode: PlayMode.Normal
-          })
-          .onClick(() => {
-            this.isBackButtonPressed = true
-            this.pageStack.pop()
-          })
-        if (judge){
+        // Image($r('app.media.ic_arrow_down_3'))
+        //   .width(36)
+        //   .height(36)
+        //   .fillColor(Color.White)
+        //   .rotate({ angle: this.isBackButtonPressed ? 180 : 0 })
+        //   .scale({ x: this.isBackButtonPressed ? 0.8 : 1.0, y: this.isBackButtonPressed ? 0.8 : 1.0 })
+        //   .animation({
+        //     duration: 300,
+        //     curve: Curve.EaseOut,
+        //     iterations: 1,
+        //     playMode: PlayMode.Normal
+        //   })
+        //   .onClick(() => {
+        //     this.isBackButtonPressed = true
+        //     this.pageStack.pop()
+        //   })
+        if (judge || this.selectedTabIndex === 1){
           Column({ space: 4 }) {
             Text(this.song?.name || "未知歌曲")
               .fontSize(16)
@@ -1564,7 +1566,7 @@ struct Playing {
           .layoutWeight(1)
           .alignItems(HorizontalAlign.Start)
         }
-        if (this.Pura_X==='1'||judge){
+        if (this.Pura_X === '1' || judge || this.selectedTabIndex === 1){
           Blank()
           Button({ type: ButtonType.Circle }) {
             Image(this.isFavorite ? $r('app.media.ic_heart_fill') : $r('app.media.ic_heart'))
@@ -1630,7 +1632,7 @@ struct Playing {
           })
           .bindMenu(this.isWideScreen ? this.getWideScreenMenu() : this.getNarrowScreenMenu())
         }
-        if(this.selectedTabIndex===1||this.isWideScreen && this.Playing_Next == false){
+        if(this.selectedTabIndex === 1 ||this.isWideScreen && this.Playing_Next == false){
           Blank()
           Button({ type: ButtonType.Circle }){
             Image($r('app.media.lysic'))

@@ -1,4 +1,4 @@
-import { window } from '@kit.ArkUI';
+import { display, window } from '@kit.ArkUI';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { PipManager } from './PipManager';
 import { EventHelper } from './EventHelper';
@@ -114,6 +114,20 @@ class WindowUtil {
       });
     })
 
+  }
+
+  addListenerOrientationChange(windowStage: window.WindowStage, enable: boolean = true){
+    this.setSystemBarEnabled(windowStage, enable)
+    display.on('change', () => {
+      LogUtil.info(`[${TAG}]`, 'Succeeded to change orientation.');
+      this.setSystemBarEnabled(windowStage, enable)
+    })
+  }
+
+  deleteListenerOrientationChange(windowStage: window.WindowStage, enable: boolean = false){
+    this.setSystemBarEnabled(windowStage, enable)
+    display.off('change')
+    LogUtil.info(`[${TAG}]`, 'Succeeded to delete orientation listener.');
   }
 
   setSystemBarEnabled(windowStage: window.WindowStage, enable: boolean = true){
