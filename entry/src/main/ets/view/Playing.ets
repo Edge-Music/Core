@@ -131,24 +131,6 @@ struct Playing {
         .onAppear(()=>{
           this.rotateAngle = Number(PreferencesCache.getUserPreference('Volume','100'))
         })
-          // .onAppear(() => {
-          //   // 组件出现时开始做动画
-          //   // 建议使用this.getUIContext()?.animateTo()
-          //   this.getUIContext()?.animateTo({
-          //     duration: 300,
-          //     curve: Curve.Friction,
-          //     delay: 500,
-          //     iterations: -1, // 设置-1表示动画无限循环
-          //     playMode: PlayMode.Alternate,
-          //     expectedFrameRateRange: {
-          //       min: 10,
-          //       max: 120,
-          //       expected: 60,
-          //     }
-          //   }, () => {
-          //   })
-          // })
-          // animateTo()
         .trackThickness(this.isVolumeBarExpanded ? 36 : 46)
         .selectedColor(Color.Orange)
         .trackColor('rgba(255, 255, 255, 0.3)')

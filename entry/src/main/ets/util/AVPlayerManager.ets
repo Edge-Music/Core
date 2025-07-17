@@ -253,10 +253,16 @@ class AVPlayerManager {
       this.avSession = await avSession.createAVSession(this.context!, 'AudioPlayer', 'audio');
       await this.avSession.activate();
       await this.updatePlaybackState(this.currentPlaybackState);
+      await this.initAppVolume()
       this.setupMediaSessionListeners();
     } catch (error) {
       this.triggerError(error);
     }
+  }
+
+  async initAppVolume() {
+    const volume = Number(PreferencesCache.getUserPreference('Volume', '100'))
+    this.avPlayer?.setVolume(volume)
   }
 
   private setupMediaSessionListeners() {
