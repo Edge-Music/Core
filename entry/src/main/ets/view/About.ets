@@ -28,7 +28,7 @@ export struct About {
         .margin({ bottom: 16 })
 
       // Official links section - more compact
-      Row() {
+      Row({ space: 12}) {
         Button() {
           Row() {
 
@@ -42,8 +42,7 @@ export struct About {
         .height(36)
         .backgroundColor($r('app.color.tag_background'))
         .borderRadius(18)
-        .margin({ right: 8 })
-        .width('33%')
+        .width('25%')
         .onClick(() => {
           WantUtil.toWebBrowser("https://github.com/Edge-Music")
             .catch((err: BusinessError) => {
@@ -54,7 +53,6 @@ export struct About {
 
         Button() {
           Row() {
-
             Text('官方网站')
               .fontSize(13)
               .fontColor($r('app.color.text_primary'))
@@ -65,7 +63,7 @@ export struct About {
         .height(36)
         .backgroundColor($r('app.color.tag_background'))
         .borderRadius(18)
-        .width('33%')
+        .width('25%')
         .onClick(() => {
           WantUtil.toWebBrowser("https://music.yby.zone/")
             .catch((err: BusinessError) => {
@@ -86,7 +84,7 @@ export struct About {
         .height(36)
         .backgroundColor($r('app.color.tag_background'))
         .borderRadius(18)
-        .width('33%')
+        .width('25%')
         .onClick(() => {
           let context = this.getUIContext().getHostContext() as common.UIAbilityContext;
           let urla: string = "mqqapi://card/show_pslcard?src_type=internal&version=1&uin=732815099&card_type=group&source=qrcode";
@@ -100,6 +98,7 @@ export struct About {
       }
       .width('100%')
       .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
       .padding({ left: 16, right: 16 })
     }
     .width('100%')
