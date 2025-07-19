@@ -233,11 +233,10 @@ struct Playing {
           // .width(this.winWidth)
           .width('100%')
           .aspectRatio(1)
-          .foregroundBlurStyle(BlurStyle.BACKGROUND_THIN)
+          .foregroundBlurStyle(BlurStyle.BACKGROUND_THICK)
       }
       .justifyContent(FlexAlign.Center)
       .alignItems(HorizontalAlign.Center)
-      .backgroundBlurStyle(BlurStyle.BACKGROUND_THIN)
 
       Column(){
         this.Title(true)
