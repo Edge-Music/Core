@@ -206,9 +206,6 @@ struct Playing {
             this.PlayerControls()
           }
         }
-        .width(StyleConstants.FULL_WIDTH)
-        .height(StyleConstants.FULL_HEIGHT)
-        .justifyContent(FlexAlign.SpaceBetween)
       }
       TabContent(){
         Column(){
