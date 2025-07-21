@@ -47,6 +47,7 @@ class LyricsManager {
     this.translatedLyrics = this.song?.meta?.lyric?.translation ?? ''
     this.transliteratedLyrics = this.song?.meta?.lyric?.transliteration ?? ''
     let tmpSongName: string = this.song?.name + ' - ' + this.song?.artists[0].name
+    AppStorage.setOrCreate<LyricsLine>('current_line_lyrics', this.parsedLyrics[0])
     if(this.currentSongName !== tmpSongName){
       AppStorage.setOrCreate<number>('current_lyrics_index', 0)
       this.currentSongName = tmpSongName

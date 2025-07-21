@@ -23,6 +23,8 @@ import { PipManager } from '../util/PipManager'
 import WindowUtil from '../util/WindowUtil'
 import SensorUtil from '../util/SensorUtil'
 import { DialogHelper } from '@pura/harmony-dialog'
+import { resourceManager } from '@kit.LocalizationKit'
+import { LyricsLine } from '../util/LyricsManager'
 
 
 @Builder
@@ -32,16 +34,28 @@ export function PlayingBuilder() {
 
 @Component
 struct Playing {
-  @State curColorIndex: number = 0
+
   @StorageProp('topRect') topRect: number = 0
   @StorageProp('bottomRect') bottomRect: number = 0
   @StorageProp('decorHeight') decorHeight: number = 0
   @StorageProp('leftCutoutRectWidth') leftCutoutRectWidth: number = 0
   @StorageProp('rightCutoutRectWidth') rightCutoutRectWidth: number = 0
   @StorageProp('windowStatus') windowStatus: string = 'FULL_SCREEN'
+  @StorageProp('deviceType') deviceType: resourceManager.DeviceType = resourceManager.DeviceType.DEVICE_TYPE_PHONE
+  @StorageProp('current_line_lyrics') currentLineLyrics: LyricsLine | undefined = AppStorage.get<LyricsLine>('current_line_lyrics')
+  @StorageLink("current_playing_song") song: Song | null = null
+  @StorageLink('Lyic_desktop') Lyic_desktop: string = PreferencesCache.getUserPreference('Lyic_desktop','0')
+  @StorageProp('double_tap_switch_songs') isOnDoubleTap: string = PreferencesCache.getUserPreference('double_tap_switch_songs','0')
+  @StorageLink('aggregation_playlist') aggregationPlaylist: Playlist[] = PreferencesCache.getPlaylistCache('aggregation_playlist')
+  @StorageProp('test_index') currentLyric: string = ''
+  @StorageProp('currentBreakpoint') @Watch('onBreakpointChange') currentBreakpoint: string = 'sm'
+  @StorageProp('winWidth') @Watch('onWinWidthChange') winWidth: number = 0
+  @StorageProp('winHeight') @Watch('onWinWidthChange') winHeight: number = 0
+  @StorageProp('winWidthWithPx') @Watch('onWinWidthChange') winWidthWithPx: number = 0
+  @StorageProp('winHeightWithPx') @Watch('onWinWidthChange') winHeightWithPx: number = 0
 
-  @Consume('NavPathStack') pageStack: NavPathStack;
-  @Watch('onBreakpointChange') @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
+  @Consume('NavPathStack') pageStack: NavPathStack
+  @State curColorIndex: number = 0
   @State currentTime: number = 0
   @State isProgressBarExpanded: boolean = false
   @State isVolumeBarExpanded: boolean = false
@@ -50,19 +64,12 @@ struct Playing {
   @State isFavorite: boolean = false
   @State playMode: number = PlaylistManager.getPlayMode()
   @State showPlaylist: boolean = false
-  @StorageLink("current_playing_song") song: Song | null = null
   @State isWideScreen: boolean = false // 是否为宽屏
   @State imageColorHex:string='1a2a3a'
   @State currentIndex: number = -1
-  @StorageLink('Lyic_desktop') Lyic_desktop: string = PreferencesCache.getUserPreference('Lyic_desktop','0')
-  @StorageProp('double_tap_switch_songs') isOnDoubleTap: string = PreferencesCache.getUserPreference('double_tap_switch_songs','0')
-  @StorageLink('aggregation_playlist') aggregationPlaylist: Playlist[] = PreferencesCache.getPlaylistCache('aggregation_playlist')
-  @StorageProp('test_index') currentLyric: string = ''
-  // 独立的按钮动画状态
   @State swipeOffset: number = 0; // 滑动偏移量
   @State isSwipingActive: boolean = false; // 是否正在滑动中
   @State swipeDirection: string = ''; // 滑动方向
-  private readonly SWIPE_THRESHOLD: number = 80; // 触发切换的阈值
   @State img_playing_ctrl:string=  PreferencesCache.getUserPreference('img_playing_ctrl','0')
   @State isPrevButtonPressed: boolean = false
   @State isPlayButtonPressed: boolean = false
@@ -74,19 +81,25 @@ struct Playing {
   @State isBackButtonPressed: boolean = false
   @State Playing_Next: boolean = true
   @State Fold_judge: boolean = true
-  uiContext: UIContext | undefined = undefined;
-
   @State is_backblur: boolean = true
   @State rotateAngle: number=0
   @State IMG_ctrl: boolean = false
-  @StorageLink('winWidth') @Watch('onWinWidthChange') winWidth: number = 0
-  @StorageLink('winHeight') @Watch('onWinWidthChange') winHeight: number = 0
-  @StorageLink('winWidthWithPx') @Watch('onWinWidthChange') winWidthWithPx: number = 0
-  @StorageLink('winHeightWithPx') @Watch('onWinWidthChange') winHeightWithPx: number = 0
   @State isSliderVisible: boolean = false
   @State isSliderVisible1: boolean = false
   @State selectedIndex: number = 0
+  @State flipCoverLyric: boolean = PreferencesCache.flipCoverLyric()
+  @State Pura_X: string = PreferencesCache.getUserPreference('is_Pura_X', '0')//pura_x尝试适配
+  @State sheetType: "playlist" | "timer" = "playlist" // 用于控制底部弹出表单的类型，默认为播放列表
+  @State showLyricType: -1 | 0 | 1 | 2 = -1
+
+  private uiContext: UIContext | undefined = undefined;
+  private readonly SWIPE_THRESHOLD: number = 80; // 触发切换的阈值
   private timerId: number = -1
+  private updateTimer: number = -1
+  //TAB,swiper控制
+  private controller: TabsController = new TabsController()
+  private swiperController: SwiperController = new SwiperController()
+  private windowStage = AppUtil.getWindowStage()
   private resetTimer() {
     if (this.timerId !== -1) {
       clearTimeout(this.timerId)
@@ -97,21 +110,12 @@ struct Playing {
 
     }, 3000) // 3秒后隐藏
   }
-  private updateTimer: number = -1
-  //TAB,swiper控制
-  private controller: TabsController = new TabsController()
-  private swiperController: SwiperController = new SwiperController()
-  // 歌曲封面-歌词翻转
-  @State flipCoverLyric: boolean = PreferencesCache.flipCoverLyric()
-  @State Pura_X: string = PreferencesCache.getUserPreference('is_Pura_X', '0')//pura_x尝试适配
   // 监听屏幕断点变化
   onBreakpointChange() {
     this.isWideScreen = this.currentBreakpoint !== BreakpointConstants.BREAKPOINT_SM;
     this.Playing_Next = isHorizontalMode()
     console.info('Succeeded in obtaining fold status.judge: ' + this.Playing_Next);
   }
-  @State sheetType: "playlist" | "timer" = "playlist" // 用于控制底部弹出表单的类型，默认为播放列表
-  private windowStage = AppUtil.getWindowStage()
 
   @Builder
   progress_Volume(){
@@ -202,6 +206,9 @@ struct Playing {
             this.PlayerControls()
           }
         }
+        .width(StyleConstants.FULL_WIDTH)
+        .height(StyleConstants.FULL_HEIGHT)
+        .justifyContent(FlexAlign.SpaceBetween)
       }
       TabContent(){
         Column(){
@@ -1529,22 +1536,6 @@ struct Playing {
         .width('100%')
 
       Row() {
-        // Image($r('app.media.ic_arrow_down_3'))
-        //   .width(36)
-        //   .height(36)
-        //   .fillColor(Color.White)
-        //   .rotate({ angle: this.isBackButtonPressed ? 180 : 0 })
-        //   .scale({ x: this.isBackButtonPressed ? 0.8 : 1.0, y: this.isBackButtonPressed ? 0.8 : 1.0 })
-        //   .animation({
-        //     duration: 300,
-        //     curve: Curve.EaseOut,
-        //     iterations: 1,
-        //     playMode: PlayMode.Normal
-        //   })
-        //   .onClick(() => {
-        //     this.isBackButtonPressed = true
-        //     this.pageStack.pop()
-        //   })
         if (judge || this.selectedTabIndex === 1){
           Column({ space: 4 }) {
             Text(this.song?.name || "未知歌曲")
@@ -1564,6 +1555,45 @@ struct Playing {
           }
           .layoutWeight(1)
           .alignItems(HorizontalAlign.Start)
+        } else {
+          Column(){
+            Text(this.getTitleLyrics(this.currentLineLyrics as LyricsLine))
+              .fontSize(20)
+              .fontWeight(700)
+              .fontColor(Color.White)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.MARQUEE })
+              .textAlign(TextAlign.Center)
+              .borderRadius(8)
+          }
+          .justifyContent(FlexAlign.Center)
+          .alignItems(HorizontalAlign.Center)
+          .width(StyleConstants.FULL_WIDTH)
+          .opacity(this.showLyricType === -1 ? 0 : 1)
+          .layoutWeight(1)
+          .onClick(() => {
+            switch(this.showLyricType){
+              case -1:
+                this.showLyricType += 1
+                break
+              case 0:
+                if(this.currentLineLyrics?.translation) {
+                  this.showLyricType += 1
+                } else {
+                  this.showLyricType = -1
+                }
+                break
+              case 1:
+                if(this.currentLineLyrics?.transliteration) {
+                  this.showLyricType += 1
+                } else {
+                  this.showLyricType = -1
+                }
+                break
+              case 2:
+                this.showLyricType = -1
+            }
+          })
         }
         if (this.Pura_X === '1' || judge || this.selectedTabIndex === 1){
           Blank()
@@ -1659,7 +1689,7 @@ struct Playing {
         }
       }
       .width(StyleConstants.FULL_WIDTH)
-      .padding({ left: 12 })
+      .padding({ left: 12, right: 12 })
       .alignItems(VerticalAlign.Center)
       .height(50) // 固定标题栏高度
     }
@@ -1717,8 +1747,8 @@ struct Playing {
             .layoutWeight(1)
           } else if (this.isWideScreen && this.Playing_Next) {
             this.Playing_HorizontalMode()
-          }else if (this.winHeightWithPx<1500&&this.winWidthWithPx<1500){
-            if(this.winHeightWithPx>900&&this.Pura_X==='0'||this.winHeightWithPx>600&&this.Pura_X==='1'){
+          }else if (this.winHeightWithPx < 1500 && this.winWidthWithPx < 1500 && (this.windowStatus != 'FLOATING' && this.deviceType != resourceManager.DeviceType.DEVICE_TYPE_TABLET)){
+            if(this.winHeightWithPx>900&&this.Pura_X==='0' || this.winHeightWithPx>600&&this.Pura_X==='1'){
               this.playing_50()
             }else{
               this.playing_30()
@@ -1824,6 +1854,19 @@ struct Playing {
       WindowUtil.setSystemBarEnabled(this.windowStage, false)
     }else{
       WindowUtil.setSystemBarEnabled(this.windowStage, true)
+    }
+  }
+
+  getTitleLyrics(lyricsLine: LyricsLine): string {
+    switch(this.showLyricType){
+      case 0:
+        return lyricsLine?.text ?? ''
+      case 1:
+        return lyricsLine?.translation ?? ''
+      case 2:
+        return lyricsLine?.transliteration ?? ''
+      default:
+        return ''
     }
   }
 }

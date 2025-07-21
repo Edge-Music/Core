@@ -72,7 +72,7 @@ export struct LyricItem {
         .textAlign(TextAlign.Center)
         .borderRadius(8)
         .backgroundColor('transparent')
-        .visibility(this.showTranslation && this.item.translation ? Visibility.Visible : Visibility.None)
+        .visibility(this.showTranslation && this.item.transliteration ? Visibility.Visible : Visibility.None)
         .animation({
           duration: 500,
           curve: Curve.FastOutSlowIn
