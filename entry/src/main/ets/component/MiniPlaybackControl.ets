@@ -191,14 +191,14 @@ export struct MiniPlaybackControl {
               .fontWeight(FontWeight.Medium)
               .fontColor($r('app.color.text_title'))
               .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .textOverflow({ overflow: TextOverflow.MARQUEE })
 
             if (this.currentSong) {
               Text(this.currentSong.artists?.map(artist => artist.name).join(' / ') || $r('app.string.unknown_artist'))
                 .fontSize(12)
                 .fontColor($r('app.color.text_primary'))
                 .maxLines(1)
-                .textOverflow({ overflow: TextOverflow.Ellipsis })
+                .textOverflow({ overflow: TextOverflow.MARQUEE })
             }
           }
           .alignItems(HorizontalAlign.Start)
