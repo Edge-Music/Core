@@ -83,7 +83,7 @@ struct Playing {
   @State Fold_judge: boolean = true
   @State is_backblur: boolean = true
   @State rotateAngle: number=0
-  @State IMG_ctrl: boolean = false
+  @State IMG_ctrl: boolean = true
   @State isSliderVisible: boolean = false
   @State isSliderVisible1: boolean = false
   @State selectedIndex: number = 0
@@ -179,68 +179,123 @@ struct Playing {
   }
   @Builder
   playing_50(){
-    if (this.IMG_ctrl===false){
-      this.Title(true)
-    }
-    Tabs({ barPosition: BarPosition.End, index: this.selectedTabIndex, controller: this.controller }){
-      TabContent(){
-        Column(){
-          Image(cover(this.song?.album?.cover ?? "", 512))
-            .height(this.IMG_ctrl?'90%':'50%')
-            .aspectRatio(1)
-            .borderRadius(24)
-              // .margin({ top: 36 })
-              // .geometryTransition('song-cover', { follow: true })
-            .transition(TransitionEffect.OPACITY)
-            .onClick(() => {
-              this.IMG_ctrl=!this.IMG_ctrl
-              // if (!this.isWideScreen) {
-              //   this.controller.changeIndex(1)
-              // }
-            }) //点击图片切换到歌词页面
-            .borderRadius(12)
-            .clickEffect({ level: ClickEffectLevel.LIGHT })
+    Stack(){
+      Stack(){
+        Image(cover(this.song?.album?.cover ?? "", this.winWidth))
+          .width(StyleConstants.FULL_WIDTH)
+          .height(StyleConstants.FULL_HEIGHT)
 
-          if (this.IMG_ctrl === false){
-            this.ProgressBar(true)
-            this.PlayerControls()
-          }
-        }
-      }
-      TabContent(){
         Column(){
-          LyricsView({
-            mode_judge: false,
-          }).width('100%').layoutWeight(1)
-      }}
+          this.Title(true)
+
+          Tabs({ barPosition: BarPosition.End, index: this.selectedTabIndex, controller: this.controller }){
+            TabContent(){
+              Column(){
+                Column({ space: 4 }){
+                  Text(this.currentLineLyrics?.text)
+                    .fontSize(20)
+                    .fontWeight(700)
+                    .fontColor(Color.White)
+                    .textAlign(TextAlign.Center)
+                    .borderRadius(8)
+
+                  Text(this.currentLineLyrics?.translation)
+                    .fontSize(16)
+                    .opacity(0.9)
+                    .borderRadius(8)
+                    .fontColor(Color.White)
+                    .textAlign(TextAlign.Center)
+                    .fontWeight(FontWeight.Normal)
+                    .visibility(this.currentLineLyrics?.translation ? Visibility.Visible : Visibility.None)
+
+                  Text(this.currentLineLyrics?.transliteration)
+                    .fontSize(16)
+                    .opacity(0.9)
+                    .borderRadius(8)
+                    .fontColor(Color.White)
+                    .textAlign(TextAlign.Center)
+                    .fontWeight(FontWeight.Normal)
+                    .visibility(this.currentLineLyrics?.transliteration ? Visibility.Visible : Visibility.None)
+                }
+                .padding(16)
+                .height('40%')
+                .justifyContent(FlexAlign.Center)
+                .alignItems(HorizontalAlign.Center)
+                .width(StyleConstants.FULL_WIDTH)
+
+                Column(){
+                  this.ProgressBar(true)
+                }
+                Column(){
+                  this.PlayerControls(true)
+                }
+
+                Blank()
+                  .height(this.bottomRect/2)
+              }
+              .width(StyleConstants.FULL_WIDTH)
+              .height(StyleConstants.FULL_HEIGHT)
+              .justifyContent(FlexAlign.SpaceBetween)
+              .visibility(this.IMG_ctrl ? Visibility.Visible : Visibility.None)
+            }
+            .width(StyleConstants.FULL_WIDTH)
+            .height(StyleConstants.FULL_HEIGHT)
+
+            TabContent(){
+              Column(){
+                LyricsView({ mode_judge: false })
+                  .width('100%')
+                  .layoutWeight(1)
+              }
+            }
+          }
+          .width('100%')
+          .scrollable(true)
+          .barMode(BarMode.Fixed)
+          .layoutWeight(1)
+          .clip(false)
+          .barHeight(0)
+          .onChange((index: number) => {
+            this.uiContext?.animateTo({ duration: 400, curve: Curve.EaseInOut }, () => {
+              this.selectedTabIndex = index
+            })
+          })
+
+        }
+        .width(StyleConstants.FULL_WIDTH)
+        .height(StyleConstants.FULL_HEIGHT)
+        .linearGradient({
+          angle: 180,
+          colors: [['rgba(0, 0, 0, 0.30)', 0.0], ['rgba(0, 0, 0, 0.50)', 1.0]]
+        })
+      }
+      .width(StyleConstants.FULL_WIDTH)
+      .height(StyleConstants.FULL_HEIGHT)
     }
-    .layoutWeight(1)
-    .width('100%')
-    .scrollable(true)
-    .barMode(BarMode.Fixed)
-    .layoutWeight(1)
-    .clip(false)
-    .barHeight(0)
-    .onChange((index: number) => {
-      this.uiContext?.animateTo({ duration: 400, curve: Curve.EaseInOut }, () => {
-        this.selectedTabIndex = index
-      })
-    })
-    .onAppear(()=>{promptAction.showToast({ message: '点击图片可全屏显示封面' })})
+    .width(StyleConstants.FULL_WIDTH)
+    .height(StyleConstants.FULL_HEIGHT)
+    .alignContent(Alignment.Center)
+    .alignSelf(ItemAlign.Center)
 
   }
   @Builder
   playing_30(){
     Stack(){
-      Column(){
+      Stack(){
         Image(cover(this.song?.album?.cover ?? "", this.winWidth))
-          // .width(this.winWidth)
-          .width('100%')
-          .aspectRatio(1)
-          .foregroundBlurStyle(BlurStyle.BACKGROUND_THICK)
+          .width(StyleConstants.FULL_WIDTH)
+          .height(StyleConstants.FULL_HEIGHT)
+
+        Column()
+          .width(StyleConstants.FULL_WIDTH)
+          .height(StyleConstants.FULL_HEIGHT)
+          .linearGradient({
+            angle: 180,
+            colors: [['rgba(0, 0, 0, 0.30)', 0.0], ['rgba(0, 0, 0, 0.50)', 1.0]]
+          })
       }
-      .justifyContent(FlexAlign.Center)
-      .alignItems(HorizontalAlign.Center)
+      .width(StyleConstants.FULL_WIDTH)
+      .height(StyleConstants.FULL_HEIGHT)
 
       Column(){
         this.Title(true)
