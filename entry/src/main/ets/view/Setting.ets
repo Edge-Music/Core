@@ -421,6 +421,9 @@ export struct Setting {
                 .animation({ delay: 50, duration: 250, curve: Curve.FastOutSlowIn })
 
               TextInput({ placeholder: $r('app.string.please_input_data_source_name'), text: $$this.formData.name })
+                .onSubmit((enterKey: EnterKeyType, event: SubmitEvent) => {
+                  focusControl.requestFocus('data_source_address')
+                })
                 .width(StyleConstants.FULL_WIDTH)
                 .opacity(this.currentStep === 0 ? 1 : 0)
                 .translate({ x: this.currentStep === 0 ? 0 : '-20%' })
@@ -436,6 +439,10 @@ export struct Setting {
                 .animation({ delay: 150, duration: 250, curve: Curve.FastOutSlowIn })
 
               TextInput({ placeholder: $r('app.string.please_input_data_source_name_address'), text: $$this.formData.url })
+                .id('data_source_address')
+                .onSubmit((enterKey: EnterKeyType, event: SubmitEvent) => {
+                  focusControl.requestFocus('data_source_desc')
+                })
                 .width(StyleConstants.FULL_WIDTH)
                 .opacity(this.currentStep === 0 ? 1 : 0)
                 .translate({ x: this.currentStep === 0 ? 0 : '-20%' })
@@ -451,8 +458,9 @@ export struct Setting {
                 .animation({ delay: 250, duration: 250, curve: Curve.FastOutSlowIn })
 
               TextArea({ placeholder: $r('app.string.please_input_data_source_description'), text: $$this.formData.description })
-                .width(StyleConstants.FULL_WIDTH)
                 .height(100)
+                .id('data_source_desc')
+                .width(StyleConstants.FULL_WIDTH)
                 .opacity(this.currentStep === 0 ? 1 : 0)
                 .translate({ x: this.currentStep === 0 ? 0 : '-20%' })
                 .animation({ delay: 300, duration: 250, curve: Curve.FastOutSlowIn })
@@ -530,7 +538,7 @@ export struct Setting {
 
               TextArea({
                 placeholder: $r('app.string.please_input_token_credential'),
-                text: this.tokenFromQR || (this.formData.auth?.token || ''),
+                text: this.tokenFromQR || (this.formData.auth?.token || '')
               })
                 .width(StyleConstants.FULL_WIDTH)
                 .height(80)

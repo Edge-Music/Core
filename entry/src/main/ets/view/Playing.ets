@@ -1564,6 +1564,8 @@ struct Playing {
           .fontSize(16)
           .fontColor('rgba(255, 255, 255, 0.6)')
           .maxLines(1)
+          .width(250)
+          .textAlign(TextAlign.Center)
           .textOverflow({ overflow: TextOverflow.MARQUEE })
           .height(24) // 固定高度确保布局稳定
       }
