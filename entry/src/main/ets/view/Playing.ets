@@ -25,7 +25,7 @@ import SensorUtil from '../util/SensorUtil'
 import { DialogHelper } from '@pura/harmony-dialog'
 import { resourceManager } from '@kit.LocalizationKit'
 import { LyricsLine } from '../util/LyricsManager'
-
+type ShowLyricsStatus = -1 | 0 | 1 | 2
 
 @Builder
 export function PlayingBuilder() {
@@ -90,7 +90,7 @@ struct Playing {
   @State flipCoverLyric: boolean = PreferencesCache.flipCoverLyric()
   @State Pura_X: string = PreferencesCache.getUserPreference('is_Pura_X', '0')//pura_x尝试适配
   @State sheetType: "playlist" | "timer" = "playlist" // 用于控制底部弹出表单的类型，默认为播放列表
-  @State showLyricType: -1 | 0 | 1 | 2 = -1
+  @State showLyricType: ShowLyricsStatus = parseInt(PreferencesCache.getUserPreference('playing_title_lyric_show_status', '-1')) as ShowLyricsStatus
 
   private uiContext: UIContext | undefined = undefined;
   private readonly SWIPE_THRESHOLD: number = 80; // 触发切换的阈值
@@ -1666,7 +1666,7 @@ struct Playing {
           .opacity(this.showLyricType === -1 ? 0 : 1)
           .layoutWeight(1)
           .onClick(() => {
-            switch(this.showLyricType){
+            switch(this.showLyricType) {
               case -1:
                 this.showLyricType += 1
                 break
@@ -1687,6 +1687,8 @@ struct Playing {
               case 2:
                 this.showLyricType = -1
             }
+            AppStorage.setOrCreate<number>('playing_title_lyric_show_status', this.showLyricType)
+            PreferencesCache.setUserPreference('playing_title_lyric_show_status', this.showLyricType.toString())
           })
         }
         if (this.Pura_X === '1' || judge || this.selectedTabIndex === 1){
@@ -1956,9 +1958,9 @@ struct Playing {
       case 0:
         return lyricsLine?.text ?? ''
       case 1:
-        return lyricsLine?.translation ?? ''
+        return lyricsLine?.translation ?? (lyricsLine?.text ?? '')
       case 2:
-        return lyricsLine?.transliteration ?? ''
+        return lyricsLine?.transliteration ?? (lyricsLine?.translation ?? (lyricsLine?.text ?? ''))
       default:
         return ''
     }
