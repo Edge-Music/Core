@@ -1845,7 +1845,8 @@ struct Playing {
             .layoutWeight(1)
           } else if (this.isWideScreen && this.Playing_Next) {
             this.Playing_HorizontalMode()
-          }else if (this.winHeightWithPx < 1500 && this.winWidthWithPx < 1500 && (this.windowStatus != 'FLOATING' && this.deviceType != resourceManager.DeviceType.DEVICE_TYPE_TABLET)){
+          }else if (this.winHeightWithPx < 1500 && this.winWidthWithPx < 1500
+            && (this.windowStatus != 'FLOATING' && this.deviceType != resourceManager.DeviceType.DEVICE_TYPE_TABLET || this.deviceType === resourceManager.DeviceType.DEVICE_TYPE_PHONE)){
             if(this.winHeightWithPx>900&&this.Pura_X==='0' || this.winHeightWithPx>600&&this.Pura_X==='1'){
               this.playing_50()
             }else{

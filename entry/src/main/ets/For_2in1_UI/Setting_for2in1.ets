@@ -421,7 +421,7 @@ export struct Setting_2in1 {
 
               TextInput({ placeholder: $r('app.string.please_input_data_source_name'), text: $$this.formData.name })
                 .onSubmit((enterKey: EnterKeyType, event: SubmitEvent) => {
-                  focusControl.requestFocus('data_source_address')
+                  focusControl.requestFocus('data_source_address_2')
                 })
                 .width(StyleConstants.FULL_WIDTH)
                 .opacity(this.currentStep === 0 ? 1 : 0)
@@ -438,9 +438,9 @@ export struct Setting_2in1 {
                 .animation({ delay: 150, duration: 250, curve: Curve.FastOutSlowIn })
 
               TextInput({ placeholder: $r('app.string.please_input_data_source_name_address'), text: $$this.formData.url })
-                .id('data_source_address')
+                .id('data_source_address_2')
                 .onSubmit((enterKey: EnterKeyType, event: SubmitEvent) => {
-                  focusControl.requestFocus('data_source_desc')
+                  focusControl.requestFocus('data_source_desc_2')
                 })
                 .width(StyleConstants.FULL_WIDTH)
                 .opacity(this.currentStep === 0 ? 1 : 0)
@@ -458,7 +458,7 @@ export struct Setting_2in1 {
 
               TextArea({ placeholder: $r('app.string.please_input_data_source_description'), text: $$this.formData.description })
                 .height(100)
-                .id('data_source_desc')
+                .id('data_source_desc_2')
                 .width(StyleConstants.FULL_WIDTH)
                 .opacity(this.currentStep === 0 ? 1 : 0)
                 .translate({ x: this.currentStep === 0 ? 0 : '-20%' })

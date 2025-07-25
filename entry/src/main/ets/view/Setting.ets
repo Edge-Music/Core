@@ -422,7 +422,7 @@ export struct Setting {
 
               TextInput({ placeholder: $r('app.string.please_input_data_source_name'), text: $$this.formData.name })
                 .onSubmit((enterKey: EnterKeyType, event: SubmitEvent) => {
-                  focusControl.requestFocus('data_source_address')
+                  focusControl.requestFocus('data_source_address_1')
                 })
                 .width(StyleConstants.FULL_WIDTH)
                 .opacity(this.currentStep === 0 ? 1 : 0)
@@ -439,9 +439,9 @@ export struct Setting {
                 .animation({ delay: 150, duration: 250, curve: Curve.FastOutSlowIn })
 
               TextInput({ placeholder: $r('app.string.please_input_data_source_name_address'), text: $$this.formData.url })
-                .id('data_source_address')
+                .id('data_source_address_1')
                 .onSubmit((enterKey: EnterKeyType, event: SubmitEvent) => {
-                  focusControl.requestFocus('data_source_desc')
+                  focusControl.requestFocus('data_source_desc_1')
                 })
                 .width(StyleConstants.FULL_WIDTH)
                 .opacity(this.currentStep === 0 ? 1 : 0)
@@ -459,7 +459,7 @@ export struct Setting {
 
               TextArea({ placeholder: $r('app.string.please_input_data_source_description'), text: $$this.formData.description })
                 .height(100)
-                .id('data_source_desc')
+                .id('data_source_desc_1')
                 .width(StyleConstants.FULL_WIDTH)
                 .opacity(this.currentStep === 0 ? 1 : 0)
                 .translate({ x: this.currentStep === 0 ? 0 : '-20%' })
