@@ -6,7 +6,7 @@ import { BreakPointType } from '../component/BreakpointSystem'
 import { PlaylistManager } from '../util/PlaylistManager'
 import { EventHelper } from '../util/EventHelper'
 import { avPlayerManager } from '../util/AVPlayerManager'
-import { AppUtil, ClickUtil, ToastUtil } from '@pura/harmony-utils'
+import { AppUtil, ClickUtil, LogUtil, ToastUtil } from '@pura/harmony-utils'
 import { LyricsView } from '../component/LyricsView'
 import { PlaylistView } from '../component/PlaylistView'
 import { PreferencesCache } from '../util/PreferenceCache'
@@ -53,6 +53,8 @@ struct Playing {
   @StorageProp('winHeight') @Watch('onWinWidthChange') winHeight: number = 0
   @StorageProp('winWidthWithPx') @Watch('onWinWidthChange') winWidthWithPx: number = 0
   @StorageProp('winHeightWithPx') @Watch('onWinWidthChange') winHeightWithPx: number = 0
+  @StorageProp('current_width_breakpoint') widthBreakpoint: WidthBreakpoint = WidthBreakpoint.WIDTH_SM
+  @StorageProp('current_height_breakpoint') heightBreakpoint: HeightBreakpoint = HeightBreakpoint.HEIGHT_SM
 
   @Consume('NavPathStack') pageStack: NavPathStack
   @State curColorIndex: number = 0
@@ -206,7 +208,7 @@ struct Playing {
                     .fontColor(Color.White)
                     .textAlign(TextAlign.Center)
                     .fontWeight(FontWeight.Normal)
-                    .visibility(this.currentLineLyrics?.translation ? Visibility.Visible : Visibility.None)
+                    .visibility(this.currentLineLyrics?.translation && this.winWidthWithPx/this.winHeightWithPx <= 1.01 ? Visibility.Visible : Visibility.None)
 
                   Text(this.currentLineLyrics?.transliteration)
                     .fontSize(16)
@@ -215,7 +217,7 @@ struct Playing {
                     .fontColor(Color.White)
                     .textAlign(TextAlign.Center)
                     .fontWeight(FontWeight.Normal)
-                    .visibility(this.currentLineLyrics?.transliteration ? Visibility.Visible : Visibility.None)
+                    .visibility(this.currentLineLyrics?.transliteration && this.winWidthWithPx/this.winHeightWithPx <= 1.01 ? Visibility.Visible : Visibility.None)
                 }
                 .padding(16)
                 .height('40%')
@@ -266,7 +268,7 @@ struct Playing {
         .height(StyleConstants.FULL_HEIGHT)
         .linearGradient({
           angle: 180,
-          colors: [['rgba(0, 0, 0, 0.30)', 0.0], ['rgba(0, 0, 0, 0.50)', 1.0]]
+          colors: [['rgba(0, 0, 0, 0.50)', 0.0], ['rgba(0, 0, 0, 0.20)', 0.5], ['rgba(0, 0, 0, 0.50)', 1.0]]
         })
       }
       .width(StyleConstants.FULL_WIDTH)
@@ -291,7 +293,7 @@ struct Playing {
           .height(StyleConstants.FULL_HEIGHT)
           .linearGradient({
             angle: 180,
-            colors: [['rgba(0, 0, 0, 0.30)', 0.0], ['rgba(0, 0, 0, 0.50)', 1.0]]
+            colors: [['rgba(0, 0, 0, 0.50)', 0.0], ['rgba(0, 0, 0, 0.20)', 0.5], ['rgba(0, 0, 0, 0.50)', 1.0]]
           })
       }
       .width(StyleConstants.FULL_WIDTH)
@@ -900,7 +902,7 @@ struct Playing {
         .height(StyleConstants.FULL_HEIGHT)
         .linearGradient({
           angle: 180,
-          colors: [['rgba(0,0,0,0.3)', 0.0], ['rgba(0,0,0,0.7)', 1.0]]
+          colors: [['rgba(0, 0, 0, 0.50)', 0.0], ['rgba(0, 0, 0, 0.20)', 0.5], ['rgba(0, 0, 0, 0.50)', 1.0]]
         })
     }
     .width(judge?StyleConstants.FULL_WIDTH:0)
@@ -1845,13 +1847,8 @@ struct Playing {
             .layoutWeight(1)
           } else if (this.isWideScreen && this.Playing_Next) {
             this.Playing_HorizontalMode()
-          }else if (this.winHeightWithPx < 1500 && this.winWidthWithPx < 1500
-            && (this.windowStatus != 'FLOATING' && this.deviceType != resourceManager.DeviceType.DEVICE_TYPE_TABLET || this.deviceType === resourceManager.DeviceType.DEVICE_TYPE_PHONE)){
-            if(this.winHeightWithPx>900&&this.Pura_X==='0' || this.winHeightWithPx>600&&this.Pura_X==='1'){
-              this.playing_50()
-            }else{
-              this.playing_30()
-            }
+          } else if (this.widthBreakpoint <= WidthBreakpoint.WIDTH_SM && (this.heightBreakpoint <= HeightBreakpoint.HEIGHT_SM || this.winWidth/this.winHeight > 0.80)){
+            this.playing_50()
           } else {
 
             this.Title()

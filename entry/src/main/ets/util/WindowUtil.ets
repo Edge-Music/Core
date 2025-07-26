@@ -18,6 +18,8 @@ class WindowUtil {
     const uiContext = windowClass.getUIContext()
     // 监听窗口尺寸变化
     windowClass.on('windowSizeChange', (windowSize) => {
+      AppStorage.setOrCreate('current_width_breakpoint', uiContext.getWindowWidthBreakpoint())
+      AppStorage.setOrCreate('current_height_breakpoint', uiContext.getWindowHeightBreakpoint())
       AppStorage.setOrCreate('winWidth', uiContext.px2vp(windowSize.width));
       AppStorage.setOrCreate('winHeight', uiContext.px2vp(windowSize.height));
       AppStorage.setOrCreate('winWidthWithPx', windowSize.width);
@@ -26,6 +28,8 @@ class WindowUtil {
         let height = windowClass.getWindowDecorHeight();
         AppStorage.setOrCreate('decorHeight', uiContext.px2vp(height));
       }
+      LogUtil.info(`[${TAG}]`, `width: ${windowSize.width}, height: ${windowSize.height}, width/height: ${windowSize.width/windowSize.height} height/width: ${windowSize.height/windowSize.width}`);
+      LogUtil.info(`[${TAG}]`, `width: ${uiContext.px2vp(windowSize.width)}, height: ${uiContext.px2vp(windowSize.height)}, width/height: ${uiContext.px2vp(windowSize.width)/uiContext.px2vp(windowSize.height)}`);
     });
     LogUtil.info(`[${TAG}]`, 'Succeeded in adding windowSizeChange listener.');
 
@@ -47,6 +51,9 @@ class WindowUtil {
 
   setWindowProperties(windowClass: window.Window) {
     const uiContext = windowClass.getUIContext()
+    // 获取宽高断点
+    AppStorage.setOrCreate('current_width_breakpoint', uiContext.getWindowWidthBreakpoint())
+    AppStorage.setOrCreate('current_height_breakpoint', uiContext.getWindowHeightBreakpoint())
     // 获取窗口尺寸，存入AppStorage
     AppStorage.setOrCreate('winWidth', uiContext.px2vp(windowClass.getWindowProperties().windowRect.width));
     AppStorage.setOrCreate('winHeight', uiContext.px2vp(windowClass.getWindowProperties().windowRect.height));
