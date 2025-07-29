@@ -31,6 +31,7 @@ export struct PlaylistItem {
           .objectFit(ImageFit.Cover)
           .borderRadius(8)
           .draggable(false)
+          .shadow(ShadowStyle.OUTER_DEFAULT_XS)
       }
       .margin({ right: 12 })
 

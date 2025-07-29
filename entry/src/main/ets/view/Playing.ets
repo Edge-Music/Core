@@ -1635,24 +1635,33 @@ struct Playing {
 
       Row() {
         if (judge || this.selectedTabIndex === 1){
-          Column({ space: 4 }) {
-            Text(this.song?.name || "未知歌曲")
-              .fontSize(16)
-              .fontWeight(FontWeight.Bold)
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.MARQUEE })
-              .fontColor(Color.White)
-              .height(16) // 固定高度确保布局稳定
+          Row({ space: 4 }) {
+            Image(cover(this.song?.album?.cover ?? "", 512))
+              .height(34)
+              .aspectRatio(1)
+              .borderRadius(4)
+              .shadow(ShadowStyle.OUTER_DEFAULT_SM)
 
-            Text(this.song?.artists ? this.song.artists.map(artist => artist.name).join(" / ") : "未知艺术家")
-              .fontSize(12)
-              .fontColor('rgba(255, 255, 255, 0.6)')
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.MARQUEE })
-              .height(12) // 固定高度确保布局稳定
+            Column({ space: 4 }) {
+              Text(this.song?.name || "未知歌曲")
+                .fontSize(16)
+                .fontWeight(FontWeight.Bold)
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.MARQUEE })
+                .fontColor(Color.White)
+                .height(16) // 固定高度确保布局稳定
+
+              Text(this.song?.artists ? this.song.artists.map(artist => artist.name).join(" / ") : "未知艺术家")
+                .fontSize(12)
+                .fontColor('rgba(255, 255, 255, 0.6)')
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.MARQUEE })
+                .height(12) // 固定高度确保布局稳定
+            }
+            .layoutWeight(1)
+            .alignItems(HorizontalAlign.Start)
           }
           .layoutWeight(1)
-          .alignItems(HorizontalAlign.Start)
         } else {
           Column(){
             Text(this.getTitleLyrics(this.currentLineLyrics as LyricsLine))
@@ -1767,7 +1776,7 @@ struct Playing {
             Image($r('app.media.lysic'))
               .width(24)
               .height(24)
-              .fillColor(this.Lyic_desktop==='1' ?Color.White:Color.Gray)
+              .fillColor(this.Lyic_desktop==='1' ? Color.Orange : Color.White)
           }.width(this.buttonSize)
           .height(this.buttonSize)
           .backgroundColor(Color.Transparent)
