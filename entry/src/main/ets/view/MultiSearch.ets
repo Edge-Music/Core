@@ -213,6 +213,7 @@ export struct MultiSearch {
           this.keywords = value
           await this.search()
         })
+        .defaultFocus(true)
         .margin(0)
         .backgroundBlurStyle(BlurStyle.Regular)
     }

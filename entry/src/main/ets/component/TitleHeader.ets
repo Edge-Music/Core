@@ -79,6 +79,7 @@ export struct TitleHeader {
               .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
               .fontSize($r('app.float.title_font_size'))
               .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.MARQUEE })
               .onClick(() => {
                 this.backActive = true
                 setTimeout(() => {

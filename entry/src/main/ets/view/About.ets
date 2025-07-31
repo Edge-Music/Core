@@ -1,6 +1,7 @@
 import { AppUtil, LogUtil, ToastUtil, WantUtil } from "@pura/harmony-utils"
 import { StyleConstants } from "../constants/StyleConstants"
 import { BusinessError } from "@kit.BasicServicesKit"
+import { common, Want } from "@kit.AbilityKit"
 
 @Component
 export struct About {
@@ -27,7 +28,7 @@ export struct About {
         .margin({ bottom: 16 })
 
       // Official links section - more compact
-      Row() {
+      Row({ space: 12}) {
         Button() {
           Row() {
 
@@ -41,8 +42,7 @@ export struct About {
         .height(36)
         .backgroundColor($r('app.color.tag_background'))
         .borderRadius(18)
-        .margin({ right: 8 })
-        .width('45%')
+        .width('25%')
         .onClick(() => {
           WantUtil.toWebBrowser("https://github.com/Edge-Music")
             .catch((err: BusinessError) => {
@@ -53,7 +53,6 @@ export struct About {
 
         Button() {
           Row() {
-
             Text('官方网站')
               .fontSize(13)
               .fontColor($r('app.color.text_primary'))
@@ -64,7 +63,7 @@ export struct About {
         .height(36)
         .backgroundColor($r('app.color.tag_background'))
         .borderRadius(18)
-        .width('45%')
+        .width('25%')
         .onClick(() => {
           WantUtil.toWebBrowser("https://music.yby.zone/")
             .catch((err: BusinessError) => {
@@ -72,9 +71,34 @@ export struct About {
               ToastUtil.showToast("跳转到官网失败！", { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } });
             });
         })
+
+        Button() {
+          Row() {
+            Text('加入讨论群')
+              .fontSize(13)
+              .fontColor($r('app.color.text_primary'))
+          }
+          .width('100%')
+          .justifyContent(FlexAlign.Center)
+        }
+        .height(36)
+        .backgroundColor($r('app.color.tag_background'))
+        .borderRadius(18)
+        .width('25%')
+        .onClick(() => {
+          let context = this.getUIContext().getHostContext() as common.UIAbilityContext;
+          let urla: string = "mqqapi://card/show_pslcard?src_type=internal&version=1&uin=732815099&card_type=group&source=qrcode";
+          let want: Want = {
+            bundleName: 'com.tencent.mqq',
+            abilityName: 'EntryAbility',
+            uri: urla
+          }
+          context.startAbility(want)
+        })
       }
       .width('100%')
       .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
       .padding({ left: 16, right: 16 })
     }
     .width('100%')
@@ -114,7 +138,7 @@ export struct About {
             .fontColor($r('app.color.text_secondary'))
             .width(70)
 
-          Text('祭之时、可以、从心')
+          Text('祭之时、lsbnbdz、从心')
             .fontSize(14)
             .fontColor($r('app.color.text_primary'))
         }

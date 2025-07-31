@@ -6,7 +6,7 @@ import { BreakPointType } from '../component/BreakpointSystem'
 import { PlaylistManager } from '../util/PlaylistManager'
 import { EventHelper } from '../util/EventHelper'
 import { avPlayerManager } from '../util/AVPlayerManager'
-import { AppUtil, ClickUtil, ToastUtil } from '@pura/harmony-utils'
+import { AppUtil, ClickUtil, LogUtil, ToastUtil } from '@pura/harmony-utils'
 import { LyricsView } from '../component/LyricsView'
 import { PlaylistView } from '../component/PlaylistView'
 import { PreferencesCache } from '../util/PreferenceCache'
@@ -23,7 +23,9 @@ import { PipManager } from '../util/PipManager'
 import WindowUtil from '../util/WindowUtil'
 import SensorUtil from '../util/SensorUtil'
 import { DialogHelper } from '@pura/harmony-dialog'
-
+import { resourceManager } from '@kit.LocalizationKit'
+import { LyricsLine } from '../util/LyricsManager'
+type ShowLyricsStatus = -1 | 0 | 1 | 2
 
 @Builder
 export function PlayingBuilder() {
@@ -32,16 +34,30 @@ export function PlayingBuilder() {
 
 @Component
 struct Playing {
-  @State curColorIndex: number = 0
+
   @StorageProp('topRect') topRect: number = 0
   @StorageProp('bottomRect') bottomRect: number = 0
   @StorageProp('decorHeight') decorHeight: number = 0
   @StorageProp('leftCutoutRectWidth') leftCutoutRectWidth: number = 0
   @StorageProp('rightCutoutRectWidth') rightCutoutRectWidth: number = 0
   @StorageProp('windowStatus') windowStatus: string = 'FULL_SCREEN'
+  @StorageProp('deviceType') deviceType: resourceManager.DeviceType = resourceManager.DeviceType.DEVICE_TYPE_PHONE
+  @StorageProp('current_line_lyrics') currentLineLyrics: LyricsLine | undefined = AppStorage.get<LyricsLine>('current_line_lyrics')
+  @StorageLink("current_playing_song") song: Song | null = null
+  @StorageLink('Lyic_desktop') Lyic_desktop: string = PreferencesCache.getUserPreference('Lyic_desktop','0')
+  @StorageProp('double_tap_switch_songs') isOnDoubleTap: string = PreferencesCache.getUserPreference('double_tap_switch_songs','0')
+  @StorageLink('aggregation_playlist') aggregationPlaylist: Playlist[] = PreferencesCache.getPlaylistCache('aggregation_playlist')
+  @StorageProp('test_index') currentLyric: string = ''
+  @StorageProp('currentBreakpoint') @Watch('onBreakpointChange') currentBreakpoint: string = 'sm'
+  @StorageProp('winWidth') @Watch('onWinWidthChange') winWidth: number = 0
+  @StorageProp('winHeight') @Watch('onWinWidthChange') winHeight: number = 0
+  @StorageProp('winWidthWithPx') @Watch('onWinWidthChange') winWidthWithPx: number = 0
+  @StorageProp('winHeightWithPx') @Watch('onWinWidthChange') winHeightWithPx: number = 0
+  @StorageProp('current_width_breakpoint') widthBreakpoint: WidthBreakpoint = WidthBreakpoint.WIDTH_SM
+  @StorageProp('current_height_breakpoint') heightBreakpoint: HeightBreakpoint = HeightBreakpoint.HEIGHT_SM
 
-  @Consume('NavPathStack') pageStack: NavPathStack;
-  @Watch('onBreakpointChange') @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
+  @Consume('NavPathStack') pageStack: NavPathStack
+  @State curColorIndex: number = 0
   @State currentTime: number = 0
   @State isProgressBarExpanded: boolean = false
   @State isVolumeBarExpanded: boolean = false
@@ -50,18 +66,12 @@ struct Playing {
   @State isFavorite: boolean = false
   @State playMode: number = PlaylistManager.getPlayMode()
   @State showPlaylist: boolean = false
-  @StorageLink("current_playing_song") song: Song | null = null
   @State isWideScreen: boolean = false // 是否为宽屏
-  @State imageColorHex:string='1a2a3a'
+  @State imageColorHex:string='ff06164e'
   @State currentIndex: number = -1
-  @StorageLink('Lyic_desktop') Lyic_desktop: string = PreferencesCache.getUserPreference('Lyic_desktop','0')
-  @StorageProp('double_tap_switch_songs') isOnDoubleTap: string = PreferencesCache.getUserPreference('double_tap_switch_songs','0')
-  @StorageLink('aggregation_playlist') aggregationPlaylist: Playlist[] = PreferencesCache.getPlaylistCache('aggregation_playlist')
-  // 独立的按钮动画状态
   @State swipeOffset: number = 0; // 滑动偏移量
   @State isSwipingActive: boolean = false; // 是否正在滑动中
   @State swipeDirection: string = ''; // 滑动方向
-  private readonly SWIPE_THRESHOLD: number = 80; // 触发切换的阈值
   @State img_playing_ctrl:string=  PreferencesCache.getUserPreference('img_playing_ctrl','0')
   @State isPrevButtonPressed: boolean = false
   @State isPlayButtonPressed: boolean = false
@@ -73,19 +83,25 @@ struct Playing {
   @State isBackButtonPressed: boolean = false
   @State Playing_Next: boolean = true
   @State Fold_judge: boolean = true
-  uiContext: UIContext | undefined = undefined;
-
   @State is_backblur: boolean = true
-  @State rotateAngle:number=0
-  @State IMG_ctrl: boolean = false
-  @StorageLink('winWidth') @Watch('onWinWidthChange') winWidth: number = 0
-  @StorageLink('winHeight') @Watch('onWinWidthChange') winHeight: number = 0
-  @StorageLink('winWidthWithPx') @Watch('onWinWidthChange') winWidthWithPx: number = 0
-  @StorageLink('winHeightWithPx') @Watch('onWinWidthChange') winHeightWithPx: number = 0
+  @State rotateAngle: number=0
+  @State IMG_ctrl: boolean = true
   @State isSliderVisible: boolean = false
   @State isSliderVisible1: boolean = false
   @State selectedIndex: number = 0
+  @State flipCoverLyric: boolean = PreferencesCache.flipCoverLyric()
+  @State Pura_X: string = PreferencesCache.getUserPreference('is_Pura_X', '0')//pura_x尝试适配
+  @State sheetType: "playlist" | "timer" = "playlist" // 用于控制底部弹出表单的类型，默认为播放列表
+  @State showLyricType: ShowLyricsStatus = parseInt(PreferencesCache.getUserPreference('playing_title_lyric_show_status', '-1')) as ShowLyricsStatus
+
+  private uiContext: UIContext | undefined = undefined;
+  private readonly SWIPE_THRESHOLD: number = 80; // 触发切换的阈值
   private timerId: number = -1
+  private updateTimer: number = -1
+  //TAB,swiper控制
+  private controller: TabsController = new TabsController()
+  private swiperController: SwiperController = new SwiperController()
+  private windowStage = AppUtil.getWindowStage()
   private resetTimer() {
     if (this.timerId !== -1) {
       clearTimeout(this.timerId)
@@ -96,21 +112,12 @@ struct Playing {
 
     }, 3000) // 3秒后隐藏
   }
-  private updateTimer: number = -1
-  //TAB,swiper控制
-  private controller: TabsController = new TabsController()
-  private swiperController: SwiperController = new SwiperController()
-  // 歌曲封面-歌词翻转
-  @State flipCoverLyric: boolean = PreferencesCache.flipCoverLyric()
-  @State Pura_X: string = PreferencesCache.getUserPreference('is_Pura_X', '0')//pura_x尝试适配
   // 监听屏幕断点变化
   onBreakpointChange() {
     this.isWideScreen = this.currentBreakpoint !== BreakpointConstants.BREAKPOINT_SM;
     this.Playing_Next = isHorizontalMode()
     console.info('Succeeded in obtaining fold status.judge: ' + this.Playing_Next);
   }
-  @State sheetType: "playlist" | "timer" = "playlist" // 用于控制底部弹出表单的类型，默认为播放列表
-  private windowStage = AppUtil.getWindowStage()
 
   @Builder
   progress_Volume(){
@@ -131,24 +138,6 @@ struct Playing {
         .onAppear(()=>{
           this.rotateAngle = Number(PreferencesCache.getUserPreference('Volume','100'))
         })
-          // .onAppear(() => {
-          //   // 组件出现时开始做动画
-          //   // 建议使用this.getUIContext()?.animateTo()
-          //   this.getUIContext()?.animateTo({
-          //     duration: 300,
-          //     curve: Curve.Friction,
-          //     delay: 500,
-          //     iterations: -1, // 设置-1表示动画无限循环
-          //     playMode: PlayMode.Alternate,
-          //     expectedFrameRateRange: {
-          //       min: 10,
-          //       max: 120,
-          //       expected: 60,
-          //     }
-          //   }, () => {
-          //   })
-          // })
-          // animateTo()
         .trackThickness(this.isVolumeBarExpanded ? 36 : 46)
         .selectedColor(Color.Orange)
         .trackColor('rgba(255, 255, 255, 0.3)')
@@ -169,8 +158,19 @@ struct Playing {
           playMode: PlayMode.Normal
         })
 
-      Text(this.rotateAngle > 0 ? '󰁊' : '󰁃')
-        .fontSize(20)
+      if(this.rotateAngle === 0){
+        SymbolGlyph($r('sys.symbol.speaker_slash'))
+          .fontSize(20)
+      } else if(this.rotateAngle > 0 && this.rotateAngle <= 33) {
+        SymbolGlyph($r('sys.symbol.speaker_wave_1'))
+          .fontSize(20)
+      } else if(this.rotateAngle > 33 && this.rotateAngle <= 66) {
+        SymbolGlyph($r('sys.symbol.speaker_wave_2'))
+          .fontSize(20)
+      } else if(this.rotateAngle > 66 && this.rotateAngle <= 100) {
+        SymbolGlyph($r('sys.symbol.speaker_wave_3'))
+          .fontSize(20)
+      }
     }
     .width(36)
     .justifyContent(FlexAlign.Center)
@@ -181,104 +181,180 @@ struct Playing {
   }
   @Builder
   playing_50(){
-    if (this.IMG_ctrl===false){
-      this.Title(true)
-    }
-    Tabs({ barPosition: BarPosition.End, index: this.selectedTabIndex, controller: this.controller }){
-      TabContent(){
-        Column(){
-          Image(cover(this.song?.album?.cover ?? "", 512))
-            .height(this.IMG_ctrl?'90%':'50%')
-            .aspectRatio(1)
-            .borderRadius(24)
-              // .margin({ top: 36 })
-              // .geometryTransition('song-cover', { follow: true })
-            .transition(TransitionEffect.OPACITY)
-            .onClick(() => {
-              this.IMG_ctrl=!this.IMG_ctrl
-              // if (!this.isWideScreen) {
-              //   this.controller.changeIndex(1)
-              // }
-            }) //点击图片切换到歌词页面
-            .borderRadius(12)
-            .clickEffect({ level: ClickEffectLevel.LIGHT })
+    Stack(){
+      Stack(){
+        Image(cover(this.song?.album?.cover ?? "", this.winWidth))
+          .width(StyleConstants.FULL_WIDTH)
+          .height(StyleConstants.FULL_HEIGHT)
 
-          if (this.IMG_ctrl === false){
-            this.ProgressBar(false,2)
-            this.PlayerControls()
-          }
-        }
-      }
-      TabContent(){
         Column(){
-          LyricsView({
-            mode_judge: false,
-          }).width('100%').layoutWeight(1)
-      }}
+          this.Title(true)
+
+          Tabs({ barPosition: BarPosition.End, index: this.selectedTabIndex, controller: this.controller }){
+            TabContent(){
+              Column(){
+                Column({ space: 4 }){
+                  Text(this.currentLineLyrics?.text)
+                    .fontSize(20)
+                    .fontWeight(700)
+                    .fontColor(Color.White)
+                    .textAlign(TextAlign.Center)
+                    .borderRadius(8)
+
+                  Text(this.currentLineLyrics?.translation)
+                    .fontSize(16)
+                    .opacity(0.9)
+                    .borderRadius(8)
+                    .fontColor(Color.White)
+                    .textAlign(TextAlign.Center)
+                    .fontWeight(FontWeight.Normal)
+                    .visibility(this.currentLineLyrics?.translation && this.winWidthWithPx/this.winHeightWithPx <= 1.01 ? Visibility.Visible : Visibility.None)
+
+                  Text(this.currentLineLyrics?.transliteration)
+                    .fontSize(16)
+                    .opacity(0.9)
+                    .borderRadius(8)
+                    .fontColor(Color.White)
+                    .textAlign(TextAlign.Center)
+                    .fontWeight(FontWeight.Normal)
+                    .visibility(this.currentLineLyrics?.transliteration && this.winWidthWithPx/this.winHeightWithPx <= 1.01 ? Visibility.Visible : Visibility.None)
+                }
+                .padding(16)
+                .height('40%')
+                .justifyContent(FlexAlign.Center)
+                .alignItems(HorizontalAlign.Center)
+                .width(StyleConstants.FULL_WIDTH)
+
+                Column(){
+                  this.ProgressBar(true)
+                }
+                Column(){
+                  this.PlayerControls(true)
+                }
+
+                Blank()
+                  .height(this.bottomRect/2)
+              }
+              .width(StyleConstants.FULL_WIDTH)
+              .height(StyleConstants.FULL_HEIGHT)
+              .justifyContent(FlexAlign.SpaceBetween)
+              .visibility(this.IMG_ctrl ? Visibility.Visible : Visibility.None)
+            }
+            .width(StyleConstants.FULL_WIDTH)
+            .height(StyleConstants.FULL_HEIGHT)
+
+            TabContent(){
+              Column(){
+                LyricsView({ mode_judge: false })
+                  .width('100%')
+                  .layoutWeight(1)
+              }
+            }
+          }
+          .width('100%')
+          .scrollable(true)
+          .barMode(BarMode.Fixed)
+          .layoutWeight(1)
+          .clip(false)
+          .barHeight(0)
+          .onChange((index: number) => {
+            this.uiContext?.animateTo({ duration: 400, curve: Curve.EaseInOut }, () => {
+              this.selectedTabIndex = index
+            })
+          })
+
+        }
+        .width(StyleConstants.FULL_WIDTH)
+        .height(StyleConstants.FULL_HEIGHT)
+        .linearGradient({
+          angle: 180,
+          colors: [['rgba(0, 0, 0, 0.50)', 0.0], ['rgba(0, 0, 0, 0.20)', 0.5], ['rgba(0, 0, 0, 0.50)', 1.0]]
+        })
+      }
+      .width(StyleConstants.FULL_WIDTH)
+      .height(StyleConstants.FULL_HEIGHT)
     }
-    .layoutWeight(1)
-    .width('100%')
-    .scrollable(true)
-    .barMode(BarMode.Fixed)
-    .layoutWeight(1)
-    .clip(false)
-    .barHeight(0)
-    .onChange((index: number) => {
-      this.uiContext?.animateTo({ duration: 400, curve: Curve.EaseInOut }, () => {
-        this.selectedTabIndex = index
-      })
-    })
-    .onAppear(()=>{promptAction.showToast({ message: '点击图片可全屏显示封面' })})
+    .width(StyleConstants.FULL_WIDTH)
+    .height(StyleConstants.FULL_HEIGHT)
+    .alignContent(Alignment.Center)
+    .alignSelf(ItemAlign.Center)
 
   }
   @Builder
   playing_30(){
-    Tabs({ barPosition: BarPosition.End, index: this.selectedTabIndex, controller: this.controller }){
-      TabContent(){
-        Column(){
-          Image(cover(this.song?.album?.cover ?? "", 512))
-            .height(this.IMG_ctrl?'90%':'50%')
-            .aspectRatio(1)
-            .borderRadius(24)
-              // .margin({ top: 36 })
-              // .geometryTransition('song-cover', { follow: true })
-            .transition(TransitionEffect.OPACITY)
-            .onClick(() => {
-              this.IMG_ctrl=!this.IMG_ctrl
-              // if (!this.isWideScreen) {
-              //   this.controller.changeIndex(1)
-              // }
-            }) //点击图片切换到歌词页面
-            .borderRadius(12)
-            .clickEffect({ level: ClickEffectLevel.LIGHT })
+    Stack(){
+      Stack(){
+        Image(cover(this.song?.album?.cover ?? "", this.winWidth))
+          .width(StyleConstants.FULL_WIDTH)
+          .height(StyleConstants.FULL_HEIGHT)
 
-          if (this.IMG_ctrl === false){
-              this.ProgressBar(false,2)
-              this.PlayerControls(false)
-          }
-        }
+        Column()
+          .width(StyleConstants.FULL_WIDTH)
+          .height(StyleConstants.FULL_HEIGHT)
+          .linearGradient({
+            angle: 180,
+            colors: [['rgba(0, 0, 0, 0.50)', 0.0], ['rgba(0, 0, 0, 0.20)', 0.5], ['rgba(0, 0, 0, 0.50)', 1.0]]
+          })
       }
-      TabContent(){
-        Column(){
-          LyricsView({
-            mode_judge: false,
-          }).width('100%').layoutWeight(1)
-      }}
-    }
-    .layoutWeight(1)
-    .width('100%')
-    .scrollable(true)
-    .barMode(BarMode.Fixed)
-    .layoutWeight(1)
-    .clip(false)
-    .barHeight(0)
-    .onChange((index: number) => {
-      this.uiContext?.animateTo({ duration: 400, curve: Curve.EaseInOut }, () => {
-        this.selectedTabIndex = index
-      })
-    })
-    .onAppear(()=>{promptAction.showToast({ message: '点击图片可全屏显示封面' })})
+      .width(StyleConstants.FULL_WIDTH)
+      .height(StyleConstants.FULL_HEIGHT)
 
+      Column(){
+        this.Title(true)
+
+        Tabs({ barPosition: BarPosition.End, index: this.selectedTabIndex, controller: this.controller }){
+          TabContent(){
+            Column(){
+              Column(){
+                Text(this.currentLyric)
+                  .fontSize(20)
+                  .fontWeight(700)
+                  .fontColor(Color.White)
+                  .textAlign(TextAlign.Center)
+                  .borderRadius(8)
+                  .animation({
+                    duration: 500,
+                    curve: Curve.FastOutSlowIn
+                  })
+              }
+              .padding(16)
+              .justifyContent(FlexAlign.Center)
+              .alignItems(HorizontalAlign.Center)
+              .width(StyleConstants.FULL_WIDTH)
+              .layoutWeight(1)
+
+              this.ProgressBar(true)
+              this.PlayerControls(true)
+
+              Blank()
+                .height(this.bottomRect/2)
+            }
+            .width('100%')
+          }
+          TabContent(){
+            Column(){
+              LyricsView({
+                mode_judge: false,
+              }).width('100%').layoutWeight(1)
+            }}
+        }
+        .layoutWeight(1)
+        .width('100%')
+        .scrollable(true)
+        .barMode(BarMode.Fixed)
+        .clip(false)
+        .barHeight(0)
+        .onChange((index: number) => {
+          this.uiContext?.animateTo({ duration: 400, curve: Curve.EaseInOut }, () => {
+            this.selectedTabIndex = index
+          })
+        })
+      }
+    }
+    .width(StyleConstants.FULL_WIDTH)
+    .height(StyleConstants.FULL_HEIGHT)
+    .alignContent(Alignment.Center)
+    .alignSelf(ItemAlign.Center)
   }
   @Builder
   PlayListBuilder() {
@@ -422,22 +498,37 @@ struct Playing {
                   fill: false
                 })
                 .clickEffect({ level: ClickEffectLevel.LIGHT })
-              TextClock()
-                .fontColor(`#ff${this.imageColorHex}`)
-                .format('HH:mm')
-                .blendMode(BlendMode.PLUS, BlendApplyType.OFFSCREEN)
-                .margin(12)
-              // .backgroundBlurStyle(BlurStyle.Thin)
+
+              Row(){
+                Text(this.song?.artists ? this.song.artists.map(artist => artist.name).join(" / ") : "未知艺术家")
+                  .maxLines(1)
+                  .fontSize(14)
+                  .width('60%')
+                  .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
+                  .fontColor(`#ff${this.imageColorHex}`)
+                  .textOverflow({ overflow: TextOverflow.MARQUEE })
+                  .blendMode(BlendMode.DIFFERENCE, BlendApplyType.OFFSCREEN)
+
+                Row(){
+                  TextClock()
+                    .format('HH:mm:ss')
+                    .fontColor(`#ff${this.imageColorHex}`)
+                    .blendMode(BlendMode.DIFFERENCE, BlendApplyType.OFFSCREEN)
+                }
+              }
+              .width(StyleConstants.FULL_WIDTH)
+              .justifyContent(FlexAlign.SpaceBetween)
+              .padding(12)
             }
             .alignContent(Alignment.BottomEnd)
             .layoutWeight(1)
 
-            Text((this.song?.name || "未知歌曲") + '/' +
-              (this.song?.artists ? this.song.artists.map(artist => artist.name).join(" / ") : "未知艺术家"))
+            Text((this.song?.name || "未知歌曲"))
               .fontSize(this.getFontSize(this.song?.name ?? "", 16, 16))// .fontWeight(FontWeight.Bold)
               .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-              .fontColor('rgba(255, 255, 255, 0.6)')
+              .textOverflow({ overflow: TextOverflow.MARQUEE })
+              .fontColor(Color.White)
+              .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
               .height(24) // 固定高度确保布局稳定
               .margin({ top: 5 })
           }
@@ -494,94 +585,121 @@ struct Playing {
       Row() {
         //封面图
         Column() {
-          Image(cover(this.song?.album?.cover ?? "", 512))
-            .height('70%')
-            .aspectRatio(1)
-            .borderRadius(this.img_playing_ctrl==='1'?0: 24)
-            .borderImage({
-              source: {
-                angle: 90,
-                direction: GradientDirection.Left,
-                colors: [[0xAEE1E1, 0.0], [0xD3E0DC, 0.3], [0xFCD1D1, 1.0]]
-              },
-              slice: { top: this.img_playing_ctrl==='1'?10:0, bottom: this.img_playing_ctrl==='1'?10:0, left: this.img_playing_ctrl==='1'?10:0, right: this.img_playing_ctrl==='1'?10:0 },
-              width: { top:this.img_playing_ctrl==='1'? "10px":"0px", bottom: this.img_playing_ctrl==='1'? "10px":"0px", left: this.img_playing_ctrl==='1'? "10px":"0px", right: this.img_playing_ctrl==='1'? "10px":"0px" },
-              repeat: RepeatMode.Stretch,
-              fill: false
-            })
-            .onAppear(async ()=>{
-              try {
-                let netFile = this.song?.album?.cover + "?param=64y64" ?? "";
-                let httpRequest = http.createHttp()
-                let data = await httpRequest.request(netFile);
-                let imageDealData = await ImageUtils.getImageDealDataByArr(data.result as ArrayBuffer);//imageDealData.imageColorHex.length
-                this.imageColorHex=imageDealData.imageColorHex
-              } catch (e) {
-                hilog.error(0x0000, 'TestTag', 'Failed error.code is %{public}d,error.message is %{public}s', e.code,
-                  e.message);
+          Stack(){
+            Image(cover(this.song?.album?.cover ?? "", 512))
+              .height('100%')
+              .aspectRatio(1)
+              .borderRadius(this.img_playing_ctrl==='1' ? 0 : 24)
+              .borderImage({
+                source: {
+                  angle: 90,
+                  direction: GradientDirection.Left,
+                  colors: [[0xAEE1E1, 0.0], [0xD3E0DC, 0.3], [0xFCD1D1, 1.0]]
+                },
+                slice: { top: this.img_playing_ctrl==='1'?10:0, bottom: this.img_playing_ctrl==='1'?10:0, left: this.img_playing_ctrl==='1'?10:0, right: this.img_playing_ctrl==='1'?10:0 },
+                width: { top:this.img_playing_ctrl==='1'? "10px":"0px", bottom: this.img_playing_ctrl==='1'? "10px":"0px", left: this.img_playing_ctrl==='1'? "10px":"0px", right: this.img_playing_ctrl==='1'? "10px":"0px" },
+                repeat: RepeatMode.Stretch,
+                fill: false
+              })
+              .onAppear(async ()=>{
+                try {
+                  let netFile = this.song?.album?.cover + "?param=64y64" ?? "";
+                  let httpRequest = http.createHttp()
+                  let data = await httpRequest.request(netFile);
+                  let imageDealData = await ImageUtils.getImageDealDataByArr(data.result as ArrayBuffer);//imageDealData.imageColorHex.length
+                  this.imageColorHex=imageDealData.imageColorHex
+                } catch (e) {
+                  hilog.error(0x0000, 'TestTag', 'Failed error.code is %{public}d,error.message is %{public}s', e.code,
+                    e.message);
+                }
+              })
+              .gesture(
+                PanGesture({ direction: PanDirection.Horizontal })
+                  .onActionStart(() => {
+                    this.isSwipingActive = true;
+                  })
+                  .onActionUpdate((event) => {
+                    // 更新滑动偏移量
+                    this.swipeOffset = event.offsetX;
+
+                    // 确定滑动方向
+                    if (event.offsetX > 10 &&this.img_playing_ctrl==='1') {
+                      this.swipeDirection = 'right'; // 向右滑动，上一首
+                    } else if (event.offsetX < -10) {
+                      this.swipeDirection = 'left'; // 向左滑动，下一首
+                    } else {
+                      this.swipeDirection = '';
+                    }
+                  })
+                  .onActionEnd(() => {
+                    // 根据最终偏移量决定是切换歌曲还是回弹
+                    if (this.swipeOffset > this.SWIPE_THRESHOLD &&this.img_playing_ctrl==='1') {
+                      // 向右滑动超过阈值，切换到上一首
+                      this.handleSongChange('prev');
+                    }                else  if (this.swipeOffset > this.SWIPE_THRESHOLD &&this.img_playing_ctrl==='0') {
+                      // 向右滑动超过阈值，切换到上一首
+                      this.swiperController.showPrevious()
+                    }  else if (this.swipeOffset < -this.SWIPE_THRESHOLD&&this.img_playing_ctrl==='1') {
+                      // 向左滑动超过阈值，切换到下一首
+                      this.handleSongChange('next');
+                    } else {
+                      // 未达到阈值，回弹
+                      this.uiContext?.animateTo({
+                        duration: 250,
+                        curve: Curve.EaseOut,
+                        delay: 0,
+                        onFinish: () => {
+                          this.isSwipingActive = false;
+                          this.swipeDirection = '';
+                        }
+                      }, () => {
+                        this.swipeOffset = 0;
+                      });
+                    }
+                  })
+              )
+              .onClick(()=>{
+                this.swiperController.showPrevious()
+              })
+              .clickEffect({ level: ClickEffectLevel.LIGHT })
+
+
+            Row(){
+              Text(this.song?.artists ? this.song.artists.map(artist => artist.name).join(" / ") : "未知艺术家")
+                .maxLines(1)
+                .fontSize(14)
+                .width('60%')
+                .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
+                .fontColor(`#ff${this.imageColorHex}`)
+                .textOverflow({ overflow: TextOverflow.MARQUEE })
+                .blendMode(BlendMode.DIFFERENCE, BlendApplyType.OFFSCREEN)
+
+              Row(){
+                TextClock()
+                  .format('HH:mm')
+                  .fontColor(`#ff${this.imageColorHex}`)
+                  .blendMode(BlendMode.DIFFERENCE, BlendApplyType.OFFSCREEN)
               }
-            })
-            .gesture(
-              PanGesture({ direction: PanDirection.Horizontal })
-                .onActionStart(() => {
-                  this.isSwipingActive = true;
-                })
-                .onActionUpdate((event) => {
-                  // 更新滑动偏移量
-                  this.swipeOffset = event.offsetX;
+            }
+            .width(StyleConstants.FULL_WIDTH)
+            .justifyContent(FlexAlign.SpaceBetween)
+            .padding(12)
+          }
+          .width('70%')
+          .aspectRatio(1)
+          .alignContent(Alignment.BottomEnd)
 
-                  // 确定滑动方向
-                  if (event.offsetX > 10 &&this.img_playing_ctrl==='1') {
-                    this.swipeDirection = 'right'; // 向右滑动，上一首
-                  } else if (event.offsetX < -10) {
-                    this.swipeDirection = 'left'; // 向左滑动，下一首
-                  } else {
-                    this.swipeDirection = '';
-                  }
-                })
-                .onActionEnd(() => {
-                  // 根据最终偏移量决定是切换歌曲还是回弹
-                  if (this.swipeOffset > this.SWIPE_THRESHOLD &&this.img_playing_ctrl==='1') {
-                    // 向右滑动超过阈值，切换到上一首
-                    this.handleSongChange('prev');
-                  }                else  if (this.swipeOffset > this.SWIPE_THRESHOLD &&this.img_playing_ctrl==='0') {
-                    // 向右滑动超过阈值，切换到上一首
-                    this.swiperController.showPrevious()
-                  }  else if (this.swipeOffset < -this.SWIPE_THRESHOLD&&this.img_playing_ctrl==='1') {
-                    // 向左滑动超过阈值，切换到下一首
-                    this.handleSongChange('next');
-                  } else {
-                    // 未达到阈值，回弹
-                    this.uiContext?.animateTo({
-                      duration: 250,
-                      curve: Curve.EaseOut,
-                      delay: 0,
-                      onFinish: () => {
-                        this.isSwipingActive = false;
-                        this.swipeDirection = '';
-                      }
-                    }, () => {
-                      this.swipeOffset = 0;
-                    });
-                  }
-                })
-            )
-            .onClick(()=>{
-              this.swiperController.showPrevious()
-            })
-            .clickEffect({ level: ClickEffectLevel.LIGHT })
-
-          Text((this.song?.name || "未知歌曲") + '/' +
-            (this.song?.artists ? this.song.artists.map(artist => artist.name).join(" / ") : "未知艺术家"))
+          Text((this.song?.name || "未知歌曲"))
             .fontSize(this.getFontSize(this.song?.name ?? "", 16, 16))// .fontWeight(FontWeight.Bold)
             .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .textOverflow({ overflow: TextOverflow.MARQUEE })
             .fontColor(Color.White)
+            .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
             .height(24) // 固定高度确保布局稳定
             .margin({ top: 5 })
 
           Column(){
-            this.ProgressBar(false)
+            this.ProgressBar(true, 0, true)
           }
           .width('120%')
           .layoutWeight(0.5)
@@ -784,7 +902,7 @@ struct Playing {
         .height(StyleConstants.FULL_HEIGHT)
         .linearGradient({
           angle: 180,
-          colors: [['rgba(0,0,0,0.3)', 0.0], ['rgba(0,0,0,0.7)', 1.0]]
+          colors: [['rgba(0, 0, 0, 0.50)', 0.0], ['rgba(0, 0, 0, 0.20)', 0.5], ['rgba(0, 0, 0, 0.50)', 1.0]]
         })
     }
     .width(judge?StyleConstants.FULL_WIDTH:0)
@@ -817,7 +935,7 @@ struct Playing {
         }
         .width(StyleConstants.FULL_WIDTH)
         .padding({ left: 8, right: 8 })
-        .height(20) // 固定高度以保持布局稳定
+        .height(16) // 固定高度以保持布局稳定
       }
 
       Slider({
@@ -883,7 +1001,7 @@ struct Playing {
       top: judge_time_area ? 8 : 0,
       bottom: 4
     })
-    .height(judge ? 64 : 32) // 固定整个进度条区域的高度
+    .height(judge ? 40 : 30) // 固定整个进度条区域的高度
   }
 
   private coverWidth = new BreakPointType({
@@ -895,7 +1013,7 @@ struct Playing {
   private smallButtonSize = 36
 
   @Builder
-  PlayerControls(judge:boolean=true) {
+  PlayerControls(judge: boolean = true) {
     Row() {
       // Shuffle/repeat button (Left)
       if(judge){ Button({ type: ButtonType.Circle }) {
@@ -1269,7 +1387,7 @@ struct Playing {
     }
     .width(StyleConstants.FULL_WIDTH)
     .justifyContent(FlexAlign.SpaceBetween)
-    .padding({ left: 16, right: 16, top: 16 })
+    .padding({ left: 8, right: 8, top: 16 })
     .height(64) // 固定高度保持布局稳定
   }
 
@@ -1430,7 +1548,7 @@ struct Playing {
       }
       .justifyContent(FlexAlign.Center)
       .alignItems(VerticalAlign.Center)
-      .layoutWeight(3)
+      .layoutWeight(4)
 
       Blank()
 
@@ -1448,21 +1566,23 @@ struct Playing {
           .fontSize(16)
           .fontColor('rgba(255, 255, 255, 0.6)')
           .maxLines(1)
+          .width(250)
+          .textAlign(TextAlign.Center)
           .textOverflow({ overflow: TextOverflow.MARQUEE })
           .height(24) // 固定高度确保布局稳定
       }
       .width(StyleConstants.FULL_WIDTH)
-      .layoutWeight(1)
       .alignItems(HorizontalAlign.Center)
       .margin({ top: 16, bottom: 4 })
       .padding({ left: 12, right: 12 })
+      .layoutWeight(1)
       .height(60) // 固定整个信息区的高度
 
       Blank()
 
       // 进度条
       Column(){
-        this.ProgressBar()
+        this.ProgressBar(true)
       }
       .layoutWeight(1)
 
@@ -1470,7 +1590,11 @@ struct Playing {
       Blank()
 
       // 播放控制区
-      this.PlayerControls()
+      Column(){
+        this.PlayerControls()
+      }
+      .justifyContent(FlexAlign.Center)
+      .layoutWeight(1)
 
       // 底部控件 - 使用Blank占据空间，将控件推到底部
       Blank()
@@ -1480,6 +1604,7 @@ struct Playing {
         this.BottomControls()
       }
 
+      Blank()
       // 底部避让
       Blank().height(this.bottomRect/2)
     }
@@ -1500,7 +1625,7 @@ struct Playing {
   }
 
   @Builder
-  Title(judge:boolean=false) {
+  Title(judge: boolean = false) {
     Column(){
       // PC工具栏适配
       Row()
@@ -1509,35 +1634,78 @@ struct Playing {
         .width('100%')
 
       Row() {
-        Image($r('app.media.ic_arrow_down_3'))
-          .width(36)
-          .height(36)
-          .fillColor(Color.White)
-          .margin({ left: 24 })
-          .rotate({ angle: this.isBackButtonPressed ? 180 : 0 })
-          .scale({ x: this.isBackButtonPressed ? 0.8 : 1.0, y: this.isBackButtonPressed ? 0.8 : 1.0 })
-          .animation({
-            duration: 300,
-            curve: Curve.EaseOut,
-            iterations: 1,
-            playMode: PlayMode.Normal
-          })
+        if (judge || this.selectedTabIndex === 1){
+          Row({ space: 4 }) {
+            Image(cover(this.song?.album?.cover ?? "", 512))
+              .height(34)
+              .aspectRatio(1)
+              .borderRadius(4)
+              .shadow(ShadowStyle.OUTER_DEFAULT_SM)
+
+            Column({ space: 4 }) {
+              Text(this.song?.name || "未知歌曲")
+                .fontSize(16)
+                .fontWeight(FontWeight.Bold)
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.MARQUEE })
+                .fontColor(Color.White)
+                .height(16) // 固定高度确保布局稳定
+
+              Text(this.song?.artists ? this.song.artists.map(artist => artist.name).join(" / ") : "未知艺术家")
+                .fontSize(12)
+                .fontColor('rgba(255, 255, 255, 0.6)')
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.MARQUEE })
+                .height(12) // 固定高度确保布局稳定
+            }
+            .layoutWeight(1)
+            .alignItems(HorizontalAlign.Start)
+          }
+          .layoutWeight(1)
+        } else {
+          Column(){
+            Text(this.getTitleLyrics(this.currentLineLyrics as LyricsLine))
+              .fontSize(20)
+              .fontWeight(700)
+              .fontColor(Color.White)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.MARQUEE })
+              .textAlign(TextAlign.Center)
+              .borderRadius(8)
+          }
+          .justifyContent(FlexAlign.Center)
+          .alignItems(HorizontalAlign.Center)
+          .width(StyleConstants.FULL_WIDTH)
+          .opacity(this.showLyricType === -1 ? 0 : 1)
+          .layoutWeight(1)
           .onClick(() => {
-            this.isBackButtonPressed = true
-            this.pageStack.pop()
+            switch(this.showLyricType) {
+              case -1:
+                this.showLyricType += 1
+                break
+              case 0:
+                if(this.currentLineLyrics?.translation) {
+                  this.showLyricType += 1
+                } else {
+                  this.showLyricType = -1
+                }
+                break
+              case 1:
+                if(this.currentLineLyrics?.transliteration) {
+                  this.showLyricType += 1
+                } else {
+                  this.showLyricType = -1
+                }
+                break
+              case 2:
+                this.showLyricType = -1
+            }
+            AppStorage.setOrCreate<number>('playing_title_lyric_show_status', this.showLyricType)
+            PreferencesCache.setUserPreference('playing_title_lyric_show_status', this.showLyricType.toString())
           })
-        if (judge){
-          Text((this.song?.name || "未知歌曲") + '/' +
-            (this.song?.artists ? this.song.artists.map(artist => artist.name).join(" / ") : "未知艺术家"))
-            .fontSize(this.getFontSize(this.song?.name ?? "", 16, 16))// .fontWeight(FontWeight.Bold)
-            .maxLines(1)
-            .width('40%')
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-            .fontColor('rgba(255, 255, 255, 0.6)')
-          // .height(24) // 固定高度确保布局稳定
         }
-        if (this.Pura_X==='1'||judge){
-          Blank().layoutWeight(1)
+        if (this.Pura_X === '1' || judge || this.selectedTabIndex === 1){
+          Blank()
           Button({ type: ButtonType.Circle }) {
             Image(this.isFavorite ? $r('app.media.ic_heart_fill') : $r('app.media.ic_heart'))
               .width(24)
@@ -1602,13 +1770,13 @@ struct Playing {
           })
           .bindMenu(this.isWideScreen ? this.getWideScreenMenu() : this.getNarrowScreenMenu())
         }
-        if(this.selectedTabIndex===1||this.isWideScreen && this.Playing_Next == false){
+        if(this.selectedTabIndex === 1 ||this.isWideScreen && this.Playing_Next == false){
           Blank()
           Button({ type: ButtonType.Circle }){
             Image($r('app.media.lysic'))
               .width(24)
               .height(24)
-              .fillColor(this.Lyic_desktop==='1' ?Color.White:Color.Gray)
+              .fillColor(this.Lyic_desktop==='1' ? Color.Orange : Color.White)
           }.width(this.buttonSize)
           .height(this.buttonSize)
           .backgroundColor(Color.Transparent)
@@ -1630,6 +1798,7 @@ struct Playing {
         }
       }
       .width(StyleConstants.FULL_WIDTH)
+      .padding({ left: 12, right: 12 })
       .alignItems(VerticalAlign.Center)
       .height(50) // 固定标题栏高度
     }
@@ -1687,12 +1856,8 @@ struct Playing {
             .layoutWeight(1)
           } else if (this.isWideScreen && this.Playing_Next) {
             this.Playing_HorizontalMode()
-          }else if (this.winHeightWithPx<1500&&this.winWidthWithPx<1500){
-            if(this.winHeightWithPx>900&&this.Pura_X==='0'||this.winHeightWithPx>600&&this.Pura_X==='1'){
-              this.playing_50()
-            }else{
-              this.playing_30()
-            }
+          } else if (this.widthBreakpoint <= WidthBreakpoint.WIDTH_SM && (this.heightBreakpoint <= HeightBreakpoint.HEIGHT_SM || this.winWidth/this.winHeight > 0.80)){
+            this.playing_50()
           } else {
 
             this.Title()
@@ -1794,6 +1959,19 @@ struct Playing {
       WindowUtil.setSystemBarEnabled(this.windowStage, false)
     }else{
       WindowUtil.setSystemBarEnabled(this.windowStage, true)
+    }
+  }
+
+  getTitleLyrics(lyricsLine: LyricsLine): string {
+    switch(this.showLyricType){
+      case 0:
+        return lyricsLine?.text ?? ''
+      case 1:
+        return lyricsLine?.translation ?? (lyricsLine?.text ?? '')
+      case 2:
+        return lyricsLine?.transliteration ?? (lyricsLine?.translation ?? (lyricsLine?.text ?? ''))
+      default:
+        return ''
     }
   }
 }

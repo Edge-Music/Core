@@ -47,12 +47,14 @@ class LyricsManager {
     this.translatedLyrics = this.song?.meta?.lyric?.translation ?? ''
     this.transliteratedLyrics = this.song?.meta?.lyric?.transliteration ?? ''
     let tmpSongName: string = this.song?.name + ' - ' + this.song?.artists[0].name
+    let lyricsLine: LyricsLine = new LyricsLine(0, tmpSongName)
     if(this.currentSongName !== tmpSongName){
       AppStorage.setOrCreate<number>('current_lyrics_index', 0)
       this.currentSongName = tmpSongName
       FormUtils.updateCardCurrentLyrics(tmpSongName)
       // FormUtils.updateCardLyricsIndex(this.currentIndex)
       AppStorage.setOrCreate<string>('test_index', tmpSongName)
+      AppStorage.setOrCreate<LyricsLine>('current_line_lyrics', lyricsLine)
       if(EventHelper.getPipLyricListenerCount() > 0){
         EventHelper.postPipLyric(tmpSongName)
       }

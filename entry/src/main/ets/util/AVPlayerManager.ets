@@ -259,6 +259,12 @@ class AVPlayerManager {
     }
   }
 
+  async initAppVolume() {
+    const volume = Number(PreferencesCache.getUserPreference('Volume', '100'))
+    const player = await this.getAVPlayerInstance();
+    player.setVolume(volume/100)
+  }
+
   private setupMediaSessionListeners() {
     if (!this.avSession) {
       return;
@@ -623,6 +629,7 @@ class AVPlayerManager {
     try {
       this.setAudioSession()
       const player = await this.getAVPlayerInstance();
+      await this.initAppVolume()
       await player.play();
       this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PLAY);
       AppStorage.setOrCreate<boolean>("playing_judge",true)

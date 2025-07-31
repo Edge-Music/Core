@@ -409,7 +409,7 @@ export struct Setting_2in1 {
       // 第一页表单
       Column({ space: 16 }) {
         Scroll(){
-          Column(){
+          Column({ space: 16 }){
 
             Column({ space: 8 }) {
               Text($r('app.string.data_source_name'))
@@ -420,6 +420,9 @@ export struct Setting_2in1 {
                 .animation({ delay: 50, duration: 250, curve: Curve.FastOutSlowIn })
 
               TextInput({ placeholder: $r('app.string.please_input_data_source_name'), text: $$this.formData.name })
+                .onSubmit((enterKey: EnterKeyType, event: SubmitEvent) => {
+                  focusControl.requestFocus('data_source_address_2')
+                })
                 .width(StyleConstants.FULL_WIDTH)
                 .opacity(this.currentStep === 0 ? 1 : 0)
                 .translate({ x: this.currentStep === 0 ? 0 : '-20%' })
@@ -435,6 +438,10 @@ export struct Setting_2in1 {
                 .animation({ delay: 150, duration: 250, curve: Curve.FastOutSlowIn })
 
               TextInput({ placeholder: $r('app.string.please_input_data_source_name_address'), text: $$this.formData.url })
+                .id('data_source_address_2')
+                .onSubmit((enterKey: EnterKeyType, event: SubmitEvent) => {
+                  focusControl.requestFocus('data_source_desc_2')
+                })
                 .width(StyleConstants.FULL_WIDTH)
                 .opacity(this.currentStep === 0 ? 1 : 0)
                 .translate({ x: this.currentStep === 0 ? 0 : '-20%' })
@@ -450,8 +457,9 @@ export struct Setting_2in1 {
                 .animation({ delay: 250, duration: 250, curve: Curve.FastOutSlowIn })
 
               TextArea({ placeholder: $r('app.string.please_input_data_source_description'), text: $$this.formData.description })
-                .width(StyleConstants.FULL_WIDTH)
                 .height(100)
+                .id('data_source_desc_2')
+                .width(StyleConstants.FULL_WIDTH)
                 .opacity(this.currentStep === 0 ? 1 : 0)
                 .translate({ x: this.currentStep === 0 ? 0 : '-20%' })
                 .animation({ delay: 300, duration: 250, curve: Curve.FastOutSlowIn })
@@ -477,6 +485,7 @@ export struct Setting_2in1 {
             }
           }
         }
+        .scrollBar(BarState.Off)
       }
       .width(StyleConstants.FULL_WIDTH)
       .padding(16)
@@ -526,12 +535,12 @@ export struct Setting_2in1 {
                 .translate({ x: this.currentStep === 1 ? 0 : '20%' })
                 .animation({ delay: 100, duration: 250, curve: Curve.FastOutSlowIn })
 
-              TextInput({
+              TextArea({
                 placeholder: $r('app.string.please_input_token_credential'),
                 text: this.tokenFromQR || (this.formData.auth?.token || '')
               })
                 .width(StyleConstants.FULL_WIDTH)
-                .type(InputType.Password)
+                .height(80)
                 .onChange((value) => {
                   if (!this.formData.auth) {
                     this.formData.auth = { token: '', signAt: Date.now() }
@@ -565,6 +574,7 @@ export struct Setting_2in1 {
             .margin({ bottom: 16 })
           }
         }
+        .scrollBar(BarState.Off)
 
       }
       .width(StyleConstants.FULL_WIDTH)

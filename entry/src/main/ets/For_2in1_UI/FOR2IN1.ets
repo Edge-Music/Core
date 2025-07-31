@@ -16,6 +16,7 @@ export struct IS_2IN1_UI{
   @StorageLink('currentBreakpoint') currentBreakpoint: string = 'sm'
   @Link page_judge: string
   @State sidebar_ctrl: boolean = false
+  @State titleOpacity: number = 0
   @Link title: string
   @StorageProp('bottomRect') bottomRect: number = 0
   @StorageProp('topRect') topRect: number = 0
@@ -78,24 +79,24 @@ export struct IS_2IN1_UI{
             }
           }, () => {
             this.sidebar_ctrl = !this.sidebar_ctrl
+            this.sidebar_ctrl == true ? this.titleOpacity = 1 : this.titleOpacity = 0
           });
         })
 
-        Row(){
-          if(this.sidebar_ctrl){
+        if(this.sidebar_ctrl){
+          Row(){
             Text($r('app.string.library'))
               .fontColor($r('app.color.text_title'))
               .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
               .fontSize($r('app.float.title_font_size'))
+              .opacity(this.titleOpacity)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
               .maxLines(1)
           }
-        }
-        .layoutWeight(1)
-        .justifyContent(FlexAlign.Center)
-        .alignItems(VerticalAlign.Center)
+          .layoutWeight(1)
+          .justifyContent(FlexAlign.Center)
+          .alignItems(VerticalAlign.Center)
 
-        if(this.sidebar_ctrl){
           Button({ type: ButtonType.Circle }){
             Text('󰀩')
               .fontColor($r('app.color.text_title'))
@@ -111,16 +112,17 @@ export struct IS_2IN1_UI{
           })
           .margin({ right:16 })
         }
+
       }
       .margin({ left: 12 })
-      .justifyContent(FlexAlign.SpaceBetween)
+      .width(this.sidebar_ctrl ? 300 : 100)
+      .justifyContent(FlexAlign.Start)
       .alignItems(VerticalAlign.Center)
     }
     .justifyContent(FlexAlign.Center)
     .alignItems(VerticalAlign.Center)
     .backgroundColor(Color.Transparent)
     .height(StyleConstants.TITLE_HEIGHT)
-    .width(this.sidebar_ctrl ? 300 : 100)
     .animation({
       duration: 250,
       curve: Curve.FastOutSlowIn

@@ -2,6 +2,7 @@ import { DialogAction, DialogHelper } from "@pura/harmony-dialog";
 import { LogUtil, ToastUtil } from "@pura/harmony-utils";
 import { StyleConstants } from "../constants/StyleConstants";
 import { Playlist, PlaylistType, Song } from "../type/Adapter";
+import { cover } from "../util/AdapterHelper";
 import { PreferencesCache } from "../util/PreferenceCache";
 import { SongDownloadManager } from "../util/SongDownloadManager";
 
@@ -73,17 +74,24 @@ export struct SongInfo {
 
   build() {
     Column() {
-      Row() {
+      Row({ space: 8 }) {
         if (this.showIndex) {
           // 序号区域 - 扁平简约设计
           Text((this.index + 1).toString())
-            .fontSize(15)
+            .width(28)
+            .maxFontSize(15)
+            .minFontSize(10)
+            .maxLines(1)
             .fontColor(this.getTextColor($r('app.color.text_secondary')))
             .fontWeight(FontWeight.Medium)
-            .width(28)
             .textAlign(TextAlign.Center)
-            .margin({ right: 16 })
         }
+
+        Image(cover(this.song?.album?.cover ?? "", 512))
+          .aspectRatio(1)
+          .borderRadius(8)
+          .height(48)
+          .shadow(ShadowStyle.OUTER_DEFAULT_XS)
 
         // 歌曲信息区域
         Column({ space: 6 }) {
@@ -148,7 +156,7 @@ export struct SongInfo {
       .shadow(ShadowStyle.OUTER_DEFAULT_XS)
       .width(StyleConstants.FULL_WIDTH)
       .height(68)
-      .padding({ left: 16, right: 16 })
+      .padding({ left: 12, right: 12 })
       .borderRadius(10)
       .onHover((isHover: boolean, event: HoverEvent)=>{
           this.On_Mouse =isHover
