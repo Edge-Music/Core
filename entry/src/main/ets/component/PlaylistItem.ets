@@ -240,7 +240,7 @@ export struct PlaylistItem {
         playlist,
         playlistName,
         playlistDesc)
-      LogUtil.info(`[${TAG}]`, `歌单[${playlist.id}][${playlistName}]更新成功`)
+      LogUtil.info(`[${TAG}]`, `歌单[${playlist.id}][${playlistName}]更新成功: ${JSON.stringify(playlist)}`)
     } catch(error) {
       LogUtil.info(`[${TAG}]`, `歌单[${playlist.id}][${this.playlistName}]更新失败: ${JSON.stringify(error)}`)
     } finally {

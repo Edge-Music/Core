@@ -202,7 +202,7 @@ export struct Aggregation {
         type: PlaylistType.AGGREGATION
       }
       PreferencesCache.addPlaylistsCache('aggregation_playlist', [playlist])
-      LogUtil.info(`[${TAG}]`, `歌单[${playlist.id}][${playlistName}]添加成功`)
+      LogUtil.info(`[${TAG}]`, `歌单[${playlist.id}][${playlistName}]添加成功: ${JSON.stringify(playlist)}`)
       this.playlistCover = $r('app.media.icon_startwindow')
     } catch(error) {
       LogUtil.info(`[${TAG}]`, `歌单[${this.playlistName}]添加失败: ${JSON.stringify(error)}`)
