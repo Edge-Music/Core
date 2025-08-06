@@ -935,9 +935,9 @@ struct Playing {
         style: SliderStyle.InSet
       })
         .trackThickness(this.isProgressBarExpanded ? 12+weight : 8+weight)
-        .selectedColor('rgba(202, 202, 202, 1.00)')
-        .trackColor('rgba(255, 255, 255, 0.3)')// 半透明背景
-        .blockColor('rgba(255, 255, 255, 1.00)')
+        .selectedColor('rgba(255, 255, 255, 1.00)')
+        .trackColor('rgba(177, 177, 177, 0.30)')// 半透明背景
+        .blockColor('rgba(164, 164, 164, 1.00)')
         .width(StyleConstants.FULL_WIDTH)
         .height(25)// 固定高度以保持布局稳定
         .animation({
