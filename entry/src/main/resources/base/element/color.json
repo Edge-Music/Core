@@ -6,7 +6,7 @@
     },
     {
       "name": "page_background",
-      "value": "#FFEAEAEA"
+      "value": "#FFF1F1F1"
     },
     {
       "name": "text_title",
@@ -58,7 +58,7 @@
     },
     {
       "name": "homepage_menu_button_normal",
-      "value": "#FFFFFFFF"
+      "value": "#CCFFFFFF"
     },
     {
       "name": "homepage_menu_button_pressed",

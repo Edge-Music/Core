@@ -7,6 +7,8 @@ import { PlaylistView } from '../component/PlaylistView';
 import { BreakpointConstants } from '../constants/BreakpointConstants';
 import { curves } from '@kit.ArkUI';
 import { PreferencesCache } from "../util/PreferenceCache";
+import { LyricsLine } from '../util/LyricsManager';
+
 @Component
 export struct MiniPlaybackControl {
   @StorageLink('current_playing_song') currentSong: Song | null = null;
@@ -23,6 +25,8 @@ export struct MiniPlaybackControl {
   @StorageLink('winWidth') winWidth: number = 0
   @StorageProp('bottomRect') bottomRect: number = 0
   @StorageLink('miniplaying_bottom_judge') bottom_judge: string = PreferencesCache.getUserPreference('miniplaying_bottom_judge','0')
+  @StorageProp('current_line_lyrics') currentLineLyrics: LyricsLine | undefined = AppStorage.get<LyricsLine>('current_line_lyrics')
+  @StorageProp('current_width_breakpoint') widthBreakpoint: WidthBreakpoint = WidthBreakpoint.WIDTH_SM
   @State playBtnScale: number = 1
   @State nextBtnScale: number = 1
   @State playListBtnScale: number = 1
@@ -155,8 +159,6 @@ export struct MiniPlaybackControl {
       Column()
         .width(StyleConstants.FULL_WIDTH)
         .height(StyleConstants.FULL_HEIGHT)
-        // .backgroundColor('rgba(243, 243, 243, 0.6)')
-        // .backdropBlur(30)
         .backgroundBlurStyle(BlurStyle.Thick)
         .borderRadius(10)
         .shadow({
@@ -191,19 +193,32 @@ export struct MiniPlaybackControl {
               .fontWeight(FontWeight.Medium)
               .fontColor($r('app.color.text_title'))
               .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.MARQUEE })
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
 
             if (this.currentSong) {
               Text(this.currentSong.artists?.map(artist => artist.name).join(' / ') || $r('app.string.unknown_artist'))
                 .fontSize(12)
                 .fontColor($r('app.color.text_primary'))
                 .maxLines(1)
-                .textOverflow({ overflow: TextOverflow.MARQUEE })
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
             }
           }
           .alignItems(HorizontalAlign.Start)
           .margin({ left: 12 })
-          .layoutWeight(1)
+          .layoutWeight(2)
+
+          Column() {
+            Text(this.currentLineLyrics?.text)
+              .fontSize(17)
+              .fontWeight(700)
+              .fontColor(Color.White)
+              .maxLines(2)
+              .textAlign(TextAlign.Center)
+              .borderRadius(8)
+          }
+          .margin({ left: 12, right: 12 })
+          .layoutWeight(5)
+          .visibility(this.widthBreakpoint >= WidthBreakpoint.WIDTH_MD ? Visibility.Visible : Visibility.None)
 
           // 控制按钮组
           Row({ space: 8 }) {
