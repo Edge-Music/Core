@@ -1,3 +1,4 @@
+
 import { LazyData } from "@pie/lazy-data"
 import { DialogHelper } from "@pura/harmony-dialog"
 import { ToastUtil } from "@pura/harmony-utils"
@@ -44,11 +45,16 @@ export struct HorizontalScroll {
     for (let i = 0; i < itemCount; i++) {
       const itemCenterPos = i * itemWidthWithPadding + this.coverWidth / 2
       const visibleCenterPos = itemCenterPos - scrollOffset
-      const distanceFromFocus = visibleCenterPos - this.coverWidth / 2
+      const distanceFromFocus = visibleCenterPos - this.coverWidth * 0.7
       const effectiveDistance = Math.max(0, distanceFromFocus)
-      const focusDistance = this.coverWidth * 2.5
+      const focusDistance = this.coverWidth * 2.0 // Make shrinking faster
       const normalizedDistance = effectiveDistance / focusDistance
-      const scale = Math.max(MIN_SCALE, 1.0 - normalizedDistance * (1.0 - MIN_SCALE))
+
+      // Apply a non-linear curve (cubic ease-out on distance for faster shrinking)
+      const clampedDistance = Math.min(1.0, normalizedDistance)
+      const curvedDistance = 1 - Math.pow(1 - clampedDistance, 3)
+
+      const scale = 1.0 - curvedDistance * (1.0 - MIN_SCALE)
       newScaleList.push(scale)
     }
     this.scaleList = newScaleList
@@ -101,8 +107,7 @@ export struct HorizontalScroll {
             subTitle: item.artists?.map(artist => artist.name).join(' / '),
             radius: this.radius,
           })
-            .width(this.coverWidth)
-            .scale({ x: this.scaleList[index], y: this.scaleList[index] })
+            .width('100%')
             .animation({ curve: Curve.EaseOut, duration: 50 })
             .onClick(() => {
               PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
@@ -111,6 +116,7 @@ export struct HorizontalScroll {
               })
             })
         }
+        .width(this.coverWidth * (this.scaleList[index] ?? 1.0))
         .key(`${item.name}-${index}`)
       })
     }
@@ -140,7 +146,7 @@ export struct HorizontalScroll {
   @Builder
   TemplateCover(){
     List({ scroller: this.scroller, initialIndex: 0, space: this.segmentPadding }) {
-      ForEach([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], (item: number, index: number) => {
+      LazyForEach(new LazyData([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]), (item: number, index: number) => {
         ListItem() {
           Cover({
             loading: true,
@@ -148,10 +154,10 @@ export struct HorizontalScroll {
             title: '',
             radius: this.radius
           })
-            .width(this.coverWidth)
-            .scale({ x: this.scaleList[index], y: this.scaleList[index] })
+            .width('100%')
             .animation({ curve: Curve.EaseOut, duration: 50 })
         }
+        .width(this.coverWidth * (this.scaleList[index] ?? 1.0))
         .key(`template-${index}`)
       })
     }
@@ -190,8 +196,7 @@ export struct HorizontalScroll {
             menuItems: this.generatePlaylistMenu(item),
             radius: this.radius
           })
-            .width(this.coverWidth)
-            .scale({ x: this.scaleList[index], y: this.scaleList[index] })
+            .width('100%')
             .animation({ curve: Curve.EaseOut, duration: 50 })
             .onClick(async () => {
               PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
@@ -200,6 +205,7 @@ export struct HorizontalScroll {
               })
             })
         }
+        .width(this.coverWidth * (this.scaleList[index] ?? 1.0))
         .key(`${item.name}-${index}`)
       })
     }
@@ -237,8 +243,7 @@ export struct HorizontalScroll {
             radius: "100%",
             titleAlign: HorizontalAlign.Center
           })
-            .width(this.coverWidth)
-            .scale({ x: this.scaleList[index], y: this.scaleList[index] })
+            .width('100%')
             .animation({ curve: Curve.EaseOut, duration: 50 })
             .onClick(() => {
               PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
@@ -247,6 +252,7 @@ export struct HorizontalScroll {
               })
             })
         }
+        .width(this.coverWidth * (this.scaleList[index] ?? 1.0))
         .key(`${item.name}-${index}`)
       })
     }
@@ -284,8 +290,7 @@ export struct HorizontalScroll {
             menuItems: this.generatePlaylistMenu(item),
             radius: this.radius
           })
-            .width(this.coverWidth)
-            .scale({ x: this.scaleList[index], y: this.scaleList[index] })
+            .width('100%')
             .animation({ curve: Curve.EaseOut, duration: 50 })
             .onClick(async () => {
                 PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
@@ -294,6 +299,7 @@ export struct HorizontalScroll {
                 })
             })
         }
+        .width(this.coverWidth * (this.scaleList[index] ?? 1.0))
         .key(`${item.name}-${index}`)
       })
     }
@@ -332,8 +338,7 @@ export struct HorizontalScroll {
             menuItems: this.generateSongMenu(item),
             radius: this.radius
           })
-            .width(this.coverWidth)
-            .scale({ x: this.scaleList[index], y: this.scaleList[index] })
+            .width('100%')
             .animation({ curve: Curve.EaseOut, duration: 50 })
             .onClick(() => {
               PushPathHelper.loading("Playing", async () => {
@@ -341,6 +346,7 @@ export struct HorizontalScroll {
               })
             })
         }
+        .width(this.coverWidth * (this.scaleList[index] ?? 1.0))
         .key(`${item.name}-${index}`)
       })
     }
