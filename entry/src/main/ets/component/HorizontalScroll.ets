@@ -45,7 +45,7 @@ export struct HorizontalScroll {
     for (let i = 0; i < itemCount; i++) {
       const itemCenterPos = i * itemWidthWithPadding + this.coverWidth / 2
       const visibleCenterPos = itemCenterPos - scrollOffset
-      const distanceFromFocus = visibleCenterPos - this.coverWidth * 0.7
+      const distanceFromFocus = visibleCenterPos - this.coverWidth * 1
       const effectiveDistance = Math.max(0, distanceFromFocus)
       const focusDistance = this.coverWidth * 2.0 // Make shrinking faster
       const normalizedDistance = effectiveDistance / focusDistance
@@ -117,7 +117,7 @@ export struct HorizontalScroll {
             })
         }
         .width(this.coverWidth * (this.scaleList[index] ?? 1.0))
-        .key(`${item.name}-${index}`)
+        .key(`${item.id}-${item.name}-${index}`)
       })
     }
     .margin({ top: 10 })
@@ -206,7 +206,7 @@ export struct HorizontalScroll {
             })
         }
         .width(this.coverWidth * (this.scaleList[index] ?? 1.0))
-        .key(`${item.name}-${index}`)
+        .key(`${item.id}-${item.name}-${index}`)
       })
     }
     .margin({ top: 10 })
@@ -253,7 +253,7 @@ export struct HorizontalScroll {
             })
         }
         .width(this.coverWidth * (this.scaleList[index] ?? 1.0))
-        .key(`${item.name}-${index}`)
+        .key(`${item.id}-${item.name}-${index}`)
       })
     }
     .margin({ top: 10 })
@@ -300,7 +300,7 @@ export struct HorizontalScroll {
             })
         }
         .width(this.coverWidth * (this.scaleList[index] ?? 1.0))
-        .key(`${item.name}-${index}`)
+        .key(`${item.id}-${item.name}-${index}`)
       })
     }
     .margin({ top: 10 })
@@ -347,7 +347,7 @@ export struct HorizontalScroll {
             })
         }
         .width(this.coverWidth * (this.scaleList[index] ?? 1.0))
-        .key(`${item.name}-${index}`)
+        .key(`${item.id}-${item.name}-${index}`)
       })
     }
     .margin({ top: 10 })
