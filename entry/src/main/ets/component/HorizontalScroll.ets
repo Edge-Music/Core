@@ -1,5 +1,4 @@
 
-import { LazyData } from "@pie/lazy-data"
 import { DialogHelper } from "@pura/harmony-dialog"
 import { ToastUtil } from "@pura/harmony-utils"
 import { SourceAdapter } from "../adapter"
@@ -41,6 +40,7 @@ export struct HorizontalScroll {
 
     const newScaleList: number[] = []
     const itemWidthWithPadding = this.coverWidth + this.segmentPadding
+    const useCubicCurve = PreferencesCache.getUserPreference('advanced_scaling_curve', '0') === '1'
 
     for (let i = 0; i < itemCount; i++) {
       const itemCenterPos = i * itemWidthWithPadding + this.coverWidth / 2
@@ -50,9 +50,14 @@ export struct HorizontalScroll {
       const focusDistance = this.coverWidth * 2.0 // Make shrinking faster
       const normalizedDistance = effectiveDistance / focusDistance
 
-      // Apply a non-linear curve (cubic ease-out on distance for faster shrinking)
       const clampedDistance = Math.min(1.0, normalizedDistance)
-      const curvedDistance = 1 - Math.pow(1 - clampedDistance, 3)
+      let curvedDistance: number;
+      if (useCubicCurve) {
+        // Apply a non-linear curve (cubic ease-out on distance for faster shrinking)
+        curvedDistance = 1 - Math.pow(1 - clampedDistance, 3)
+      } else {
+        curvedDistance = clampedDistance
+      }
 
       const scale = 1.0 - curvedDistance * (1.0 - MIN_SCALE)
       newScaleList.push(scale)
@@ -99,7 +104,7 @@ export struct HorizontalScroll {
   @Builder
   AlbumCover(){
     List({ scroller: this.scroller, initialIndex: 0, space: this.segmentPadding }) {
-      LazyForEach(new LazyData(this.lists), (item: Album, index: number) => {
+      ForEach(this.lists, (item: Album, index: number) => {
         ListItem() {
           Cover({
             src: cover(item.cover, 256),
@@ -127,7 +132,6 @@ export struct HorizontalScroll {
     .listDirection(Axis.Horizontal)
     .scrollBar(BarState.Off)
     .edgeEffect(EdgeEffect.Spring)
-    .cachedCount(3)
     .padding({ left: 20, right: 20 })
     .onAreaChange((oldValue, newValue) => {
       this.listWidth = Number(newValue.width)
@@ -146,7 +150,7 @@ export struct HorizontalScroll {
   @Builder
   TemplateCover(){
     List({ scroller: this.scroller, initialIndex: 0, space: this.segmentPadding }) {
-      LazyForEach(new LazyData([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]), (item: number, index: number) => {
+      ForEach([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], (item: number, index: number) => {
         ListItem() {
           Cover({
             loading: true,
@@ -168,7 +172,6 @@ export struct HorizontalScroll {
     .listDirection(Axis.Horizontal)
     .scrollBar(BarState.Off)
     .edgeEffect(EdgeEffect.Spring)
-    .cachedCount(3)
     .padding({ left: 20, right: 20 })
     .onAreaChange((oldValue, newValue) => {
       this.listWidth = Number(newValue.width)
@@ -187,7 +190,7 @@ export struct HorizontalScroll {
   @Builder
   TopPlaylistCover(){
     List({ scroller: this.scroller, initialIndex: 0, space: this.segmentPadding }) {
-      LazyForEach(new LazyData(this.lists), (item: Playlist, index: number) => {
+      ForEach(this.lists, (item: Playlist, index: number) => {
         ListItem() {
           Cover({
             src: cover(item.cover, DEFAULT_COVER_SIZE),
@@ -216,7 +219,6 @@ export struct HorizontalScroll {
     .listDirection(Axis.Horizontal)
     .scrollBar(BarState.Off)
     .edgeEffect(EdgeEffect.Spring)
-    .cachedCount(3)
     .padding({ left: 20, right: 20 })
     .onAreaChange((oldValue, newValue) => {
       this.listWidth = Number(newValue.width)
@@ -235,7 +237,7 @@ export struct HorizontalScroll {
   @Builder
   ArtistCover() {
     List({ scroller: this.scroller, initialIndex: 0, space: this.segmentPadding }) {
-      LazyForEach(new LazyData(this.lists), (item: Artist, index: number) => {
+      ForEach(this.lists, (item: Artist, index: number) => {
         ListItem() {
           Cover({
             src: cover(item.avatar, DEFAULT_COVER_SIZE),
@@ -263,7 +265,6 @@ export struct HorizontalScroll {
     .listDirection(Axis.Horizontal)
     .scrollBar(BarState.Off)
     .edgeEffect(EdgeEffect.Spring)
-    .cachedCount(3)
     .padding({ left: 20, right: 20 })
     .onAreaChange((oldValue, newValue) => {
       this.listWidth = Number(newValue.width)
@@ -282,7 +283,7 @@ export struct HorizontalScroll {
   @Builder
   PlaylistCover() {
     List({ scroller: this.scroller, initialIndex: 0, space: this.segmentPadding }) {
-      LazyForEach(new LazyData(this.lists), (item: Playlist, index: number) => {
+      ForEach(this.lists, (item: Playlist, index: number) => {
         ListItem() {
           Cover({
             src: cover(item.cover, DEFAULT_COVER_SIZE),
@@ -310,7 +311,6 @@ export struct HorizontalScroll {
     .listDirection(Axis.Horizontal)
     .scrollBar(BarState.Off)
     .edgeEffect(EdgeEffect.Spring)
-    .cachedCount(3)
     .padding({ left: 20, right: 20 })
     .onAreaChange((oldValue, newValue) => {
       this.listWidth = Number(newValue.width)
@@ -329,7 +329,7 @@ export struct HorizontalScroll {
   @Builder
   SongCover(){
     List({ scroller: this.scroller, initialIndex: 0, space: this.segmentPadding }) {
-      LazyForEach(new LazyData(this.lists), (item: Song, index: number) => {
+      ForEach(this.lists, (item: Song, index: number) => {
         ListItem() {
           Cover({
             src: cover(item.album.cover, DEFAULT_COVER_SIZE),
@@ -357,7 +357,6 @@ export struct HorizontalScroll {
     .listDirection(Axis.Horizontal)
     .scrollBar(BarState.Off)
     .edgeEffect(EdgeEffect.Spring)
-    .cachedCount(3)
     .padding({ left: 20, right: 20 })
     .onAreaChange((oldValue, newValue) => {
       this.listWidth = Number(newValue.width)

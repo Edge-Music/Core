@@ -507,6 +507,10 @@
     {
       "name": "delete_song",
       "value": "删除歌曲"
+    },
+    {
+      "name": "advanced_scaling_curve",
+      "value": "更高级的缩放曲线"
     }
   ]
 }

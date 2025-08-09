@@ -511,6 +511,10 @@
     {
       "name": "delete_song",
       "value": "Delete The Song"
+    },
+    {
+      "name": "advanced_scaling_curve",
+      "value": "More advanced scaling curve"
     }
   ]
 }
