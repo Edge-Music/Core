@@ -43,7 +43,7 @@ export struct Segment {
         bottom: 4
       })
 
-      HorizontalScroll({ lists: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], type: 'Template'})
+      HorizontalScroll({ lists: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], type: 'Template' })
     }
     .width(StyleConstants.FULL_WIDTH)
     .alignItems(HorizontalAlign.Start)
@@ -59,6 +59,7 @@ export struct Segment {
             .fontColor($r('app.color.text_title'))
             .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
             .fontSize(20)
+            .margin({ left: 30 })
 
           if(this.actionText) {
             Row(){
@@ -73,14 +74,13 @@ export struct Segment {
                 .margin({ left: 2 })
             }
             .onClick(this.onActionClick)
+            .margin({ right: 30 })
           }
         }
         .width(StyleConstants.FULL_WIDTH)
         .justifyContent(FlexAlign.SpaceBetween)
         .padding({
-          left: 12,
           top: 8,
-          right: 12,
           bottom: 4
         })
 
@@ -89,6 +89,6 @@ export struct Segment {
     }
     .width(StyleConstants.FULL_WIDTH)
     .alignItems(HorizontalAlign.Start)
-    .padding(12)
+    .margin({ top: 20 })
   }
 }

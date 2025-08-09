@@ -2,7 +2,6 @@ import { LazyData } from "@pie/lazy-data"
 import { DialogHelper } from "@pura/harmony-dialog"
 import { ToastUtil } from "@pura/harmony-utils"
 import { SourceAdapter } from "../adapter"
-import { StyleConstants } from "../constants/StyleConstants"
 import { Album, Artist, Playlist, Song } from "../type/Adapter"
 import { cover } from "../util/AdapterHelper"
 import { PlaylistManager } from "../util/PlaylistManager"
@@ -11,6 +10,7 @@ import { PushPathHelper } from "../util/PushPathHelper"
 import { Cover } from "./Cover"
 
 const DEFAULT_COVER_SIZE = 256
+const MIN_SCALE = 0.85
 
 @Component
 export struct HorizontalScroll {
@@ -19,79 +19,180 @@ export struct HorizontalScroll {
   @State selectedIndex: number = 0
   type: string = ''
   private coverWidth: number = 120
-  private segmentPadding: number = 4
-  private radius: string | number = 8
+  private segmentPadding: number = 8
+  private radius: string | number = 15
   @StorageLink('2in1title') title:string='首页'
   @StorageLink('2in1page_judge') page_judge:string = 'index'
   @StorageLink('aggregation_playlist') aggregationPlaylist: Playlist[] = PreferencesCache.getPlaylistCache('aggregation_playlist')
-  build() {
-    Scroll() {
-      Row() {
-        if(this.type === 'Song') this.SongCover()
-        if(this.type === 'Playlist') this.PlaylistCover()
-        if(this.type === 'Artist') this.ArtistCover()
-        if(this.type === 'TopPlaylist') this.TopPlaylistCover()
-        if(this.type === 'Template') this.TemplateCover()
-        if(this.type === 'Album') this.AlbumCover()
-      }
-      .padding({ left: 6, right: 6 })
-      .alignItems(VerticalAlign.Top)
-      .justifyContent(FlexAlign.Start)
-    }
-    .scrollBar(BarState.Off)
-    .scrollable(ScrollDirection.Horizontal)
-    .edgeEffect(EdgeEffect.Spring)
-    .width(StyleConstants.FULL_WIDTH)
+
+  private scroller: Scroller = new Scroller()
+  @State private scaleList: number[] = []
+  private listWidth: number = 0
+  @State private isInitialLoad: boolean = true
+
+  aboutToAppear() {
+    this.updateScale(0)
   }
+
+  updateScale(scrollOffset: number) {
+    const itemCount = this.type === 'Template' ? 10 : this.lists.length
+    if (itemCount === 0) return
+
+    const newScaleList: number[] = []
+    const itemWidthWithPadding = this.coverWidth + this.segmentPadding
+
+    for (let i = 0; i < itemCount; i++) {
+      const itemCenterPos = i * itemWidthWithPadding + this.coverWidth / 2
+      const visibleCenterPos = itemCenterPos - scrollOffset
+      const distanceFromFocus = visibleCenterPos - this.coverWidth / 2
+      const effectiveDistance = Math.max(0, distanceFromFocus)
+      const focusDistance = this.coverWidth * 2.5
+      const normalizedDistance = effectiveDistance / focusDistance
+      const scale = Math.max(MIN_SCALE, 1.0 - normalizedDistance * (1.0 - MIN_SCALE))
+      newScaleList.push(scale)
+    }
+    this.scaleList = newScaleList
+  }
+
+  private handleScrollStop() {
+    const xOffset = this.scroller.currentOffset().xOffset;
+    const itemWidth = this.coverWidth + this.segmentPadding;
+
+    if (itemWidth <= 0) {
+      return;
+    }
+
+    const closestIndex = Math.round(xOffset / itemWidth);
+    const targetOffset = closestIndex * itemWidth;
+
+    this.scroller.scrollTo({
+      xOffset: targetOffset,
+      yOffset: 0,
+      animation: { duration: 300, curve: Curve.Ease }
+    });
+  }
+
+  build() {
+    Column() {
+      if (this.type === 'Song') {
+        this.SongCover()
+      } else if (this.type === 'Playlist') {
+        this.PlaylistCover()
+      } else if (this.type === 'Artist') {
+        this.ArtistCover()
+      } else if (this.type === 'TopPlaylist') {
+        this.TopPlaylistCover()
+      } else if (this.type === 'Template') {
+        this.TemplateCover()
+      } else if (this.type === 'Album') {
+        this.AlbumCover()
+      }
+    }.width('100%')
+  }
+
   @Builder
   AlbumCover(){
-    ForEach(this.lists, (item: Album) => {
-      Cover({
-        src: cover(item.cover, 256),
-        title: item.name,
-        subTitle: item.artists?.map(artist => artist.name).join(' / '),
-      })
-        .width(120)
-        .padding(4)
-        .onClick(() => {
-          PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
-            const album = await SourceAdapter.getAlbumDetail(item)
-            AppStorage.setOrCreate('current_playlist_data', album)
+    List({ scroller: this.scroller, initialIndex: 0, space: this.segmentPadding }) {
+      LazyForEach(new LazyData(this.lists), (item: Album, index: number) => {
+        ListItem() {
+          Cover({
+            src: cover(item.cover, 256),
+            title: item.name,
+            subTitle: item.artists?.map(artist => artist.name).join(' / '),
+            radius: this.radius,
           })
-        })
+            .width(this.coverWidth)
+            .scale({ x: this.scaleList[index], y: this.scaleList[index] })
+            .animation({ curve: Curve.EaseOut, duration: 50 })
+            .onClick(() => {
+              PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
+                const album = await SourceAdapter.getAlbumDetail(item)
+                AppStorage.setOrCreate('current_playlist_data', album)
+              })
+            })
+        }
+        .key(`${item.name}-${index}`)
+      })
+    }
+    .margin({ top: 10 })
+    .clip(false)
+    .width('100%')
+    .height('auto')
+    .listDirection(Axis.Horizontal)
+    .scrollBar(BarState.Off)
+    .edgeEffect(EdgeEffect.Spring)
+    .cachedCount(3)
+    .padding({ left: 20, right: 20 })
+    .onAreaChange((oldValue, newValue) => {
+      this.listWidth = Number(newValue.width)
+      if (this.isInitialLoad && newValue.width > 0) {
+        this.scroller.scrollTo({ xOffset: 0, yOffset: 0 })
+        this.updateScale(0)
+        this.isInitialLoad = false
+      } else {
+        this.updateScale(this.scroller.currentOffset().xOffset)
+      }
     })
+    .onScroll(() => this.updateScale(this.scroller.currentOffset().xOffset))
+    .onScrollStop(() => this.handleScrollStop())
   }
 
   @Builder
   TemplateCover(){
-    ForEach([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], () => {
-      ListItem(){
-        Cover({
-          loading: true,
-          src: $r('app.media.ic_placeholder'),
-          title: '',
-          radius: this.radius
-        })
-          .width(120)
-          .padding(4)
+    List({ scroller: this.scroller, initialIndex: 0, space: this.segmentPadding }) {
+      ForEach([1, 2, 3, 4, 5, 6, 7, 8, 9, 10], (item: number, index: number) => {
+        ListItem() {
+          Cover({
+            loading: true,
+            src: $r('app.media.ic_placeholder'),
+            title: '',
+            radius: this.radius
+          })
+            .width(this.coverWidth)
+            .scale({ x: this.scaleList[index], y: this.scaleList[index] })
+            .animation({ curve: Curve.EaseOut, duration: 50 })
+        }
+        .key(`template-${index}`)
+      })
+    }
+    .margin({ top: 10 })
+    .clip(false)
+    .width('100%')
+    .height('auto')
+    .listDirection(Axis.Horizontal)
+    .scrollBar(BarState.Off)
+    .edgeEffect(EdgeEffect.Spring)
+    .cachedCount(3)
+    .padding({ left: 20, right: 20 })
+    .onAreaChange((oldValue, newValue) => {
+      this.listWidth = Number(newValue.width)
+      if (this.isInitialLoad && newValue.width > 0) {
+        this.scroller.scrollTo({ xOffset: 0, yOffset: 0 })
+        this.updateScale(0)
+        this.isInitialLoad = false
+      } else {
+        this.updateScale(this.scroller.currentOffset().xOffset)
       }
-      .key('Template')
     })
+    .onScroll(() => this.updateScale(this.scroller.currentOffset().xOffset))
+    .onScrollStop(() => this.handleScrollStop())
   }
 
   @Builder
   TopPlaylistCover(){
-    List({ initialIndex: 0, space: 0 }) {
+    List({ scroller: this.scroller, initialIndex: 0, space: this.segmentPadding }) {
       LazyForEach(new LazyData(this.lists), (item: Playlist, index: number) => {
         ListItem() {
           Cover({
             src: cover(item.cover, DEFAULT_COVER_SIZE),
             title: item.name,
             subTitle: item.description,
-            menuItems: this.generatePlaylistMenu(item)
+            menuItems: this.generatePlaylistMenu(item),
+            radius: this.radius
           })
             .width(this.coverWidth)
-            .padding(this.segmentPadding)
+            .scale({ x: this.scaleList[index], y: this.scaleList[index] })
+            .animation({ curve: Curve.EaseOut, duration: 50 })
             .onClick(async () => {
               PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
                 const playlist = await SourceAdapter.getPlaylistDetail(item)
@@ -102,16 +203,32 @@ export struct HorizontalScroll {
         .key(`${item.name}-${index}`)
       })
     }
+    .margin({ top: 10 })
+    .clip(false)
     .width('100%')
     .height('auto')
     .listDirection(Axis.Horizontal)
     .scrollBar(BarState.Off)
+    .edgeEffect(EdgeEffect.Spring)
     .cachedCount(3)
+    .padding({ left: 20, right: 20 })
+    .onAreaChange((oldValue, newValue) => {
+      this.listWidth = Number(newValue.width)
+      if (this.isInitialLoad && newValue.width > 0) {
+        this.scroller.scrollTo({ xOffset: 0, yOffset: 0 })
+        this.updateScale(0)
+        this.isInitialLoad = false
+      } else {
+        this.updateScale(this.scroller.currentOffset().xOffset)
+      }
+    })
+    .onScroll(() => this.updateScale(this.scroller.currentOffset().xOffset))
+    .onScrollStop(() => this.handleScrollStop())
   }
 
   @Builder
   ArtistCover() {
-    List({ initialIndex: 0, space: 0 }) {
+    List({ scroller: this.scroller, initialIndex: 0, space: this.segmentPadding }) {
       LazyForEach(new LazyData(this.lists), (item: Artist, index: number) => {
         ListItem() {
           Cover({
@@ -121,10 +238,10 @@ export struct HorizontalScroll {
             titleAlign: HorizontalAlign.Center
           })
             .width(this.coverWidth)
-            .padding(this.segmentPadding)
+            .scale({ x: this.scaleList[index], y: this.scaleList[index] })
+            .animation({ curve: Curve.EaseOut, duration: 50 })
             .onClick(() => {
               PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
-                // 歌手复用歌单UI
                 const playlist = await SourceAdapter.getArtistDetail(item)
                 AppStorage.setOrCreate('current_playlist_data', playlist)
               })
@@ -133,57 +250,91 @@ export struct HorizontalScroll {
         .key(`${item.name}-${index}`)
       })
     }
+    .margin({ top: 10 })
+    .clip(false)
     .width('100%')
     .height('auto')
     .listDirection(Axis.Horizontal)
     .scrollBar(BarState.Off)
+    .edgeEffect(EdgeEffect.Spring)
     .cachedCount(3)
+    .padding({ left: 20, right: 20 })
+    .onAreaChange((oldValue, newValue) => {
+      this.listWidth = Number(newValue.width)
+      if (this.isInitialLoad && newValue.width > 0) {
+        this.scroller.scrollTo({ xOffset: 0, yOffset: 0 })
+        this.updateScale(0)
+        this.isInitialLoad = false
+      } else {
+        this.updateScale(this.scroller.currentOffset().xOffset)
+      }
+    })
+    .onScroll(() => this.updateScale(this.scroller.currentOffset().xOffset))
+    .onScrollStop(() => this.handleScrollStop())
   }
 
   @Builder
   PlaylistCover() {
-    List({ initialIndex: 0, space: 0 }) {
+    List({ scroller: this.scroller, initialIndex: 0, space: this.segmentPadding }) {
       LazyForEach(new LazyData(this.lists), (item: Playlist, index: number) => {
         ListItem() {
           Cover({
             src: cover(item.cover, DEFAULT_COVER_SIZE),
             title: item.name,
-            menuItems: this.generatePlaylistMenu(item)
+            menuItems: this.generatePlaylistMenu(item),
+            radius: this.radius
           })
             .width(this.coverWidth)
-            .padding(this.segmentPadding)
+            .scale({ x: this.scaleList[index], y: this.scaleList[index] })
+            .animation({ curve: Curve.EaseOut, duration: 50 })
             .onClick(async () => {
                 PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
                   const playlist = await SourceAdapter.getPlaylistDetail(item)
                   AppStorage.setOrCreate('current_playlist_data', playlist)
                 })
-
-
             })
         }
         .key(`${item.name}-${index}`)
       })
     }
+    .margin({ top: 10 })
+    .clip(false)
     .width('100%')
     .height('auto')
     .listDirection(Axis.Horizontal)
     .scrollBar(BarState.Off)
+    .edgeEffect(EdgeEffect.Spring)
     .cachedCount(3)
+    .padding({ left: 20, right: 20 })
+    .onAreaChange((oldValue, newValue) => {
+      this.listWidth = Number(newValue.width)
+      if (this.isInitialLoad && newValue.width > 0) {
+        this.scroller.scrollTo({ xOffset: 0, yOffset: 0 })
+        this.updateScale(0)
+        this.isInitialLoad = false
+      } else {
+        this.updateScale(this.scroller.currentOffset().xOffset)
+      }
+    })
+    .onScroll(() => this.updateScale(this.scroller.currentOffset().xOffset))
+    .onScrollStop(() => this.handleScrollStop())
   }
 
   @Builder
   SongCover(){
-    List({ initialIndex: 0, space: 0 }) {
+    List({ scroller: this.scroller, initialIndex: 0, space: this.segmentPadding }) {
       LazyForEach(new LazyData(this.lists), (item: Song, index: number) => {
         ListItem() {
           Cover({
             src: cover(item.album.cover, DEFAULT_COVER_SIZE),
             title: item.name,
             subTitle: item.artists.map(artist => artist.name).join(' / '),
-            menuItems: this.generateSongMenu(item)
+            menuItems: this.generateSongMenu(item),
+            radius: this.radius
           })
             .width(this.coverWidth)
-            .padding(this.segmentPadding)
+            .scale({ x: this.scaleList[index], y: this.scaleList[index] })
+            .animation({ curve: Curve.EaseOut, duration: 50 })
             .onClick(() => {
               PushPathHelper.loading("Playing", async () => {
                 PlaylistManager.insertSongs([item], -1, item)
@@ -193,11 +344,27 @@ export struct HorizontalScroll {
         .key(`${item.name}-${index}`)
       })
     }
+    .margin({ top: 10 })
+    .clip(false)
     .width('100%')
     .height('auto')
     .listDirection(Axis.Horizontal)
     .scrollBar(BarState.Off)
-    .cachedCount(3) // 缓存更多项以提高性能
+    .edgeEffect(EdgeEffect.Spring)
+    .cachedCount(3)
+    .padding({ left: 20, right: 20 })
+    .onAreaChange((oldValue, newValue) => {
+      this.listWidth = Number(newValue.width)
+      if (this.isInitialLoad && newValue.width > 0) {
+        this.scroller.scrollTo({ xOffset: 0, yOffset: 0 })
+        this.updateScale(0)
+        this.isInitialLoad = false
+      } else {
+        this.updateScale(this.scroller.currentOffset().xOffset)
+      }
+    })
+    .onScroll(() => this.updateScale(this.scroller.currentOffset().xOffset))
+    .onScrollStop(() => this.handleScrollStop())
   }
 
   private generateSongMenu(song: Song): Array<MenuElement> {
@@ -220,9 +387,6 @@ export struct HorizontalScroll {
               this.selectedIndex = index
               if(PreferencesCache.addSongToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], song)){
                 ToastUtil.showShort(`[${song.name}]存在于[${this.aggregationPlaylist[index].name}]`)
-                // if(this.playlistId === this.aggregationPlaylist[this.selectedIndex].id){
-                //   AppStorage.setOrCreate('current_playlist_data', this.aggregationPlaylist[this.selectedIndex])
-                // }
               }else{
                 ToastUtil.showShort(`[${song.name}]添加到[${this.aggregationPlaylist[index].name}]`)
               }

@@ -17,25 +17,25 @@ export struct Cover {
     if (this.menuItems?.length) {
       Stack() {
         Column()
-          .width(32)
-          .height(32)
-          .borderRadius(8)
+          .width(28)
+          .height(28)
+          .borderRadius(14)
           .backgroundColor('rgba(123, 123, 123, 0.2)')
           .backdropBlur(16)
 
         Button({ type: ButtonType.Normal, stateEffect: true }) {
           Image($r('app.media.ic_more'))
-            .width(20)
-            .height(20)
+            .width(18)
+            .height(18)
             .fillColor($r('sys.color.white'))
         }
-        .width(32)
-        .height(32)
-        .borderRadius(8)
+        .width(28)
+        .height(28)
+        .borderRadius(14)
         .backgroundColor('transparent')
       }
       .position({ x: '100%', y: 0 })
-      .translate({ x: -32, y: 0 })
+      .translate({ x: -33, y: 5 })
       .bindMenu(this.menuItems || [])
     }
   }
