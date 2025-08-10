@@ -480,6 +480,8 @@ class AVPlayerManager {
           LyricsManager.reset()
           const nextSong = PlaylistManager.playNext()
           if (nextSong) {
+            const player = await this.getAVPlayerInstance();
+            player.seek(0)
             PlaylistManager.playSong(nextSong)
             return;
           }

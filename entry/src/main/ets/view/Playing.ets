@@ -777,7 +777,7 @@ struct Playing {
 
     // 播放位置更新计时器
     this.updateTimer = setInterval(() => {
-      if (this.isPlaying && this.currentTime < (this.song?.duration || 0)) {
+      if (this.isPlaying && this.currentTime <= (this.song?.duration || 0)) {
         this.currentTime = player.currentTime;
       }
     }, 300)
