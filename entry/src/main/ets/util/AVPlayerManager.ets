@@ -11,6 +11,7 @@ import { SourceAdapter } from '../adapter';
 import { Song } from '../type/Adapter';
 import LyricsManager from './LyricsManager';
 
+const TAG = 'AVPlayerManager'
 // 定义回调函数的类型
 export interface PlayerCallbacks {
   onPlay: Array<() => void>;
@@ -497,6 +498,14 @@ class AVPlayerManager {
           this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_IDLE);
           this.triggerStop();
           break;
+        case 'released':
+          LyricsManager.reset()
+          this.isPlayingBeforeInterrupt = false;
+          this.currentPlaybackState = avSession.PlaybackState.PLAYBACK_STATE_RELEASED;
+          this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_RELEASED);
+          this.triggerPause();
+          this.triggerStop();
+          break;
         default:
           break;
       }
@@ -689,6 +698,7 @@ class AVPlayerManager {
       this.triggerError(error);
     }
   }
+
   async setAudioSession() {
     // let isMixWithOthers = await AppStorage.get(StorageConstants.MIX_WITH_OTHERS) as boolean
     let playing_mix: string =  PreferencesCache.getUserPreference('playing_mix','0')
