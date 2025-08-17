@@ -415,7 +415,7 @@ export class PreferencesCache {
 
   }
 
-  static addSongToAggregationPlaylist(playlist: Playlist, song: Song): boolean{
+  static async addSongToAggregationPlaylist(playlist: Playlist, song: Song): Promise<boolean>{
     let playlists: Playlist[] = JSON.parse(PreferencesCache.getCache('aggregation_playlist', '[]'));
     let resultIndex: number = -1
     let isExist: boolean = false
@@ -449,7 +449,7 @@ export class PreferencesCache {
     return isExist
   }
 
-  static addSongsToAggregationPlaylist(playlist: Playlist, songs: Song[]): void {
+  static async addSongsToAggregationPlaylist(playlist: Playlist, songs: Song[]): Promise<void> {
     // 获取所有聚合歌单
     let playlists: Playlist[] = JSON.parse(PreferencesCache.getCache('aggregation_playlist', '[]'));
 
@@ -507,7 +507,7 @@ export class PreferencesCache {
   }
 
 
-  static deleteSongsOfAggregationPlaylists(sourceId: ID): void{
+  static async deleteSongsOfAggregationPlaylists(sourceId: ID): Promise<void> {
     let playlists: Playlist[] = JSON.parse(PreferencesCache.getCache('aggregation_playlist', '[]'));
     playlists = playlists.map(playlist => {
       // 过滤掉sourceId匹配的歌曲

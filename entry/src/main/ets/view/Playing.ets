@@ -1246,14 +1246,13 @@ struct Playing {
             radioContent: this.aggregationPlaylist.map(playlist => playlist?.name),
             onCheckedChanged: (index) => {
               this.selectedIndex = index
-              if(PreferencesCache.addSongToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], this.song!)){
-                ToastUtil.showShort(`[${this.song?.name}]存在于[${this.aggregationPlaylist[index].name}]`)
-                // if(this.playlistId === this.aggregationPlaylist[this.selectedIndex].id){
-                //   AppStorage.setOrCreate('current_playlist_data', this.aggregationPlaylist[this.selectedIndex])
-                // }
-              }else{
-                ToastUtil.showShort(`[${this.song?.name}]添加到[${this.aggregationPlaylist[index].name}]`)
-              }
+              PreferencesCache.addSongToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], this.song!).then((result: boolean) => {
+                if(result){
+                  ToastUtil.showShort(`[${this.song?.name}]存在于[${this.aggregationPlaylist[index].name}]`)
+                }else{
+                  ToastUtil.showShort(`[${this.song?.name}]添加到[${this.aggregationPlaylist[index].name}]`)
+                }
+              })
             },
             onAction: (): void => {}
           })
@@ -1291,14 +1290,13 @@ struct Playing {
             radioContent: this.aggregationPlaylist.map(playlist => playlist?.name),
             onCheckedChanged: (index) => {
               this.selectedIndex = index
-              if(PreferencesCache.addSongToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], this.song!)){
-                ToastUtil.showShort(`[${this.song?.name}]存在于[${this.aggregationPlaylist[index].name}]`)
-                // if(this.playlistId === this.aggregationPlaylist[this.selectedIndex].id){
-                //   AppStorage.setOrCreate('current_playlist_data', this.aggregationPlaylist[this.selectedIndex])
-                // }
-              }else{
-                ToastUtil.showShort(`[${this.song?.name}]添加到[${this.aggregationPlaylist[index].name}]`)
-              }
+              PreferencesCache.addSongToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], this.song!).then((result: boolean) => {
+                if(result){
+                  ToastUtil.showShort(`[${this.song?.name}]存在于[${this.aggregationPlaylist[index].name}]`)
+                }else{
+                  ToastUtil.showShort(`[${this.song?.name}]添加到[${this.aggregationPlaylist[index].name}]`)
+                }
+              })
             },
             onAction: (): void => {}
           })

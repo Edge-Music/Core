@@ -219,14 +219,16 @@ export struct HorizontalScroll {
             radioContent: this.aggregationPlaylist.map(playlist => playlist.name),
             onCheckedChanged: (index) => {
               this.selectedIndex = index
-              if(PreferencesCache.addSongToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], song)){
-                ToastUtil.showShort(`[${song.name}]存在于[${this.aggregationPlaylist[index].name}]`)
-                // if(this.playlistId === this.aggregationPlaylist[this.selectedIndex].id){
-                //   AppStorage.setOrCreate('current_playlist_data', this.aggregationPlaylist[this.selectedIndex])
-                // }
-              }else{
-                ToastUtil.showShort(`[${song.name}]添加到[${this.aggregationPlaylist[index].name}]`)
-              }
+              PreferencesCache.addSongToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], song).then((result: boolean) => {
+                if(result){
+                  ToastUtil.showShort(`[${song.name}]存在于[${this.aggregationPlaylist[index].name}]`)
+                  // if(this.playlistId === this.aggregationPlaylist[this.selectedIndex].id){
+                  //   AppStorage.setOrCreate('current_playlist_data', this.aggregationPlaylist[this.selectedIndex])
+                  // }
+                }else{
+                  ToastUtil.showShort(`[${song.name}]添加到[${this.aggregationPlaylist[index].name}]`)
+                }
+              })
             },
             onAction: (): void => {}
           })
