@@ -14,6 +14,8 @@ import { ScrollController } from "../util/ScrollController";
 import { HeaderAnimation } from "../component/HeaderAnimation";
 import ResourceManager from "../util/ResourceManager";
 import { ToastUtil } from "@pura/harmony-utils";
+import { DialogHelper } from "@pura/harmony-dialog";
+import { PreferencesCache } from "../util/PreferenceCache";
 
 const TAG = 'PlayList'
 
@@ -39,10 +41,12 @@ export struct PlayListFor2in1 {
   @StorageProp('decorHeight') decorHeight: number = 0
   @StorageProp('topRect') topRect: number = 0;
   @StorageProp('winHeight') winHeight: number = 0;
+  @StorageLink('aggregation_playlist') aggregationPlaylist: Playlist[] = PreferencesCache.getPlaylistCache('aggregation_playlist')
   // 搜索相关状态
   @State searchKeywords: string = ''
   @State filteredSongs: Song[] = []
   @State isSearching: boolean = false
+  @State selectedIndex: number = 0
   @State scrollController: ScrollController = new ScrollController({
     onIndexChange: (index) => {
       this.onMenuIconClick(index)
@@ -164,15 +168,7 @@ export struct PlayListFor2in1 {
         .shadow(ShadowStyle.OUTER_DEFAULT_XS)
         .backgroundColor($r('app.color.setting_item_background'))
         .justifyContent(FlexAlign.Center)
-        .bindMenu([{
-          value: $r('app.string.download_all_songs'),
-          action: () => {
-            if (this.playlist?.songs && this.playlist.songs.length > 0) {
-              const songs = this.playlist.songs.filter(song => song.privilege.playable)
-              SongDownloadManager.batchDownloadSongs(songs)
-            }
-          }
-        }])
+        .bindMenu(this.generatePlaylistMenu())
       }
       .backgroundColor('transparent')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -670,16 +666,7 @@ export struct PlayListFor2in1 {
         .backgroundColor($r('app.color.setting_item_background'))
         .justifyContent(FlexAlign.Center)
         .margin({ left: 8 })
-        .bindMenu([{
-          value: $r('app.string.download_all_songs'),
-          action: () => {
-            if (this.playlist?.songs && this.playlist.songs.length > 0) {
-              ToastUtil.showToast("开始下载全部歌曲", { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } })
-              const songs = this.playlist.songs.filter(song => song.privilege.playable)
-              SongDownloadManager.batchDownloadSongs(songs)
-            }
-          }
-        }])
+        .bindMenu(this.generatePlaylistMenu())
         .clickEffect({ level: ClickEffectLevel.LIGHT })
         .stateStyles({
           pressed: this.pressedStyles,
@@ -760,16 +747,7 @@ export struct PlayListFor2in1 {
         .backgroundColor($r('app.color.setting_item_background'))
         .justifyContent(FlexAlign.Center)
         .margin({ left: 8 })
-        .bindMenu([{
-          value: $r('app.string.download_all_songs'),
-          action: () => {
-            if (this.playlist?.songs && this.playlist.songs.length > 0) {
-              ToastUtil.showToast("开始下载全部歌曲", { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } })
-              const songs = this.playlist.songs.filter(song => song.privilege.playable)
-              SongDownloadManager.batchDownloadSongs(songs)
-            }
-          }
-        }])
+        .bindMenu(this.generatePlaylistMenu())
         .clickEffect({ level: ClickEffectLevel.LIGHT })
         .stateStyles({
           pressed: this.pressedStyles,
@@ -785,6 +763,39 @@ export struct PlayListFor2in1 {
       .backgroundColor($r('app.color.card_background'))
       .borderRadius(8)
     }
+  }
+
+  private generatePlaylistMenu(): Array<MenuElement> {
+    return [
+      {
+        value: $r('app.string.download_all_songs'),
+        action: () => {
+          if (this.playlist?.songs && this.playlist.songs.length > 0) {
+            ToastUtil.showToast("开始下载全部歌曲", { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } })
+            const songs = this.playlist.songs.filter(song => song.privilege.playable)
+            SongDownloadManager.batchDownloadSongs(songs)
+          }
+        }
+      },
+      {
+        value: $r('app.string.add_to_playlist'),
+        action: () => {
+          DialogHelper.showSelectDialog({
+            title: $r('app.string.add_to_playlist'),
+            confirm: $r('app.string.back'),
+            selectedIndex: -1,
+            radioContent: this.aggregationPlaylist.map(playlist => playlist.name),
+            onCheckedChanged: (index) => {
+              this.selectedIndex = index
+              if (this.playlist?.songs && this.playlist.songs.length > 0) {
+                PreferencesCache.addSongsToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], this.playlist.songs as Song[])
+              }
+            },
+            onAction: (): void => {}
+          })
+        }
+      }
+    ]
   }
 
   countSubVp(): number {

@@ -15,6 +15,8 @@ import { ScrollController } from "../util/ScrollController";
 import { HeaderAnimation } from "../component/HeaderAnimation";
 import ResourceManager from "../util/ResourceManager";
 import { ToastUtil } from "@pura/harmony-utils";
+import { PreferencesCache } from "../util/PreferenceCache";
+import { DialogHelper } from "@pura/harmony-dialog";
 
 const TAG = 'PlayList'
 
@@ -22,8 +24,10 @@ const TAG = 'PlayList'
 export struct PlayList {
   @State searchContext: string = ResourceManager.getStringValueSync($r('app.string.search'))
   @State groupHeight: number = 0;
+  @State selectedIndex: number = 0
   @Consume('NavPathStack') pageStack: NavPathStack;
   @StorageLink("current_playlist_data") playlist: Playlist | null = null
+  @StorageLink('aggregation_playlist') aggregationPlaylist: Playlist[] = PreferencesCache.getPlaylistCache('aggregation_playlist')
   @Watch('onBreakpointChange') @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
   @State private songDataSource: SongDataSourcePrefetching = new SongDataSourcePrefetching(null);
   @State private prefetcher: BasicPrefetcher | null = null;
@@ -144,15 +148,7 @@ export struct PlayList {
         .shadow(ShadowStyle.OUTER_DEFAULT_XS)
         .backgroundColor($r('app.color.setting_item_background'))
         .justifyContent(FlexAlign.Center)
-        .bindMenu([{
-          value: $r('app.string.download_all_songs'),
-          action: () => {
-            if (this.playlist?.songs && this.playlist.songs.length > 0) {
-              const songs = this.playlist.songs.filter(song => song.privilege.playable)
-              SongDownloadManager.batchDownloadSongs(songs)
-            }
-          }
-        }])
+        .bindMenu(this.generatePlaylistMenu())
       }
       .backgroundColor('transparent')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -235,43 +231,23 @@ export struct PlayList {
               .key(`${song.id}-${index}`)
             })
           } else {
-            if(this.playlist?.type === PlaylistType.AGGREGATION) {
-              ForEach(this.playlist.songs, (song: Song, index: number) => {
-                ListItem() {
-                  SongInfo({
-                    playlistId: this.playlist?.id,
-                    playlistType: this.playlist?.type,
-                    song: song,
-                    index: index,
-                    active: this.song?.id === song.id,
-                    highlight: this.billingIndex === index,
-                    onTap: (song: Song) => {
-                      this.onSongTap(song, index);
-                    },
-                    isShowMenu: true
-                  })
-                }
-                .key(`${song.id}-${index}`)
-              }, (song: Song, index: number) => `${song.id}-${index}`)
-            } else {
-              LazyForEach(this.songDataSource, (song: Song, index: number) => {
-                ListItem() {
-                  SongInfo({
-                    playlistId: this.playlist?.id,
-                    playlistType: this.playlist?.type,
-                    song: song,
-                    index: index,
-                    active: this.song?.id === song.id,
-                    highlight: this.billingIndex === index,
-                    onTap: (song: Song) => {
-                      this.onSongTap(song, index);
-                    },
-                    isShowMenu: true
-                  })
-                }
-                .key(`${song.id}-${index}`)
-              }, (song: Song, index: number) => `${song.id}-${index}`)
-            }
+            LazyForEach(this.songDataSource, (song: Song, index: number) => {
+              ListItem() {
+                SongInfo({
+                  playlistId: this.playlist?.id,
+                  playlistType: this.playlist?.type,
+                  song: song,
+                  index: index,
+                  active: this.song?.id === song.id,
+                  highlight: this.billingIndex === index,
+                  onTap: (song: Song) => {
+                    this.onSongTap(song, index);
+                  },
+                  isShowMenu: true
+                })
+              }
+              .key(`${song.id}-${index}`)
+            }, (song: Song, index: number) => `${song.id}-${index}`)
           }
         }
         .onAreaChange((_oldValue: Area, newValue: Area) => {
@@ -653,16 +629,7 @@ export struct PlayList {
         .backgroundColor($r('app.color.setting_item_background'))
         .justifyContent(FlexAlign.Center)
         .margin({ left: 8 })
-        .bindMenu([{
-          value: $r('app.string.download_all_songs'),
-          action: () => {
-            if (this.playlist?.songs && this.playlist.songs.length > 0) {
-              ToastUtil.showToast("开始下载全部歌曲", { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } })
-              const songs = this.playlist.songs.filter(song => song.privilege.playable)
-              SongDownloadManager.batchDownloadSongs(songs)
-            }
-          }
-        }])
+        .bindMenu(this.generatePlaylistMenu())
         .clickEffect({ level: ClickEffectLevel.LIGHT })
         .stateStyles({
           pressed: this.pressedStyles,
@@ -743,16 +710,7 @@ export struct PlayList {
         .backgroundColor($r('app.color.setting_item_background'))
         .justifyContent(FlexAlign.Center)
         .margin({ left: 8 })
-        .bindMenu([{
-          value: $r('app.string.download_all_songs'),
-          action: () => {
-            if (this.playlist?.songs && this.playlist.songs.length > 0) {
-              ToastUtil.showToast("开始下载全部歌曲", { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } })
-              const songs = this.playlist.songs.filter(song => song.privilege.playable)
-              SongDownloadManager.batchDownloadSongs(songs)
-            }
-          }
-        }])
+        .bindMenu(this.generatePlaylistMenu())
         .clickEffect({ level: ClickEffectLevel.LIGHT })
         .stateStyles({
           pressed: this.pressedStyles,
@@ -768,6 +726,39 @@ export struct PlayList {
       .backgroundColor($r('app.color.card_background'))
       .borderRadius(8)
     }
+  }
+
+  private generatePlaylistMenu(): Array<MenuElement> {
+    return [
+      {
+        value: $r('app.string.download_all_songs'),
+        action: () => {
+          if (this.playlist?.songs && this.playlist.songs.length > 0) {
+            ToastUtil.showToast("开始下载全部歌曲", { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } })
+            const songs = this.playlist.songs.filter(song => song.privilege.playable)
+            SongDownloadManager.batchDownloadSongs(songs)
+          }
+        }
+      },
+      {
+        value: $r('app.string.add_to_playlist'),
+        action: () => {
+          DialogHelper.showSelectDialog({
+            title: $r('app.string.add_to_playlist'),
+            confirm: $r('app.string.back'),
+            selectedIndex: -1,
+            radioContent: this.aggregationPlaylist.map(playlist => playlist.name),
+            onCheckedChanged: (index) => {
+              this.selectedIndex = index
+              if (this.playlist?.songs && this.playlist.songs.length > 0) {
+                PreferencesCache.addSongsToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], this.playlist.songs as Song[])
+              }
+            },
+            onAction: (): void => {}
+          })
+        }
+      }
+    ]
   }
 
   countSubVp(): number {

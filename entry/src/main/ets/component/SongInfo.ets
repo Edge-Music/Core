@@ -3,6 +3,7 @@ import { LogUtil, ToastUtil } from "@pura/harmony-utils";
 import { StyleConstants } from "../constants/StyleConstants";
 import { Playlist, PlaylistType, Song } from "../type/Adapter";
 import { cover } from "../util/AdapterHelper";
+import { PlaylistManager } from "../util/PlaylistManager";
 import { PreferencesCache } from "../util/PreferenceCache";
 import { SongDownloadManager } from "../util/SongDownloadManager";
 
@@ -235,6 +236,12 @@ export struct SongInfo {
           action: () => {
             this.downloadSong()
           }
+        },
+        {
+          value: $r('app.string.add_to_play_next'),
+          action: () => {
+            PlaylistManager.insertSongs([song])
+          }
         }
       ]
     } else {
@@ -266,6 +273,12 @@ export struct SongInfo {
           value: $r('app.string.download_this_song'),
           action: () => {
             this.downloadSong()
+          }
+        },
+        {
+          value: $r('app.string.add_to_play_next'),
+          action: () => {
+            PlaylistManager.insertSongs([song])
           }
         }
       ]

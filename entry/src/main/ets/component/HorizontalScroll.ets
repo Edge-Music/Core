@@ -279,6 +279,23 @@ export struct HorizontalScroll {
             SongDownloadManager.batchDownloadSongs(songs)
           }
         }
+      },
+      {
+        value: $r('app.string.add_to_playlist'),
+        action: () => {
+          DialogHelper.showSelectDialog({
+            title: $r('app.string.add_to_playlist'),
+            confirm: $r('app.string.back'),
+            selectedIndex: -1,
+            radioContent: this.aggregationPlaylist.map(playlist => playlist.name),
+            onCheckedChanged: async (index) => {
+              this.selectedIndex = index
+              const playlistDetail = await SourceAdapter.getPlaylistDetail(playlist)
+              PreferencesCache.addSongsToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], playlistDetail.songs as Song[])
+            },
+            onAction: (): void => {}
+          })
+        }
       }
     ]
   }

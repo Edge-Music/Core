@@ -408,7 +408,6 @@ export class PreferencesCache {
       AppStorage.setOrCreate(strIndex, playlists);
       AppStorage.setOrCreate('current_playlist_data', playlists[targetPlaylistIndex])
 
-      // 6. 日志记录（可选）
       LogUtil.info(`[${TAG}]`, `已从播放列表${playlists[targetPlaylistIndex].name}中删除歌曲: ${song.name}`);
     } else {
       LogUtil.warn(`[${TAG}]`, `未找到ID为${playlists[targetPlaylistIndex].name}的播放列表`);
@@ -449,6 +448,64 @@ export class PreferencesCache {
     }
     return isExist
   }
+
+  static addSongsToAggregationPlaylist(playlist: Playlist, songs: Song[]): void {
+    // 获取所有聚合歌单
+    let playlists: Playlist[] = JSON.parse(PreferencesCache.getCache('aggregation_playlist', '[]'));
+
+    // 查找目标歌单索引
+    let targetIndex: number = playlists.findIndex((item: Playlist) => item.id === playlist.id);
+    if (targetIndex === -1) {
+      LogUtil.error(`[${TAG}]`, `歌单[${playlist.name}]不存在`);
+    }
+
+    // 初始化统计变量
+    let successCount: number = 0;
+    let existCount: number = 0;
+
+    // 获取目标歌单
+    let targetPlaylist: Playlist = playlists[targetIndex];
+
+    // 初始化歌单歌曲数组（如果不存在）
+    if (!targetPlaylist.songs) {
+      targetPlaylist.songs = [];
+    }
+
+    // 遍历要添加的所有歌曲
+    songs.forEach((song: Song) => {
+      // 检查歌曲是否已存在
+      const isExist = targetPlaylist.songs!.some((s: Song) => s.id === song.id);
+
+      if (isExist) {
+        existCount++;
+        LogUtil.info(`[${TAG}]`, `[${song.name}]已存在于歌单[${targetPlaylist.name}]`);
+      } else {
+        // 设置歌曲来源ID
+        song.sourceID = song.source?.id;
+
+        // 添加到歌单
+        targetPlaylist.songs!.push(song);
+        successCount++;
+      }
+    });
+
+    // 更新歌单大小
+    targetPlaylist.size = targetPlaylist.songs!.length;
+
+    // 如果有成功添加的歌曲，则更新存储
+    if (successCount > 0 || existCount > 0) {
+      LogUtil.info(`[${TAG}]`, `成功添加${successCount}首歌曲到歌单[${targetPlaylist.name}]`);
+      LogUtil.debug(`[${TAG}]`, `更新后的歌单：${JSON.stringify(targetPlaylist)}`);
+
+      // 更新缓存
+      PreferencesCache.setCache('aggregation_playlist', JSON.stringify(playlists));
+      AppStorage.setOrCreate('aggregation_playlist', playlists);
+
+      ToastUtil.showShort(`${successCount}首添加成功，${existCount}已存在`)
+    }
+
+  }
+
 
   static deleteSongsOfAggregationPlaylists(sourceId: ID): void{
     let playlists: Playlist[] = JSON.parse(PreferencesCache.getCache('aggregation_playlist', '[]'));

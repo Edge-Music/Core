@@ -18,8 +18,11 @@ export struct PlaylistItem {
   @State playlistName: string | undefined = undefined
   @State playlistDesc: string | undefined = undefined
   @State isShowMenu: boolean = false
+  @State selectedIndex: number = 0
   @Prop playlist: Playlist
   onPlaylistSelected?: (playlist: Playlist) => void;
+
+  @StorageLink('aggregation_playlist') aggregationPlaylist: Playlist[] = PreferencesCache.getPlaylistCache('aggregation_playlist')
 
   build() {
     Row() {
@@ -154,6 +157,22 @@ export struct PlaylistItem {
           }
         },
         {
+          value: $r('app.string.add_to_playlist'),
+          action: () => {
+            DialogHelper.showSelectDialog({
+              title: $r('app.string.add_to_playlist'),
+              confirm: $r('app.string.back'),
+              selectedIndex: -1,
+              radioContent: this.aggregationPlaylist.map(playlist => playlist.name),
+              onCheckedChanged: (index) => {
+                this.selectedIndex = index
+                PreferencesCache.addSongsToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], playlist.songs as Song[])
+              },
+              onAction: (): void => {}
+            })
+          }
+        },
+        {
           value: $r('app.string.edit_playlist_info'),
           action: () => {
             let options: CustomContentOptions = {
@@ -215,6 +234,23 @@ export struct PlaylistItem {
                 return
               }
               PlaylistManager.insertSongs(songs)
+            })
+          }
+        },
+        {
+          value: $r('app.string.add_to_playlist'),
+          action: () => {
+            DialogHelper.showSelectDialog({
+              title: $r('app.string.add_to_playlist'),
+              confirm: $r('app.string.back'),
+              selectedIndex: -1,
+              radioContent: this.aggregationPlaylist.map(playlist => playlist.name),
+              onCheckedChanged: async (index) => {
+                this.selectedIndex = index
+                const playlistDetail = await SourceAdapter.getPlaylistDetail(playlist)
+                PreferencesCache.addSongsToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], playlistDetail.songs as Song[])
+              },
+              onAction: (): void => {}
             })
           }
         },
