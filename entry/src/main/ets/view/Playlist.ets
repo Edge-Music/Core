@@ -3,8 +3,6 @@ import { SongInfo } from "../component/SongInfo";
 import { TitleHeader } from "../component/TitleHeader";
 import { StyleConstants } from "../constants/StyleConstants";
 import { Playlist, PlaylistType, Song } from "../type/Adapter";
-import { BasicPrefetcher } from '@kit.ArkUI';
-import { SongDataSourcePrefetching } from "../util/SongDataSourcePrefetching";
 import { BreakpointConstants } from "../constants/BreakpointConstants";
 import { cover } from "../util/AdapterHelper";
 import { PushPathHelper } from "../util/PushPathHelper";
@@ -14,7 +12,7 @@ import { SongDownloadManager } from "../util/SongDownloadManager";
 import { ScrollController } from "../util/ScrollController";
 import { HeaderAnimation } from "../component/HeaderAnimation";
 import ResourceManager from "../util/ResourceManager";
-import { LogUtil, ToastUtil } from "@pura/harmony-utils";
+import { ToastUtil } from "@pura/harmony-utils";
 import { PreferencesCache } from "../util/PreferenceCache";
 import { DialogHelper } from "@pura/harmony-dialog";
 import { SongsDataSource } from "../util/SongsDataSource";
@@ -31,13 +29,7 @@ export struct PlayList {
   @StorageLink('current_playlist_songs') songs: Song[] = []
   @StorageLink('aggregation_playlist') aggregationPlaylist: Playlist[] = PreferencesCache.getPlaylistCache('aggregation_playlist')
   @Watch('onBreakpointChange') @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
-
-  // @State private songDataSource: SongDataSourcePrefetching = new SongDataSourcePrefetching([]);
-  // @State private prefetcher: BasicPrefetcher | null = null;
-
   @State private songsDataSource: SongsDataSource = new SongsDataSource()
-
-  private sourceOk: boolean = false;
   private scroller: Scroller = new Scroller();
   @State isLoading: boolean = false;
   // 点击跳转后的闪烁效果索引
@@ -70,7 +62,6 @@ export struct PlayList {
 
   aboutToAppear(): void {
     // 初始化歌单数据
-    // this.initSongsData()
     this.initSongsData_()
 
     // 设置屏幕模式
@@ -81,47 +72,6 @@ export struct PlayList {
     this.songsDataSource.pushMultiData(this.songs)
     this.songsDataSource.reloadData()
   }
-
-  // 监听播放列表变化
-  // onPlaylistChanged(): void {
-  //
-  //   // 如果数据源已初始化，同步数据
-  //   if (this.sourceOk && this.songDataSource) {
-  //     this.songDataSource.syncWithPlaylist(this.songs || []);
-  //   } else {
-  //     // 否则重新初始化数据源
-  //     this.initSongsData();
-  //   }
-  //
-  // }
-
-  // initSongsData() {
-  //
-  //   // let tempPlaylist: Playlist = {
-  //   //   id: 'current_playing',
-  //   //   songs: this.playlist?.songs || []
-  //   // };
-  //   //
-  //   // if(this.playlist?.type === PlaylistType.AGGREGATION) {
-  //   //   // 创建临时Playlist对象
-  //   //   tempPlaylist = {
-  //   //     id: 'current_playing',
-  //   //     songs: this.songs || []
-  //   //   };
-  //   // } else {
-  //   //   this.songs = this.playlist?.songs || []
-  //   // }
-  //   // 清理旧的预取器
-  //   this.prefetcher = null;
-  //   this.sourceOk = false;
-  //
-  //   // 初始化数据源
-  //   this.songDataSource = new SongDataSourcePrefetching(this.songs);
-  //   // 创建预取器
-  //   this.prefetcher = new BasicPrefetcher(this.songDataSource);
-  //
-  //   this.sourceOk = true;
-  // }
 
   // 监听屏幕断点变化
   onBreakpointChange() {
@@ -144,17 +94,6 @@ export struct PlayList {
   @Builder
   PlayListAction() {
     Stack() {
-      // Column()
-      //   .width(StyleConstants.FULL_WIDTH)
-      //   .height(54)
-      //   .linearGradientBlur(10, {
-      //     fractionStops: [
-      //       [0.00, 0.00],
-      //       [0.50, 0.10],
-      //       [1.00, 1.00]
-      //     ],
-      //     direction: GradientDirection.Top
-      //   })
 
       Row() {
         // 主要播放按钮（占据大部分空间）
@@ -218,36 +157,6 @@ export struct PlayList {
   @Builder
   SongListSection() {
     Column() {
-      // Row() {
-      //   Column() {
-      //     Text('歌曲列表')
-      //       .fontSize(18)
-      //       .fontWeight(FontWeight.Bold)
-      //       .fontColor($r('app.color.text_secondary'))
-      //   }
-      //
-      //   // 显示缓存提醒
-      //   if (this.cacheTime !== -1) {
-      //     Column() {
-      //       Row() {
-      //         Text('缓存于')
-      //           .fontSize(14)
-      //           .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
-      //           .fontColor($r('app.color.text_hint'))
-      //         Text(`${formatRelativeTime(this.cacheTime)}`)
-      //           .fontSize(14)
-      //           .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
-      //           .fontColor($r('app.color.text_secondary'))
-      //       }
-      //     }
-      //   }
-      // }
-      // .justifyContent(FlexAlign.SpaceBetween)
-      // .width(StyleConstants.FULL_WIDTH)
-      // .padding({
-      //   left: 24,
-      //   right: 16,
-      // })
 
       List({ scroller: this.scroller }) {
         ListItem() {
@@ -330,29 +239,8 @@ export struct PlayList {
       .listDirection(Axis.Vertical)
       .divider({ strokeWidth: 0 })
       .cachedCount(5)
-      // .onScrollIndex((firstIndex: number, lastIndex: number) => {
-      //   if (this.prefetcher) {
-      //     this.prefetcher.visibleAreaChanged(firstIndex, lastIndex);
-      //   }
-      // })
       .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
       .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
-      // .onReachEnd(async () => {
-      //   if (this.isLoading || !this.sourceOk || this.isSearching) {
-      //     return;
-      //   }
-      //
-      //   this.isLoading = true;
-      //   try {
-      //     const hasMoreData = await this.songDataSource.loadMoreData(10);
-      //     if (!hasMoreData) {
-      //       return
-      //     }
-      //   } finally {
-      //     this.isLoading = false;
-      //   }
-      // })
-
     }
     .width(StyleConstants.FULL_WIDTH)
     .layoutWeight(1)
@@ -360,8 +248,6 @@ export struct PlayList {
 
   // 处理封面点击，确保在任何屏幕模式下都能正确滚动和高亮
   private handleCoverClick(_song: Song, index: number) {
-    // 确保数据被预取
-    // this.songDataSource.prefetch(index);
 
     // 触发滚动到对应位置
     // this.scrollController.scrollToIndex(index, true);

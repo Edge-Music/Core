@@ -2,12 +2,9 @@ import { SongInfo } from '../component/SongInfo';
 import { StyleConstants } from '../constants/StyleConstants';
 import { Playlist, Song } from '../type/Adapter';
 import { PlaylistManager } from '../util/PlaylistManager';
-import { SongDataSourcePrefetching } from '../util/SongDataSourcePrefetching';
-import { BasicPrefetcher } from '@kit.ArkUI';
 import { ToastUtil } from '@pura/harmony-utils';
 import { LogUtil } from '@pura/harmony-utils';
 import { SongsDataSource } from '../util/SongsDataSource';
-import ResourceManager from '../util/ResourceManager';
 
 @Component
 export struct PlaylistView {
@@ -18,22 +15,15 @@ export struct PlaylistView {
   @State isLoading: boolean = false;
   @State highlightIndex: number = -1;
   @State currentIndex: number = -1
-
-  // 数据源和预取器
-  // private songDataSource: SongDataSourcePrefetching = new SongDataSourcePrefetching([]);
-  // private prefetcher: BasicPrefetcher | null = null;
-
   @State private songsDataSource: SongsDataSource = new SongsDataSource()
 
   private scrollController: Scroller = new Scroller();
-  private sourceReady: boolean = false;
 
   // 可选的事件回调
   onSongSelected?: (song: Song) => void;
   onPlaylistEmpty?: () => void;
 
   aboutToAppear(): void {
-    // this.initDataSource();
     this.initSongsData_();
   }
 
@@ -42,57 +32,6 @@ export struct PlaylistView {
     // 滚动到当前播放的歌曲
     this.scrollToCurrentSong();
   }
-
-  // 监听播放列表变化
-  // onPlaylistChanged(): void {
-  //
-  //   // 如果数据源已初始化，同步数据
-  //   if (this.sourceReady && this.songDataSource) {
-  //     this.songDataSource.syncWithPlaylist(this.playlist || []);
-  //   } else {
-  //     // 否则重新初始化数据源
-  //     this.initDataSource();
-  //   }
-  //
-  //   // 检查歌单是否为空
-  //   if (!this.playlist || this.playlist.length === 0) {
-  //     if (this.onPlaylistEmpty) {
-  //       this.onPlaylistEmpty();
-  //     }
-  //   }
-  // }
-
-  // 初始化数据源
-  // private initDataSource(): void {
-  //   LogUtil.info('PlaylistView', 'Initializing data source');
-  //
-  //   // 清理旧的预取器
-  //   this.prefetcher = null;
-  //   this.sourceReady = false;
-  //
-  //   // 创建临时Playlist对象
-  //   const tempPlaylist: Playlist = {
-  //     id: 'current_playing',
-  //     songs: this.playlist || []
-  //   };
-  //
-  //   // 初始化新的数据源
-  //   this.songDataSource = new SongDataSourcePrefetching(this.playlist);
-  //
-  //   // 创建预取器
-  //   this.prefetcher = new BasicPrefetcher(this.songDataSource);
-  //   this.sourceReady = true;
-  //
-  //   // 检查歌单是否为空
-  //   if (!this.playlist || this.playlist.length === 0) {
-  //     if (this.onPlaylistEmpty) {
-  //       this.onPlaylistEmpty();
-  //     }
-  //   }
-  //
-  //   // 滚动到当前播放的歌曲
-  //   this.scrollToCurrentSong();
-  // }
 
   // 处理歌曲点击
   private handleSongTap(song: Song, index: number): void {
@@ -138,10 +77,6 @@ export struct PlaylistView {
 
 
     if (this.currentIndex !== -1) {
-      // 确保数据被预取
-      // if (this.prefetcher) {
-      //   this.songDataSource.prefetch(this.currentIndex);
-      // }
 
       // 设置高亮效果
       this.highlightIndex = this.currentIndex;
@@ -149,10 +84,6 @@ export struct PlaylistView {
         this.highlightIndex = -1;
       }, 300)
 
-      // 滚动到指定位置
-      // setTimeout(() => {
-      //   this.scrollController.scrollToIndex(Math.max(0, this.currentIndex), true);
-      // }, 100);
     }
   }
 
@@ -291,28 +222,6 @@ export struct PlaylistView {
         .divider({ strokeWidth: 0 })
         .scrollBar(BarState.Off)
         .cachedCount(8)
-        // .onScrollIndex((firstIndex: number, lastIndex: number) => {
-        //   // 通知预取器可见区域变化
-        //   if (this.prefetcher && this.sourceReady) {
-        //     this.prefetcher.visibleAreaChanged(firstIndex, lastIndex);
-        //   }
-        // })
-        // .onReachEnd(async () => {
-        //   // 到达底部时加载更多数据
-        //   if (this.isLoading || !this.sourceReady) {
-        //     return;
-        //   }
-        //
-        //   this.isLoading = true;
-        //   try {
-        //     const hasMoreData = await this.songDataSource.loadMoreData(10);
-        //     if (!hasMoreData) {
-        //       LogUtil.info('PlaylistView', 'No more data to load');
-        //     }
-        //   } finally {
-        //     this.isLoading = false;
-        //   }
-        // })
       }
     }
     .width(StyleConstants.FULL_WIDTH)

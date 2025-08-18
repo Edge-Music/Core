@@ -2,9 +2,7 @@ import { AlbumCoversCarousel } from "../component/AlbumCoversCarousel";
 import { SongInfo } from "../component/SongInfo";
 import { TitleHeader } from "../component/TitleHeader";
 import { StyleConstants } from "../constants/StyleConstants";
-import { Playlist, PlaylistType, Song } from "../type/Adapter";
-import { BasicPrefetcher } from '@kit.ArkUI';
-import { SongDataSourcePrefetching } from "../util/SongDataSourcePrefetching";
+import { Playlist, Song } from "../type/Adapter";
 import { BreakpointConstants } from "../constants/BreakpointConstants";
 import { cover } from "../util/AdapterHelper";
 import { PushPathHelper } from "../util/PushPathHelper";
@@ -28,13 +26,7 @@ export struct PlayListFor2in1 {
   @StorageLink("current_playlist_data") playlist: Playlist | null = null
   @StorageLink('current_playlist_songs') @Watch('onPlaylistChange') songs: Song[] = []
   @Watch('onBreakpointChange') @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
-
-  // private songDataSource: SongDataSourcePrefetching = new SongDataSourcePrefetching([]);
-  // private prefetcher: BasicPrefetcher | null = null;
-
   @State private songsDataSource: SongsDataSource = new SongsDataSource()
-
-  // private sourceOk: boolean = false;
   private scroller: Scroller = new Scroller();
   @State isLoading: boolean = false;
   // 点击跳转后的闪烁效果索引
@@ -78,18 +70,6 @@ export struct PlayListFor2in1 {
   }
 
   async aboutToAppear(): Promise<void> {
-    // 初始化数据源
-    // this.songDataSource = new SongDataSourcePrefetching(this.playlist?.songs as Song[]);
-    // // 创建预取器
-    // this.prefetcher = new BasicPrefetcher(this.songDataSource);
-    // // 设置屏幕模式
-    // this.isWideScreen = this.currentBreakpoint !== BreakpointConstants.BREAKPOINT_SM;
-    //
-    // this.sourceOk = true;
-    /*    if (this.playlist!=null) {
-          const playlistitem = await SourceAdapter.getPlaylistDetail(this.playlist)
-          AppStorage.setOrCreate('current_playlist_data', playlistitem)
-        }*/
     this.initSongsData_()
   }
 
