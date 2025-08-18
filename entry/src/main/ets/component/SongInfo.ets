@@ -9,7 +9,6 @@ import { SongDownloadManager } from "../util/SongDownloadManager";
 
 const TAG = 'SongInfo'
 
-@Reusable
 @Component
 export struct SongInfo {
   @StorageLink('aggregation_playlist') aggregationPlaylist: Playlist[] = PreferencesCache.getPlaylistCache('aggregation_playlist')
@@ -18,6 +17,7 @@ export struct SongInfo {
   @Prop song: Song
   showBorder: boolean = true;
   onTap?: (song: Song) => void;
+  deleteSong?: (song: Song) => void;
   @Prop active: boolean = false;
   @Prop disabled: boolean = false;
   @Prop index: number = 0;
@@ -210,9 +210,6 @@ export struct SongInfo {
                     ToastUtil.showShort(`[${song.name}]添加到[${this.aggregationPlaylist[index].name}]`)
                   }
                 })
-                if(this.playlistId === this.aggregationPlaylist[this.selectedIndex].id){
-                  AppStorage.setOrCreate('current_playlist_data', this.aggregationPlaylist[this.selectedIndex])
-                }
               },
               onAction: (): void => {}
             })
@@ -228,6 +225,9 @@ export struct SongInfo {
               onAction: (action: number): void => {
                 if(action === DialogAction.TWO){
                   this.deleteFromAggregationSongs(this.playlistId, song)
+                  if(this.deleteSong) {
+                    this.deleteSong(song)
+                  }
                 }
               }
             })
@@ -289,7 +289,7 @@ export struct SongInfo {
     }
   }
 
-  deleteFromAggregationSongs(playlistId: number | string, song: Song){
+  async deleteFromAggregationSongs(playlistId: number | string, song: Song) {
     try {
       PreferencesCache.deleteSongCache('aggregation_playlist', playlistId, song)
       ToastUtil.showShort("成功删除歌曲")

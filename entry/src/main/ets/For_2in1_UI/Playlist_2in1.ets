@@ -16,6 +16,7 @@ import ResourceManager from "../util/ResourceManager";
 import { ToastUtil } from "@pura/harmony-utils";
 import { DialogHelper } from "@pura/harmony-dialog";
 import { PreferencesCache } from "../util/PreferenceCache";
+import { SongsDataSource } from "../util/SongsDataSource";
 
 const TAG = 'PlayList'
 
@@ -24,11 +25,16 @@ export struct PlayListFor2in1 {
   @State searchContext: string = ResourceManager.getStringValueSync($r('app.string.search'))
   @State groupHeight: number = 0;
   @Consume('NavPathStack') pageStack: NavPathStack;
-  @Watch('onplaylistChange') @StorageLink("current_playlist_data") playlist: Playlist | null = null
+  @StorageLink("current_playlist_data") playlist: Playlist | null = null
+  @StorageLink('current_playlist_songs') @Watch('onPlaylistChange') songs: Song[] = []
   @Watch('onBreakpointChange') @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
-  private songDataSource: SongDataSourcePrefetching = new SongDataSourcePrefetching(null);
-  private prefetcher: BasicPrefetcher | null = null;
-  private sourceOk: boolean = false;
+
+  // private songDataSource: SongDataSourcePrefetching = new SongDataSourcePrefetching([]);
+  // private prefetcher: BasicPrefetcher | null = null;
+
+  @State private songsDataSource: SongsDataSource = new SongsDataSource()
+
+  // private sourceOk: boolean = false;
   private scroller: Scroller = new Scroller();
   @State isLoading: boolean = false;
   // 点击跳转后的闪烁效果索引
@@ -54,19 +60,12 @@ export struct PlayListFor2in1 {
     componentTag: TAG
   }).linkController(this.scroller)
 
-  onplaylistChange(){
-    this.sourceOk = false;
-    // this.songDataSource = new SongDataSourcePrefetching(this.playlist);
-    this.songDataSource.reloadData(this.playlist)
-    // 创建预取器
-    console.log('jizhishitest2in1')
-    this.prefetcher = new BasicPrefetcher(this.songDataSource);
-    // 设置屏幕模式
-    this.isWideScreen = this.currentBreakpoint !== BreakpointConstants.BREAKPOINT_SM;
-
-    this.sourceOk = true;
-
+  onPlaylistChange(){
+    this.songsDataSource.clearData()
+    this.songsDataSource.pushMultiData(this.songs)
+    this.songsDataSource.reloadData()
   }
+
   @Builder
   Title() {
     Row(){
@@ -80,17 +79,23 @@ export struct PlayListFor2in1 {
 
   async aboutToAppear(): Promise<void> {
     // 初始化数据源
-    this.songDataSource = new SongDataSourcePrefetching(this.playlist);
-    // 创建预取器
-    this.prefetcher = new BasicPrefetcher(this.songDataSource);
-    // 设置屏幕模式
-    this.isWideScreen = this.currentBreakpoint !== BreakpointConstants.BREAKPOINT_SM;
-
-    this.sourceOk = true;
+    // this.songDataSource = new SongDataSourcePrefetching(this.playlist?.songs as Song[]);
+    // // 创建预取器
+    // this.prefetcher = new BasicPrefetcher(this.songDataSource);
+    // // 设置屏幕模式
+    // this.isWideScreen = this.currentBreakpoint !== BreakpointConstants.BREAKPOINT_SM;
+    //
+    // this.sourceOk = true;
     /*    if (this.playlist!=null) {
           const playlistitem = await SourceAdapter.getPlaylistDetail(this.playlist)
           AppStorage.setOrCreate('current_playlist_data', playlistitem)
         }*/
+    this.initSongsData_()
+  }
+
+  initSongsData_() {
+    this.songsDataSource.pushMultiData(this.songs)
+    this.songsDataSource.reloadData()
   }
 
   // 监听屏幕断点变化
@@ -101,8 +106,8 @@ export struct PlayListFor2in1 {
   aboutToDisappear(): void {
     // 清空
     this.playlist = null;
-    this.prefetcher = null;
-    this.sourceOk = false;
+    // this.prefetcher = null;
+    // this.sourceOk = false;
   }
 
   onMenuIconClick(index: number) {
@@ -147,10 +152,10 @@ export struct PlayListFor2in1 {
         .backgroundColor($r('app.color.setting_item_background'))
         .justifyContent(FlexAlign.Center)
         .onClick(() => {
-          if (this.playlist?.songs && this.playlist.songs.length > 0) {
+          if (this.songs && this.songs.length > 0) {
             // 寻找第一个可以播放的歌曲
-            const song = this.playlist.songs.find(song => song.privilege.playable)
-            this.handlePlaylistPlayAll(song || this.playlist.songs[0])
+            const song = this.songs.find(song => song.privilege.playable)
+            this.handlePlaylistPlayAll(song || this.songs[0])
             PlaylistManager.switchPlayMode(PlayMode.LOOP)
           }
         })
@@ -242,46 +247,24 @@ export struct PlayListFor2in1 {
                   isShowMenu: true
                 })
               }
-              .key(`${song.id}-${index}`)
             })
           } else {
-            if(this.playlist?.type === PlaylistType.AGGREGATION) {
-              ForEach(this.playlist.songs, (song: Song, index: number) => {
-                ListItem() {
-                  SongInfo({
-                    playlistId: this.playlist?.id,
-                    playlistType: this.playlist?.type,
-                    song: song,
-                    index: index,
-                    active: this.song?.id === song.id,
-                    highlight: this.billingIndex === index,
-                    onTap: (song: Song) => {
-                      this.onSongTap(song, index);
-                    },
-                    isShowMenu: true
-                  })
-                }
-                .key(`${song.id}-${index}`)
-              }, (song: Song, index: number) => `${song.id}-${index}`)
-            } else {
-              LazyForEach(this.songDataSource, (song: Song, index: number) => {
-                ListItem() {
-                  SongInfo({
-                    playlistId: this.playlist?.id,
-                    playlistType: this.playlist?.type,
-                    song: song,
-                    index: index,
-                    active: this.song?.id === song.id,
-                    highlight: this.billingIndex === index,
-                    onTap: (song: Song) => {
-                      this.onSongTap(song, index);
-                    },
-                    isShowMenu: true
-                  })
-                }
-                .key(`${song.id}-${index}`)
-              }, (song: Song, index: number) => `${song.id}-${index}`)
-            }
+            LazyForEach(this.songsDataSource, (song: Song, index: number) => {
+              ListItem() {
+                SongInfo({
+                  playlistId: this.playlist?.id,
+                  playlistType: this.playlist?.type,
+                  song: song,
+                  index: index,
+                  active: this.song?.id === song.id,
+                  highlight: this.billingIndex === index,
+                  onTap: (song: Song) => {
+                    this.onSongTap(song, index);
+                  },
+                  isShowMenu: true
+                })
+              }
+            }, (song: Song, index: number) => `${song.id}-${index}`)
           }
         }
         .onAreaChange((_oldValue: Area, newValue: Area) => {
@@ -310,28 +293,28 @@ export struct PlayListFor2in1 {
       .listDirection(Axis.Vertical)
       .divider({ strokeWidth: 0 })
       .cachedCount(5)
-      .onScrollIndex((firstIndex: number, lastIndex: number) => {
-        if (this.prefetcher) {
-          this.prefetcher.visibleAreaChanged(firstIndex, lastIndex);
-        }
-      })
+      // .onScrollIndex((firstIndex: number, lastIndex: number) => {
+      //   if (this.prefetcher) {
+      //     this.prefetcher.visibleAreaChanged(firstIndex, lastIndex);
+      //   }
+      // })
       .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
       .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
-      .onReachEnd(async () => {
-        if (this.isLoading || !this.sourceOk || this.isSearching) {
-          return;
-        }
-
-        this.isLoading = true;
-        try {
-          const hasMoreData = await this.songDataSource.loadMoreData(10);
-          if (!hasMoreData) {
-            return
-          }
-        } finally {
-          this.isLoading = false;
-        }
-      })
+      // .onReachEnd(async () => {
+      //   if (this.isLoading || !this.sourceOk || this.isSearching) {
+      //     return;
+      //   }
+      //
+      //   this.isLoading = true;
+      //   try {
+      //     const hasMoreData = await this.songDataSource.loadMoreData(10);
+      //     if (!hasMoreData) {
+      //       return
+      //     }
+      //   } finally {
+      //     this.isLoading = false;
+      //   }
+      // })
 
     }
     .expandSafeArea()
@@ -342,7 +325,7 @@ export struct PlayListFor2in1 {
   // 处理封面点击，确保在任何屏幕模式下都能正确滚动和高亮
   private handleCoverClick(_song: Song, index: number) {
     // 确保数据被预取
-    this.songDataSource.prefetch(index);
+    // this.songDataSource.prefetch(index);
 
     // 触发滚动到对应位置
     // this.scrollController.scrollToIndex(index, true);
@@ -360,13 +343,13 @@ export struct PlayListFor2in1 {
 
   @Builder
   AlbumCoversSection() {
-    if (this.playlist?.songs && this.playlist.songs.length >= 50) {
+    if (this.songs && this.songs.length >= 50) {
       Column() {
         AlbumCoversCarousel({
           coverSize: 56,
           scrollSpeed: 60,
           rows: 1,
-          songs: this.playlist?.songs.slice(0, 30) || [],
+          songs: this.songs.slice(0, 30) || [],
           onCoverClick: (song: Song, index: number) => {
             this.handleCoverClick(song, index);
           }
@@ -380,7 +363,7 @@ export struct PlayListFor2in1 {
 
   handlePlaylistPlayAll(song: Song) {
     PushPathHelper.loading("Playing", async () => {
-      PlaylistManager.loadPlaylist(this.playlist?.songs?.filter(song => song.privilege.playable) || [], song);
+      PlaylistManager.loadPlaylist(this.songs?.filter(song => song.privilege.playable) || [], song);
     })
   }
 
@@ -465,7 +448,7 @@ export struct PlayListFor2in1 {
             Text('共')
               .fontSize(14)
               .fontColor($r('app.color.text_secondary'))
-            Text(`${this.playlist.songs?.length || 0}`)
+            Text(`${this.songs?.length || 0}`)
               .fontSize(14)
               .fontColor($r('app.color.text_primary'))
               .fontWeight(FontWeight.Bold)
@@ -536,7 +519,7 @@ export struct PlayListFor2in1 {
           // this.Title()
 
           Column() {
-            if (this.playlist && this.playlist.songs && this.playlist.songs.length > 0) {
+            if (this.playlist && this.songs && this.songs.length > 0) {
               // 根据屏幕宽度选择布局
               if (this.isWideScreen) {
                 // 宽屏布局
@@ -645,9 +628,9 @@ export struct PlayListFor2in1 {
         .justifyContent(FlexAlign.Center)
         .margin({ left: 8 })
         .onClick(() => {
-          if (this.playlist?.songs && this.playlist.songs.length > 0) {
-            const song = this.playlist.songs.find(song => song.privilege.playable)
-            this.handlePlaylistPlayAll(song || this.playlist.songs[0])
+          if (this.songs && this.songs.length > 0) {
+            const song = this.songs.find(song => song.privilege.playable)
+            this.handlePlaylistPlayAll(song || this.songs[0])
             PlaylistManager.switchPlayMode(PlayMode.LOOP)
           }
         })
@@ -726,9 +709,9 @@ export struct PlayListFor2in1 {
         .justifyContent(FlexAlign.Center)
         .margin({ left: 8 })
         .onClick(() => {
-          if (this.playlist?.songs && this.playlist.songs.length > 0) {
-            const song = this.playlist.songs.find(song => song.privilege.playable)
-            this.handlePlaylistPlayAll(song || this.playlist.songs[0])
+          if (this.songs && this.songs.length > 0) {
+            const song = this.songs.find(song => song.privilege.playable)
+            this.handlePlaylistPlayAll(song || this.songs[0])
             PlaylistManager.switchPlayMode(PlayMode.LOOP)
           }
         })
@@ -770,9 +753,9 @@ export struct PlayListFor2in1 {
       {
         value: $r('app.string.download_all_songs'),
         action: () => {
-          if (this.playlist?.songs && this.playlist.songs.length > 0) {
+          if (this.songs && this.songs.length > 0) {
             ToastUtil.showToast("开始下载全部歌曲", { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } })
-            const songs = this.playlist.songs.filter(song => song.privilege.playable)
+            const songs = this.songs.filter(song => song.privilege.playable)
             SongDownloadManager.batchDownloadSongs(songs)
           }
         }
@@ -787,8 +770,8 @@ export struct PlayListFor2in1 {
             radioContent: this.aggregationPlaylist.map(playlist => playlist.name),
             onCheckedChanged: (index) => {
               this.selectedIndex = index
-              if (this.playlist?.songs && this.playlist.songs.length > 0) {
-                PreferencesCache.addSongsToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], this.playlist.songs as Song[])
+              if (this.songs && this.songs.length > 0) {
+                PreferencesCache.addSongsToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], this.songs as Song[])
               }
             },
             onAction: (): void => {}
@@ -808,18 +791,18 @@ export struct PlayListFor2in1 {
   }
 
   private filterSongs() {
-    if (!this.playlist?.songs) {
+    if (!this.songs) {
       return
     }
 
     if (!this.searchKeywords.trim()) {
-      this.filteredSongs = this.playlist.songs
+      this.filteredSongs = this.songs
       this.isSearching = false
       return
     }
 
     const keywords = this.searchKeywords.toLowerCase().trim()
-    this.filteredSongs = this.playlist.songs.filter(song =>
+    this.filteredSongs = this.songs.filter(song =>
     song.name.toLowerCase().includes(keywords) ||
     song.artists.some(artist => artist.name.toLowerCase().includes(keywords)) ||
     song.album.name.toLowerCase().includes(keywords)

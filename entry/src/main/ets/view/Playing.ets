@@ -25,6 +25,8 @@ import SensorUtil from '../util/SensorUtil'
 import { DialogHelper } from '@pura/harmony-dialog'
 import { resourceManager } from '@kit.LocalizationKit'
 import { LyricsLine } from '../util/LyricsManager'
+import ResourceManager from '../util/ResourceManager'
+
 type ShowLyricsStatus = -1 | 0 | 1 | 2
 
 @Builder
@@ -55,6 +57,7 @@ struct Playing {
   @StorageProp('winHeightWithPx') @Watch('onWinWidthChange') winHeightWithPx: number = 0
   @StorageProp('current_width_breakpoint') widthBreakpoint: WidthBreakpoint = WidthBreakpoint.WIDTH_SM
   @StorageProp('current_height_breakpoint') heightBreakpoint: HeightBreakpoint = HeightBreakpoint.HEIGHT_SM
+  @StorageLink('current_playing_playlist') playlist: Array<Song> = [];
 
   @Consume('NavPathStack') pageStack: NavPathStack
   @State curColorIndex: number = 0
@@ -360,7 +363,7 @@ struct Playing {
   PlayListBuilder() {
     Column() {
       // 播放列表内容
-      Text($r('app.string.playing_list'))
+      Text(ResourceManager.getStringValueSync($r('app.string.playing_list'))+`(${this.playlist.length})`)
         .fontSize(18)
         .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
         .fontColor($r('app.color.text_title'))

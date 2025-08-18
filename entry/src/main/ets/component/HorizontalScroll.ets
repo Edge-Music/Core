@@ -58,6 +58,7 @@ export struct HorizontalScroll {
           PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
             const album = await SourceAdapter.getAlbumDetail(item)
             AppStorage.setOrCreate('current_playlist_data', album)
+            AppStorage.setOrCreate('current_playlist_songs', album.songs)
           })
         })
     })
@@ -97,6 +98,7 @@ export struct HorizontalScroll {
               PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
                 const playlist = await SourceAdapter.getPlaylistDetail(item)
                 AppStorage.setOrCreate('current_playlist_data', playlist)
+                AppStorage.setOrCreate('current_playlist_songs', playlist.songs)
               })
             })
         }
@@ -128,6 +130,7 @@ export struct HorizontalScroll {
                 // 歌手复用歌单UI
                 const playlist = await SourceAdapter.getArtistDetail(item)
                 AppStorage.setOrCreate('current_playlist_data', playlist)
+                AppStorage.setOrCreate('current_playlist_songs', playlist.songs)
               })
             })
         }
@@ -157,6 +160,7 @@ export struct HorizontalScroll {
                 PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
                   const playlist = await SourceAdapter.getPlaylistDetail(item)
                   AppStorage.setOrCreate('current_playlist_data', playlist)
+                  AppStorage.setOrCreate('current_playlist_songs', playlist.songs)
                 })
 
 

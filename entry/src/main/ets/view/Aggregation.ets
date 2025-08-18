@@ -5,7 +5,7 @@ import { MiniPlaybackControl } from "../component/MiniPlaybackControl";
 import { PlaylistItem } from "../component/PlaylistItem";
 import { TitleHeader } from "../component/TitleHeader";
 import { StyleConstants } from "../constants/StyleConstants";
-import { Playlist, PlaylistType } from "../type/Adapter";
+import { Playlist, PlaylistType, Song } from "../type/Adapter";
 import { PreferencesCache } from "../util/PreferenceCache";
 import { PushPathHelper } from "../util/PushPathHelper";
 import { ScrollController } from "../util/ScrollController";
@@ -96,13 +96,15 @@ export struct Aggregation {
               PlaylistItem({
                 playlist: playlist,
                 onPlaylistSelected: (item: Playlist) => {
+                  let tmpSongs: Song[] = JSON.parse(PreferencesCache.getCache(`aggregation_playlist_songs_${playlist.id}`, '[]'))
+                  item.songs = tmpSongs
                   PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
                     AppStorage.setOrCreate('current_playlist_data', item)
+                    AppStorage.setOrCreate('current_playlist_songs', tmpSongs)
                   })
                 }
               })
             }
-            .reuseId(`${playlist.name}-${index}`)
           })
         }
         .visibility(this.aggregationPlaylist.length > 0 ? Visibility.Visible : Visibility.None)

@@ -342,6 +342,7 @@ struct Library {
                     PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
                       const playlist = await SourceAdapter.getPlaylistDetail(item)
                       AppStorage.setOrCreate('current_playlist_data', playlist)
+                      AppStorage.setOrCreate('current_playlist_songs', playlist.songs)
                     })
                   }
                 })

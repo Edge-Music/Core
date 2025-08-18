@@ -94,6 +94,8 @@ export default class EntryAbility extends UIAbility {
     this.callee.on(CallMethod.COLLECT_ACTION, FormUtils.collectActionCall);
 
     SourceAdapter.getAllRecommend()
+
+    PreferencesCache.convertPlaylistData()
   }
 
   onDestroy(): void {
