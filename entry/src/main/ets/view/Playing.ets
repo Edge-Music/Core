@@ -362,14 +362,6 @@ struct Playing {
   @Builder
   PlayListBuilder() {
     Column() {
-      // 播放列表内容
-      Text(ResourceManager.getStringValueSync($r('app.string.playing_list'))+`(${this.playlist.length})`)
-        .fontSize(18)
-        .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-        .fontColor($r('app.color.text_title'))
-        .margin({ left: 36, top: 16, bottom: 16 })
-        .width(StyleConstants.FULL_WIDTH)
-        .textAlign(TextAlign.Start)
       PlaylistView()
     }
     .height(StyleConstants.FULL_HEIGHT)
