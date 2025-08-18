@@ -1687,7 +1687,7 @@ struct Playing {
             PreferencesCache.setUserPreference('playing_title_lyric_show_status', this.showLyricType.toString())
           })
         }
-        if (this.Pura_X === '1' || judge || this.selectedTabIndex === 1){
+        if (judge || this.selectedTabIndex === 1){
           Blank()
           Button({ type: ButtonType.Circle }) {
             Image(this.isFavorite ? $r('app.media.ic_heart_fill') : $r('app.media.ic_heart'))

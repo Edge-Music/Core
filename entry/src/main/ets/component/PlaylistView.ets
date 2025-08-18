@@ -12,6 +12,7 @@ export struct PlaylistView {
   @StorageLink('current_playing_playlist') playlist: Array<Song> = [];
   @StorageLink("current_playlist_data") curPlaylist: Playlist | null = null
   @StorageProp('current_width_breakpoint') widthBreakpoint: WidthBreakpoint = WidthBreakpoint.WIDTH_SM
+  @StorageProp('bottomRect') bottomRect: number = 0
   @State isLoading: boolean = false;
   @State highlightIndex: number = -1;
   @State currentIndex: number = -1
@@ -212,7 +213,7 @@ export struct PlaylistView {
 
           ListItem(){
             Column(){
-              Blank().height(this.widthBreakpoint > WidthBreakpoint.WIDTH_SM ? 100 : 300)
+              Blank().height(this.bottomRect)
             }
           }
         }
@@ -222,6 +223,9 @@ export struct PlaylistView {
         .divider({ strokeWidth: 0 })
         .scrollBar(BarState.Off)
         .cachedCount(8)
+        .onAppear(() => {
+          this.scrollController.scrollToIndex(this.currentIndex, true)
+        })
       }
     }
     .width(StyleConstants.FULL_WIDTH)

@@ -97,7 +97,6 @@ export struct Aggregation {
                 playlist: playlist,
                 onPlaylistSelected: (item: Playlist) => {
                   let tmpSongs: Song[] = JSON.parse(PreferencesCache.getCache(`aggregation_playlist_songs_${playlist.id}`, '[]'))
-                  item.songs = tmpSongs
                   PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
                     AppStorage.setOrCreate('current_playlist_data', item)
                     AppStorage.setOrCreate('current_playlist_songs', tmpSongs)
