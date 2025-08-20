@@ -54,9 +54,9 @@ export class DownloadUtils {
       try {
         const filePath = config.fileName;
 
-        // 首先检查文件是否存在，如果存在则直接返回
+        // 首先检查文件是否存在，如果存在则删除文件
         if (await fs.access(filePath)) {
-          return filePath;
+          await fs.unlink(filePath)
         }
 
         const downloadTask = await request.downloadFile(this.context!, {

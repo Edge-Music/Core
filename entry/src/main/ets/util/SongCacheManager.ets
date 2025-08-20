@@ -158,7 +158,22 @@ class CacheManager {
    */
   public has(key: string): boolean {
     this.checkInitialized();
-    return PreferencesUtil.hasSync(this.getFullKey(key), this.config.preferenceName);
+    if (!PreferencesUtil.hasSync(this.getFullKey(key), this.config.preferenceName)) {
+      return false;
+    }
+    // 检查文件是否存在
+    const data = PreferencesUtil.getStringSync(this.getFullKey(key), undefined, this.config.preferenceName);
+    if (!data) {
+      return false;
+    }
+    const cacheItem: SongCacheItem = JSON.parse(data);
+    const fileExists = fs.accessSync(cacheItem.path);
+    if (!fileExists) {
+      // 如果文件不存在，删除缓存
+      this.remove(key);
+      return false;
+    }
+    return true;
   }
 
   /**

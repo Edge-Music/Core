@@ -535,6 +535,18 @@
     {
       "name": "default_playlist_desc",
       "value": "这是一个本地聚合歌单"
+    },
+    {
+      "name": "has_been_downloaded",
+      "value": "已下载"
+    },
+    {
+      "name": "has_been_cached",
+      "value": "已缓存"
+    },
+    {
+      "name": "vivid",
+      "value": "Audio Vivid"
     }
   ]
 }

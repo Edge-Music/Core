@@ -539,6 +539,14 @@
     {
       "name": "default_playlist_desc",
       "value": "This is a local aggregated playlist"
+    },
+    {
+      "name": "has_been_downloaded",
+      "value": "Downloaded"
+    },
+    {
+      "name": "has_been_cached",
+      "value": "Cached"
     }
   ]
 }

@@ -191,7 +191,7 @@ class SongDownloadManagerClass {
       }
 
       const ext = getFileExtension(url)
-      const fileName = `${song.name}-${song.artists.map(item => item.name).join("、")}${ext}`
+      const fileName = `${song.artists.map(item => item.name).join("/")}-${song.name}${ext}`
 
       // 完整文件路径
       const uri = musicDir + '/' + fileName;
@@ -405,7 +405,13 @@ class SongDownloadManagerClass {
       }
 
       const downloadItem: SongDownloadItem = JSON.parse(data);
-      fs.accessSync(downloadItem.path);
+      LogUtil.info('SongDownloadManager ', 'Checking song existence: ', downloadItem.path);
+      const fileExists = fs.accessSync(downloadItem.path);
+      if (!fileExists) {
+        // 文件不存在，删除记录
+        this.removeSong(songId);
+        return false;
+      }
       return true;
     } catch (error) {
       // 文件不存在，删除记录
