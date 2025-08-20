@@ -94,6 +94,8 @@ export default class EntryAbility extends UIAbility {
     this.callee.on(CallMethod.COLLECT_ACTION, FormUtils.collectActionCall);
 
     SourceAdapter.getAllRecommend()
+
+    PreferencesCache.convertPlaylistData()
   }
 
   onDestroy(): void {
@@ -101,6 +103,8 @@ export default class EntryAbility extends UIAbility {
     PipManager.getInstance().setAutoStart(false)
     PreferencesCache.setUserPreference('Lyic_desktop','0')
     FormUtils.updateCardPlayStatus(false);
+    avPlayerManager.destroy()
+    LogUtil.info(`[${TAG}]`, `avPlayer&avSession has been destroyed: ${avPlayerManager.avPlayer?.state}`);
   }
 
   async onWindowStageCreate(windowStage: window.WindowStage): Promise<void> {

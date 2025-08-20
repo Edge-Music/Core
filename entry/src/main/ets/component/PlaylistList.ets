@@ -1,5 +1,5 @@
 import { LazyData } from "@pie/lazy-data";
-import { ID, Playlist, SourceConfig } from "../type/Adapter";
+import { ID, Playlist, Song, SourceConfig } from "../type/Adapter";
 import { ToastUtil } from '@pura/harmony-utils';
 import { SourceAdapter } from '../adapter';
 import { StyleConstants } from '../constants/StyleConstants';
@@ -8,19 +8,24 @@ import { PlaylistManager } from '../util/PlaylistManager';
 import { PushPathHelper } from '../util/PushPathHelper';
 import { PreferencesCache } from "../util/PreferenceCache";
 import { PlaylistItem } from "./PlaylistItem";
+import { DialogHelper } from "@pura/harmony-dialog";
 
 @Component
 export struct PlaylistList {
   @StorageProp('bottomRect') bottomRect: number = 0
-  @Prop playlists: Playlist[] = [];
-  onPlaylistSelected?: (playlist: Playlist) => void;
   @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm';
   @StorageLink("show_user_data_source") showAdapters: SourceConfig[] = PreferencesCache.getShowUserDataSource()
-  @State dataSource: LazyData<Playlist> = new LazyData<Playlist>(this.playlists);
+  @StorageLink('aggregation_playlist') aggregationPlaylist: Playlist[] = PreferencesCache.getPlaylistCache('aggregation_playlist')
+
   @Prop adapters: SourceConfig[] = []
+  @Prop playlists: Playlist[] = [];
   @Link sIndex: number
   @Link subTitleIndex: number
+  @State dataSource: LazyData<Playlist> = new LazyData<Playlist>(this.playlists);
   @State isPressedPlaylistItem: boolean = false
+  @State selectedIndex: number = 0
+  onPlaylistSelected?: (playlist: Playlist) => void;
+
 
   build() {
     Column() {
@@ -255,6 +260,23 @@ export struct PlaylistList {
               return
             }
             PlaylistManager.insertSongs(songs)
+          })
+        }
+      },
+      {
+        value: $r('app.string.add_to_playlist'),
+        action: () => {
+          DialogHelper.showSelectDialog({
+            title: $r('app.string.add_to_playlist'),
+            confirm: $r('app.string.back'),
+            selectedIndex: -1,
+            radioContent: this.aggregationPlaylist.map(playlist => playlist.name),
+            onCheckedChanged: async (index) => {
+              this.selectedIndex = index
+              const playlistDetail = await SourceAdapter.getPlaylistDetail(playlist)
+              PreferencesCache.addSongsToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], playlistDetail.songs as Song[])
+            },
+            onAction: (): void => {}
           })
         }
       }

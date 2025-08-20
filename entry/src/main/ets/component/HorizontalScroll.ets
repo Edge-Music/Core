@@ -58,6 +58,7 @@ export struct HorizontalScroll {
           PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
             const album = await SourceAdapter.getAlbumDetail(item)
             AppStorage.setOrCreate('current_playlist_data', album)
+            AppStorage.setOrCreate('current_playlist_songs', album.songs)
           })
         })
     })
@@ -97,6 +98,7 @@ export struct HorizontalScroll {
               PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
                 const playlist = await SourceAdapter.getPlaylistDetail(item)
                 AppStorage.setOrCreate('current_playlist_data', playlist)
+                AppStorage.setOrCreate('current_playlist_songs', playlist.songs)
               })
             })
         }
@@ -128,6 +130,7 @@ export struct HorizontalScroll {
                 // 歌手复用歌单UI
                 const playlist = await SourceAdapter.getArtistDetail(item)
                 AppStorage.setOrCreate('current_playlist_data', playlist)
+                AppStorage.setOrCreate('current_playlist_songs', playlist.songs)
               })
             })
         }
@@ -157,6 +160,7 @@ export struct HorizontalScroll {
                 PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
                   const playlist = await SourceAdapter.getPlaylistDetail(item)
                   AppStorage.setOrCreate('current_playlist_data', playlist)
+                  AppStorage.setOrCreate('current_playlist_songs', playlist.songs)
                 })
 
 
@@ -219,14 +223,16 @@ export struct HorizontalScroll {
             radioContent: this.aggregationPlaylist.map(playlist => playlist.name),
             onCheckedChanged: (index) => {
               this.selectedIndex = index
-              if(PreferencesCache.addSongToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], song)){
-                ToastUtil.showShort(`[${song.name}]存在于[${this.aggregationPlaylist[index].name}]`)
-                // if(this.playlistId === this.aggregationPlaylist[this.selectedIndex].id){
-                //   AppStorage.setOrCreate('current_playlist_data', this.aggregationPlaylist[this.selectedIndex])
-                // }
-              }else{
-                ToastUtil.showShort(`[${song.name}]添加到[${this.aggregationPlaylist[index].name}]`)
-              }
+              PreferencesCache.addSongToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], song).then((result: boolean) => {
+                if(result){
+                  ToastUtil.showShort(`[${song.name}]存在于[${this.aggregationPlaylist[index].name}]`)
+                  // if(this.playlistId === this.aggregationPlaylist[this.selectedIndex].id){
+                  //   AppStorage.setOrCreate('current_playlist_data', this.aggregationPlaylist[this.selectedIndex])
+                  // }
+                }else{
+                  ToastUtil.showShort(`[${song.name}]添加到[${this.aggregationPlaylist[index].name}]`)
+                }
+              })
             },
             onAction: (): void => {}
           })
@@ -278,6 +284,23 @@ export struct HorizontalScroll {
             const songs = playlist.songs.filter(song => song.privilege.playable)
             SongDownloadManager.batchDownloadSongs(songs)
           }
+        }
+      },
+      {
+        value: $r('app.string.add_to_playlist'),
+        action: () => {
+          DialogHelper.showSelectDialog({
+            title: $r('app.string.add_to_playlist'),
+            confirm: $r('app.string.back'),
+            selectedIndex: -1,
+            radioContent: this.aggregationPlaylist.map(playlist => playlist.name),
+            onCheckedChanged: async (index) => {
+              this.selectedIndex = index
+              const playlistDetail = await SourceAdapter.getPlaylistDetail(playlist)
+              PreferencesCache.addSongsToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], playlistDetail.songs as Song[])
+            },
+            onAction: (): void => {}
+          })
         }
       }
     ]

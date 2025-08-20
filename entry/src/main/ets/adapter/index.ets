@@ -466,7 +466,10 @@ export class SourceAdapter {
 
   static async getAggregationPlaylistDetail(playlist: Playlist): Promise<Playlist> {
     try {
-      return playlist;
+      let songs: Song[] = JSON.parse(PreferencesCache.getCache(`aggregation_playlist_songs_${playlist.id}`, '[]')) as Song[]
+      let resultPlaylist = playlist
+      playlist.songs = songs
+      return resultPlaylist;
     } catch (error) {
       LogUtil.error(TAG, `获取歌单详情失败，id：${playlist.id}，错误：${error}`);
       // 出错时返回空歌曲列表的歌单

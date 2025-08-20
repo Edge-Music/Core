@@ -490,7 +490,7 @@
     },
     {
       "name": "double_tap_switch_songs",
-      "value": "双敲后壳切歌（实验性）"
+      "value": "双敲后壳切歌/翻转静音（实验性）"
     },
     {
       "name": "create_playlist",

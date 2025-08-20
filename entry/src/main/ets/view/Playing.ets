@@ -25,6 +25,8 @@ import SensorUtil from '../util/SensorUtil'
 import { DialogHelper } from '@pura/harmony-dialog'
 import { resourceManager } from '@kit.LocalizationKit'
 import { LyricsLine } from '../util/LyricsManager'
+import ResourceManager from '../util/ResourceManager'
+
 type ShowLyricsStatus = -1 | 0 | 1 | 2
 
 @Builder
@@ -55,6 +57,7 @@ struct Playing {
   @StorageProp('winHeightWithPx') @Watch('onWinWidthChange') winHeightWithPx: number = 0
   @StorageProp('current_width_breakpoint') widthBreakpoint: WidthBreakpoint = WidthBreakpoint.WIDTH_SM
   @StorageProp('current_height_breakpoint') heightBreakpoint: HeightBreakpoint = HeightBreakpoint.HEIGHT_SM
+  @StorageLink('current_playing_playlist') playlist: Array<Song> = [];
 
   @Consume('NavPathStack') pageStack: NavPathStack
   @State curColorIndex: number = 0
@@ -359,14 +362,6 @@ struct Playing {
   @Builder
   PlayListBuilder() {
     Column() {
-      // 播放列表内容
-      Text($r('app.string.playing_list'))
-        .fontSize(18)
-        .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-        .fontColor($r('app.color.text_title'))
-        .margin({ left: 36, top: 16, bottom: 16 })
-        .width(StyleConstants.FULL_WIDTH)
-        .textAlign(TextAlign.Start)
       PlaylistView()
     }
     .height(StyleConstants.FULL_HEIGHT)
@@ -1246,14 +1241,13 @@ struct Playing {
             radioContent: this.aggregationPlaylist.map(playlist => playlist?.name),
             onCheckedChanged: (index) => {
               this.selectedIndex = index
-              if(PreferencesCache.addSongToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], this.song!)){
-                ToastUtil.showShort(`[${this.song?.name}]存在于[${this.aggregationPlaylist[index].name}]`)
-                // if(this.playlistId === this.aggregationPlaylist[this.selectedIndex].id){
-                //   AppStorage.setOrCreate('current_playlist_data', this.aggregationPlaylist[this.selectedIndex])
-                // }
-              }else{
-                ToastUtil.showShort(`[${this.song?.name}]添加到[${this.aggregationPlaylist[index].name}]`)
-              }
+              PreferencesCache.addSongToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], this.song!).then((result: boolean) => {
+                if(result){
+                  ToastUtil.showShort(`[${this.song?.name}]存在于[${this.aggregationPlaylist[index].name}]`)
+                }else{
+                  ToastUtil.showShort(`[${this.song?.name}]添加到[${this.aggregationPlaylist[index].name}]`)
+                }
+              })
             },
             onAction: (): void => {}
           })
@@ -1291,14 +1285,13 @@ struct Playing {
             radioContent: this.aggregationPlaylist.map(playlist => playlist?.name),
             onCheckedChanged: (index) => {
               this.selectedIndex = index
-              if(PreferencesCache.addSongToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], this.song!)){
-                ToastUtil.showShort(`[${this.song?.name}]存在于[${this.aggregationPlaylist[index].name}]`)
-                // if(this.playlistId === this.aggregationPlaylist[this.selectedIndex].id){
-                //   AppStorage.setOrCreate('current_playlist_data', this.aggregationPlaylist[this.selectedIndex])
-                // }
-              }else{
-                ToastUtil.showShort(`[${this.song?.name}]添加到[${this.aggregationPlaylist[index].name}]`)
-              }
+              PreferencesCache.addSongToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], this.song!).then((result: boolean) => {
+                if(result){
+                  ToastUtil.showShort(`[${this.song?.name}]存在于[${this.aggregationPlaylist[index].name}]`)
+                }else{
+                  ToastUtil.showShort(`[${this.song?.name}]添加到[${this.aggregationPlaylist[index].name}]`)
+                }
+              })
             },
             onAction: (): void => {}
           })
@@ -1694,7 +1687,7 @@ struct Playing {
             PreferencesCache.setUserPreference('playing_title_lyric_show_status', this.showLyricType.toString())
           })
         }
-        if (this.Pura_X === '1' || judge || this.selectedTabIndex === 1){
+        if (judge || this.selectedTabIndex === 1){
           Blank()
           Button({ type: ButtonType.Circle }) {
             Image(this.isFavorite ? $r('app.media.ic_heart_fill') : $r('app.media.ic_heart'))

@@ -3,8 +3,6 @@ import { SongInfo } from "../component/SongInfo";
 import { TitleHeader } from "../component/TitleHeader";
 import { StyleConstants } from "../constants/StyleConstants";
 import { Playlist, PlaylistType, Song } from "../type/Adapter";
-import { BasicPrefetcher } from '@kit.ArkUI';
-import { SongDataSourcePrefetching } from "../util/SongDataSourcePrefetching";
 import { BreakpointConstants } from "../constants/BreakpointConstants";
 import { cover } from "../util/AdapterHelper";
 import { PushPathHelper } from "../util/PushPathHelper";
@@ -15,6 +13,9 @@ import { ScrollController } from "../util/ScrollController";
 import { HeaderAnimation } from "../component/HeaderAnimation";
 import ResourceManager from "../util/ResourceManager";
 import { ToastUtil } from "@pura/harmony-utils";
+import { PreferencesCache } from "../util/PreferenceCache";
+import { DialogHelper } from "@pura/harmony-dialog";
+import { SongsDataSource } from "../util/SongsDataSource";
 
 const TAG = 'PlayList'
 
@@ -22,12 +23,13 @@ const TAG = 'PlayList'
 export struct PlayList {
   @State searchContext: string = ResourceManager.getStringValueSync($r('app.string.search'))
   @State groupHeight: number = 0;
+  @State selectedIndex: number = 0
   @Consume('NavPathStack') pageStack: NavPathStack;
-  @StorageLink("current_playlist_data") playlist: Playlist | null = null
+  @StorageLink('current_playlist_data') playlist: Playlist | null = AppStorage.get('current_playlist_data') as Playlist
+  @StorageLink('current_playlist_songs') songs: Song[] = []
+  @StorageLink('aggregation_playlist') aggregationPlaylist: Playlist[] = PreferencesCache.getPlaylistCache('aggregation_playlist')
   @Watch('onBreakpointChange') @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
-  @State private songDataSource: SongDataSourcePrefetching = new SongDataSourcePrefetching(null);
-  @State private prefetcher: BasicPrefetcher | null = null;
-  private sourceOk: boolean = false;
+  @State private songsDataSource: SongsDataSource = new SongsDataSource()
   private scroller: Scroller = new Scroller();
   @State isLoading: boolean = false;
   // 点击跳转后的闪烁效果索引
@@ -59,14 +61,16 @@ export struct PlayList {
   }
 
   aboutToAppear(): void {
-    // 初始化数据源
-    this.songDataSource = new SongDataSourcePrefetching(this.playlist);
-    // 创建预取器
-    this.prefetcher = new BasicPrefetcher(this.songDataSource);
+    // 初始化歌单数据
+    this.initSongsData_()
+
     // 设置屏幕模式
     this.isWideScreen = this.currentBreakpoint !== BreakpointConstants.BREAKPOINT_SM;
+  }
 
-    this.sourceOk = true;
+  initSongsData_() {
+    this.songsDataSource.pushMultiData(this.songs)
+    this.songsDataSource.reloadData()
   }
 
   // 监听屏幕断点变化
@@ -77,8 +81,8 @@ export struct PlayList {
   aboutToDisappear(): void {
     // 清空
     this.playlist = null;
-    this.prefetcher = null;
-    this.sourceOk = false;
+    // this.prefetcher = null;
+    // this.sourceOk = false;
   }
 
   onMenuIconClick(index: number) {
@@ -90,17 +94,6 @@ export struct PlayList {
   @Builder
   PlayListAction() {
     Stack() {
-      // Column()
-      //   .width(StyleConstants.FULL_WIDTH)
-      //   .height(54)
-      //   .linearGradientBlur(10, {
-      //     fractionStops: [
-      //       [0.00, 0.00],
-      //       [0.50, 0.10],
-      //       [1.00, 1.00]
-      //     ],
-      //     direction: GradientDirection.Top
-      //   })
 
       Row() {
         // 主要播放按钮（占据大部分空间）
@@ -123,10 +116,10 @@ export struct PlayList {
         .backgroundColor($r('app.color.setting_item_background'))
         .justifyContent(FlexAlign.Center)
         .onClick(() => {
-          if (this.playlist?.songs && this.playlist.songs.length > 0) {
+          if (this.songs && this.songs.length > 0) {
             // 寻找第一个可以播放的歌曲
-            const song = this.playlist.songs.find(song => song.privilege.playable)
-            this.handlePlaylistPlayAll(song || this.playlist.songs[0])
+            const song = this.songs.find(song => song.privilege.playable)
+            this.handlePlaylistPlayAll(song || this.songs[0])
             PlaylistManager.switchPlayMode(PlayMode.LOOP)
           }
         })
@@ -144,15 +137,7 @@ export struct PlayList {
         .shadow(ShadowStyle.OUTER_DEFAULT_XS)
         .backgroundColor($r('app.color.setting_item_background'))
         .justifyContent(FlexAlign.Center)
-        .bindMenu([{
-          value: $r('app.string.download_all_songs'),
-          action: () => {
-            if (this.playlist?.songs && this.playlist.songs.length > 0) {
-              const songs = this.playlist.songs.filter(song => song.privilege.playable)
-              SongDownloadManager.batchDownloadSongs(songs)
-            }
-          }
-        }])
+        .bindMenu(this.generatePlaylistMenu())
       }
       .backgroundColor('transparent')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -172,36 +157,6 @@ export struct PlayList {
   @Builder
   SongListSection() {
     Column() {
-      // Row() {
-      //   Column() {
-      //     Text('歌曲列表')
-      //       .fontSize(18)
-      //       .fontWeight(FontWeight.Bold)
-      //       .fontColor($r('app.color.text_secondary'))
-      //   }
-      //
-      //   // 显示缓存提醒
-      //   if (this.cacheTime !== -1) {
-      //     Column() {
-      //       Row() {
-      //         Text('缓存于')
-      //           .fontSize(14)
-      //           .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
-      //           .fontColor($r('app.color.text_hint'))
-      //         Text(`${formatRelativeTime(this.cacheTime)}`)
-      //           .fontSize(14)
-      //           .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
-      //           .fontColor($r('app.color.text_secondary'))
-      //       }
-      //     }
-      //   }
-      // }
-      // .justifyContent(FlexAlign.SpaceBetween)
-      // .width(StyleConstants.FULL_WIDTH)
-      // .padding({
-      //   left: 24,
-      //   right: 16,
-      // })
 
       List({ scroller: this.scroller }) {
         ListItem() {
@@ -232,46 +187,30 @@ export struct PlayList {
                   isShowMenu: true
                 })
               }
-              .key(`${song.id}-${index}`)
             })
           } else {
-            if(this.playlist?.type === PlaylistType.AGGREGATION) {
-              ForEach(this.playlist.songs, (song: Song, index: number) => {
-                ListItem() {
-                  SongInfo({
-                    playlistId: this.playlist?.id,
-                    playlistType: this.playlist?.type,
-                    song: song,
-                    index: index,
-                    active: this.song?.id === song.id,
-                    highlight: this.billingIndex === index,
-                    onTap: (song: Song) => {
-                      this.onSongTap(song, index);
-                    },
-                    isShowMenu: true
-                  })
-                }
-                .key(`${song.id}-${index}`)
-              }, (song: Song, index: number) => `${song.id}-${index}`)
-            } else {
-              LazyForEach(this.songDataSource, (song: Song, index: number) => {
-                ListItem() {
-                  SongInfo({
-                    playlistId: this.playlist?.id,
-                    playlistType: this.playlist?.type,
-                    song: song,
-                    index: index,
-                    active: this.song?.id === song.id,
-                    highlight: this.billingIndex === index,
-                    onTap: (song: Song) => {
-                      this.onSongTap(song, index);
-                    },
-                    isShowMenu: true
-                  })
-                }
-                .key(`${song.id}-${index}`)
-              }, (song: Song, index: number) => `${song.id}-${index}`)
-            }
+            LazyForEach(this.songsDataSource, (song: Song, index: number) => {
+              ListItem() {
+                SongInfo({
+                  playlistId: this.playlist?.id,
+                  playlistType: this.playlist?.type,
+                  song: song,
+                  index: index,
+                  active: this.song?.id === song.id,
+                  highlight: this.billingIndex === index,
+                  onTap: (song: Song) => {
+                    this.onSongTap(song, index);
+                  },
+                  deleteSong: (d_song: Song) => {
+                    if(this.playlist?.type === PlaylistType.AGGREGATION) {
+                      this.songsDataSource.deleteData(index)
+                      this.songsDataSource.reloadData()
+                    }
+                  },
+                  isShowMenu: true
+                })
+              }
+            }, (song: Song, index: number) => `${song.id}-${index}`)
           }
         }
         .onAreaChange((_oldValue: Area, newValue: Area) => {
@@ -300,29 +239,8 @@ export struct PlayList {
       .listDirection(Axis.Vertical)
       .divider({ strokeWidth: 0 })
       .cachedCount(5)
-      .onScrollIndex((firstIndex: number, lastIndex: number) => {
-        if (this.prefetcher) {
-          this.prefetcher.visibleAreaChanged(firstIndex, lastIndex);
-        }
-      })
       .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
       .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
-      .onReachEnd(async () => {
-        if (this.isLoading || !this.sourceOk || this.isSearching) {
-          return;
-        }
-
-        this.isLoading = true;
-        try {
-          const hasMoreData = await this.songDataSource.loadMoreData(10);
-          if (!hasMoreData) {
-            return
-          }
-        } finally {
-          this.isLoading = false;
-        }
-      })
-
     }
     .width(StyleConstants.FULL_WIDTH)
     .layoutWeight(1)
@@ -330,8 +248,6 @@ export struct PlayList {
 
   // 处理封面点击，确保在任何屏幕模式下都能正确滚动和高亮
   private handleCoverClick(_song: Song, index: number) {
-    // 确保数据被预取
-    this.songDataSource.prefetch(index);
 
     // 触发滚动到对应位置
     // this.scrollController.scrollToIndex(index, true);
@@ -349,13 +265,13 @@ export struct PlayList {
 
   @Builder
   AlbumCoversSection() {
-    if (this.playlist?.songs && this.playlist.songs.length >= 50) {
+    if (this.songs && this.songs.length >= 50) {
       Column() {
         AlbumCoversCarousel({
           coverSize: 56,
           scrollSpeed: 60,
           rows: 1,
-          songs: this.playlist?.songs.slice(0, 30) || [],
+          songs: this.songs.slice(0, 30) || [],
           onCoverClick: (song: Song, index: number) => {
             this.handleCoverClick(song, index);
           }
@@ -369,7 +285,7 @@ export struct PlayList {
 
   handlePlaylistPlayAll(song: Song) {
     PushPathHelper.loading("Playing", async () => {
-      PlaylistManager.loadPlaylist(this.playlist?.songs?.filter(song => song.privilege.playable) || [], song);
+      PlaylistManager.loadPlaylist(this.songs?.filter(song => song.privilege.playable) || [], song);
     })
   }
 
@@ -453,7 +369,7 @@ export struct PlayList {
             Text('共')
               .fontSize(14)
               .fontColor($r('app.color.text_secondary'))
-            Text(`${this.playlist.songs?.length || 0}`)
+            Text(`${this.songs?.length || 0}`)
               .fontSize(14)
               .fontColor($r('app.color.text_primary'))
               .fontWeight(FontWeight.Bold)
@@ -524,7 +440,7 @@ export struct PlayList {
           this.Title()
 
           Column() {
-            if (this.playlist && this.playlist.songs && this.playlist.songs.length > 0) {
+            if (this.playlist && this.songs && this.songs.length > 0) {
               // 根据屏幕宽度选择布局
               if (this.isWideScreen) {
                 // 宽屏布局
@@ -632,9 +548,9 @@ export struct PlayList {
         .justifyContent(FlexAlign.Center)
         .margin({ left: 8 })
         .onClick(() => {
-          if (this.playlist?.songs && this.playlist.songs.length > 0) {
-            const song = this.playlist.songs.find(song => song.privilege.playable)
-            this.handlePlaylistPlayAll(song || this.playlist.songs[0])
+          if (this.songs && this.songs.length > 0) {
+            const song = this.songs.find(song => song.privilege.playable)
+            this.handlePlaylistPlayAll(song || this.songs[0])
             PlaylistManager.switchPlayMode(PlayMode.LOOP)
           }
         })
@@ -653,16 +569,7 @@ export struct PlayList {
         .backgroundColor($r('app.color.setting_item_background'))
         .justifyContent(FlexAlign.Center)
         .margin({ left: 8 })
-        .bindMenu([{
-          value: $r('app.string.download_all_songs'),
-          action: () => {
-            if (this.playlist?.songs && this.playlist.songs.length > 0) {
-              ToastUtil.showToast("开始下载全部歌曲", { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } })
-              const songs = this.playlist.songs.filter(song => song.privilege.playable)
-              SongDownloadManager.batchDownloadSongs(songs)
-            }
-          }
-        }])
+        .bindMenu(this.generatePlaylistMenu())
         .clickEffect({ level: ClickEffectLevel.LIGHT })
         .stateStyles({
           pressed: this.pressedStyles,
@@ -722,9 +629,9 @@ export struct PlayList {
         .justifyContent(FlexAlign.Center)
         .margin({ left: 8 })
         .onClick(() => {
-          if (this.playlist?.songs && this.playlist.songs.length > 0) {
-            const song = this.playlist.songs.find(song => song.privilege.playable)
-            this.handlePlaylistPlayAll(song || this.playlist.songs[0])
+          if (this.songs && this.songs.length > 0) {
+            const song = this.songs.find(song => song.privilege.playable)
+            this.handlePlaylistPlayAll(song || this.songs[0])
             PlaylistManager.switchPlayMode(PlayMode.LOOP)
           }
         })
@@ -743,16 +650,7 @@ export struct PlayList {
         .backgroundColor($r('app.color.setting_item_background'))
         .justifyContent(FlexAlign.Center)
         .margin({ left: 8 })
-        .bindMenu([{
-          value: $r('app.string.download_all_songs'),
-          action: () => {
-            if (this.playlist?.songs && this.playlist.songs.length > 0) {
-              ToastUtil.showToast("开始下载全部歌曲", { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } })
-              const songs = this.playlist.songs.filter(song => song.privilege.playable)
-              SongDownloadManager.batchDownloadSongs(songs)
-            }
-          }
-        }])
+        .bindMenu(this.generatePlaylistMenu())
         .clickEffect({ level: ClickEffectLevel.LIGHT })
         .stateStyles({
           pressed: this.pressedStyles,
@@ -770,6 +668,39 @@ export struct PlayList {
     }
   }
 
+  private generatePlaylistMenu(): Array<MenuElement> {
+    return [
+      {
+        value: $r('app.string.download_all_songs'),
+        action: () => {
+          if (this.songs && this.songs.length > 0) {
+            ToastUtil.showToast("开始下载全部歌曲", { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } })
+            const songs = this.songs.filter(song => song.privilege.playable)
+            SongDownloadManager.batchDownloadSongs(songs)
+          }
+        }
+      },
+      {
+        value: $r('app.string.add_to_playlist'),
+        action: () => {
+          DialogHelper.showSelectDialog({
+            title: $r('app.string.add_to_playlist'),
+            confirm: $r('app.string.back'),
+            selectedIndex: -1,
+            radioContent: this.aggregationPlaylist.map(playlist => playlist.name),
+            onCheckedChanged: (index) => {
+              this.selectedIndex = index
+              if (this.songs && this.songs.length > 0) {
+                PreferencesCache.addSongsToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], this.songs as Song[])
+              }
+            },
+            onAction: (): void => {}
+          })
+        }
+      }
+    ]
+  }
+
   countSubVp(): number {
     let sub: number = this.winHeight - 50 - this.groupHeight - (this.bottomRect+this.topRect)
     // if(this.songDataSource.totalCount() <= 15){
@@ -780,18 +711,18 @@ export struct PlayList {
   }
 
   private filterSongs() {
-    if (!this.playlist?.songs) {
+    if (!this.songs) {
       return
     }
 
     if (!this.searchKeywords.trim()) {
-      this.filteredSongs = this.playlist.songs
+      this.filteredSongs = this.songs
       this.isSearching = false
       return
     }
 
     const keywords = this.searchKeywords.toLowerCase().trim()
-    this.filteredSongs = this.playlist.songs.filter(song =>
+    this.filteredSongs = this.songs.filter(song =>
     song.name?.toLowerCase().includes(keywords) ||
     song.artists?.some(artist => artist?.name?.toLowerCase().includes(keywords)) ||
     song.album?.name?.toLowerCase().includes(keywords)

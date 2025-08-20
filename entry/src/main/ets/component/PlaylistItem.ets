@@ -12,14 +12,16 @@ import { SongDownloadManager } from "../util/SongDownloadManager";
 import { AddAggregationPlaylist } from "./CustomTextBuilder";
 const TAG = 'PlaylistItem'
 
-@Reusable
 @Component
 export struct PlaylistItem {
   @State playlistName: string | undefined = undefined
   @State playlistDesc: string | undefined = undefined
   @State isShowMenu: boolean = false
+  @State selectedIndex: number = 0
   @Prop playlist: Playlist
   onPlaylistSelected?: (playlist: Playlist) => void;
+
+  @StorageLink('aggregation_playlist') aggregationPlaylist: Playlist[] = PreferencesCache.getPlaylistCache('aggregation_playlist')
 
   build() {
     Row() {
@@ -120,13 +122,13 @@ export struct PlaylistItem {
           value: $r('app.string.play_this_playlist'),
           action: () => {
             PushPathHelper.loading("Playing", async () => {
-              const playlistDetail = await SourceAdapter.getAggregationPlaylistDetail(playlist)
-              const songs = playlistDetail?.songs?.filter(song => song.privilege.playable)
-              if (!songs || songs.length === 0) {
+              const songs = JSON.parse(PreferencesCache.getCache(`aggregation_playlist_songs_${playlist.id}`, '[]')) as Song[]
+              const playableSongs = songs.filter(song => song.privilege.playable)
+              if (!playableSongs || playableSongs.length === 0) {
                 ToastUtil.showShort("此歌单无可播放歌曲")
                 return
               }
-              PlaylistManager.loadPlaylist(songs, songs[0])
+              PlaylistManager.loadPlaylist(playableSongs, playableSongs[0])
             })
           }
         },
@@ -134,30 +136,48 @@ export struct PlaylistItem {
           value: $r('app.string.add_to_play_next'),
           action: () => {
             PushPathHelper.loading("Playing", async () => {
-              const playlistDetail = await SourceAdapter.getAggregationPlaylistDetail(playlist)
-              const songs = playlistDetail?.songs?.filter(song => song.privilege.playable)
-              if (!songs || songs.length === 0) {
+              const songs = JSON.parse(PreferencesCache.getCache(`aggregation_playlist_songs_${playlist.id}`, '[]')) as Song[]
+              const playableSongs = songs.filter(song => song.privilege.playable)
+              if (!playableSongs || playableSongs.length === 0) {
                 ToastUtil.showShort("此歌单无可播放歌曲")
                 return
               }
-              PlaylistManager.insertSongs(songs)
+              PlaylistManager.insertSongs(playableSongs)
             })
           }
         },
         {
           value: $r('app.string.download_all_songs'),
           action: () => {
-            if (this.playlist?.songs && this.playlist.songs.length > 0) {
-              const songs = this.playlist.songs.filter(song => song.privilege.playable)
-              SongDownloadManager.batchDownloadSongs(songs)
+            const songs = JSON.parse(PreferencesCache.getCache(`aggregation_playlist_songs_${playlist.id}`, '[]')) as Song[]
+            const playableSongs = songs.filter(song => song.privilege.playable)
+            if (playableSongs.length > 0) {
+              SongDownloadManager.batchDownloadSongs(playableSongs)
             }
+          }
+        },
+        {
+          value: $r('app.string.add_to_playlist'),
+          action: () => {
+            DialogHelper.showSelectDialog({
+              title: $r('app.string.add_to_playlist'),
+              confirm: $r('app.string.back'),
+              selectedIndex: -1,
+              radioContent: this.aggregationPlaylist.map(playlist => playlist.name),
+              onCheckedChanged: (index) => {
+                this.selectedIndex = index
+                const songs = JSON.parse(PreferencesCache.getCache(`aggregation_playlist_songs_${playlist.id}`, '[]')) as Song[]
+                PreferencesCache.addSongsToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], songs)
+              },
+              onAction: (): void => {}
+            })
           }
         },
         {
           value: $r('app.string.edit_playlist_info'),
           action: () => {
             let options: CustomContentOptions = {
-              title: $r('app.string.create_playlist'),
+              title: $r('app.string.edit_playlist_info'),
               contentBuilder: (): void => {
                 this.CustomTextBuilder()
               },
@@ -219,6 +239,23 @@ export struct PlaylistItem {
           }
         },
         {
+          value: $r('app.string.add_to_playlist'),
+          action: () => {
+            DialogHelper.showSelectDialog({
+              title: $r('app.string.add_to_playlist'),
+              confirm: $r('app.string.back'),
+              selectedIndex: -1,
+              radioContent: this.aggregationPlaylist.map(playlist => playlist.name),
+              onCheckedChanged: async (index) => {
+                this.selectedIndex = index
+                const playlistDetail = await SourceAdapter.getPlaylistDetail(playlist)
+                PreferencesCache.addSongsToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], playlistDetail.songs as Song[])
+              },
+              onAction: (): void => {}
+            })
+          }
+        },
+        {
           value: $r('app.string.download_all_songs'),
           action: () => {
             if (this.playlist?.songs && this.playlist.songs.length > 0) {
@@ -251,6 +288,7 @@ export struct PlaylistItem {
 
   deleteFromAggregationPlaylist(playlist: Playlist) {
     try {
+      PreferencesCache.deleteCache(`aggregation_playlist_songs_${playlist.id}`)
       PreferencesCache.deletePlaylistCache('aggregation_playlist', playlist)
       ToastUtil.showShort("成功删除歌单")
       LogUtil.info(`[${TAG}]`, `歌单[${playlist.id}][${playlist.name}]删除成功`)

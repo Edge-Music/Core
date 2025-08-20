@@ -5,7 +5,6 @@ import { PlaylistManager, PlayMode } from '../util/PlaylistManager';
 import { cover } from '../util/AdapterHelper';
 import { PlaylistView } from '../component/PlaylistView';
 import { BreakpointConstants } from '../constants/BreakpointConstants';
-import { curves } from '@kit.ArkUI';
 import { PreferencesCache } from "../util/PreferenceCache";
 import { LyricsLine } from '../util/LyricsManager';
 
@@ -136,18 +135,9 @@ export struct MiniPlaybackControl {
   @Builder
   PlayListBuilder() {
     Column() {
-      // 播放列表内容
-      Text($r('app.string.playing_list'))
-        .fontSize(18)
-        .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-        .fontColor($r('app.color.text_title'))
-        .margin({ left: 36, top: 16, bottom: 16 })
-        .width(StyleConstants.FULL_WIDTH)
-        .textAlign(TextAlign.Start)
       PlaylistView()
     }
     .backgroundColor($r('app.color.page_background'))
-    .height(StyleConstants.FULL_HEIGHT)
     .layoutWeight(1)
     .transition({ type: TransitionType.Insert, scale: { y: 0.8, x: 1.0 }, opacity: 0.0 })
     .transition({ type: TransitionType.Delete, scale: { y: 0.8, x: 1.0 }, opacity: 0.0 })
@@ -429,7 +419,7 @@ export struct MiniPlaybackControl {
       showClose: false,
       height: SheetSize.MEDIUM,
       dragBar: false,
-      preferType: this.currentBreakpoint === BreakpointConstants.BREAKPOINT_SM ? SheetType.BOTTOM : SheetType.CENTER,
+      preferType: this.currentBreakpoint === BreakpointConstants.BREAKPOINT_SM ? SheetType.POPUP : SheetType.POPUP,
       onWillDismiss: () => {
         this.showPlaylist = false;
       }

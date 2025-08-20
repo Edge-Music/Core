@@ -260,12 +260,14 @@ export struct IS_2IN1_UI{
                       }
                       .hoverEffect(HoverEffect.Scale)
                       .clickEffect({ level: ClickEffectLevel.LIGHT })
-                      .onClick(async ()=>{
+                      .onClick(async () => {
                         this.page_judge='playlist'
                         this.title=playlist?.name || '未知歌单'
 
                         const playlistItem = await SourceAdapter.getPlaylistDetail(playlist)
                         AppStorage.setOrCreate('current_playlist_data', playlistItem)
+                        AppStorage.setOrCreate('current_playlist_songs', playlistItem.songs)
+
                       }).width(300)
 
                     }

@@ -54,6 +54,11 @@ export class PreferencesCache {
     return value;
   }
 
+  static deleteCache(key: string) {
+    PreferencesUtil.deleteSync(key);
+    PreferencesCache.CACHE_MAP.delete(key);
+  }
+
 
   /**
    * 获取用户数据源
@@ -385,78 +390,147 @@ export class PreferencesCache {
     })
   }
 
-  static deleteSongCache(strIndex: string, playlistId: number | string, song: Song): void {
+  static async deleteSongCache(strIndex: string, playlistId: number | string, song: Song): Promise<void> {
     // 1. 从缓存中获取播放列表数组
     let playlists: Playlist[] = JSON.parse(PreferencesCache.getCache(strIndex, '[]'));
+    let tmpSongs: Song[] = JSON.parse(PreferencesCache.getCache(`aggregation_playlist_songs_${playlistId}`, '[]'))
 
     // 2. 查找目标播放列表（根据sourceConfig.id）
     let targetPlaylistIndex: number = -1
-    targetPlaylistIndex = playlists.findIndex(
-      (playlist: Playlist) => playlist.id === playlistId
-    );
+    targetPlaylistIndex = playlists.findIndex((playlist: Playlist) => playlist.id === playlistId);
 
     // 3. 如果找到目标播放列表
     if (targetPlaylistIndex !== -1) {
       // 4. 从songs数组中移除指定歌曲（根据song.id）
-      playlists[targetPlaylistIndex].songs = playlists[targetPlaylistIndex].songs?.filter(
-        (s: Song) => s.id !== song.id
-      );
-      playlists[targetPlaylistIndex].size = playlists[targetPlaylistIndex].songs?.length
+      tmpSongs = tmpSongs.filter((s: Song) => s.id !== song.id);
+
+      playlists[targetPlaylistIndex].size = tmpSongs.length
 
       // 5. 更新缓存
       PreferencesCache.setCache(strIndex, JSON.stringify(playlists));
-      AppStorage.setOrCreate(strIndex, playlists);
-      AppStorage.setOrCreate('current_playlist_data', playlists[targetPlaylistIndex])
+      PreferencesCache.setCache(`aggregation_playlist_songs_${playlistId}`, JSON.stringify(tmpSongs));
 
-      // 6. 日志记录（可选）
+      AppStorage.setOrCreate(strIndex, playlists);
+      // AppStorage.setOrCreate('current_playlist_data', tmpSongs)
+
       LogUtil.info(`[${TAG}]`, `已从播放列表${playlists[targetPlaylistIndex].name}中删除歌曲: ${song.name}`);
+      LogUtil.info(`[${TAG}]`, `删除后的歌单：${JSON.stringify(playlists)}`)
+      LogUtil.info(`[${TAG}]`, `删除后的歌曲：${JSON.stringify(tmpSongs)}`)
     } else {
       LogUtil.warn(`[${TAG}]`, `未找到ID为${playlists[targetPlaylistIndex].name}的播放列表`);
     }
 
   }
 
-  static addSongToAggregationPlaylist(playlist: Playlist, song: Song): boolean{
+  static async addSongToAggregationPlaylist(playlist: Playlist, song: Song): Promise<boolean> {
     let playlists: Playlist[] = JSON.parse(PreferencesCache.getCache('aggregation_playlist', '[]'));
-    let resultIndex: number = -1
-    let isExist: boolean = false
-    playlists.filter((item: Playlist, index: number) => {
-      if (item.id === playlist.id) {
-        resultIndex = index
-        if(item.songs){
-          item.songs.filter((s: Song) => {
-            if(!isExist && s.id === song.id){
-              isExist = true
-            }
-          })
-        }
-      }
-    })
-    if(isExist){
-      LogUtil.info(`[${TAG}]`, `[${song.name}]已存在于歌单[${playlists[resultIndex].name}]`)
-    }else{
-      let item: Playlist = playlists[resultIndex]
+    let tmpSongs: Song[] = JSON.parse(PreferencesCache.getCache(`aggregation_playlist_songs_${playlist.id}`, '[]'))
+
+    let targetIndex: number = playlists.findIndex((item: Playlist) => item.id === playlist.id);
+    const isExist = tmpSongs!.some((s: Song) => s.id === song.id);
+
+    if(isExist) {
+      LogUtil.info(`[${TAG}]`, `[${song.name}]已存在于歌单[${playlists[targetIndex].name}]`)
+    } else {
+      let item: Playlist = playlists[targetIndex]
       song.sourceID = song.source?.id
-      if(item.songs){
-        playlists[resultIndex].songs?.push(song)
+      if(tmpSongs){
+        tmpSongs.push(song)
       }else{
-        playlists[resultIndex].songs = [song]
+        tmpSongs = [song]
       }
-      playlists[resultIndex].size = playlists[resultIndex].songs?.length
-      LogUtil.info(`[${TAG}]`, `添加后的歌单：${JSON.stringify(playlists)}`)
+
+      playlists[targetIndex].size = tmpSongs.length
+
+      PreferencesCache.setCache(`aggregation_playlist_songs_${playlist.id}`, JSON.stringify(tmpSongs));
       PreferencesCache.setCache('aggregation_playlist', JSON.stringify(playlists));
       AppStorage.setOrCreate('aggregation_playlist', playlists);
+      LogUtil.info(`[${TAG}]`, `添加后的歌单：${JSON.stringify(playlists)}`)
+      LogUtil.info(`[${TAG}]`, `添加后的歌曲：${JSON.stringify(tmpSongs)}`)
     }
+
     return isExist
   }
 
-  static deleteSongsOfAggregationPlaylists(sourceId: ID): void{
+  static async addSongsToAggregationPlaylist(playlist: Playlist, songs: Song[]): Promise<void> {
+    // 获取所有聚合歌单
     let playlists: Playlist[] = JSON.parse(PreferencesCache.getCache('aggregation_playlist', '[]'));
+    let tmpSongs: Song[] = JSON.parse(PreferencesCache.getCache(`aggregation_playlist_songs_${playlist.id}`, '[]'))
+
+    // 查找目标歌单索引
+    let targetIndex: number = playlists.findIndex((item: Playlist) => item.id === playlist.id);
+    if (targetIndex === -1) {
+      LogUtil.error(`[${TAG}]`, `歌单[${playlist.name}]不存在`);
+    }
+
+    // 初始化统计变量
+    let successCount: number = 0;
+    let existCount: number = 0;
+
+    // 获取目标歌单
+    let targetPlaylist: Playlist = playlists[targetIndex];
+
+    // 初始化歌单歌曲数组（如果不存在）
+    if (!tmpSongs) {
+      tmpSongs = [];
+    }
+
+    // 遍历要添加的所有歌曲
+    songs.forEach((song: Song) => {
+      // 检查歌曲是否已存在
+      const isExist = tmpSongs!.some((s: Song) => s.id === song.id);
+
+      if (isExist) {
+        existCount++;
+        LogUtil.info(`[${TAG}]`, `[${song.name}]已存在于歌单[${targetPlaylist.name}]`);
+      } else {
+        // 设置歌曲来源ID
+        song.sourceID = song.source?.id;
+
+        // 添加到歌单
+        tmpSongs!.push(song);
+        successCount++;
+      }
+    });
+
+    // 更新歌单大小
+    targetPlaylist.size = tmpSongs!.length;
+    // 更新缓存
+    PreferencesCache.setCache(`aggregation_playlist_songs_${playlist.id}`, JSON.stringify(tmpSongs));
+    PreferencesCache.setCache('aggregation_playlist', JSON.stringify(playlists));
+    AppStorage.setOrCreate('aggregation_playlist', playlists);
+
+    LogUtil.info(`[${TAG}]`, `成功添加${successCount}首歌曲到歌单[${targetPlaylist.name}]`);
+    LogUtil.info(`[${TAG}]`, `更新后的歌单：${JSON.stringify(targetPlaylist)}`);
+    LogUtil.info(`[${TAG}]`, `添加后的歌曲：${JSON.stringify(tmpSongs)}`)
+
+    ToastUtil.showShort(`${successCount}首添加成功，${existCount}已存在`)
+  }
+
+  static convertPlaylistData(): void {
+    const convertFlag = PreferencesCache.getCache('aggregation_playlist_converted', '0')
+    if(convertFlag === '0') {
+      let playlists: Playlist[] = JSON.parse(PreferencesCache.getCache('aggregation_playlist', '[]'));
+      playlists.forEach((value: Playlist, index: number) => {
+        PreferencesCache.setCache(`aggregation_playlist_songs_${value.id}`, JSON.stringify(value.songs));
+        playlists[index].songs = []
+      })
+      PreferencesCache.setCache('aggregation_playlist', JSON.stringify(playlists))
+      PreferencesCache.setCache('aggregation_playlist_converted', '1')
+      LogUtil.info(`[${TAG}]`, '歌单数据转换完毕')
+    }
+  }
+
+
+  static async deleteSongsOfAggregationPlaylists(sourceId: ID): Promise<void> {
+    let playlists: Playlist[] = JSON.parse(PreferencesCache.getCache('aggregation_playlist', '[]'));
+
     playlists = playlists.map(playlist => {
       // 过滤掉sourceId匹配的歌曲
-      const filteredSongs = playlist.songs?.filter(song => song.sourceID !== sourceId);
-      playlist.songs = filteredSongs
-      playlist.size = filteredSongs?.length
+      let tmpSongs: Song[] = JSON.parse(PreferencesCache.getCache(`aggregation_playlist_songs_${playlist.id}`, '[]'))
+      const filteredSongs = tmpSongs.filter(song => song.sourceID !== sourceId);
+      PreferencesCache.setCache(`aggregation_playlist_songs_${playlist.id}`, JSON.stringify(filteredSongs));
+      playlist.size = filteredSongs.length
       // 返回更新后的歌单（保持其他属性不变）
       return playlist
     });

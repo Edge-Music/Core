@@ -3,12 +3,12 @@ import { LogUtil, ToastUtil } from "@pura/harmony-utils";
 import { StyleConstants } from "../constants/StyleConstants";
 import { Playlist, PlaylistType, Song } from "../type/Adapter";
 import { cover } from "../util/AdapterHelper";
+import { PlaylistManager } from "../util/PlaylistManager";
 import { PreferencesCache } from "../util/PreferenceCache";
 import { SongDownloadManager } from "../util/SongDownloadManager";
 
 const TAG = 'SongInfo'
 
-@Reusable
 @Component
 export struct SongInfo {
   @StorageLink('aggregation_playlist') aggregationPlaylist: Playlist[] = PreferencesCache.getPlaylistCache('aggregation_playlist')
@@ -17,6 +17,7 @@ export struct SongInfo {
   @Prop song: Song
   showBorder: boolean = true;
   onTap?: (song: Song) => void;
+  deleteSong?: (song: Song) => void;
   @Prop active: boolean = false;
   @Prop disabled: boolean = false;
   @Prop index: number = 0;
@@ -202,14 +203,13 @@ export struct SongInfo {
               radioContent: this.aggregationPlaylist.map(playlist => playlist.name),
               onCheckedChanged: (index) => {
                 this.selectedIndex = index
-                if(PreferencesCache.addSongToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], song)){
-                  ToastUtil.showShort(`已存在于[${this.aggregationPlaylist[index].name}]`)
-                }else{
-                  ToastUtil.showShort(`已添加到[${this.aggregationPlaylist[index].name}]`)
-                }
-                if(this.playlistId === this.aggregationPlaylist[this.selectedIndex].id){
-                  AppStorage.setOrCreate('current_playlist_data', this.aggregationPlaylist[this.selectedIndex])
-                }
+                PreferencesCache.addSongToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], song).then((result: boolean) => {
+                  if(result){
+                    ToastUtil.showShort(`[${song.name}]存在于[${this.aggregationPlaylist[index].name}]`)
+                  }else{
+                    ToastUtil.showShort(`[${song.name}]添加到[${this.aggregationPlaylist[index].name}]`)
+                  }
+                })
               },
               onAction: (): void => {}
             })
@@ -225,6 +225,9 @@ export struct SongInfo {
               onAction: (action: number): void => {
                 if(action === DialogAction.TWO){
                   this.deleteFromAggregationSongs(this.playlistId, song)
+                  if(this.deleteSong) {
+                    this.deleteSong(song)
+                  }
                 }
               }
             })
@@ -234,6 +237,12 @@ export struct SongInfo {
           value: $r('app.string.download_this_song'),
           action: () => {
             this.downloadSong()
+          }
+        },
+        {
+          value: $r('app.string.add_to_play_next'),
+          action: () => {
+            PlaylistManager.insertSongs([song])
           }
         }
       ]
@@ -249,11 +258,13 @@ export struct SongInfo {
               radioContent: this.aggregationPlaylist.map(playlist => playlist.name),
               onCheckedChanged: (index) => {
                 this.selectedIndex = index
-                if(PreferencesCache.addSongToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], song)){
-                  ToastUtil.showShort(`已存在于[${this.aggregationPlaylist[index].name}]`)
-                }else{
-                  ToastUtil.showShort(`已添加到[${this.aggregationPlaylist[index].name}]`)
-                }
+                PreferencesCache.addSongToAggregationPlaylist(this.aggregationPlaylist[this.selectedIndex], song).then((result: boolean) => {
+                  if(result){
+                    ToastUtil.showShort(`[${song.name}]存在于[${this.aggregationPlaylist[index].name}]`)
+                  }else{
+                    ToastUtil.showShort(`[${song.name}]添加到[${this.aggregationPlaylist[index].name}]`)
+                  }
+                })
                 if(this.playlistId === this.aggregationPlaylist[this.selectedIndex].id){
                   AppStorage.setOrCreate('current_playlist_data', this.aggregationPlaylist[this.selectedIndex])
                 }
@@ -267,12 +278,18 @@ export struct SongInfo {
           action: () => {
             this.downloadSong()
           }
+        },
+        {
+          value: $r('app.string.add_to_play_next'),
+          action: () => {
+            PlaylistManager.insertSongs([song])
+          }
         }
       ]
     }
   }
 
-  deleteFromAggregationSongs(playlistId: number | string, song: Song){
+  async deleteFromAggregationSongs(playlistId: number | string, song: Song) {
     try {
       PreferencesCache.deleteSongCache('aggregation_playlist', playlistId, song)
       ToastUtil.showShort("成功删除歌曲")
