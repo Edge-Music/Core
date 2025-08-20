@@ -10,6 +10,7 @@ import { PreferencesCache } from './PreferenceCache';
 import { SourceAdapter } from '../adapter';
 import { Song } from '../type/Adapter';
 import LyricsManager from './LyricsManager';
+import { JSON } from '@kit.ArkTS';
 
 const TAG = 'AVPlayerManager'
 // 定义回调函数的类型
@@ -218,7 +219,7 @@ class AVPlayerManager {
     callbacks.forEach(callback => {
       callback(error);
     });
-    LogUtil.error('[AVPlayerManager]', error.message);
+    LogUtil.error('[AVPlayerManager]', JSON.stringify(error));
   }
 
   private triggerCompleted() {
@@ -591,6 +592,7 @@ class AVPlayerManager {
       await player.prepare();
       if (pause) {
         // 如果传入pause参数为true，则暂停播放
+        LogUtil.info(TAG, 'playByPath', 'Pausing playback as per request');
         await this.pause();
       } else {
         await this.play();

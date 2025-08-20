@@ -63,12 +63,7 @@ export class PlaylistManager {
     LogUtil.info("PlaylistManager ", "playSong ", "song ", JSON.stringify(song))
     AppStorage.setOrCreate("current_playing_song", song)
     // 获取歌曲信息
-    SourceAdapter.getSongDetail(song).then(songDetail => {
-      AppStorage.setOrCreate("current_playing_song", songDetail)
-      PreferencesCache.lastSong(songDetail)
-      // 播放音乐
-      EventHelper.postPlaySong([songDetail, pause]) // 发送播放歌曲事件
-    })
+    EventHelper.postPlaySong([song, pause]) // 发送播放歌曲事件
   }
 
   /**

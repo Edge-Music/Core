@@ -5,6 +5,7 @@ import { Playlist, PlaylistType, Song } from "../type/Adapter";
 import { cover } from "../util/AdapterHelper";
 import { PlaylistManager } from "../util/PlaylistManager";
 import { PreferencesCache } from "../util/PreferenceCache";
+import { SongCacheManager } from "../util/SongCacheManager";
 import { SongDownloadManager } from "../util/SongDownloadManager";
 
 const TAG = 'SongInfo'
@@ -29,10 +30,23 @@ export struct SongInfo {
   // 用于高亮动画的状态变量
   @State private isHighlighting: boolean = false;
   @State selectedIndex: number = 0
+  // 歌曲下载状态
+  @State isDownloaded: boolean = false;
+  @State isCached: boolean = false;
 
   // 监听highlight属性变化
   aboutToAppear() {
     this.updateHighlightState();
+    this.checkDownloadStatus();
+  }
+
+  // 检查歌曲下载状态
+  private checkDownloadStatus() {
+    if (this.song && this.song.id) {
+      this.isDownloaded = SongDownloadManager.hasSong(this.song.id.toString());
+      const key = `${this.song.id}_${this.song.source?.id}`;
+      this.isCached = SongCacheManager.has(key);
+    }
   }
 
   updateHighlightState() {
@@ -113,20 +127,46 @@ export struct SongInfo {
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
 
-          // 艺术家信息
-          if (this.song && this.song.artists?.length > 0) {
-            Text(this.song.artists.map(artist => artist.name).join(' / '))
-              .fontSize(14)
-              .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
-              .fontColor(this.getTextColor($r('app.color.text_secondary')))
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-          } else {
-            Text('未知艺术家')
-              .fontSize(14)
-              .fontWeight(StyleConstants.FONT_WEIGHT_FOUR)
-              .fontColor(this.getTextColor($r('app.color.text_secondary')))
+          // 艺术家信息和下载状态
+          Row({ space: 8 }) {
+            // 下载状态标签
+            if (this.isDownloaded) {
+              Text($r('app.string.has_been_downloaded'))
+                .fontSize(10)
+                .fontColor($r('app.color.text_primary'))
+                .backgroundColor($r('app.color.tag_background'))
+                .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+                .borderRadius(8)
+            }
+
+            // 下载状态标签
+            if (this.isCached) {
+              Text($r('app.string.has_been_cached'))
+                .fontSize(10)
+                .fontColor($r('app.color.text_primary'))
+                .backgroundColor($r('app.color.tag_background'))
+                .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+                .borderRadius(8)
+            }
+
+            if (this.song && this.song.artists?.length > 0) {
+              Text(this.song.artists.map(artist => artist.name).join(' / '))
+                .fontSize(14)
+                .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
+                .fontColor(this.getTextColor($r('app.color.text_secondary')))
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+                .layoutWeight(1)
+            } else {
+              Text('未知艺术家')
+                .fontSize(14)
+                .fontWeight(StyleConstants.FONT_WEIGHT_FOUR)
+                .fontColor(this.getTextColor($r('app.color.text_secondary')))
+                .layoutWeight(1)
+            }
           }
+          .width('100%')
+          .alignItems(VerticalAlign.Center)
         }
         .alignItems(HorizontalAlign.Start)
         .layoutWeight(1)
@@ -309,6 +349,8 @@ export struct SongInfo {
         undefined,
         () => {
           ToastUtil.showShort($r('app.string.download_successful'))
+          // 下载完成后更新状态
+          this.checkDownloadStatus();
         },
       )
     }
