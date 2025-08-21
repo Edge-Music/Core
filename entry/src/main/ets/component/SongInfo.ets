@@ -112,17 +112,6 @@ export struct SongInfo {
         Column({ space: 6 }) {
 
           Row({ space: 2 }) {
-            // 下载状态标签
-            Image($r('app.media.ic_downloaded'))
-              .width(14)
-              .aspectRatio(1)
-              .visibility(this.isDownloaded ? Visibility.Visible : Visibility.None)
-
-            // 下载状态标签
-            Image($r('app.media.ic_cached'))
-              .width(14)
-              .aspectRatio(1)
-              .visibility(this.isCached ? Visibility.Visible : Visibility.None)
 
             // 歌曲名称（包含别名）
             Text() {
@@ -144,6 +133,18 @@ export struct SongInfo {
 
           // 艺术家信息和下载状态
           Row({ space: 2 }) {
+
+            // 下载状态标签
+            Image($r('app.media.ic_downloaded'))
+              .width(12)
+              .aspectRatio(1)
+              .visibility(this.isDownloaded ? Visibility.Visible : Visibility.None)
+
+            // 下载状态标签
+            Image($r('app.media.ic_cached'))
+              .width(12)
+              .aspectRatio(1)
+              .visibility(!this.isDownloaded && this.isCached ? Visibility.Visible : Visibility.None)
 
             if (this.song && this.song.artists?.length > 0) {
               Text(this.song.artists.map(artist => artist.name).join(' / '))
