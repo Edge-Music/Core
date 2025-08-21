@@ -110,44 +110,40 @@ export struct SongInfo {
 
         // 歌曲信息区域
         Column({ space: 6 }) {
-          // 歌曲名称（包含别名）
-          Text() {
-            Span(this.song?.name || '未知歌曲')
-              .fontSize(16)
-              .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-              .fontColor(this.getTextColor($r('app.color.text_title')))
 
-            if (this.song && this.song.tns && this.song.tns.length > 0) {
-              Span(` (${this.song.tns.join('/')})`)
+          Row({ space: 2 }) {
+            // 下载状态标签
+            Image($r('app.media.ic_downloaded'))
+              .width(14)
+              .aspectRatio(1)
+              .visibility(this.isDownloaded ? Visibility.Visible : Visibility.None)
+
+            // 下载状态标签
+            Image($r('app.media.ic_cached'))
+              .width(14)
+              .aspectRatio(1)
+              .visibility(this.isCached ? Visibility.Visible : Visibility.None)
+
+            // 歌曲名称（包含别名）
+            Text() {
+              Span(this.song?.name || '未知歌曲')
                 .fontSize(16)
                 .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-                .fontColor(this.getTextColor($r('app.color.text_secondary')))
+                .fontColor(this.getTextColor($r('app.color.text_title')))
+
+              if (this.song && this.song.tns && this.song.tns.length > 0) {
+                Span(` (${this.song.tns.join('/')})`)
+                  .fontSize(16)
+                  .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
+                  .fontColor(this.getTextColor($r('app.color.text_secondary')))
+              }
             }
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
           }
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
 
           // 艺术家信息和下载状态
-          Row({ space: 8 }) {
-            // 下载状态标签
-            if (this.isDownloaded) {
-              Text($r('app.string.has_been_downloaded'))
-                .fontSize(10)
-                .fontColor($r('app.color.text_primary'))
-                .backgroundColor($r('app.color.tag_background'))
-                .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-                .borderRadius(8)
-            }
-
-            // 下载状态标签
-            if (this.isCached) {
-              Text($r('app.string.has_been_cached'))
-                .fontSize(10)
-                .fontColor($r('app.color.text_primary'))
-                .backgroundColor($r('app.color.tag_background'))
-                .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-                .borderRadius(8)
-            }
+          Row({ space: 2 }) {
 
             if (this.song && this.song.artists?.length > 0) {
               Text(this.song.artists.map(artist => artist.name).join(' / '))

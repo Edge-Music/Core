@@ -582,7 +582,7 @@ export struct PlayList {
         top: 4,
         bottom: 4
       })
-      .backgroundColor($r('app.color.card_background'))
+      .backgroundColor($r('app.color.page_background'))
       .borderRadius(8)
     } else {
       // 小屏幕布局：搜索框和按钮一行显示
@@ -663,7 +663,7 @@ export struct PlayList {
         top: 4,
         bottom: 4
       })
-      .backgroundColor($r('app.color.card_background'))
+      .backgroundColor($r('app.color.page_background'))
       .borderRadius(8)
     }
   }
