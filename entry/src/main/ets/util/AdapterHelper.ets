@@ -1,5 +1,9 @@
 export function cover(url?: string | Resource, size = 100): string | Resource{
   if(typeof url === 'string') {
+    // 如果使用的是https://ui-avatars.com，则直接返回
+    if (url.indexOf('ui-avatars.com') !== -1) {
+      return url as string;
+    }
     return `${url}?param=${size}y${size}`
   } else {
     return url as Resource

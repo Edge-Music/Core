@@ -187,7 +187,7 @@ export function base64ToPixelMap(base64Str: string): image.PixelMap {
   // 解码 Base64 字符串
   const data = base64Helper.decodeSync(base64Str);
   const imageSource = image.createImageSource(data.buffer)
-  const opts: image.DecodingOptions = {editable: true};
+  const opts: image.DecodingOptions = { editable: true };
   return imageSource.createPixelMapSync(opts);
 }
 
@@ -239,6 +239,14 @@ const defaultPlaySongCallback = async (data: [Song, boolean]) => {
       AppStorage.setOrCreate("current_playing_song", optimalFile.song);
       PreferencesCache.lastSong(optimalFile.song);
       await playSong(optimalFile.song, optimalFile.filePath, optimalFile.fileType !== 'none', pause);
+      // 尝试访问一遍最新数据，但不缓存歌曲文件
+      SourceAdapter.getSongDetail(optimalFile.song).then((latestSong) => {
+        AppStorage.setOrCreate("current_playing_song", latestSong);
+        PreferencesCache.lastSong(latestSong);
+      }).catch((error: Error) => {
+        LogUtil.error("EventHelper ", "defaultPlaySongCallback ",
+          `Failed to fetch latest song details: ${error.message}`);
+      });
     } else {
       // 没有本地文件，需要下载
       LogUtil.info("EventHelper ", "defaultPlaySongCallback ", "No local file found, downloading...");
