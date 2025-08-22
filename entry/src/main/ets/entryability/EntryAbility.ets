@@ -40,6 +40,11 @@ export default class EntryAbility extends UIAbility {
       config.backCancel = true; // 点击返回键时，是否关闭弹窗
     }) // 初始化对话框工具类
 
+    // 事件监听注册
+    EventHelper.subscribePlaySong()
+    EventHelper.subscribeInitData()
+    EventHelper.subscribeFavoriteToggle()
+
     SongCacheManager.initialize() // 初始化歌曲缓存管理器
     SongDownloadManager.init(this.context) // 初始化歌曲下载管理器
     CrashUtil.onError(); // 注册错误处理
@@ -48,10 +53,6 @@ export default class EntryAbility extends UIAbility {
     ResourceManager.init(this.context)
     await avPlayerManager.init(this.context); // 初始化播放器
     FormUtils.init(this.context) //初始化服务卡片工具
-    // 事件监听注册
-    EventHelper.subscribePlaySong()
-    EventHelper.subscribeInitData()
-    EventHelper.subscribeFavoriteToggle()
     EventHelper.subscribePauseTimer(async (endAt) => {
       // 监听暂停计时器事件
       if (this._pause_timer !== -1) {

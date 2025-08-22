@@ -45,25 +45,29 @@ export class PlaylistManager {
   }
 
   public static async playSong(song: Song, pause = false) {
-    // 获取当前播放的歌曲
-    const currentSong = AppStorage.get<Song>("current_playing_song")
-    // 如果当前播放的歌曲和要播放的歌曲相同，则不做任何操作，且并不是单曲循环模式
-    if (currentSong && currentSong.id === song.id && PlaylistManager.getPlayMode() !== PlayMode.SINGLE) {
-      EventHelper.postSongState("PLAY")
-      await avPlayerManager.play()
-      return
-    } else if (currentSong && currentSong.id === song.id && PlaylistManager.getPlayMode() === PlayMode.SINGLE) {
-      LogUtil.info("PlaylistManager ", "PlaySong ", "Single Loop Mode")
-      // 如果当前播放的歌曲和要播放的歌曲相同，且是单曲循环模式，则只需要Seek到0
-      await avPlayerManager.seek(0)
-      await avPlayerManager.play()
-      EventHelper.postSongState("PLAY")
-      return;
+    try {
+      // 获取当前播放的歌曲
+      const currentSong = AppStorage.get<Song>("current_playing_song")
+      // 如果当前播放的歌曲和要播放的歌曲相同，则不做任何操作，且并不是单曲循环模式
+      if (currentSong && currentSong.id === song.id && PlaylistManager.getPlayMode() !== PlayMode.SINGLE) {
+        EventHelper.postSongState("PLAY")
+        await avPlayerManager.play()
+        return
+      } else if (currentSong && currentSong.id === song.id && PlaylistManager.getPlayMode() === PlayMode.SINGLE) {
+        LogUtil.info("PlaylistManager ", "PlaySong ", "Single Loop Mode")
+        // 如果当前播放的歌曲和要播放的歌曲相同，且是单曲循环模式，则只需要Seek到0
+        await avPlayerManager.seek(0)
+        await avPlayerManager.play()
+        EventHelper.postSongState("PLAY")
+        return;
+      }
+      LogUtil.info("PlaylistManager ", "playSong ", "song ", JSON.stringify(song))
+      AppStorage.setOrCreate("current_playing_song", song)
+      // 获取歌曲信息
+      EventHelper.postPlaySong([song, pause]) // 发送播放歌曲事件
+    } catch (error) {
+      LogUtil.error("AVPlayerManager ", "playSong ", "Error: ", error.message)
     }
-    LogUtil.info("PlaylistManager ", "playSong ", "song ", JSON.stringify(song))
-    AppStorage.setOrCreate("current_playing_song", song)
-    // 获取歌曲信息
-    EventHelper.postPlaySong([song, pause]) // 发送播放歌曲事件
   }
 
   /**

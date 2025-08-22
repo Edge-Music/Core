@@ -1,17 +1,18 @@
-import { EmitterUtil, LogUtil, ToastUtil } from "@pura/harmony-utils";
-import { Song } from "../type/Adapter";
-import { avSession } from "@kit.AVSessionKit";
-import { SongCacheItem, SongCacheManager } from "./SongCacheManager";
+import { EmitterUtil, LogUtil, ToastUtil } from '@pura/harmony-utils';
+import { Song } from '../type/Adapter';
+import { avSession } from '@kit.AVSessionKit';
+import { SongCacheItem, SongCacheManager } from './SongCacheManager';
 import { fileIo as fs } from '@kit.CoreFileKit';
-import { avPlayerManager } from "./AVPlayerManager";
-import { cover } from "./AdapterHelper";
-import { util } from "@kit.ArkTS";
-import { DownloadManager } from "./DownloadUtils";
-import { ContextHelper } from "./ContextHelper";
-import { SourceAdapter } from "../adapter";
-import FormUtils from "./FormUtils";
-import { PreferencesCache } from "./PreferenceCache";
-import { SongDownloadManager } from "./SongDownloadManager";
+import { avPlayerManager } from './AVPlayerManager';
+import { cover } from './AdapterHelper';
+import { util } from '@kit.ArkTS';
+import { DownloadManager } from './DownloadUtils';
+import { ContextHelper } from './ContextHelper';
+import { SourceAdapter } from '../adapter';
+import FormUtils from './FormUtils';
+import { PreferencesCache } from './PreferenceCache';
+import { SongDownloadManager } from './SongDownloadManager';
+import { image } from '@kit.ImageKit';
 
 const TAG = 'EventHelper'
 
@@ -176,25 +177,44 @@ const defaultLoveSongCallback = (_assetId: string) => {
   }
 };
 
+export function base64ToPixelMap(base64Str: string): image.PixelMap {
+  const base64Helper = new util.Base64Helper();
+  // 去除前缀 data:image/png;base64, 或 data:image/jpeg;base64, 等
+  const prefix = base64Str.indexOf("base64,") + "base64,".length;
+  if (prefix > 0) {
+    base64Str = base64Str.substring(prefix);
+  }
+  // 解码 Base64 字符串
+  const data = base64Helper.decodeSync(base64Str);
+  const imageSource = image.createImageSource(data.buffer)
+  const opts: image.DecodingOptions = {editable: true};
+  return imageSource.createPixelMapSync(opts);
+}
+
 const playSong = async (song: Song, path: string, cached: boolean, pause: boolean) => {
+  console.info(`[AVPlayerManager]`, `Playing song: ${song.name}, path: ${path}, cached: ${cached}, pause: ${pause}`);
   avPlayerManager.stop().then(async () => {
-    FormUtils.updateMusicControlCards(song,!pause)
-    LogUtil.info("EventHelper ", "track", JSON.stringify({
+    FormUtils.updateMusicControlCards(song, !pause)
+    let meteData: avSession.AVMetadata = {
       assetId: `track-${song.id}-${song.source?.id}`,
       duration: song.duration,
       title: song.name,
       mediaImage: cover(song.album.cover, 512) as string,
       artist: song.artists.map(a => a.name).join("/"),
-      lyric: song.meta?.lyric?.normal,
-    }));
-    await avPlayerManager.playByPath(path, song.meta?.size, pause, {
-      assetId: `track-${song.id}-${song.source?.id}`,
-      duration: song.duration,
-      title: song.name,
-      mediaImage: cover(song.album.cover, 512) as string,
-      artist: song.artists.map(a => a.name).join("/"),
-      lyric: song.meta?.lyric?.normal,
-    })
+    }
+    if (song.meta?.lyric?.normal) {
+      meteData.lyric = song.meta.lyric.normal;
+    }
+    // 如果cover并不是http(s)开头且是base64，则转化为 PixelMap
+    if (song.album.cover && song.album.cover.startsWith("data:image/")) {
+      try {
+        const pixelMap = base64ToPixelMap(song.album.cover);
+        meteData.mediaImage = pixelMap;
+      } catch (error) {
+        LogUtil.error("EventHelper ", "playSong", `Failed to convert cover to PixelMap: ${error.message}`);
+      }
+    }
+    await avPlayerManager.playByPath(path, song.meta?.size, pause, meteData)
     const session = avPlayerManager.getSession();
     if (session) {
       session.setAVPlaybackState({
@@ -214,7 +234,8 @@ const defaultPlaySongCallback = async (data: [Song, boolean]) => {
 
     if (optimalFile) {
       // 找到了本地文件（缓存或下载）
-      LogUtil.info("EventHelper ", "defaultPlaySongCallback ", `Using ${optimalFile.fileType} file: ${optimalFile.filePath}`);
+      LogUtil.info("EventHelper ", "defaultPlaySongCallback ",
+        `Using ${optimalFile.fileType} file: ${optimalFile.filePath}`);
       AppStorage.setOrCreate("current_playing_song", optimalFile.song);
       PreferencesCache.lastSong(optimalFile.song);
       await playSong(optimalFile.song, optimalFile.filePath, optimalFile.fileType !== 'none', pause);
@@ -293,10 +314,9 @@ export class EventHelper {
     EmitterUtil.onSubscribe("on_form_jump", (targetPage: string) => {
       if (callback) {
         callback(targetPage);
-      }
-      else{
+      } else {
         let pageStack = AppStorage.get("pageStack") as NavPathStack
-        pageStack.pushPath({name:targetPage},{launchMode:LaunchMode.MOVE_TO_TOP_SINGLETON})
+        pageStack.pushPath({ name: targetPage }, { launchMode: LaunchMode.MOVE_TO_TOP_SINGLETON })
       }
     });
   }
@@ -316,15 +336,15 @@ export class EventHelper {
   }
 
   public static postSongState(data: "PLAY" | "PAUSE") {
-    let songState = AppStorage.get<"PLAY"|"PAUSE">('SongState')
+    let songState = AppStorage.get<"PLAY" | "PAUSE">('SongState')
     LogUtil.info(`[${TAG}]`, `现在全局[on_song_state]状态：[${songState}]`)
-    if(songState !== data){
+    if (songState !== data) {
       LogUtil.info(`[${TAG}]`, `发送[on_song_state]事件成功，状态由[${songState}]变[${data}]`)
       EmitterUtil.post("on_song_state", data);
       AppStorage.setOrCreate('SongState', data)
       return
     }
-    if(songState === undefined){
+    if (songState === undefined) {
       LogUtil.info(`[${TAG}]`, `发送[on_song_state]事件成功，状态由[${songState}]变[${data}]`)
       EmitterUtil.post("on_song_state", data);
       AppStorage.setOrCreate('SongState', data)
@@ -335,7 +355,7 @@ export class EventHelper {
     EmitterUtil.post("on_pause_timer", pauseAt);
   }
 
-  public static postFormJumpPage(targetPage: string){
+  public static postFormJumpPage(targetPage: string) {
     EmitterUtil.post("on_form_jump", targetPage);
   }
 
@@ -350,11 +370,11 @@ export class EventHelper {
     LogUtil.info(`[${TAG}]`, `发送[on_pip_lyric]事件成功，当前歌词：[${data}]`)
   }
 
-  public static unSubscribePipLyric(){
+  public static unSubscribePipLyric() {
     EmitterUtil.unSubscribe('on_pip_lyric')
   }
 
-  public static getPipLyricListenerCount(): number{
+  public static getPipLyricListenerCount(): number {
     return EmitterUtil.getListenerCount('on_pip_lyric')
   }
 }

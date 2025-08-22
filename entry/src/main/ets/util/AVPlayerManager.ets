@@ -590,6 +590,7 @@ class AVPlayerManager {
         await this.avSession.setAVMetadata(metadata);
       }
       await player.prepare();
+      LogUtil.info(TAG, 'playByPath', `Prepared player with path: ${path}`);
       if (pause) {
         // 如果传入pause参数为true，则暂停播放
         LogUtil.info(TAG, 'playByPath', 'Pausing playback as per request');
