@@ -547,6 +547,38 @@
     {
       "name": "has_been_cached",
       "value": "Cached"
+    },
+    {
+      "name": "privacy_policy_title",
+      "value": "Privacy Policy"
+    },
+    {
+      "name": "privacy_policy_main_text",
+      "value": "To provide you with better services, we need your consent to our privacy policy."
+    },
+    {
+      "name": "privacy_policy_detail_text",
+      "value": "The policy contains detailed information about how we collect, use, and protect your personal information."
+    },
+    {
+      "name": "privacy_policy_link_prefix",
+      "value": "Click to view the complete"
+    },
+    {
+      "name": "privacy_policy_link_text",
+      "value": "Privacy Policy"
+    },
+    {
+      "name": "privacy_policy_agree",
+      "value": "Agree"
+    },
+    {
+      "name": "privacy_policy_disagree",
+      "value": "Disagree"
+    },
+    {
+      "name": "privacy_policy_required_message",
+      "value": "You need to agree to the privacy policy to use this application"
     }
   ]
 }

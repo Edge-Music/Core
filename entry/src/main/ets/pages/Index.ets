@@ -18,16 +18,113 @@ import { Download } from '../view/Download'
 import { ScrollController } from '../util/ScrollController'
 import { HeaderAnimation } from '../component/HeaderAnimation'
 import { deviceInfo } from '@kit.BasicServicesKit'
-import { PipManager } from '../util/PipManager';
-import { avPlayerManager } from '../util/AVPlayerManager';
-import { IS_2IN1_UI }from '../For_2in1_UI/FOR2IN1'
+import { PipManager } from '../util/PipManager'
+import { avPlayerManager } from '../util/AVPlayerManager'
+import { IS_2IN1_UI } from '../For_2in1_UI/FOR2IN1'
 import { Aggregation } from '../view/Aggregation'
-import { LogUtil } from '@pura/harmony-utils'
+import { LogUtil, ToastUtil, WantUtil } from '@pura/harmony-utils'
+import { BusinessError } from '@kit.BasicServicesKit'
+import app from '@system.app'
+import { common } from '@kit.AbilityKit'
 
 // 缓存常用值以避免重复计算
 const COLUMNS_TEMPLATE_LG = '1fr 1fr 1fr 1fr'
 const COLUMNS_TEMPLATE_SM = '1fr 1fr'
 const TAG = 'Index'
+
+// 隐私协议弹窗组件
+@CustomDialog
+struct PrivacyPolicyDialog {
+  controller?: CustomDialogController;
+  onAgree: () => void = () => {};
+  onDisagree: () => void = () => {};
+
+  build() {
+    Column({ space: 20 }) {
+      // 标题
+      Text($r('app.string.privacy_policy_title'))
+        .fontSize(20)
+        .fontWeight(FontWeight.Bold)
+        .fontColor($r('app.color.text_title'))
+        .margin({ top: 10 })
+
+      // 内容
+      Column({ space: 12 }) {
+        Text($r('app.string.privacy_policy_main_text'))
+          .fontSize(16)
+          .fontColor($r('app.color.text_primary'))
+          .textAlign(TextAlign.Start)
+          .width('100%')
+
+        Text($r('app.string.privacy_policy_detail_text'))
+          .fontSize(14)
+          .fontColor($r('app.color.text_secondary'))
+          .textAlign(TextAlign.Start)
+          .width('100%')
+
+        // 查看协议链接
+        Row() {
+          Text($r('app.string.privacy_policy_link_prefix'))
+            .fontSize(14)
+            .fontColor($r('app.color.text_secondary'))
+
+          Text($r('app.string.privacy_policy_link_text'))
+            .fontSize(14)
+            .fontColor($r('app.color.text_click'))
+            .decoration({ type: TextDecorationType.Underline })
+            .onClick(() => {
+              WantUtil.toWebBrowser("https://music.yby.zone/policy.html")
+                .catch((err: BusinessError) => {
+                  LogUtil.error(TAG, "打开隐私协议失败！", err.message);
+                  ToastUtil.showShort("跳转到浏览器失败！");
+                });
+            })
+        }
+        .width('100%')
+        .justifyContent(FlexAlign.Start)
+      }
+      .alignItems(HorizontalAlign.Start)
+      .padding({ left: 4, right: 4 })
+
+      // 按钮区域
+      Row({ space: 12 }) {
+        Button($r('app.string.privacy_policy_disagree'))
+          .fontSize(16)
+          .fontColor($r('app.color.text_secondary'))
+          .backgroundColor($r('app.color.card_background'))
+          .borderRadius(8)
+          .layoutWeight(1)
+          .height(44)
+          .onClick(() => {
+            if (this.controller) {
+              this.controller.close();
+            }
+            this.onDisagree();
+          })
+
+        Button($r('app.string.privacy_policy_agree'))
+          .fontSize(16)
+          .fontColor(Color.White)
+          .backgroundColor($r('app.color.text_click'))
+          .borderRadius(8)
+          .layoutWeight(1)
+          .height(44)
+          .onClick(() => {
+            if (this.controller) {
+              this.controller.close();
+            }
+            this.onAgree();
+          })
+      }
+      .width('100%')
+      .margin({ bottom: 10 })
+    }
+    .padding(20)
+    .borderRadius(12)
+    .backgroundColor($r('app.color.page_background'))
+    .width('90%')
+  }
+}
 
 @Entry
 @Component
@@ -70,22 +167,21 @@ struct Index {
 @Component
 struct Index_page {
   @StorageProp('decorHeight') decorHeight: number = 0
-  @State version: string = '2.2.0.y'
   @State blankHeight: number = 0
   @State limit: number = 10
   @State page_judge: string = 'index'
   @State title: string = '首页'
   @Consume('NavPathStack') pageStack: NavPathStack
   @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
-  private breakpointSystem = new BreakpointSystem()
-  private menuItems = HomePageMenuData
-  private scroller: Scroller = new Scroller()
   @StorageLink("user_data_source") adapters: SourceConfig[] = PreferencesCache.getUserDataSource()
   // 使用StorageLink保持数据同步
-  @StorageLink("index_recommend_playlist") recommendPlaylist: Playlist[] = PreferencesCache.getPlaylistCache('index_recommend_playlist')
+  @StorageLink("index_recommend_playlist") recommendPlaylist: Playlist[] =
+    PreferencesCache.getPlaylistCache('index_recommend_playlist')
   @StorageLink("index_recommend_songs") recommendSongs: Song[] = PreferencesCache.getSongCache('index_recommend_songs')
-  @StorageLink("index_recommend_artists") recommendArtists: Artist[] = PreferencesCache.getArtistCache('index_recommend_artists')
-  @StorageLink("index_recommend_toplist") topList: Playlist[] = PreferencesCache.getPlaylistCache('index_recommend_toplist')
+  @StorageLink("index_recommend_artists") recommendArtists: Artist[] =
+    PreferencesCache.getArtistCache('index_recommend_artists')
+  @StorageLink("index_recommend_toplist") topList: Playlist[] =
+    PreferencesCache.getPlaylistCache('index_recommend_toplist')
   @State loading: boolean = false
   // 避让导航栏高度
   @StorageProp('bottomRect') bottomRect: number = 0
@@ -93,94 +189,100 @@ struct Index_page {
   @StorageProp('winHeight') winHeight: number = 0
   @StorageProp('windowStatus') windowStatus: string = 'FULL_SCREEN'
   @State HorizontalMode_ctrl: string = PreferencesCache.getUserPreference('HorizontalMode_ctrl', '1')
+  //2in1 UI控制
+  @StorageProp('zhishi_UI') zhishi_UI: string = PreferencesCache.getUserPreference('zhishi_UI', '0')
+  private policyVersion: string = 'privacy_policy_2025'
+  private breakpointSystem = new BreakpointSystem()
+  private menuItems = HomePageMenuData
+  private scroller: Scroller = new Scroller()
   @State scrollController: ScrollController = new ScrollController({
     onIndexChange: (index) => {
       this.onMenuIconClick(index)
     },
     componentTag: TAG
   }).linkController(this.scroller)
-  //2in1 UI控制
-  @StorageProp('zhishi_UI') zhishi_UI: string =  PreferencesCache.getUserPreference('zhishi_UI','0')
+
+  // 隐私协议弹窗控制器
+  private privacyDialogController: CustomDialogController | null = new CustomDialogController({
+    builder: PrivacyPolicyDialog({
+      onAgree: () => {
+        this.onPrivacyAgree();
+      },
+      onDisagree: () => {
+        this.onPrivacyDisagree();
+      }
+    }),
+    autoCancel: false,
+    alignment: DialogAlignment.Center,
+    customStyle: true,
+    onWillDismiss: (dismissDialogAction: DismissDialogAction) => {
+      // 阻止用户通过返回键或点击外部关闭弹窗
+      if (dismissDialogAction.reason === DismissReason.PRESS_BACK ||
+          dismissDialogAction.reason === DismissReason.TOUCH_OUTSIDE) {
+        dismissDialogAction.dismiss();
+      }
+    }
+  })
+
   async aboutToAppear() {
     avPlayerManager.setAudioSession()
 
-    this.zhishi_UI = PreferencesCache.getUserPreference('zhishi_UI','0')
-    if(this.zhishi_UI === '1'){
+    this.zhishi_UI = PreferencesCache.getUserPreference('zhishi_UI', '0')
+    if (this.zhishi_UI === '1') {
       this.limit = 20
     }
 
     // avPlayerManager.avPlayer?.setVolume(Number(PreferencesCache.getUserPreference('Volume','100'))/100)
-    if (PreferencesCache.getUserPreference('Lyic_desktop','0')==='1') {
+    if (PreferencesCache.getUserPreference('Lyic_desktop', '0') === '1') {
       PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
       PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
     }
-    if (PreferencesCache.getUserPreference(this.version,'0')==='0'){
-      try{
-        this.getUIContext().showAlertDialog(
-          {
-            title: '更新提示',
-            subtitle: '此版本',
-            message: '多种优化，2in1内部开发版（待完善），个性化设置中增加2in1UI开关（需重启后触发），2in1UI较为毛坯，同时可能具备难以预料的BUG，2in1用户可以选择进入个性化设置关闭2in1UI，以便更好的体验。关闭后的padui可通过点击标题栏来进行返回上一页面操作',
-            autoCancel: true,
-            alignment: DialogAlignment.Bottom,
-            gridCount: 4,
-            offset: { dx: 0, dy: -20 },
-            primaryButton: {
-              value: '我知道了',
-              action: () => {
-                PreferencesCache.setUserPreference(this.version,'1')
-
-                console.info('Callback when the first button is clicked');
-              }
-            },
-            secondaryButton: {
-              enabled: true,
-              defaultFocus: true,
-              style: DialogButtonStyle.HIGHLIGHT,
-              value: '已知悉',
-              action: () => {
-                PreferencesCache.setUserPreference(this.version,'1')
-                console.info('Callback when the second button is clicked');
-              }
-            },
-            cancel: () => {
-              console.info('Closed callbacks');
-            },
-            onWillDismiss: (dismissDialogAction: DismissDialogAction) => {
-              console.info("reason=" + JSON.stringify(dismissDialogAction.reason))
-              console.log("dialog onWillDismiss")
-              if (dismissDialogAction.reason === DismissReason.PRESS_BACK) {
-                dismissDialogAction.dismiss();
-              }
-              if (dismissDialogAction.reason === DismissReason.TOUCH_OUTSIDE) {
-                dismissDialogAction.dismiss();
-              }
-            }
-          }
-        )
-      }catch (e) {
-      }
+    // 检查用户是否已同意隐私协议
+    if (PreferencesCache.getUserPreference(this.policyVersion, '0') === '0') {
+      // 延迟显示弹窗，确保UI已完全加载
+      setTimeout(() => {
+        if (this.privacyDialogController) {
+          this.privacyDialogController.open();
+        }
+      }, 500);
     }
 
     // 注册断点系统
     this.breakpointSystem.register(this.getUIContext())
     HorizontalMode(this.getUIContext().getHostContext() as Context, this.HorizontalMode_ctrl === '1')
     AppStorage.setOrCreate("pageStack", this.pageStack)
-    let productSeries:string=deviceInfo.productSeries
-    let deviceType: string =deviceInfo.deviceType
-    if (deviceType!='phone'&&productSeries!='VDE'){
+    let productSeries: string = deviceInfo.productSeries
+    let deviceType: string = deviceInfo.deviceType
+    if (deviceType != 'phone' && productSeries != 'VDE') {
       AppStorage.setOrCreate<boolean>('isWideScreen', true)
-    }else {
+    } else {
       AppStorage.setOrCreate<boolean>('isWideScreen', false)
 
     }
     AppStorage.setOrCreate("devicetype", deviceType)
     PreferencesCache.setUserPreference('devicetype', deviceType)
-    if(productSeries=='VDE') {
+    if (productSeries == 'VDE') {
       PreferencesCache.setUserPreference('is_Pura_X', '1')
-    }else {
+    } else {
       PreferencesCache.setUserPreference('is_Pura_X', '0')
     }
+  }
+
+  // 处理用户同意隐私协议
+  private onPrivacyAgree() {
+    LogUtil.info(TAG, '用户同意隐私协议');
+    PreferencesCache.setUserPreference(this.policyVersion, '1');
+  }
+
+  // 处理用户不同意隐私协议
+  private onPrivacyDisagree() {
+    LogUtil.info(TAG, '用户不同意隐私协议，退出应用');
+    ToastUtil.showShort($r('app.string.privacy_policy_required_message'));
+    // 退出应用
+    setTimeout(() => {
+      let context = getContext(this) as common.UIAbilityContext;
+      context.terminateSelf();
+    }, 500);
   }
 
   async initData() {
@@ -208,12 +310,16 @@ struct Index_page {
   aboutToDisappear() {
     this.breakpointSystem.unregister()
     PipManager.getInstance().unregisterPipStateChangeListener(); // 解注册画中画生命周期及状态回调
+    // 清理弹窗控制器
+    if (this.privacyDialogController) {
+      this.privacyDialogController = null;
+    }
   }
 
   @Builder
   Title() {
 
-    Column(){
+    Column() {
       // PC工具栏适配
       Row()
         .height(this.topRect > this.decorHeight ? this.topRect : this.decorHeight)
@@ -376,14 +482,14 @@ struct Index_page {
 
   build() {
     NavDestination() {
-      if (this.zhishi_UI === '1'){
+      if (this.zhishi_UI === '1') {
         IS_2IN1_UI({
           page_judge: this.page_judge,
           title: this.title
         })
-      }else {
+      } else {
         Stack({ alignContent: Alignment.Bottom }) {
-          Column(){
+          Column() {
             this.Title()
 
             List({ scroller: this.scroller }) {
@@ -396,22 +502,22 @@ struct Index_page {
                   this.MenuGrid()
                 }
 
-                ListItem(){
+                ListItem() {
                   this.RecommendedSongs()
                 }
                 .visibility(this.loading || this.recommendPlaylist.length > 0 ? Visibility.Visible : Visibility.None)
 
-                ListItem(){
+                ListItem() {
                   this.RecommendedPlaylists()
                 }
                 .visibility(this.loading || this.recommendSongs.length > 0 ? Visibility.Visible : Visibility.None)
 
-                ListItem(){
+                ListItem() {
                   this.RecommendedArtists()
                 }
                 .visibility(this.loading || this.recommendArtists.length > 0 ? Visibility.Visible : Visibility.None)
 
-                ListItem(){
+                ListItem() {
                   this.TopLists()
                 }
                 .visibility(this.loading || this.topList.length > 0 ? Visibility.Visible : Visibility.None)
@@ -471,7 +577,7 @@ struct Index_page {
     .hideBackButton(true)
     .backgroundColor($r('app.color.page_background'))
     .onBackPressed(() => {
-      if(this.page_judge !== 'index'){
+      if (this.page_judge !== 'index') {
         this.page_judge = 'index'
         this.title = '首页'
         return true

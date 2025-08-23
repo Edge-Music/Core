@@ -547,6 +547,38 @@
     {
       "name": "vivid",
       "value": "Audio Vivid"
+    },
+    {
+      "name": "privacy_policy_title",
+      "value": "用户隐私协议"
+    },
+    {
+      "name": "privacy_policy_main_text",
+      "value": "为了更好地为您提供服务，我们需要您同意我们的用户隐私协议。"
+    },
+    {
+      "name": "privacy_policy_detail_text",
+      "value": "协议包含了我们如何收集、使用和保护您的个人信息的详细说明。"
+    },
+    {
+      "name": "privacy_policy_link_prefix",
+      "value": "点击查看完整的"
+    },
+    {
+      "name": "privacy_policy_link_text",
+      "value": "《用户隐私协议》"
+    },
+    {
+      "name": "privacy_policy_agree",
+      "value": "同意"
+    },
+    {
+      "name": "privacy_policy_disagree",
+      "value": "不同意"
+    },
+    {
+      "name": "privacy_policy_required_message",
+      "value": "您需要同意隐私协议才能使用本应用"
     }
   ]
 }
