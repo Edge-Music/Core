@@ -14,7 +14,7 @@
     },
     {
       "name": "reason_keep_background_running",
-      "value": "Keep running in the background"
+      "value": "用于允许同时播放"
     },
     {
       "name": "back",
@@ -579,6 +579,10 @@
     {
       "name": "privacy_policy_required_message",
       "value": "您需要同意隐私协议才能使用本应用"
+    },
+    {
+      "name": "setting_fade_in_fade_out",
+      "value": "淡入淡出"
     }
   ]
 }
