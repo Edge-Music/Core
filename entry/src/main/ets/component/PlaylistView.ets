@@ -5,6 +5,7 @@ import { PlaylistManager } from '../util/PlaylistManager';
 import { ToastUtil } from '@pura/harmony-utils';
 import { LogUtil } from '@pura/harmony-utils';
 import { SongsDataSource } from '../util/SongsDataSource';
+import { cover } from '../util/AdapterHelper';
 
 @Component
 export struct PlaylistView {
@@ -52,14 +53,20 @@ export struct PlaylistView {
   }
 
   // 处理歌曲删除
-  private handleSongDelete(dsong: Song, index: number): void {
+  private handleSongDelete(d_song: Song, index: number): void {
 
     // 直接从数据源删除
-    this.songsDataSource.deleteData(index)
-    this.songsDataSource.reloadData()
+    this.getUIContext().animateTo({
+      duration: 500,
+      onFinish: () => {
+        this.songsDataSource.reloadData()
+      }
+    }, () => {
+      this.songsDataSource.deleteData(index)
+    })
 
     // 从播放列表中移除歌曲
-    PlaylistManager.removeSong(dsong);
+    PlaylistManager.removeSong(d_song);
 
     // 显示删除成功提示
     ToastUtil.showShort($r('app.string.removed_from_the_playlist'));
@@ -177,6 +184,7 @@ export struct PlaylistView {
               SongInfo({
                 playlistId: this.curPlaylist?.id,
                 song: song,
+                cover: cover(song?.album?.cover ?? "", 512),
                 showIndex: false,
                 active: this.currentSong?.id === song.id,
                 highlight: this.highlightIndex === index,
@@ -188,6 +196,10 @@ export struct PlaylistView {
                 this.DeleteButton(song, index)
               }
             }
+            .transition(
+              TransitionEffect.opacity(0)
+                .combine(TransitionEffect.translate({ x: '-200vp' }))
+            )
             .margin({ bottom: 4 })
           }, (song: Song, index: number) => `${song.id}-${index}`) // 使用歌曲ID作为唯一标识符
 

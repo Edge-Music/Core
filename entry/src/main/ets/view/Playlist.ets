@@ -176,6 +176,7 @@ export struct PlayList {
                 SongInfo({
                   playlistId: this.playlist?.id,
                   song: song,
+                  cover: cover(song?.album?.cover ?? "", 512),
                   index: index,
                   active: this.song?.id === song.id,
                   highlight: this.billingIndex === index,
@@ -195,6 +196,7 @@ export struct PlayList {
                   playlistId: this.playlist?.id,
                   playlistType: this.playlist?.type,
                   song: song,
+                  cover: cover(song?.album?.cover ?? "", 512),
                   index: index,
                   active: this.song?.id === song.id,
                   highlight: this.billingIndex === index,
@@ -203,13 +205,23 @@ export struct PlayList {
                   },
                   deleteSong: (d_song: Song) => {
                     if(this.playlist?.type === PlaylistType.AGGREGATION) {
-                      this.songsDataSource.deleteData(index)
-                      this.songsDataSource.reloadData()
+                      this.getUIContext().animateTo({
+                        duration: 500,
+                        onFinish: () => {
+                          this.songsDataSource.reloadData()
+                        }
+                      }, () => {
+                        this.songsDataSource.deleteData(index)
+                      })
                     }
                   },
                   isShowMenu: true
                 })
               }
+              .transition(
+                TransitionEffect.opacity(0)
+                  .combine(TransitionEffect.translate({ x: '-200vp' }))
+              )
             }, (song: Song, index: number) => `${song.id}-${index}`)
           }
         }

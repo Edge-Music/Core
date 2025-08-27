@@ -1,8 +1,8 @@
+import { ImageKnifeComponent } from "@ohos/imageknife";
 import { DialogAction, DialogHelper } from "@pura/harmony-dialog";
 import { LogUtil, ToastUtil } from "@pura/harmony-utils";
 import { StyleConstants } from "../constants/StyleConstants";
 import { Playlist, PlaylistType, Song } from "../type/Adapter";
-import { cover } from "../util/AdapterHelper";
 import { PlaylistManager } from "../util/PlaylistManager";
 import { PreferencesCache } from "../util/PreferenceCache";
 import { SongCacheManager } from "../util/SongCacheManager";
@@ -16,6 +16,7 @@ export struct SongInfo {
   @Prop playlistId: number | string
   @Prop playlistType: PlaylistType
   @Prop song: Song
+  @Prop cover: string | Resource
   showBorder: boolean = true;
   onTap?: (song: Song) => void;
   deleteSong?: (song: Song) => void;
@@ -102,7 +103,7 @@ export struct SongInfo {
             .textAlign(TextAlign.Center)
         }
 
-        Image(cover(this.song?.album?.cover ?? "", 512))
+        Image(this.cover)
           .aspectRatio(1)
           .borderRadius(8)
           .height(48)
