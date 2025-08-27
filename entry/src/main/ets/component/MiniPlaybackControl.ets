@@ -201,7 +201,7 @@ export struct MiniPlaybackControl {
             Text(this.currentLineLyrics?.text)
               .fontSize(17)
               .fontWeight(700)
-              .fontColor(Color.White)
+              .fontColor($r('app.color.text_title'))
               .maxLines(2)
               .textAlign(TextAlign.Center)
               .borderRadius(8)
