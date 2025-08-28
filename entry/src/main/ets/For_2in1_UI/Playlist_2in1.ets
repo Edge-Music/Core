@@ -218,6 +218,7 @@ export struct PlayListFor2in1 {
                 SongInfo({
                   playlistId: this.playlist?.id,
                   song: song,
+                  cover: cover(song?.album?.cover ?? "", 512),
                   index: index,
                   active: this.song?.id === song.id,
                   highlight: this.billingIndex === index,
@@ -235,6 +236,7 @@ export struct PlayListFor2in1 {
                   playlistId: this.playlist?.id,
                   playlistType: this.playlist?.type,
                   song: song,
+                  cover: cover(song?.album?.cover ?? "", 512),
                   index: index,
                   active: this.song?.id === song.id,
                   highlight: this.billingIndex === index,
