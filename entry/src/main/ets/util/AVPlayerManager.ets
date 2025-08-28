@@ -51,7 +51,7 @@ class AVPlayerManager {
   private isPlayingBeforeInterrupt: boolean = false;
 
   // 淡入淡出相关属性
-  private fadeTimer: number | null = null;
+  private fadeTimer: number = -1;
   private readonly FADE_DURATION: number = 750; // 淡入淡出持续时间(毫秒)
   private readonly FADE_STEPS: number = 20; // 淡入淡出步骤数
   private currentVolume: number = 1.0; // 当前音量
@@ -705,9 +705,9 @@ class AVPlayerManager {
 
   async destroy() {
     try {
-      if (this.fadeTimer) {
+      if (this.fadeTimer != -1) {
         clearInterval(this.fadeTimer);
-        this.fadeTimer = null;
+        this.fadeTimer = -1;
       }
       if (this.avPlayer) {
         await this.avPlayer.release();
@@ -731,8 +731,8 @@ class AVPlayerManager {
     }
     await this.audioSessionManager.activateAudioSession(strategy)
 
-
   }
+
   async seek(position: number) {
     try {
       const player = await this.getAVPlayerInstance();
@@ -746,9 +746,9 @@ class AVPlayerManager {
   // 淡入效果
   private async fadeIn() {
     // 清除可能存在的旧定时器
-    if (this.fadeTimer) {
+    if (this.fadeTimer != -1) {
       clearInterval(this.fadeTimer);
-      this.fadeTimer = null;
+      this.fadeTimer = -1;
     }
 
     const player = await this.getAVPlayerInstance();
@@ -767,6 +767,7 @@ class AVPlayerManager {
     // 计算每一步的音量增量
     const stepIncrease = 1.0 / this.FADE_STEPS;
     const stepInterval = this.FADE_DURATION / this.FADE_STEPS;
+    const maxVolume = Number(PreferencesCache.getUserPreference('Volume','100'))/100;
     let currentStep = 0;
 
     // 设置定时器逐步增加音量
@@ -774,17 +775,18 @@ class AVPlayerManager {
       if (currentStep < this.FADE_STEPS) {
         this.currentVolume += stepIncrease;
         const currentPlayer = await this.getAVPlayerInstance();
-        currentPlayer.setVolume(this.currentVolume)
+        LogUtil.info(`[${TAG}]`, `currentVolume: ${this.currentVolume}`)
+        currentPlayer.setVolume(Math.min(maxVolume, this.currentVolume))
         currentStep++;
       } else {
         // 淡入完成，清除定时器
-        if (this.fadeTimer) {
+        if (this.fadeTimer != -1) {
           clearInterval(this.fadeTimer);
-          this.fadeTimer = null;
+          this.fadeTimer = -1;
         }
-        this.currentVolume = 1.0; // 确保最终音量为1
+        this.currentVolume = maxVolume; // 确保最终音量为之前设置的
         const finalPlayer = await this.getAVPlayerInstance();
-        finalPlayer.setVolume(1.0)
+        finalPlayer.setVolume(this.currentVolume)
       }
     }, stepInterval);
   }
@@ -792,17 +794,17 @@ class AVPlayerManager {
   // 淡出效果
   private async fadeOut() {
     // 清除可能存在的旧定时器
-    if (this.fadeTimer) {
+    if (this.fadeTimer != -1) {
       clearInterval(this.fadeTimer);
-      this.fadeTimer = null;
+      this.fadeTimer = -1;
     }
 
     const player = await this.getAVPlayerInstance();
-    const initialVolume = 1.0
-    this.currentVolume = initialVolume;
+    const maxVolume = Number(PreferencesCache.getUserPreference('Volume','100'))/100;
+    this.currentVolume = maxVolume;
 
     // 计算每一步的音量减量
-    const stepDecrease = initialVolume / this.FADE_STEPS;
+    const stepDecrease = maxVolume / this.FADE_STEPS;
     const stepInterval = this.FADE_DURATION / this.FADE_STEPS;
     let currentStep = 0;
 
@@ -811,13 +813,14 @@ class AVPlayerManager {
       if (currentStep < this.FADE_STEPS) {
         this.currentVolume -= stepDecrease;
         const currentPlayer = await this.getAVPlayerInstance();
-        currentPlayer.setVolume(this.currentVolume)
+        LogUtil.info(`[${TAG}]`, `currentVolume: ${this.currentVolume}`)
+        currentPlayer.setVolume(Math.max(0, this.currentVolume))
         currentStep++;
       } else {
         // 淡出完成，暂停播放并清除定时器
-        if (this.fadeTimer) {
+        if (this.fadeTimer != -1) {
           clearInterval(this.fadeTimer);
-          this.fadeTimer = null;
+          this.fadeTimer = -1;
         }
         const finalPlayer = await this.getAVPlayerInstance();
         await finalPlayer.pause();
@@ -825,8 +828,8 @@ class AVPlayerManager {
         this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PAUSE);
         this.triggerPause();
         EventHelper.postSongState('PAUSE');
-        this.currentVolume = 1.0; // 重置音量
-        finalPlayer.setVolume(1.0);
+        this.currentVolume = maxVolume; // 重置音量
+        finalPlayer.setVolume(maxVolume);
       }
     }, stepInterval);
   }
