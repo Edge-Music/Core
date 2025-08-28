@@ -240,10 +240,11 @@ export struct MiniPlaybackControl {
             }
             .scale({ x: this.playBtnScale, y: this.playBtnScale})
             .onClick(() => {
+              this.isPlaying = !this.isPlaying
               if (this.isPlaying) {
-                this.playerManager.pause();
-              } else {
                 this.playerManager.play();
+              } else {
+                this.playerManager.pause();
               }
             })
             .onTouch((event) => {

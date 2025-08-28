@@ -50,6 +50,12 @@ class AVPlayerManager {
   };
   private isPlayingBeforeInterrupt: boolean = false;
 
+  // 淡入淡出相关属性
+  private fadeTimer: number | null = null;
+  private readonly FADE_DURATION: number = 750; // 淡入淡出持续时间(毫秒)
+  private readonly FADE_STEPS: number = 20; // 淡入淡出步骤数
+  private currentVolume: number = 1.0; // 当前音量
+
   public async init(context: common.UIAbilityContext) {
     this.context = context;
     await this.initAVSession();
@@ -644,11 +650,17 @@ class AVPlayerManager {
       this.setAudioSession()
       const player = await this.getAVPlayerInstance();
       await this.initAppVolume()
-      await player.play();
-      this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PLAY);
-      AppStorage.setOrCreate<boolean>("playing_judge",true)
-      this.triggerPlay();
-      EventHelper.postSongState('PLAY');
+      const fadeInOutEnabled = PreferencesCache.getUserPreference('fade_in_out', '0');
+      LogUtil.info("AVPlayerManager", "play", "Playing the song with fadeInOutEnabled: " + fadeInOutEnabled);
+      if (fadeInOutEnabled === '1') {
+        await this.fadeIn();
+      } else {
+        await player.play();
+        this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PLAY);
+        AppStorage.setOrCreate<boolean>("playing_judge", true);
+        this.triggerPlay();
+        EventHelper.postSongState('PLAY');
+      }
     } catch (error) {
       this.triggerError(error);
     }
@@ -658,11 +670,16 @@ class AVPlayerManager {
     try {
       const player = await this.getAVPlayerInstance();
       if(player.state === 'playing'){
-        await player.pause();
-        AppStorage.setOrCreate<boolean>("playing_judge",false)
-        this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PAUSE);
-        this.triggerPause();
-        EventHelper.postSongState('PAUSE');
+        const fadeInOutEnabled = PreferencesCache.getUserPreference('fade_in_out', '0');
+        if (fadeInOutEnabled === '1') {
+          await this.fadeOut();
+        } else {
+          await player.pause();
+          AppStorage.setOrCreate<boolean>("playing_judge", false);
+          this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PAUSE);
+          this.triggerPause();
+          EventHelper.postSongState('PAUSE');
+        }
       }
     } catch (error) {
       this.triggerError(error);
@@ -688,6 +705,10 @@ class AVPlayerManager {
 
   async destroy() {
     try {
+      if (this.fadeTimer) {
+        clearInterval(this.fadeTimer);
+        this.fadeTimer = null;
+      }
       if (this.avPlayer) {
         await this.avPlayer.release();
         this.avPlayer = null;
@@ -720,6 +741,94 @@ class AVPlayerManager {
     } catch (error) {
       this.triggerError(error);
     }
+  }
+
+  // 淡入效果
+  private async fadeIn() {
+    // 清除可能存在的旧定时器
+    if (this.fadeTimer) {
+      clearInterval(this.fadeTimer);
+      this.fadeTimer = null;
+    }
+
+    const player = await this.getAVPlayerInstance();
+
+    // 设置初始音量为0
+    player.setVolume(0)
+    this.currentVolume = 0;
+
+    // 开始播放
+    await player.play();
+    this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PLAY);
+    AppStorage.setOrCreate<boolean>("playing_judge", true);
+    this.triggerPlay();
+    EventHelper.postSongState('PLAY');
+
+    // 计算每一步的音量增量
+    const stepIncrease = 1.0 / this.FADE_STEPS;
+    const stepInterval = this.FADE_DURATION / this.FADE_STEPS;
+    let currentStep = 0;
+
+    // 设置定时器逐步增加音量
+    this.fadeTimer = setInterval(async () => {
+      if (currentStep < this.FADE_STEPS) {
+        this.currentVolume += stepIncrease;
+        const currentPlayer = await this.getAVPlayerInstance();
+        currentPlayer.setVolume(this.currentVolume)
+        currentStep++;
+      } else {
+        // 淡入完成，清除定时器
+        if (this.fadeTimer) {
+          clearInterval(this.fadeTimer);
+          this.fadeTimer = null;
+        }
+        this.currentVolume = 1.0; // 确保最终音量为1
+        const finalPlayer = await this.getAVPlayerInstance();
+        finalPlayer.setVolume(1.0)
+      }
+    }, stepInterval);
+  }
+
+  // 淡出效果
+  private async fadeOut() {
+    // 清除可能存在的旧定时器
+    if (this.fadeTimer) {
+      clearInterval(this.fadeTimer);
+      this.fadeTimer = null;
+    }
+
+    const player = await this.getAVPlayerInstance();
+    const initialVolume = 1.0
+    this.currentVolume = initialVolume;
+
+    // 计算每一步的音量减量
+    const stepDecrease = initialVolume / this.FADE_STEPS;
+    const stepInterval = this.FADE_DURATION / this.FADE_STEPS;
+    let currentStep = 0;
+
+    // 设置定时器逐步减小音量
+    this.fadeTimer = setInterval(async () => {
+      if (currentStep < this.FADE_STEPS) {
+        this.currentVolume -= stepDecrease;
+        const currentPlayer = await this.getAVPlayerInstance();
+        currentPlayer.setVolume(this.currentVolume)
+        currentStep++;
+      } else {
+        // 淡出完成，暂停播放并清除定时器
+        if (this.fadeTimer) {
+          clearInterval(this.fadeTimer);
+          this.fadeTimer = null;
+        }
+        const finalPlayer = await this.getAVPlayerInstance();
+        await finalPlayer.pause();
+        AppStorage.setOrCreate<boolean>("playing_judge", false);
+        this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PAUSE);
+        this.triggerPause();
+        EventHelper.postSongState('PAUSE');
+        this.currentVolume = 1.0; // 重置音量
+        finalPlayer.setVolume(1.0);
+      }
+    }, stepInterval);
   }
 }
 
