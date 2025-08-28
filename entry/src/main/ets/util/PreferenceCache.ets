@@ -405,6 +405,11 @@ export class PreferencesCache {
       tmpSongs = tmpSongs.filter((s: Song) => s.id !== song.id);
 
       playlists[targetPlaylistIndex].size = tmpSongs.length
+      if(tmpSongs.length != 0) {
+        playlists[targetPlaylistIndex].cover = tmpSongs[tmpSongs.length-1].album.cover
+      } else {
+        playlists[targetPlaylistIndex].cover = $r('app.media.icon_startwindow')
+      }
 
       // 5. 更新缓存
       PreferencesCache.setCache(strIndex, JSON.stringify(playlists));
@@ -441,6 +446,7 @@ export class PreferencesCache {
       }
 
       playlists[targetIndex].size = tmpSongs.length
+      playlists[targetIndex].cover = song.album.cover
 
       PreferencesCache.setCache(`aggregation_playlist_songs_${playlist.id}`, JSON.stringify(tmpSongs));
       PreferencesCache.setCache('aggregation_playlist', JSON.stringify(playlists));
@@ -495,6 +501,7 @@ export class PreferencesCache {
 
     // 更新歌单大小
     targetPlaylist.size = tmpSongs!.length;
+    targetPlaylist.cover = songs[songs.length-1].album.cover
     // 更新缓存
     PreferencesCache.setCache(`aggregation_playlist_songs_${playlist.id}`, JSON.stringify(tmpSongs));
     PreferencesCache.setCache('aggregation_playlist', JSON.stringify(playlists));
