@@ -482,7 +482,11 @@
     },
     {
       "name": "double_tap_switch_songs",
-      "value": "Double Tap To Switch Songs/Flip Mute"
+      "value": "Double Tap To Switch Songs"
+    },
+    {
+      "name": "flip_mute",
+      "value": "Flip Mute"
     },
     {
       "name": "aggregation",
