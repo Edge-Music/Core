@@ -21,6 +21,8 @@ class StrictTrendDetector {
   private lastHandledAction: '+' | '-' | null = null;
   private currentSign: '+' | '-' | null = null;
 
+  private flipState: 'up' | 'down' = 'up'
+
   monitorPhoneOrientation(newValue: number) {
     // 将新值添加到窗口数组
     this.dataWindow2.push(newValue);
@@ -47,7 +49,7 @@ class StrictTrendDetector {
     if (this.currentSign === '-' && this.currentCount >= MAX_COUNT) {
       // 只有当上次操作不是handle(0)时才执行
       if (this.lastHandledAction !== '-') {
-        this.adjustVolume(0);
+        this.adjustVolume('paused');
         this.lastHandledAction = '-';
         // 重置计数以避免重复触发
         this.currentCount = 0;
@@ -59,7 +61,7 @@ class StrictTrendDetector {
     if (this.currentSign === '+' && this.currentCount >= MAX_COUNT) {
       // 只有当上次操作不是handle(100)时才执行
       if (this.lastHandledAction !== '+') {
-        this.adjustVolume();
+        this.adjustVolume('playing');
         this.lastHandledAction = '+';
         // 重置计数以避免重复触发
         this.currentCount = 0;
@@ -131,7 +133,9 @@ class StrictTrendDetector {
   }
 
   private triggerAction(): void {
-    this.playNext();
+    if(this.flipState === 'up'){
+      this.playNext();
+    }
     LogUtil.info(TAG, `检测到完整波动模式: [${this.trendSequence.join('→')}], 数组: ${this.dataWindow1.join('→')}`);
     this.resetDetection();
   }
@@ -152,12 +156,15 @@ class StrictTrendDetector {
     }
   }
 
-  private adjustVolume(volume: number = 100): void {
-    if(volume === 0) {
-      avPlayerManager.avPlayer?.setVolume(0)
-    } else {
-      const historyVolume = parseInt(PreferencesCache.getUserPreference('Volume','100'))
-      avPlayerManager.avPlayer?.setVolume(historyVolume/100)
+  private async adjustVolume(desiredState: string): Promise<void> {
+    const player = await avPlayerManager.getAVPlayerInstance()
+    if(player.state === 'playing' && desiredState === 'paused') {
+      avPlayerManager.pause()
+      this.flipState = 'down'
+    }
+    if(player.state != 'playing' && desiredState === 'playing') {
+      avPlayerManager.play()
+      this.flipState = 'up'
     }
   }
 }
