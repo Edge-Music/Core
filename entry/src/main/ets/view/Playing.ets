@@ -34,6 +34,7 @@ type ShowLyricsStatus = -1 | 0 | 1 | 2
 export function PlayingBuilder() {
   Playing()
 }
+const TAG = 'Playing'
 
 @Component
 struct Playing {
@@ -835,6 +836,7 @@ struct Playing {
     }
     WindowUtil.setWindowScreenOn(this.windowStage, true)
 
+    LogUtil.info(`${TAG}`, `this.isOnFlipMute: ${this.isOnFlipMute}`)
     if(this.isOnDoubleTap === '1' || this.isOnFlipMute === '1'){
       SensorUtil.onAccelerometer()
     }

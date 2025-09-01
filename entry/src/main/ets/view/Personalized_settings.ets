@@ -44,26 +44,13 @@ export struct Personalized_settings_Component {
       PreferencesCache.setUserPreference(this.setUserPreference_name, this.text_ctrl)
     }
 
+    AppStorage.setOrCreate(this.setUserPreference_name, this.text_ctrl)
+
     if (PreferencesCache.getUserPreference('Lyic_desktop','0')==='1') {
       PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
       PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
     }else {
       PipManager.getInstance().setAutoStart(false)
-    }
-
-    if(this.setUserPreference_name === 'zhishi_UI'){
-      PreferencesCache.setUserPreference(this.setUserPreference_name, this.text_ctrl)
-      AppStorage.setOrCreate('zhishi_UI', this.text_ctrl)
-    }
-
-    if(this.setUserPreference_name === 'miniplaying_bottom_judge'){
-      PreferencesCache.setUserPreference(this.setUserPreference_name, this.text_ctrl)
-      AppStorage.setOrCreate('miniplaying_bottom_judge', this.text_ctrl)
-    }
-
-    if(this.setUserPreference_name === 'double_tap_switch_songs'){
-      PreferencesCache.setUserPreference(this.setUserPreference_name, this.text_ctrl)
-      AppStorage.setOrCreate('double_tap_switch_songs', this.text_ctrl)
     }
   }
 }
