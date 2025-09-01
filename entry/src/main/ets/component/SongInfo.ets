@@ -7,6 +7,7 @@ import { PlaylistManager } from "../util/PlaylistManager";
 import { PreferencesCache } from "../util/PreferenceCache";
 import { SongCacheManager } from "../util/SongCacheManager";
 import { SongDownloadManager } from "../util/SongDownloadManager";
+import { pasteboard } from '@kit.BasicServicesKit';
 
 const TAG = 'SongInfo'
 
@@ -76,6 +77,44 @@ export struct SongInfo {
       return 'rgba(100, 149, 237, 0.15)'; // 高亮背景色
     }
     return $r('app.color.setting_item_background');
+  }
+
+  // 复制歌曲信息到剪贴板
+  private copySongInfo() {
+    if (!this.song) {
+      return;
+    }
+
+    let copyText = '';
+
+    // 构建艺术家信息
+    if (this.song.artists && this.song.artists.length > 0) {
+      const artistNames = this.song.artists.map(artist => artist.name).join(' / ');
+      copyText = `${artistNames} - ${this.song.name || '未知歌曲'}`;
+    } else {
+      // 如果没有艺术家信息，只复制歌曲名称
+      copyText = this.song.name || '未知歌曲';
+    }
+
+    try {
+      // 创建剪贴板数据
+      const pasteData = pasteboard.createData(pasteboard.MIMETYPE_TEXT_PLAIN, copyText);
+
+      // 获取系统剪贴板
+      const systemPasteboard = pasteboard.getSystemPasteboard();
+
+      // 将数据写入剪贴板
+      systemPasteboard.setData(pasteData).then(() => {
+        LogUtil.info(TAG, `歌曲信息已复制到剪贴板: ${copyText}`);
+        ToastUtil.showShort($r('app.string.copied_to_clipboard'));
+      }).catch((err: Error) => {
+        LogUtil.error(TAG, '复制到剪贴板失败', err.message);
+        ToastUtil.showShort($r('app.string.copy_failed'));
+      });
+    } catch (error) {
+      LogUtil.error(TAG, '创建剪贴板数据失败', error);
+      ToastUtil.showShort($r('app.string.copy_failed'));
+    }
   }
 
   // 获取边框颜色
@@ -168,6 +207,12 @@ export struct SongInfo {
         }
         .alignItems(HorizontalAlign.Start)
         .layoutWeight(1)
+        .gesture(
+          LongPressGesture({ repeat: false, duration: 500 })
+            .onAction(() => {
+              this.copySongInfo();
+            })
+        )
 
         if(this.isShowMenu){
           Button({ type: ButtonType.Circle }) {

@@ -587,6 +587,14 @@
     {
       "name": "setting_fade_in_fade_out",
       "value": "Fade in and fade out"
+    },
+    {
+      "name": "copied_to_clipboard",
+      "value": "Copied to clipboard"
+    },
+    {
+      "name": "copy_failed",
+      "value": "Copy failed"
     }
   ]
 }

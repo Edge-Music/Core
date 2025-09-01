@@ -583,6 +583,14 @@
     {
       "name": "setting_fade_in_fade_out",
       "value": "淡入淡出"
+    },
+    {
+      "name": "copied_to_clipboard",
+      "value": "已复制到剪贴板"
+    },
+    {
+      "name": "copy_failed",
+      "value": "复制失败"
     }
   ]
 }
