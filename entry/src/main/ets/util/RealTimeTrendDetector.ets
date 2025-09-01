@@ -21,7 +21,7 @@ class StrictTrendDetector {
   private lastHandledAction: '+' | '-' | null = null;
   private currentSign: '+' | '-' | null = null;
 
-  private flipState: 'up' | 'down' = 'up'
+  private flipState: 'up' | 'down' | 'none' = 'none'
 
   monitorPhoneOrientation(newValue: number) {
     // 将新值添加到窗口数组
@@ -162,7 +162,7 @@ class StrictTrendDetector {
       avPlayerManager.pause()
       this.flipState = 'down'
     }
-    if(player.state != 'playing' && desiredState === 'playing') {
+    if(player.state != 'playing' && desiredState === 'playing' && this.flipState === 'down') {
       avPlayerManager.play()
       this.flipState = 'up'
     }

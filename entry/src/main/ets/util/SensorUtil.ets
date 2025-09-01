@@ -9,8 +9,8 @@ class SensorUtil {
 
   onAccelerometer(){
     try {
-      let isOnDoubleTap: string = PreferencesCache.getUserPreference('double_tap_switch_songs','0')
-      let isOnFlipMute: string = PreferencesCache.getUserPreference('flip_mute','0')
+      const isOnDoubleTap = PreferencesCache.getUserPreference('double_tap_switch_songs','0')
+      const isOnFlipMute = PreferencesCache.getUserPreference('flip_mute','0')
       sensor.on(sensor.SensorId.ACCELEROMETER, (data: sensor.AccelerometerResponse) => {
         // LogUtil.info(`[${TAG}]`, `Succeeded in invoking on. X: ${data.x}, Y:  ${data.y}, Z:  ${data.z}. (x^2+y^2+z^2): ${Math.pow(data.x, 2)+Math.pow(data.y, 2)+Math.pow(data.z, 2)}`)
         if(isOnDoubleTap === '1') {
