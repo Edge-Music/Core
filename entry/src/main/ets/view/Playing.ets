@@ -1,4 +1,4 @@
-import { Playlist, Song } from '../type/Adapter'
+import { Artist, Playlist, Song } from '../type/Adapter'
 import { StyleConstants } from "../constants/StyleConstants"
 import { BreakpointConstants } from '../constants/BreakpointConstants'
 import { cover } from '../util/AdapterHelper'
@@ -26,6 +26,7 @@ import { DialogHelper } from '@pura/harmony-dialog'
 import { resourceManager } from '@kit.LocalizationKit'
 import { LyricsLine } from '../util/LyricsManager'
 import ResourceManager from '../util/ResourceManager'
+import { PushPathHelper } from '../util/PushPathHelper'
 
 type ShowLyricsStatus = -1 | 0 | 1 | 2
 
@@ -95,7 +96,7 @@ struct Playing {
   @State selectedIndex: number = 0
   @State flipCoverLyric: boolean = PreferencesCache.flipCoverLyric()
   @State Pura_X: string = PreferencesCache.getUserPreference('is_Pura_X', '0')//pura_x尝试适配
-  @State sheetType: "playlist" | "timer" = "playlist" // 用于控制底部弹出表单的类型，默认为播放列表
+  @State sheetType: "playlist" | "timer" | "artist" = "playlist" // 用于控制底部弹出表单的类型，默认为播放列表
   @State showLyricType: ShowLyricsStatus = parseInt(PreferencesCache.getUserPreference('playing_title_lyric_show_status', '-1')) as ShowLyricsStatus
 
   private uiContext: UIContext | undefined = undefined;
@@ -503,6 +504,12 @@ struct Playing {
                 .fontColor(`#ff${this.imageColorHex}`)
                 .textOverflow({ overflow: TextOverflow.MARQUEE })
                 .blendMode(BlendMode.DIFFERENCE, BlendApplyType.OFFSCREEN)
+                .onClick(() => {
+                  if (this.song?.artists && this.song.artists.length > 0) {
+                    this.sheetType = "artist";
+                    this.showPlaylist = true;
+                  }
+                })
 
               Row(){
                 TextClock()
@@ -665,6 +672,12 @@ struct Playing {
                 .fontColor(`#ff${this.imageColorHex}`)
                 .textOverflow({ overflow: TextOverflow.MARQUEE })
                 .blendMode(BlendMode.DIFFERENCE, BlendApplyType.OFFSCREEN)
+                .onClick(() => {
+                  if (this.song?.artists && this.song.artists.length > 0) {
+                    this.sheetType = "artist";
+                    this.showPlaylist = true;
+                  }
+                })
 
               Row(){
                 TextClock()
@@ -1554,6 +1567,12 @@ struct Playing {
           .textAlign(TextAlign.Center)
           .textOverflow({ overflow: TextOverflow.MARQUEE })
           .height(24) // 固定高度确保布局稳定
+          .onClick(() => {
+            if (this.song?.artists && this.song.artists.length > 0) {
+              this.sheetType = "artist";
+              this.showPlaylist = true;
+            }
+          })
       }
       .width(StyleConstants.FULL_WIDTH)
       .alignItems(HorizontalAlign.Center)
@@ -1605,7 +1624,117 @@ struct Playing {
       this.PlayListBuilder()
     } else if (this.sheetType === "timer") {
       this.Timer()
+    } else if (this.sheetType === "artist") {
+      this.ArtistSheet()
     }
+  }
+
+  @Builder
+  ArtistSheet() {
+    Column({ space: 16 }) {
+      // 弹窗标题
+      Row() {
+        Text($r("app.string.artist"))
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.text_title'))
+
+        Blank()
+
+        Button() {
+          Image($r('app.media.ic_close'))
+            .width(20)
+            .height(20)
+            .fillColor($r('app.color.text_secondary'))
+        }
+        .type(ButtonType.Circle)
+        .backgroundColor(Color.Transparent)
+        .onClick(() => {
+          this.showPlaylist = false;
+        })
+      }
+      .width('100%')
+      .padding({ left: 20, right: 20, top: 16 })
+
+      // 艺术家列表
+      if (this.song?.artists && this.song.artists.length > 0) {
+        List({ space: 8 }) {
+          ForEach(this.song.artists, (artist: Artist, index: number) => {
+            ListItem() {
+              Row({ space: 16 }) {
+                // 艺术家信息
+                Column({ space: 6 }) {
+                  Text(artist.name || '未知艺术家')
+                    .fontSize(16)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor($r('app.color.text_title'))
+                    .maxLines(1)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis })
+                }
+                .alignItems(HorizontalAlign.Start)
+                .layoutWeight(1)
+
+                // 箭头图标
+                Image($r('app.media.ic_chevron_right'))
+                  .width(16)
+                  .height(16)
+                  .fillColor($r('app.color.text_hint'))
+              }
+              .width('100%')
+              .padding({ left: 20, right: 20, top: 16, bottom: 16 })
+              .backgroundColor($r('app.color.card_background'))
+              .borderRadius(12)
+              .border({
+                width: 0.5,
+                color: $r('app.color.border_line'),
+                style: BorderStyle.Solid
+              })
+              .onClick(() => {
+                this.showPlaylist = false;
+                this.navigateToArtist(artist);
+              })
+              .clickEffect({ level: ClickEffectLevel.LIGHT })
+              .stateStyles({
+                pressed: {
+                  .backgroundColor($r('app.color.setting_item_background'))
+                  .scale({ x: 0.98, y: 0.98 })
+                },
+                normal: {
+                  .backgroundColor($r('app.color.card_background'))
+                  .scale({ x: 1, y: 1 })
+                }
+              })
+              .animation({
+                duration: 150,
+                curve: Curve.EaseInOut
+              })
+            }
+          })
+        }
+        .width('100%')
+        .layoutWeight(1)
+        .padding({ left: 16, right: 16 })
+      } else {
+        // 无艺术家信息的提示
+        Column({ space: 8 }) {
+
+          Text('暂无艺术家信息')
+            .fontSize(16)
+            .fontColor($r('app.color.text_secondary'))
+        }
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+        .layoutWeight(1)
+      }
+
+      // 底部安全区域
+      Row()
+        .height(this.bottomRect)
+        .width('100%')
+    }
+    .width('100%')
+    .backgroundColor($r('app.color.page_background'))
+    .borderRadius({ topLeft: 16, topRight: 16 })
   }
 
   @Builder
@@ -1641,6 +1770,12 @@ struct Playing {
                 .maxLines(1)
                 .textOverflow({ overflow: TextOverflow.MARQUEE })
                 .height(12) // 固定高度确保布局稳定
+                .onClick(() => {
+                  if (this.song?.artists && this.song.artists.length > 0) {
+                    this.sheetType = "artist";
+                    this.showPlaylist = true;
+                  }
+                })
             }
             .layoutWeight(1)
             .alignItems(HorizontalAlign.Start)
@@ -1957,5 +2092,22 @@ struct Playing {
       default:
         return ''
     }
+  }
+
+  // 导航到艺术家页面
+  private navigateToArtist(artist: Artist) {
+    PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
+      try {
+        // 歌手复用歌单UI
+        artist.source = this.song?.source
+        const playlist = await SourceAdapter.getArtistDetail(artist);
+        AppStorage.setOrCreate('current_playlist_data', playlist);
+        AppStorage.setOrCreate('current_playlist_songs', playlist.songs);
+        LogUtil.info('Playing', `成功获取艺术家详情: ${artist.id}`);
+      } catch (error) {
+        LogUtil.error('Playing', `获取艺术家详情失败: ${artist.name}`, error);
+        ToastUtil.showShort('获取艺术家信息失败');
+      }
+    });
   }
 }
