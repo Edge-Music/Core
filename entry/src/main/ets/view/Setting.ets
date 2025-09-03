@@ -15,12 +15,15 @@ import {Personalized_settings}from '../view/Personalized_settings'
 import { HeaderAnimation } from "../component/HeaderAnimation";
 import { ScrollController } from "../util/ScrollController";
 import ResourceManager from "../util/ResourceManager";
+import { HeaderPlaceholder } from "../component/HeaderPlaceholder";
+import { FooterPlaceholder } from "../component/FooterPlaceholder";
+import { MiniPlaybackControl } from "../component/MiniPlaybackControl";
+import { HeaderComponent } from "../util/HeaderComponent";
 
 const TAG = 'Setting'
 
 @Component
 export struct Setting {
-  @State translateY: number = 16;
   @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
   @Consume('NavPathStack') pageStack: NavPathStack;
   @State isExpanded: boolean = false
@@ -49,6 +52,9 @@ export struct Setting {
   @State tokenFromQR: string = ''
   @State qrCodeVisible: boolean = false
   @State qrCodeScale: number = 0.8
+  @State scrollOffsetY: number = 0
+  @State startScrollOffsetY: number = 0
+  @State placeholderOffset: number = 0
   private qrCodeCheckTimer: number = 0
   // 设置存储
   @StorageLink("PlayerSetting") playerSetting: SettingItem[] = PlayerSetting
@@ -701,72 +707,93 @@ export struct Setting {
   }
   build() {
     NavDestination() {
-      Column() {
-        this.Title()
-        List({ scroller: this.scroller }) {
-          ListItem() {
-            HeaderAnimation({ scrollController: this.scrollController })
+      Stack({ alignContent: Alignment.Bottom }){
+        Column() {
+
+          List({ scroller: this.scroller }) {
+            HeaderPlaceholder({ offsetY: this.placeholderOffset+10 })
+
+            ListItem() {
+              HeaderAnimation({ scrollController: this.scrollController })
+            }
+
+            ListItemGroup() {
+              ListItem() {
+                SettingGroup({
+                  title: $r('app.string.setting_player'),
+                  items: this.playerSetting
+                })
+              }
+
+              ListItem() {
+                SettingGroup({
+                  title: $r('app.string.setting_cache'),
+                  items: this.softwareSetting
+                })
+              }
+
+              ListItem() {
+                SettingGroup({
+                  title: $r('app.string.setting_about'),
+                  items: AboutSetting
+                })
+              }
+            }
+            .onAreaChange((oldValue: Area, newValue: Area) => {
+              this.groupHeight = newValue.height as number
+            })
+            .animation({
+              duration: 250,
+              curve: Curve.LinearOutSlowIn
+            })
+
+            ListItem(){
+              Row(){
+                // 监控ListItemGroup高度变化，随时调整List下方补充高度，winHeight - group高度 - 标题高度 - 避让高度
+                Blank().height(this.getBlankHeight())
+              }
+            }
+
+            FooterPlaceholder()
           }
-
-          ListItemGroup({ header: this.SourceButton() }) {
-            ListItem() {
-              SettingGroup({
-                title: $r('app.string.setting_player'),
-                items: this.playerSetting
-              })
-            }
-
-            ListItem() {
-              SettingGroup({
-                title: $r('app.string.setting_cache'),
-                items: this.softwareSetting
-              })
-            }
-
-            ListItem() {
-              SettingGroup({
-                title: $r('app.string.setting_about'),
-                items: AboutSetting
-              })
-            }
-            ListItem().height(80).backgroundColor('transparent')
-          }
-          .onAreaChange((oldValue: Area, newValue: Area) => {
-            this.groupHeight = newValue.height as number
+          .borderRadius(8)
+          .backToTop(true)
+          .scrollBar(BarState.Off)
+          .edgeEffect(EdgeEffect.Spring)
+          .width(StyleConstants.FULL_WIDTH)
+          .height(StyleConstants.FULL_HEIGHT)
+          .sticky(StickyStyle.Header | StickyStyle.Footer)
+          .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
+          .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
+          .onDidScroll((_: number, scrollState: ScrollState) => {
+            this.scrollOffsetY = this.scroller.currentOffset().yOffset
           })
-          .translate({ y: this.translateY })
-          .animation({
-            duration: 250,
-            curve: Curve.LinearOutSlowIn
+          .onTouch((event) => {
+            switch (event.type) {
+              case TouchType.Down:
+                this.startScrollOffsetY = this.scroller.currentOffset().yOffset
+            }
           })
-          .onAppear(() => { this.translateY = 0 })
-
-          ListItem(){
-            Row(){
-              // 监控ListItemGroup高度变化，随时调整List下方补充高度，winHeight - group高度 - 标题高度 - 避让高度
-              Blank().height(this.getBlankHeight())
-            }
-          }
-
-          ListItem(){
-            Row(){
-              Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + this.bottomRect)
-            }
-          }
         }
-        .borderRadius(8)
-        .backToTop(true)
-        .scrollBar(BarState.Off)
-        .edgeEffect(EdgeEffect.Spring)
         .width(StyleConstants.FULL_WIDTH)
         .height(StyleConstants.FULL_HEIGHT)
-        .sticky(StickyStyle.Header | StickyStyle.Footer)
-        .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
-        .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
+
+        MiniPlaybackControl()
+
+        HeaderComponent({
+          scrollOffsetY: this.scrollOffsetY,
+          startScrollOffsetY: this.startScrollOffsetY,
+          hasHeaderBuilder: true,
+          titleBuilder: () => {
+            this.Title()
+          },
+          headerBuilder: () => {
+            this.SourceButton()
+          }
+        })
       }
       .width(StyleConstants.FULL_WIDTH)
       .height(StyleConstants.FULL_HEIGHT)
-      .padding({ left: 12, right: 12 })
     }
     .hideToolBar(true)
     .hideTitleBar(true)
@@ -783,7 +810,7 @@ export struct Setting {
   }
 
   getBlankHeight(): Length {
-    let sub = this.winHeight - this.groupHeight - 50 - (this.bottomRect+this.topRect)
+    let sub = this.winHeight - this.groupHeight - 50 - (this.bottomRect+this.topRect) - this.placeholderOffset - 10
     return sub > 0 ? sub : 0
   }
 
@@ -803,8 +830,7 @@ export struct Setting {
               })
               this.AddSourceButton()
             }
-            .height(this.isExpanded ? undefined : 0)
-            .opacity(this.isExpanded ? 1 : 0)
+            .visibility(this.isExpanded ? Visibility.Visible : Visibility.None)
             .animation({
               duration: 250,
               curve: Curve.FastOutSlowIn
@@ -813,6 +839,9 @@ export struct Setting {
         }
       }
     }
-    .padding(12)
+    .onAreaChange((_: Area, newValue: Area) => {
+      this.placeholderOffset = newValue.height as number
+    })
+    .padding({ left: 12, right: 12 })
   }
 }

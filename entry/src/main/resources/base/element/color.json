@@ -5,6 +5,10 @@
       "value": "#F8F9FA"
     },
     {
+      "name": "title_head_start",
+      "value": "#00F1F1F1"
+    },
+    {
       "name": "page_background",
       "value": "#FFF1F1F1"
     },

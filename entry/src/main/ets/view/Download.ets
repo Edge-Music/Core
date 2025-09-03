@@ -1,16 +1,22 @@
-import { ID, Song } from '../type/Adapter';
+import { ID } from '../type/Adapter';
 import { StyleConstants } from '../constants/StyleConstants';
-import { DownloadProgress, SongDownloadManager } from '../util/SongDownloadManager';
+import { DownloadProgress } from '../util/SongDownloadManager';
 import { MiniPlaybackControl } from '../component/MiniPlaybackControl';
 import { TitleHeader } from '../component/TitleHeader';
 import { ScrollController } from '../util/ScrollController';
 import { HeaderAnimation } from '../component/HeaderAnimation';
+import { HeaderPlaceholder } from '../component/HeaderPlaceholder';
+import { HeaderComponent } from '../util/HeaderComponent';
+import { FooterPlaceholder } from '../component/FooterPlaceholder';
 
 const TAG = 'Download'
 
 @Component
 export struct Download {
   @State groupHeight: number = 0;
+  @State scrollOffsetY: number = 0
+  @State startScrollOffsetY: number = 0
+  @State scrollOffsetEndY: number = 0
   @Consume('NavPathStack') pageStack: NavPathStack;
   @StorageProp('bottomRect') bottomRect: number = 0;
   @StorageProp('topRect') topRect: number = 0;
@@ -40,11 +46,9 @@ export struct Download {
     NavDestination() {
       Stack({ alignContent: Alignment.Bottom }) {
         Column() {
-          // 标题
-          this.Title()
-
           // 下载列表
           List({ scroller: this.scroller }) {
+            HeaderPlaceholder()
 
             ListItem(){
               HeaderAnimation({ scrollController: this.scrollController })
@@ -118,11 +122,7 @@ export struct Download {
             }
 
             // 底部空白区域
-            ListItem() {
-              Column() {
-                Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + this.bottomRect)
-              }
-            }
+            FooterPlaceholder()
           }
           .backToTop(true)
           .width(StyleConstants.FULL_WIDTH)
@@ -132,12 +132,30 @@ export struct Download {
           .scrollBar(BarState.Off)
           .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
           .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
+          .onDidScroll((_: number, scrollState: ScrollState) => {
+            this.scrollOffsetY = this.scroller.currentOffset().yOffset
+          })
+          .onTouch((event) => {
+            switch (event.type) {
+              case TouchType.Down:
+                this.startScrollOffsetY = this.scroller.currentOffset().yOffset
+            }
+          })
         }
         .width(StyleConstants.FULL_WIDTH)
         .height(StyleConstants.FULL_HEIGHT)
 
         // 底部迷你播控组件
         MiniPlaybackControl()
+
+        HeaderComponent({
+          scrollOffsetY: this.scrollOffsetY,
+          startScrollOffsetY: this.startScrollOffsetY,
+          hasHeaderBuilder: false,
+          titleBuilder: () => {
+            this.Title()
+          }
+        })
       }
       .width(StyleConstants.FULL_WIDTH)
       .height(StyleConstants.FULL_HEIGHT)

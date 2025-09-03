@@ -12,6 +12,8 @@ import { ScrollController } from "../util/ScrollController";
 import { LogUtil } from "@pura/harmony-utils";
 import { AddAggregationPlaylist } from "../component/CustomTextBuilder";
 import ResourceManager from "../util/ResourceManager";
+import { HeaderComponent } from "../util/HeaderComponent";
+import { FooterPlaceholder } from "../component/FooterPlaceholder";
 
 const TAG = 'Aggregation'
 
@@ -22,6 +24,7 @@ export struct Aggregation {
   @StorageLink('aggregation_playlist') aggregationPlaylist: Playlist[] = PreferencesCache.getPlaylistCache('aggregation_playlist')
   @StorageProp('bottomRect') bottomRect: number = 0
   @StorageProp('topRect') topRect: number = 0
+  @StorageProp('decorHeight') decorHeight: number = 0
   @StorageProp('winHeight') winHeight: number = 0
   private scroller: Scroller = new Scroller()
 
@@ -30,6 +33,9 @@ export struct Aggregation {
   @State playlistName: string | undefined = undefined
   @State playlistDesc: string | undefined = undefined
   @State playlistCover: Resource | string = $r('app.media.icon_startwindow')
+  @State scrollOffsetY: number = 0
+  @State startScrollOffsetY: number = 0
+  @State scrollOffsetEndY: number = 0
   @State scrollController: ScrollController = new ScrollController({
     onIndexChange: (index): void => this.onMenuIconClick(index),
     componentTag: TAG
@@ -38,9 +44,8 @@ export struct Aggregation {
   build() {
     NavDestination() {
       Stack({ alignContent: Alignment.BottomEnd }) {
-        Column(){
-          this.Title()
 
+        Column(){
           this.AggregatePlayList()
         }
         .width(StyleConstants.FULL_WIDTH)
@@ -49,6 +54,15 @@ export struct Aggregation {
         MiniPlaybackControl()
 
         this.AddButton()
+
+        HeaderComponent({
+          scrollOffsetY: this.scrollOffsetY,
+          startScrollOffsetY: this.startScrollOffsetY,
+          hasHeaderBuilder: false,
+          titleBuilder: () => {
+            this.Title()
+          }
+        })
       }
       .width(StyleConstants.FULL_WIDTH)
       .height(StyleConstants.FULL_HEIGHT)
@@ -72,6 +86,10 @@ export struct Aggregation {
   @Builder
   AggregatePlayList() {
     List({ scroller: this.scroller }){
+      ListItem() {
+        Row().width('100%').height((this.topRect > this.decorHeight ? this.topRect : this.decorHeight) + StyleConstants.TITLE_HEIGHT)
+      }
+
       ListItem() {
         HeaderAnimation({ scrollController: this.scrollController, isShowLoadingProgress: true })
       }
@@ -120,11 +138,7 @@ export struct Aggregation {
       }
 
       // 底部空白区域
-      ListItem() {
-        Column() {
-          Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + this.bottomRect)
-        }
-      }
+      FooterPlaceholder()
     }
     .backToTop(true)
     .width(StyleConstants.FULL_WIDTH)
@@ -134,6 +148,15 @@ export struct Aggregation {
     .scrollBar(BarState.Off)
     .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
     .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
+    .onDidScroll((_: number, scrollState: ScrollState) => {
+      this.scrollOffsetY = this.scroller.currentOffset().yOffset
+    })
+    .onTouch((event) => {
+      switch (event.type) {
+        case TouchType.Down:
+          this.startScrollOffsetY = this.scroller.currentOffset().yOffset
+      }
+    })
   }
 
   onMenuIconClick(index: number) {
