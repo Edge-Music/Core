@@ -1,5 +1,6 @@
 import { StyleConstants } from "../constants/StyleConstants"
 import { curves } from "@kit.ArkUI"
+import { PreferencesCache } from "./PreferenceCache"
 
 const BOUNCE_OFFSET: number = 20
 @Component
@@ -8,6 +9,7 @@ export struct HeaderComponent {
   @StorageProp('topRect') @Watch('onChangedRect') topRect: number = 0
   @StorageProp('decorHeight') @Watch('onChangedRect') decorHeight: number = 0
   @StorageProp('winHeight') @Watch('onChangedRect') winHeight: number = 0
+  @StorageProp('slide_up_hide_title') @Watch('onChangedRect') hideTitle: string = '0'
 
   private readonly SHOW_THRESHOLD: number = 10; // 显示需要的下拉距离
 
@@ -83,30 +85,32 @@ export struct HeaderComponent {
   }
 
   getShowTitle(): void {
-    if(this.scrollOffsetY > this.HIDE_THRESHOLD && this.scrollOffsetY - this.startScrollOffsetY >= this.SHOW_THRESHOLD) {
-      this.startScrollOffsetY = this.scrollOffsetY
-      if(this.showTitle) {
-        this.getUIContext().animateTo({
-          duration: 800,
-          curve: curves.springCurve(1, 1, 100, 18),
-          onFinish: () => {
-          }
-        }, () => {
-          this.showTitle = false
-          this.translateY = -this.HIDE_THRESHOLD - BOUNCE_OFFSET
-        })
-      }
-    } else if(this.scrollOffsetY - this.startScrollOffsetY <= -this.SHOW_THRESHOLD) {
-      this.startScrollOffsetY = this.scrollOffsetY
-      if(!this.showTitle) {
-        this.getUIContext().animateTo({
-          duration: 800,
-          // curve: curves.cubicBezierCurve(0.5, 1.5, 0.7, 1.0),
-          curve: curves.springCurve(1, 1, 200, 18),
-        }, () => {
-          this.showTitle = true
-          this.translateY = -BOUNCE_OFFSET
-        })
+    if(this.hideTitle === '1') {
+      if(this.scrollOffsetY > this.HIDE_THRESHOLD && this.scrollOffsetY - this.startScrollOffsetY >= this.SHOW_THRESHOLD) {
+        this.startScrollOffsetY = this.scrollOffsetY
+        if(this.showTitle) {
+          this.getUIContext().animateTo({
+            duration: 800,
+            curve: curves.springCurve(1, 1, 100, 18),
+            onFinish: () => {
+            }
+          }, () => {
+            this.showTitle = false
+            this.translateY = -this.HIDE_THRESHOLD - BOUNCE_OFFSET
+          })
+        }
+      } else if(this.scrollOffsetY - this.startScrollOffsetY <= -this.SHOW_THRESHOLD) {
+        this.startScrollOffsetY = this.scrollOffsetY
+        if(!this.showTitle) {
+          this.getUIContext().animateTo({
+            duration: 800,
+            // curve: curves.cubicBezierCurve(0.5, 1.5, 0.7, 1.0),
+            curve: curves.springCurve(1, 1, 200, 18),
+          }, () => {
+            this.showTitle = true
+            this.translateY = -BOUNCE_OFFSET
+          })
+        }
       }
     }
   }

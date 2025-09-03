@@ -586,7 +586,7 @@
     },
     {
       "name": "setting_fade_in_fade_out",
-      "value": "Fade in and fade out"
+      "value": "Fade In And Fade Out"
     },
     {
       "name": "copied_to_clipboard",
@@ -595,6 +595,10 @@
     {
       "name": "copy_failed",
       "value": "Copy failed"
+    },
+    {
+      "name": "slide_up_hide_title",
+      "value": "Slide Up To Hide Title"
     }
   ]
 }
