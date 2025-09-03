@@ -237,11 +237,17 @@ export struct MultiSearch {
         .margin(0)
         .defaultFocus(true)
         .backgroundBlurStyle(BlurStyle.Regular)
+        .shadow(ShadowStyle.OUTER_DEFAULT_SM)
     }
     .onAreaChange((_: Area, newValue: Area) => {
       this.placeholderOffset = newValue.height as number
     })
-    .padding({ left: 12, right: 12 })
+    .padding({
+      top: 8,
+      bottom: 4,
+      left: 12,
+      right: 12
+    })
 
   }
 

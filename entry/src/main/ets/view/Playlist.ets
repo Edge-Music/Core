@@ -304,7 +304,7 @@ export struct PlayList {
       }
       .backgroundColor($r('app.color.page_background'))
       .width(StyleConstants.FULL_WIDTH)
-      .padding({ top: 12, bottom: 12 })
+      .padding({ bottom: 12 })
     }
   }
 
@@ -544,6 +544,33 @@ export struct PlayList {
       if (this.isWideScreen) {
         // 宽屏布局：一行显示所有元素
         Row({ space: 8 }) {
+          // 播放全部按钮
+          Row() {
+            Image($r('app.media.ic_repeat'))
+              .width(20)
+              .height(20)
+              .fillColor($r('app.color.text_primary'))
+          }
+          .clickEffect({ level: ClickEffectLevel.LIGHT })
+          .stateStyles({
+            pressed: this.pressedStyles,
+            normal: this.normalStyles
+          })
+          .shadow(ShadowStyle.OUTER_DEFAULT_SM)
+          .height(36)
+          .width(36)
+          .borderRadius(18)
+          .backgroundColor($r('app.color.setting_item_background'))
+          .backgroundBlurStyle(BlurStyle.Regular)
+          .justifyContent(FlexAlign.Center)
+          .onClick(() => {
+            if (this.songs && this.songs.length > 0) {
+              const song = this.songs.find(song => song.privilege.playable)
+              this.handlePlaylistPlayAll(song || this.songs[0])
+              PlaylistManager.switchPlayMode(PlayMode.LOOP)
+            }
+          })
+
           // 搜索框
           Search({ value: this.searchKeywords, placeholder: $r('app.string.search_songs') })
             .searchButton(ResourceManager.getStringValueSync($r('app.string.search')))
@@ -556,39 +583,8 @@ export struct PlayList {
             })
             .margin(0)
             .backgroundBlurStyle(BlurStyle.Regular)
-            .shadow(ShadowStyle.OUTER_DEFAULT_XS)
+            .shadow(ShadowStyle.OUTER_DEFAULT_SM)
             .layoutWeight(1)
-
-          // 播放全部按钮
-          Row() {
-            Image($r('app.media.ic_repeat'))
-              .width(20)
-              .height(20)
-              .fillColor($r('app.color.text_primary'))
-            Text($r('app.string.play_all'))
-              .fontSize(14)
-              .fontWeight(FontWeight.Medium)
-              .fontColor($r('app.color.text_primary'))
-              .margin({ left: 4 })
-          }
-          .clickEffect({ level: ClickEffectLevel.LIGHT })
-          .stateStyles({
-            pressed: this.pressedStyles,
-            normal: this.normalStyles
-          })
-          .shadow(ShadowStyle.OUTER_DEFAULT_XS)
-          .height(36)
-          .width(100)
-          .borderRadius(8)
-          .backgroundColor($r('app.color.setting_item_background'))
-          .justifyContent(FlexAlign.Center)
-          .onClick(() => {
-            if (this.songs && this.songs.length > 0) {
-              const song = this.songs.find(song => song.privilege.playable)
-              this.handlePlaylistPlayAll(song || this.songs[0])
-              PlaylistManager.switchPlayMode(PlayMode.LOOP)
-            }
-          })
 
           // 更多选项按钮
           Row() {
@@ -599,9 +595,10 @@ export struct PlayList {
           }
           .width(36)
           .height(36)
-          .borderRadius(8)
-          .shadow(ShadowStyle.OUTER_DEFAULT_XS)
+          .borderRadius(18)
+          .shadow(ShadowStyle.OUTER_DEFAULT_SM)
           .backgroundColor($r('app.color.setting_item_background'))
+          .backgroundBlurStyle(BlurStyle.Regular)
           .justifyContent(FlexAlign.Center)
           .bindMenu(this.generatePlaylistMenu())
           .clickEffect({ level: ClickEffectLevel.LIGHT })
@@ -610,54 +607,34 @@ export struct PlayList {
             normal: this.normalStyles
           })
         }
+        .width('67%')
         .padding({
+          top: 8,
+          bottom: 4,
           left: 12,
           right: 12
         })
-        .borderRadius(8)
       } else {
         // 小屏幕布局：搜索框和按钮一行显示
         Row({ space: 8 }) {
-          // 搜索框
-          Search({ value: this.searchKeywords, placeholder: $r('app.string.search_songs') })
-            .searchButton(ResourceManager.getStringValueSync($r('app.string.search')))
-            .onSubmit((value: string) => {
-              this.searchKeywords = value
-              this.filterSongs()
-            })
-            .onChange((value: string) => {
-              this.searchKeywords = value
-              if (value.trim() === '' || !value) {
-                this.filterSongs()
-              }
-            })
-            .backgroundBlurStyle(BlurStyle.Regular)
-            .shadow(ShadowStyle.OUTER_DEFAULT_XS)
-            .layoutWeight(1)
-            .margin(0)
-
           // 播放全部按钮
           Row() {
             Image($r('app.media.ic_repeat'))
               .width(20)
               .height(20)
               .fillColor($r('app.color.text_primary'))
-            Text($r('app.string.play_all'))
-              .fontSize(14)
-              .fontWeight(FontWeight.Medium)
-              .fontColor($r('app.color.text_primary'))
-              .margin({ left: 4 })
           }
           .clickEffect({ level: ClickEffectLevel.LIGHT })
           .stateStyles({
             pressed: this.pressedStyles,
             normal: this.normalStyles
           })
-          .shadow(ShadowStyle.OUTER_DEFAULT_XS)
+          .shadow(ShadowStyle.OUTER_DEFAULT_SM)
           .height(36)
-          .width(100)
-          .borderRadius(8)
+          .width(36)
+          .borderRadius(18)
           .backgroundColor($r('app.color.setting_item_background'))
+          .backgroundBlurStyle(BlurStyle.Regular)
           .justifyContent(FlexAlign.Center)
           .onClick(() => {
             if (this.songs && this.songs.length > 0) {
@@ -667,18 +644,35 @@ export struct PlayList {
             }
           })
 
+          // 搜索框
+          Search({ value: this.searchKeywords, placeholder: $r('app.string.search_songs') })
+            .searchButton(ResourceManager.getStringValueSync($r('app.string.search')))
+            .onSubmit((value: string) => {
+              this.searchKeywords = value
+              this.filterSongs()
+            })
+            .onChange((value: string) => {
+              this.searchKeywords = value
+            })
+            .margin(0)
+            .backgroundBlurStyle(BlurStyle.Regular)
+            .shadow(ShadowStyle.OUTER_DEFAULT_SM)
+            .layoutWeight(1)
+
           // 更多选项按钮
           Row() {
             Image($r('app.media.ic_more'))
               .width(20)
               .height(20)
               .fillColor($r('app.color.text_primary'))
+
           }
           .width(36)
           .height(36)
-          .borderRadius(8)
-          .shadow(ShadowStyle.OUTER_DEFAULT_XS)
+          .borderRadius(18)
+          .shadow(ShadowStyle.OUTER_DEFAULT_SM)
           .backgroundColor($r('app.color.setting_item_background'))
+          .backgroundBlurStyle(BlurStyle.Regular)
           .justifyContent(FlexAlign.Center)
           .bindMenu(this.generatePlaylistMenu())
           .clickEffect({ level: ClickEffectLevel.LIGHT })
@@ -688,6 +682,8 @@ export struct PlayList {
           })
         }
         .padding({
+          top: 8,
+          bottom: 4,
           left: 12,
           right: 12
         })

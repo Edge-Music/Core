@@ -1,15 +1,17 @@
 import { StyleConstants } from "../constants/StyleConstants"
 import { curves } from "@kit.ArkUI"
 import { PreferencesCache } from "./PreferenceCache"
+import { LogUtil } from "@pura/harmony-utils"
 
 const BOUNCE_OFFSET: number = 20
+const TAG = 'HeaderComponent'
 @Component
 export struct HeaderComponent {
 
   @StorageProp('topRect') @Watch('onChangedRect') topRect: number = 0
   @StorageProp('decorHeight') @Watch('onChangedRect') decorHeight: number = 0
   @StorageProp('winHeight') @Watch('onChangedRect') winHeight: number = 0
-  @StorageProp('slide_up_hide_title') @Watch('onChangedRect') hideTitle: string = '0'
+  @StorageProp('slide_up_hide_title') @Watch('onChangedRect') hideTitle: string = PreferencesCache.getUserPreference('slide_up_hide_title', '0')
 
   private readonly SHOW_THRESHOLD: number = 10; // 显示需要的下拉距离
 
@@ -20,16 +22,17 @@ export struct HeaderComponent {
   @State translateY: number = -BOUNCE_OFFSET
   @State HIDE_THRESHOLD: number = (this.topRect > this.decorHeight ? this.topRect : this.decorHeight) + StyleConstants.TITLE_HEIGHT; // 开始隐藏的阈值
   @State backHeight: number = this.HIDE_THRESHOLD + BOUNCE_OFFSET
-  @State headerHeight: number = 0
+  @State headerBuilderHeight: number = 0
 
   @BuilderParam titleBuilder: () => void
   @BuilderParam headerBuilder: () => void
 
   aboutToAppear(): void {
-    this.headerHeight = 0
+
   }
 
   onChangedRect() {
+    LogUtil.info(`[${TAG}]`, `decorHeight: ${this.decorHeight} topRect: ${this.topRect}`)
     this.showTitle = true
     this.HIDE_THRESHOLD = (this.topRect > this.decorHeight ? this.topRect : this.decorHeight) + StyleConstants.TITLE_HEIGHT
     this.backHeight = this.HIDE_THRESHOLD + BOUNCE_OFFSET
@@ -37,8 +40,7 @@ export struct HeaderComponent {
   }
 
   build() {
-    Stack({ alignContent: Alignment.Bottom }) {
-      // 背景渐变层
+    Column() {
       Column()
         .width('100%')
         .height(this.backHeight)
@@ -58,30 +60,29 @@ export struct HeaderComponent {
             [$r('app.color.page_background'), 1.0]
           ]
         })
+        .zIndex(0)
         .translate({ y: this.translateY })
-        .zIndex(1)
-        .position({ x: 0, y: -BOUNCE_OFFSET })
 
       // 标题内容层
       Column() {
         this.titleBuilder() // 使用传入的构建器
       }
-      .translate({ y: this.translateY })
-      .zIndex(2)
-      .position({ x: 0, y: this.topRect-BOUNCE_OFFSET })
+      .zIndex(1)
+      .translate({ y: this.translateY - this.HIDE_THRESHOLD })
 
       if(this.hasHeaderBuilder) {
         Column() {
           this.headerBuilder() // 使用传入的构建器
         }
+        .zIndex(2)
         .visibility(this.hasHeaderBuilder ? Visibility.Visible : Visibility.None)
-        .translate({ y: this.showTitle ? this.translateY + this.HIDE_THRESHOLD - this.topRect : this.translateY + this.HIDE_THRESHOLD })
-        .zIndex(3)
-        .position({ x: 0, y: this.topRect + StyleConstants.TITLE_HEIGHT-BOUNCE_OFFSET })
+        .translate({ y: this.showTitle ? this.translateY - this.HIDE_THRESHOLD : this.translateY - this.HIDE_THRESHOLD + this.topRect })
       }
     }
+    .alignItems(HorizontalAlign.End)
     .hitTestBehavior(HitTestMode.None)
     .position({ x: 0, y: 0 })
+
   }
 
   getShowTitle(): void {

@@ -146,7 +146,7 @@ struct Library {
           .height(10)
           .backgroundColor($r('app.color.title_emphasis_color'))
           .borderRadius(5)
-          .margin({ bottom: -20})
+          .margin({ bottom: -20 })
           .scale({ x: this.capsuleScaleX, y: this.capsuleScaleY })
           .shadow(ShadowStyle.OUTER_DEFAULT_XS)
       }
