@@ -1,7 +1,7 @@
 import { LogUtil } from '@pura/harmony-utils';
 import { Song } from '../type/Adapter';
 
-const TAG = 'SongDataSource'
+const TAG = 'SongsDataSource'
 export class SongsDataSource implements IDataSource {
   private listeners: DataChangeListener[] = [];
   private dataArray: Song[] = [];

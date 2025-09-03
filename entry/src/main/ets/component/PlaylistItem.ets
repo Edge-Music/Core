@@ -4,6 +4,7 @@ import { SourceAdapter } from "../adapter";
 import { StyleConstants } from "../constants/StyleConstants";
 import { Playlist, PlaylistType, Song } from "../type/Adapter";
 import { cover } from "../util/AdapterHelper";
+import { VibrationControl } from "../util/DeviceController";
 import { PlaylistManager } from "../util/PlaylistManager";
 import { PreferencesCache } from "../util/PreferenceCache";
 import { PushPathHelper } from "../util/PushPathHelper";
@@ -75,6 +76,7 @@ export struct PlaylistItem {
       })
       .onClick(() => {
         this.isShowMenu = true
+        VibrationControl.handlePresetVibration()
       })
       .clickEffect({ level: ClickEffectLevel.LIGHT })
       .stateStyles({
@@ -99,6 +101,7 @@ export struct PlaylistItem {
       })
         .onAction(() => {
           this.isShowMenu = true
+          VibrationControl.handlePresetVibration()
         })
     )
     .clickEffect({ level: ClickEffectLevel.LIGHT })

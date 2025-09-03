@@ -9,6 +9,7 @@ import { PushPathHelper } from '../util/PushPathHelper';
 import { PreferencesCache } from "../util/PreferenceCache";
 import { PlaylistItem } from "./PlaylistItem";
 import { DialogHelper } from "@pura/harmony-dialog";
+import { HeaderPlaceholder } from "./HeaderPlaceholder";
 
 @Component
 export struct PlaylistList {
@@ -18,7 +19,8 @@ export struct PlaylistList {
   @StorageLink('aggregation_playlist') aggregationPlaylist: Playlist[] = PreferencesCache.getPlaylistCache('aggregation_playlist')
 
   @Prop adapters: SourceConfig[] = []
-  @Prop playlists: Playlist[] = [];
+  @Prop playlists: Playlist[] = []
+
   @Link sIndex: number
   @Link subTitleIndex: number
   @State dataSource: LazyData<Playlist> = new LazyData<Playlist>(this.playlists);
@@ -145,6 +147,7 @@ export struct PlaylistList {
           .key(playlist.id as string)
         }
       })
+      HeaderPlaceholder()
       ListItem(){
         Column()
           .height(StyleConstants.PLAYER_CONTROL_HEIGHT + this.bottomRect)

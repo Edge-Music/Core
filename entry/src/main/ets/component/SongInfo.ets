@@ -8,6 +8,7 @@ import { PreferencesCache } from "../util/PreferenceCache";
 import { SongCacheManager } from "../util/SongCacheManager";
 import { SongDownloadManager } from "../util/SongDownloadManager";
 import { pasteboard } from '@kit.BasicServicesKit';
+import { VibrationControl } from "../util/DeviceController";
 
 const TAG = 'SongInfo'
 
@@ -107,6 +108,7 @@ export struct SongInfo {
       systemPasteboard.setData(pasteData).then(() => {
         LogUtil.info(TAG, `歌曲信息已复制到剪贴板: ${copyText}`);
         ToastUtil.showShort($r('app.string.copied_to_clipboard'));
+        VibrationControl.handlePresetVibration()
       }).catch((err: Error) => {
         LogUtil.error(TAG, '复制到剪贴板失败', err.message);
         ToastUtil.showShort($r('app.string.copy_failed'));
@@ -225,6 +227,9 @@ export struct SongInfo {
           .width(48)
           .height(48)
           .bindMenu(this.generateSongMenu(this.song))
+          .onClick(() => {
+            VibrationControl.handlePresetVibration()
+          })
           .clickEffect({ level: ClickEffectLevel.LIGHT })
           .stateStyles({
             pressed: this.pressedMenuStyles,
@@ -299,6 +304,18 @@ export struct SongInfo {
           }
         },
         {
+          value: $r('app.string.download_this_song'),
+          action: () => {
+            this.downloadSong()
+          }
+        },
+        {
+          value: $r('app.string.add_to_play_next'),
+          action: () => {
+            PlaylistManager.insertSongs([song])
+          }
+        },
+        {
           value: $r('app.string.delete_song'),
           action: () => {
             DialogHelper.showAlertDialog({
@@ -314,18 +331,6 @@ export struct SongInfo {
                 }
               }
             })
-          }
-        },
-        {
-          value: $r('app.string.download_this_song'),
-          action: () => {
-            this.downloadSong()
-          }
-        },
-        {
-          value: $r('app.string.add_to_play_next'),
-          action: () => {
-            PlaylistManager.insertSongs([song])
           }
         }
       ]
