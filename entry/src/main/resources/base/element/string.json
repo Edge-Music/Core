@@ -595,6 +595,10 @@
     {
       "name": "copy_failed",
       "value": "复制失败"
+    },
+    {
+      "name": "slide_up_hide_title",
+      "value": "上滑隐藏标题栏"
     }
   ]
 }

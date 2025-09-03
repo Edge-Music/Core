@@ -1,12 +1,14 @@
 import { ToastUtil } from "@pura/harmony-utils";
 import { SourceAdapter } from "../adapter";
-import { Cover } from "../component/Cover";
+import { FooterPlaceholder } from "../component/FooterPlaceholder";
 import { HeaderAnimation } from "../component/HeaderAnimation";
+import { HeaderPlaceholder } from "../component/HeaderPlaceholder";
 import { MiniPlaybackControl } from "../component/MiniPlaybackControl";
 import { Segment } from "../component/Segment";
 import { TitleHeader } from "../component/TitleHeader";
 import { StyleConstants } from "../constants/StyleConstants";
 import { Album, Artist, Playlist, SearchResult, Song } from "../type/Adapter";
+import { HeaderComponent } from "../util/HeaderComponent";
 import { PlaylistManager } from "../util/PlaylistManager";
 import { PushPathHelper } from "../util/PushPathHelper";
 import ResourceManager from "../util/ResourceManager";
@@ -22,6 +24,9 @@ export struct MultiSearch {
   @State result: SearchResult | null = null;
   @State loading: boolean = false;
   @State nullResultFlag: boolean = true
+  @State scrollOffsetY: number = 0
+  @State startScrollOffsetY: number = 0
+  @State placeholderOffset: number = 0
   @StorageProp('bottomRect') bottomRect: number = 0
   @StorageProp('topRect') topRect: number = 0
   @StorageProp('winHeight') winHeight: number = 0
@@ -82,15 +87,15 @@ export struct MultiSearch {
     NavDestination() {
       Stack({ alignContent: Alignment.Bottom }){
         Column(){
-          this.Title()
 
           List({ scroller: this.scroller}){
+            HeaderPlaceholder({ offsetY: this.placeholderOffset+10 })
 
             ListItem(){
               HeaderAnimation({ scrollController: this.scrollController })
             }
 
-            ListItemGroup({ header: this.SearchComponent() }){
+            ListItemGroup(){
               if(this.result){
                 // 歌曲
                 if(this.isNullResult(this.result.songs)){
@@ -142,7 +147,7 @@ export struct MultiSearch {
               }
 
             }
-            .onAreaChange((oldValue: Area, newValue: Area) => {
+            .onAreaChange((_: Area, newValue: Area) => {
               this.groupHeight = newValue.height as number
             })
 
@@ -153,27 +158,46 @@ export struct MultiSearch {
               }
             }
 
-            ListItem(){
-              Row(){
-                // 搜索页底部避让高度：播控组件高度(64) + 导航栏避让高度 + 播控组件下方margin值(16)
-                Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + this.bottomRect)
-              }
-            }
+            FooterPlaceholder()
           }
           .backToTop(true)
           .layoutWeight(1)
           .height(StyleConstants.FULL_HEIGHT)
           .width(StyleConstants.FULL_WIDTH)
+          .scrollBar(BarState.Off)
+          .edgeEffect(EdgeEffect.Spring)
           .sticky(StickyStyle.Header | StickyStyle.Footer)
           .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
           .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
-          .scrollBar(BarState.Off)
-          .edgeEffect(EdgeEffect.Spring)
+          .onDidScroll((_: number, scrollState: ScrollState) => {
+            this.scrollOffsetY = this.scroller.currentOffset().yOffset
+          })
+          .onTouch((event) => {
+            switch (event.type) {
+              case TouchType.Down:
+                this.startScrollOffsetY = this.scroller.currentOffset().yOffset
+            }
+          })
         }
         .width(StyleConstants.FULL_WIDTH)
         .height(StyleConstants.FULL_HEIGHT)
 
-        MiniPlaybackControl()
+        MiniPlaybackControl({
+          scrollOffsetY: this.scrollOffsetY,
+          startScrollOffsetY: this.startScrollOffsetY
+        })
+
+        HeaderComponent({
+          scrollOffsetY: this.scrollOffsetY,
+          startScrollOffsetY: this.startScrollOffsetY,
+          hasHeaderBuilder: true,
+          titleBuilder: () => {
+            this.Title()
+          },
+          headerBuilder: () => {
+            this.SearchComponent()
+          }
+        })
       }
       .width(StyleConstants.FULL_WIDTH)
       .height(StyleConstants.FULL_HEIGHT)
@@ -200,24 +224,33 @@ export struct MultiSearch {
   }
 
   getBlankHeight(): Length {
-    let sub = this.winHeight - this.groupHeight - 50 - (this.bottomRect+this.topRect)
+    let sub = this.winHeight - this.groupHeight - 50 - (this.bottomRect+this.topRect) - this.placeholderOffset - 10
     return sub > 0 ? sub : 0
   }
 
   @Builder
   SearchComponent() {
-    Column(){
+    Row() {
       Search({ value: this.keywords, placeholder: $r('app.string.search_what_you_want') })
         .searchButton(ResourceManager.getStringValueSync($r('app.string.search')))
         .onSubmit(async (value: string) => {
           this.keywords = value
           await this.search()
         })
-        .defaultFocus(true)
         .margin(0)
+        .defaultFocus(true)
         .backgroundBlurStyle(BlurStyle.Regular)
+        .shadow(ShadowStyle.OUTER_DEFAULT_SM)
     }
-    .padding(12)
+    .onAreaChange((_: Area, newValue: Area) => {
+      this.placeholderOffset = newValue.height as number
+    })
+    .padding({
+      top: 8,
+      bottom: 4,
+      left: 12,
+      right: 12
+    })
 
   }
 

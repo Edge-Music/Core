@@ -7,13 +7,26 @@ import { PlaylistView } from '../component/PlaylistView';
 import { BreakpointConstants } from '../constants/BreakpointConstants';
 import { PreferencesCache } from "../util/PreferenceCache";
 import { LyricsLine } from '../util/LyricsManager';
+import { BreakpointSystem } from './BreakpointSystem';
+import { curves } from '@kit.ArkUI';
 
 @Component
 export struct MiniPlaybackControl {
+  @Consume('NavPathStack') pageStack: NavPathStack;
   @StorageLink('current_playing_song') currentSong: Song | null = null;
   @StorageLink('current_playing_playMode') playMode: PlayMode = PlayMode.LOOP;
-  @Consume('NavPathStack') pageStack: NavPathStack;
   @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
+  @StorageProp('currentOrientation') currentOrientation: string = 'portrait'
+  @StorageLink('winWidth') winWidth: number = 0
+  @StorageProp('bottomRect') bottomRect: number = 0
+  @StorageLink('miniplaying_bottom_judge') bottom_judge: string = PreferencesCache.getUserPreference('miniplaying_bottom_judge','0')
+  @StorageProp('slide_up_hide_title') @Watch('onChangedOffsetY') hideTitle: string = PreferencesCache.getUserPreference('slide_up_hide_title', '0')
+  @StorageProp('current_line_lyrics') currentLineLyrics: LyricsLine | undefined = AppStorage.get<LyricsLine>('current_line_lyrics')
+  @StorageProp('current_width_breakpoint') widthBreakpoint: WidthBreakpoint = WidthBreakpoint.WIDTH_SM
+  @StorageProp('topRect') topRect: number = 0
+  @StorageProp('decorHeight') decorHeight: number = 0
+
+  @State miniPlaybackOffsetY: number = 0
   @State currentTimeMs: number = 0;
   @State durationMs: number = 0;
   @State isPlaying: boolean = false;
@@ -21,14 +34,12 @@ export struct MiniPlaybackControl {
   @State swipeOffset: number = 0; // 滑动偏移量
   @State isSwipingActive: boolean = false; // 是否正在滑动中
   @State swipeDirection: string = ''; // 滑动方向
-  @StorageLink('winWidth') winWidth: number = 0
-  @StorageProp('bottomRect') bottomRect: number = 0
-  @StorageLink('miniplaying_bottom_judge') bottom_judge: string = PreferencesCache.getUserPreference('miniplaying_bottom_judge','0')
-  @StorageProp('current_line_lyrics') currentLineLyrics: LyricsLine | undefined = AppStorage.get<LyricsLine>('current_line_lyrics')
-  @StorageProp('current_width_breakpoint') widthBreakpoint: WidthBreakpoint = WidthBreakpoint.WIDTH_SM
   @State playBtnScale: number = 1
   @State nextBtnScale: number = 1
   @State playListBtnScale: number = 1
+  @State HIDE_THRESHOLD: number = (this.topRect > this.decorHeight ? this.topRect : this.decorHeight) + StyleConstants.TITLE_HEIGHT; // 开始隐藏的阈值
+  @Prop @Watch('onChangedOffsetY') scrollOffsetY: number
+  @Prop startScrollOffsetY: number
   private updateTimer: number = -1;
   private playerManager = avPlayerManager;
   private readonly SWIPE_THRESHOLD: number = 80; // 触发切换的阈值
@@ -425,9 +436,26 @@ export struct MiniPlaybackControl {
         this.showPlaylist = false;
       }
     })
+    .translate({ y: this.currentOrientation === 'portrait' ? 0 : this.miniPlaybackOffsetY })
     .animation({
       duration: 500,
       curve: Curve.FastOutSlowIn
     })
+  }
+
+  onChangedOffsetY() {
+    if(this.hideTitle === '1') {
+      this.getUIContext().animateTo({
+        duration: 800,
+        // curve: curves.cubicBezierCurve(0.5, 1.5, 0.7, 1.0),
+        curve: curves.springCurve(1, 1, 200, 18),
+      }, () => {
+        if(this.scrollOffsetY > this.HIDE_THRESHOLD &&  this.scrollOffsetY - this.startScrollOffsetY > 10) {
+          this.miniPlaybackOffsetY = 100
+        } else if(this.scrollOffsetY - this.startScrollOffsetY <= -10) {
+          this.miniPlaybackOffsetY = 0
+        }
+      })
+    }
   }
 }

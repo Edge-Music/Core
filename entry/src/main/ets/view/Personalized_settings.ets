@@ -110,6 +110,7 @@ export struct Personalized_settings{
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.flip_mute')), setUserPreference_name:'flip_mute'})}
           // ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.Lyic_desktop')), setUserPreference_name:'Lyic_desktop'})}
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.setting_fade_in_fade_out')), setUserPreference_name:'fade_in_out'})}
+          ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.slide_up_hide_title')), setUserPreference_name:'slide_up_hide_title'})}
           ListItem(){ Column().height(16+this.bottomRect/2)}
         }
         .scrollBar(BarState.Off)

@@ -24,8 +24,10 @@ import { IS_2IN1_UI } from '../For_2in1_UI/FOR2IN1'
 import { Aggregation } from '../view/Aggregation'
 import { LogUtil, ToastUtil, WantUtil } from '@pura/harmony-utils'
 import { BusinessError } from '@kit.BasicServicesKit'
-import app from '@system.app'
 import { common } from '@kit.AbilityKit'
+import { HeaderComponent } from '../util/HeaderComponent'
+import { HeaderPlaceholder } from '../component/HeaderPlaceholder'
+import { FooterPlaceholder } from '../component/FooterPlaceholder'
 
 // 缓存常用值以避免重复计算
 const COLUMNS_TEMPLATE_LG = '1fr 1fr 1fr 1fr'
@@ -171,6 +173,9 @@ struct Index_page {
   @State limit: number = 10
   @State page_judge: string = 'index'
   @State title: string = '首页'
+  @State scrollOffsetY: number = 0
+  @State startScrollOffsetY: number = 0
+  @State scrollOffsetEndY: number = 0
   @Consume('NavPathStack') pageStack: NavPathStack
   @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
   @StorageLink("user_data_source") adapters: SourceConfig[] = PreferencesCache.getUserDataSource()
@@ -355,7 +360,7 @@ struct Index_page {
         .alignItems(VerticalAlign.Center)
       }
       .width(StyleConstants.FULL_WIDTH)
-      .height(50)
+      .height(StyleConstants.TITLE_HEIGHT)
       .justifyContent(FlexAlign.SpaceBetween)
       .alignItems(VerticalAlign.Center)
       .padding({
@@ -489,10 +494,11 @@ struct Index_page {
         })
       } else {
         Stack({ alignContent: Alignment.Bottom }) {
-          Column() {
-            this.Title()
 
+          Column() {
             List({ scroller: this.scroller }) {
+              HeaderPlaceholder()
+
               ListItem() {
                 HeaderAnimation({ scrollController: this.scrollController, isShowLoadingProgress: true })
               }
@@ -544,11 +550,7 @@ struct Index_page {
                 }
               }
 
-              ListItem() {
-                Row() {
-                  Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + this.bottomRect)
-                }
-              }
+              FooterPlaceholder()
             }
             .width(StyleConstants.FULL_WIDTH)
             .height(StyleConstants.FULL_HEIGHT)
@@ -558,12 +560,33 @@ struct Index_page {
             .edgeEffect(EdgeEffect.Spring)
             .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
             .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
-            .scrollBarColor('#e7bb7c')
+            .onDidScroll((_: number, scrollState: ScrollState) => {
+              this.scrollOffsetY = this.scroller.currentOffset().yOffset
+            })
+            .onTouch((event) => {
+              switch (event.type) {
+                case TouchType.Down:
+                  this.startScrollOffsetY = this.scroller.currentOffset().yOffset
+              }
+            })
           }
           .width(StyleConstants.FULL_WIDTH)
           .height(StyleConstants.FULL_HEIGHT)
+          .zIndex(0)
 
-          MiniPlaybackControl()
+          MiniPlaybackControl({
+            scrollOffsetY: this.scrollOffsetY,
+            startScrollOffsetY: this.startScrollOffsetY
+          })
+
+          HeaderComponent({
+            scrollOffsetY: this.scrollOffsetY,
+            startScrollOffsetY: this.startScrollOffsetY,
+            hasHeaderBuilder: false,
+            titleBuilder: () => {
+              this.Title()
+            }
+          })
         }
         .height(StyleConstants.FULL_HEIGHT)
         .width(StyleConstants.FULL_WIDTH)

@@ -1,25 +1,25 @@
 import { LogUtil } from '@pura/harmony-utils';
-import { Song } from '../type/Adapter';
+import { Playlist, Song } from '../type/Adapter';
 
-const TAG = 'SongsDataSource'
-export class SongsDataSource implements IDataSource {
+const TAG = 'PlaylistsDataSource'
+export class PlaylistsDataSource implements IDataSource {
   private listeners: DataChangeListener[] = [];
-  private dataArray: Song[] = [];
+  private dataArray: Playlist[] = [];
 
   public totalCount(): number {
     return this.dataArray.length;
   }
 
-  public getData(index: number): Song {
+  public getData(index: number): Playlist {
     return this.dataArray[index];
   }
 
-  public pushData(data: Song): void {
+  public pushData(data: Playlist): void {
     this.dataArray.push(data);
     this.notifyDataAdd(this.dataArray.length - 1);
   }
 
-  public pushMultiData(dataList: Song[]): void {
+  public pushMultiData(dataList: Playlist[]): void {
     dataList.forEach(data => {
       this.dataArray.push(data);
       this.notifyDataAdd(this.dataArray.length - 1);

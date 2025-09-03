@@ -1,9 +1,8 @@
 import { TitleHeader } from "../component/TitleHeader";
 import { StyleConstants } from "../constants/StyleConstants";
-import { Playlist, SourceConfig } from "../type/Adapter";
+import { ID, Playlist, SourceConfig } from "../type/Adapter";
 import { PushPathHelper } from "../util/PushPathHelper";
 import { SourceAdapter } from "../adapter";
-import { PlaylistList } from "../component/PlaylistList";
 import { MiniPlaybackControl } from "../component/MiniPlaybackControl";
 import FormUtils from "../util/FormUtils"
 import { cover } from "../util/AdapterHelper";
@@ -12,6 +11,12 @@ import { PreferencesCache } from "../util/PreferenceCache";
 import { HeaderAnimation } from "../component/HeaderAnimation";
 import { ScrollController } from "../util/ScrollController";
 import { ResponseCacheUtil } from "../util/ResponseCacheUtil";
+import { HeaderComponent } from "../util/HeaderComponent";
+import { LogUtil } from "@pura/harmony-utils";
+import { HeaderPlaceholder } from "../component/HeaderPlaceholder";
+import { PlaylistsDataSource } from "../util/PlaylistsDataSource";
+import { PlaylistItem } from "../component/PlaylistItem";
+import { FooterPlaceholder } from "../component/FooterPlaceholder";
 
 const TAG = 'Library'
 @Builder
@@ -22,7 +27,7 @@ export function LibraryBuilder(){
 @Component
 struct Library {
   subTitles: Resource[] = [$r('app.string.all_playlists'), $r('app.string.custom_playlists'), $r('app.string.collection_playlists')]
-  @State itemHeight: number = 0
+  @State groupHeight: number = 0
   @Consume('NavPathStack') pageStack: NavPathStack;
   @StorageLink('user_playlist') playlists: Playlist[] = [];
   @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm';
@@ -32,8 +37,8 @@ struct Library {
   @StorageProp('topRect') topRect: number = 0;
   @StorageProp('winHeight') winHeight: number = 0;
   @StorageProp("user_data_source") adapters: SourceConfig[] = []
-  @StorageLink("show_user_data_source") showAdapters: SourceConfig[] = PreferencesCache.getShowUserDataSource()
-  @State sIndex: number = 0
+  @StorageLink("show_user_data_source") @Watch('onChangeSIndex') showAdapters: SourceConfig[] = PreferencesCache.getShowUserDataSource()
+  @State @Watch('onChangeSIndex') sIndex: number = 0
   @State @Watch('onChangeSubTitleIndex') subTitleIndex: number = 0
   @State isExpanded: boolean = false
   @State capsuleOffset: number = 0
@@ -44,6 +49,10 @@ struct Library {
   @State capsuleScaleY: number = 1.0
   uiContext: UIContext | undefined = undefined;
   @State avatarScale: number = 1
+  @State scrollOffsetY: number = 0
+  @State startScrollOffsetY: number = 0
+  @State scrollOffsetEndY: number = 0
+  @State playlistsDataSource: PlaylistsDataSource = new PlaylistsDataSource()
   @State scrollController: ScrollController = new ScrollController({
     onIndexChange: (index) => {
       this.onMenuIconClick(index)
@@ -51,8 +60,15 @@ struct Library {
     componentTag: TAG
   }).linkController(this.scroller)
 
-  onChangeSubTitleIndex(){
+  onChangeSubTitleIndex() {
     this.updateCapsulePosition(this.subTitleIndex)
+    this.playlistsDataSource.clearData()
+    this.initPlaylistsData()
+  }
+
+  onChangeSIndex() {
+    this.playlistsDataSource.clearData()
+    this.initPlaylistsData()
   }
 
   onMenuIconClick(index: number) {
@@ -80,6 +96,31 @@ struct Library {
     if (this.playlists[1]?.cover){
       FormUtils.updateRecommendedCards(this.playlists[1].cover as string)
     }
+    this.initPlaylistsData()
+  }
+
+  initPlaylistsData() {
+    const t_playlists = this.playlists.filter(playlist => {
+      let match: boolean = true
+
+      // 筛选展示的数据源
+      const showAdapterIDs: ID[] = this.showAdapters.map(adapter => adapter.id)
+      match = match && showAdapterIDs.includes(playlist.source?.id as ID)
+
+      switch(this.subTitleIndex){
+        case 0:
+          break
+        case 1:
+          match = match && (playlist.creator?.id == playlist.source?.auth?.user?.id)
+          break
+        case 2:
+          match = match && (playlist.creator?.id != playlist.source?.auth?.user?.id)
+          break
+      }
+      return match
+    })
+    this.playlistsDataSource.pushMultiData(t_playlists)
+    this.playlistsDataSource.reloadData()
   }
 
   @Builder
@@ -105,7 +146,7 @@ struct Library {
           .height(10)
           .backgroundColor($r('app.color.title_emphasis_color'))
           .borderRadius(5)
-          .margin({ bottom: -20})
+          .margin({ bottom: -20 })
           .scale({ x: this.capsuleScaleX, y: this.capsuleScaleY })
           .shadow(ShadowStyle.OUTER_DEFAULT_XS)
       }
@@ -173,7 +214,7 @@ struct Library {
     .bindContextMenu(this.isExpanded, this.SwitchSourceMenu(),{
       onDisappear: () => {
         if(this.isExpanded){
-          this.isExpanded = !this.isExpanded
+          this.isExpanded = false
         }
       }
     })
@@ -200,7 +241,6 @@ struct Library {
               PreferencesCache.deleteShowUserDataSource(adapter.id)
             }
             this.sIndex = sIndex
-            this.isExpanded = !this.isExpanded
           })
       })
     }
@@ -316,10 +356,9 @@ struct Library {
     NavDestination() {
       Stack({ alignContent: Alignment.Bottom }) {
         Column() {
-          // 标题
-          this.Title()
           // 主内容
           List({ scroller: this.scroller }) {
+            HeaderPlaceholder()
             // 下拉提示动画
             ListItem(){
               HeaderAnimation({ scrollController: this.scrollController, isShowLoadingProgress: true })
@@ -332,29 +371,36 @@ struct Library {
               .width(StyleConstants.FULL_WIDTH)
             } else {
               // 我的歌单部分
-              ListItem() {
-                PlaylistList({
-                  playlists: [...this.playlists],
-                  sIndex: this.sIndex,
-                  subTitleIndex: this.subTitleIndex,
-                  adapters: this.adapters,
-                  onPlaylistSelected: (item: Playlist) => {
-                    PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
-                      AppStorage.setOrCreate('current_playlist_data', item)
-                      const playlist = await SourceAdapter.getPlaylistDetail(item)
-                      AppStorage.setOrCreate('current_playlist_songs', playlist.songs)
+              ListItemGroup() {
+                LazyForEach(this.playlistsDataSource, (playlist: Playlist, index: number) => {
+                  ListItem() {
+                    PlaylistItem({
+                      playlist: playlist,
+                      onPlaylistSelected: () => {
+                        PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
+                          AppStorage.setOrCreate('current_playlist_data', playlist)
+                          const t_playlist = await SourceAdapter.getPlaylistDetail(playlist)
+                          AppStorage.setOrCreate('current_playlist_songs', t_playlist.songs)
+                        })
+                      }
                     })
                   }
-                })
+                }, (playlist: Playlist, index: number) => `${playlist.id}-${index}`)
               }
-              .width(StyleConstants.FULL_WIDTH)
-              .onAreaChange((oldValue: Area, newValue: Area) => {
-                this.itemHeight = newValue.height as number
+              .onAreaChange((_: Area, newValue: Area) => {
+                this.groupHeight = newValue.height as number
               })
 
+              ListItem(){
+                Row(){
+                  // 监控ListItemGroup高度变化，随时调整List下方补充高度，winHeight - group高度 - 标题高度 - 避让高度
+                  Blank().height(this.getBlankHeight())
+                }
+              }
             }
+
+            FooterPlaceholder()
           }
-          .contentEndOffset(0.1)  //双层滚动嵌套外层折中处理
           .width(StyleConstants.FULL_WIDTH)
           .height(StyleConstants.FULL_HEIGHT)
           .layoutWeight(1)
@@ -363,10 +409,15 @@ struct Library {
           .backToTop(true)
           .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
           .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
-          .onReachEnd(() => {
-            // 到达底部可以加载更多内容
-            if (!this.isLoading) {
-              // 加载更多逻辑
+          .onDidScroll((_: number, scrollState: ScrollState) => {
+            this.scrollOffsetY = this.scroller.currentOffset().yOffset
+            LogUtil.info(`[${TAG}]`, `scrollState: ${scrollState} CURRENT_Y: ${this.scrollOffsetY}, END_Y: ${this.scrollOffsetEndY} parseInt: ${parseFloat(this.scrollOffsetY.toFixed(2))}`)
+          })
+          .onTouch((event) => {
+            switch (event.type) {
+              case TouchType.Down:
+                this.startScrollOffsetY = this.scroller.currentOffset().yOffset
+                break
             }
           })
         }
@@ -374,7 +425,19 @@ struct Library {
         .height(StyleConstants.FULL_HEIGHT)
 
         // 底部迷你播控组件
-        MiniPlaybackControl()
+        MiniPlaybackControl({
+          scrollOffsetY: this.scrollOffsetY,
+          startScrollOffsetY: this.startScrollOffsetY
+        })
+
+        HeaderComponent({
+          scrollOffsetY: this.scrollOffsetY,
+          startScrollOffsetY: this.startScrollOffsetY,
+          hasHeaderBuilder: false,
+          titleBuilder: () => {
+            this.Title()
+          }
+        })
       }
       .width(StyleConstants.FULL_WIDTH)
       .height(StyleConstants.FULL_HEIGHT)
@@ -388,11 +451,8 @@ struct Library {
     .height(StyleConstants.FULL_HEIGHT)
   }
 
-  countSubVp(): number{
-    let sub: number = 0
-    // 填补高度=屏幕高度 - title高度50 - 上方padding高度12 - 单一组件高度(74+0.5)*歌曲数量 - 状态栏高度 - 导航栏高度
-    sub = this.winHeight - (this.itemHeight+50) - (this.topRect+this.bottomRect)
-    console.log('最终的高度是：'+sub);
+  getBlankHeight(): Length {
+    let sub = this.winHeight - this.groupHeight - 50 - (this.bottomRect+this.topRect)
     return sub > 0 ? sub : 0
   }
 }

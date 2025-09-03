@@ -16,6 +16,9 @@ import { ToastUtil } from "@pura/harmony-utils";
 import { PreferencesCache } from "../util/PreferenceCache";
 import { DialogHelper } from "@pura/harmony-dialog";
 import { SongsDataSource } from "../util/SongsDataSource";
+import { HeaderPlaceholder } from "../component/HeaderPlaceholder";
+import { FooterPlaceholder } from "../component/FooterPlaceholder";
+import { HeaderComponent } from "../util/HeaderComponent";
 
 const TAG = 'PlayList'
 
@@ -36,6 +39,10 @@ export struct PlayList {
   @State billingIndex: number = -1
   // 是否为宽屏模式
   @State isWideScreen: boolean = false
+  @State scrollOffsetY: number = 0
+  @State startScrollOffsetY: number = 0
+  @State scrollOffsetEndY: number = 0
+  @State placeholderOffset: number = 0
   @StorageLink("cache_data_create_time") cacheTime: number = -1
   @StorageLink("current_playing_song") song: Song | null = null
   @StorageProp('bottomRect') bottomRect: number = 0;
@@ -159,6 +166,8 @@ export struct PlayList {
     Column() {
 
       List({ scroller: this.scroller }) {
+        HeaderPlaceholder({ offsetY: this.placeholderOffset+10 })
+
         ListItem() {
           // 下拉提示动画
           HeaderAnimation({ scrollController: this.scrollController })
@@ -169,7 +178,7 @@ export struct PlayList {
           this.AlbumCoversSection()
         }
 
-        ListItemGroup({ header: this.ListHeader() }) {
+        ListItemGroup() {
           if (this.isSearching) {
             ForEach(this.filteredSongs, (song: Song, index: number) => {
               ListItem() {
@@ -235,12 +244,7 @@ export struct PlayList {
           }
         }
 
-        ListItem() {
-          Row() {
-            // 底部避让空间，高度为播控高度(64) + 播控底部padding高度(16)
-            Blank().height(StyleConstants.PLAYER_CONTROL_HEIGHT + this.bottomRect)
-          }
-        }
+        FooterPlaceholder()
       }
       .backToTop(true)
       .sticky(StickyStyle.Header | StickyStyle.Footer)
@@ -253,6 +257,15 @@ export struct PlayList {
       .cachedCount(5)
       .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
       .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
+      .onDidScroll((_: number, scrollState: ScrollState) => {
+        this.scrollOffsetY = this.scroller.currentOffset().yOffset
+      })
+      .onTouch((event) => {
+        switch (event.type) {
+          case TouchType.Down:
+            this.startScrollOffsetY = this.scroller.currentOffset().yOffset
+        }
+      })
     }
     .width(StyleConstants.FULL_WIDTH)
     .layoutWeight(1)
@@ -291,7 +304,7 @@ export struct PlayList {
       }
       .backgroundColor($r('app.color.page_background'))
       .width(StyleConstants.FULL_WIDTH)
-      .padding({ top: 12 })
+      .padding({ bottom: 12 })
     }
   }
 
@@ -448,9 +461,6 @@ export struct PlayList {
     NavDestination() {
       Stack({ alignContent: Alignment.Bottom }) {
         Column() {
-          // 标题区域
-          this.Title()
-
           Column() {
             if (this.playlist && this.songs && this.songs.length > 0) {
               // 根据屏幕宽度选择布局
@@ -464,6 +474,7 @@ export struct PlayList {
             } else {
               // 显示空状态
               List({ scroller: this.scroller }) {
+                HeaderPlaceholder()
                 ListItem() {
                   // 下拉提示动画
                   HeaderAnimation({ scrollController: this.scrollController })
@@ -501,7 +512,22 @@ export struct PlayList {
         .height(StyleConstants.FULL_HEIGHT)
 
         // 底部迷你播放控制器 - 直接放在Stack底部
-        MiniPlaybackControl()
+        MiniPlaybackControl({
+          scrollOffsetY: this.scrollOffsetY,
+          startScrollOffsetY: this.startScrollOffsetY
+        })
+
+        HeaderComponent({
+          scrollOffsetY: this.scrollOffsetY,
+          startScrollOffsetY: this.startScrollOffsetY,
+          hasHeaderBuilder: true,
+          titleBuilder: () => {
+            this.Title()
+          },
+          headerBuilder: () => {
+            this.ListHeader()
+          }
+        })
       }
       .width(StyleConstants.FULL_WIDTH)
       .height(StyleConstants.FULL_HEIGHT)
@@ -517,167 +543,158 @@ export struct PlayList {
 
   @Builder
   ListHeader() {
-    if (this.isWideScreen) {
-      // 宽屏布局：一行显示所有元素
-      Row() {
-        // 搜索框
-        Search({ value: this.searchKeywords, placeholder: $r('app.string.search_songs') })
-          .searchButton(ResourceManager.getStringValueSync($r('app.string.search')))
-          .onSubmit((value: string) => {
-            this.searchKeywords = value
-            this.filterSongs()
-          })
-          .onChange((value: string) => {
-            this.searchKeywords = value
-          })
-          .margin(0)
-          .backgroundBlurStyle(BlurStyle.Regular)
-          .layoutWeight(1)
-          .height(36)
-
-        // 播放全部按钮
-        Row() {
-          Image($r('app.media.ic_repeat'))
-            .width(20)
-            .height(20)
-            .fillColor($r('app.color.text_primary'))
-          Text($r('app.string.play_all'))
-            .fontSize(14)
-            .fontWeight(FontWeight.Medium)
-            .fontColor($r('app.color.text_primary'))
-            .margin({ left: 4 })
-        }
-        .clickEffect({ level: ClickEffectLevel.LIGHT })
-        .stateStyles({
-          pressed: this.pressedStyles,
-          normal: this.normalStyles
-        })
-        .shadow(ShadowStyle.OUTER_DEFAULT_XS)
-        .height(36)
-        .width(100)
-        .borderRadius(8)
-        .backgroundColor($r('app.color.setting_item_background'))
-        .justifyContent(FlexAlign.Center)
-        .margin({ left: 8 })
-        .onClick(() => {
-          if (this.songs && this.songs.length > 0) {
-            const song = this.songs.find(song => song.privilege.playable)
-            this.handlePlaylistPlayAll(song || this.songs[0])
-            PlaylistManager.switchPlayMode(PlayMode.LOOP)
+    Column() {
+      if (this.isWideScreen) {
+        // 宽屏布局：一行显示所有元素
+        Row({ space: 8 }) {
+          // 播放全部按钮
+          Row() {
+            Image($r('app.media.ic_repeat'))
+              .width(20)
+              .height(20)
+              .fillColor($r('app.color.text_primary'))
           }
-        })
-
-        // 更多选项按钮
-        Row() {
-          Image($r('app.media.ic_more'))
-            .width(20)
-            .height(20)
-            .fillColor($r('app.color.text_primary'))
-        }
-        .width(36)
-        .height(36)
-        .borderRadius(8)
-        .shadow(ShadowStyle.OUTER_DEFAULT_XS)
-        .backgroundColor($r('app.color.setting_item_background'))
-        .justifyContent(FlexAlign.Center)
-        .margin({ left: 8 })
-        .bindMenu(this.generatePlaylistMenu())
-        .clickEffect({ level: ClickEffectLevel.LIGHT })
-        .stateStyles({
-          pressed: this.pressedStyles,
-          normal: this.normalStyles
-        })
-      }
-      .padding({
-        left: 8,
-        right: 8,
-        top: 4,
-        bottom: 4
-      })
-      .backgroundColor($r('app.color.page_background'))
-      .borderRadius(8)
-    } else {
-      // 小屏幕布局：搜索框和按钮一行显示
-      Row() {
-        // 搜索框
-        Search({ value: this.searchKeywords, placeholder: $r('app.string.search_songs') })
-          .searchButton(ResourceManager.getStringValueSync($r('app.string.search')))
-          .onSubmit((value: string) => {
-            this.searchKeywords = value
-            this.filterSongs()
+          .clickEffect({ level: ClickEffectLevel.LIGHT })
+          .stateStyles({
+            pressed: this.pressedStyles,
+            normal: this.normalStyles
           })
-          .onChange((value: string) => {
-            this.searchKeywords = value
-            if (value.trim() === '' || !value) {
-              this.filterSongs()
+          .shadow(ShadowStyle.OUTER_DEFAULT_SM)
+          .height(36)
+          .width(36)
+          .borderRadius(18)
+          .backgroundColor($r('app.color.setting_item_background'))
+          .backgroundBlurStyle(BlurStyle.Regular)
+          .justifyContent(FlexAlign.Center)
+          .onClick(() => {
+            if (this.songs && this.songs.length > 0) {
+              const song = this.songs.find(song => song.privilege.playable)
+              this.handlePlaylistPlayAll(song || this.songs[0])
+              PlaylistManager.switchPlayMode(PlayMode.LOOP)
             }
           })
-          .backgroundBlurStyle(BlurStyle.Regular)
-          .layoutWeight(1)
-          .height(36)
 
-        // 播放全部按钮
-        Row() {
-          Image($r('app.media.ic_repeat'))
-            .width(20)
-            .height(20)
-            .fillColor($r('app.color.text_primary'))
-          Text($r('app.string.play_all'))
-            .fontSize(14)
-            .fontWeight(FontWeight.Medium)
-            .fontColor($r('app.color.text_primary'))
-            .margin({ left: 4 })
-        }
-        .clickEffect({ level: ClickEffectLevel.LIGHT })
-        .stateStyles({
-          pressed: this.pressedStyles,
-          normal: this.normalStyles
-        })
-        .shadow(ShadowStyle.OUTER_DEFAULT_XS)
-        .height(36)
-        .width(100)
-        .borderRadius(8)
-        .backgroundColor($r('app.color.setting_item_background'))
-        .justifyContent(FlexAlign.Center)
-        .margin({ left: 8 })
-        .onClick(() => {
-          if (this.songs && this.songs.length > 0) {
-            const song = this.songs.find(song => song.privilege.playable)
-            this.handlePlaylistPlayAll(song || this.songs[0])
-            PlaylistManager.switchPlayMode(PlayMode.LOOP)
+          // 搜索框
+          Search({ value: this.searchKeywords, placeholder: $r('app.string.search_songs') })
+            .searchButton(ResourceManager.getStringValueSync($r('app.string.search')))
+            .onSubmit((value: string) => {
+              this.searchKeywords = value
+              this.filterSongs()
+            })
+            .onChange((value: string) => {
+              this.searchKeywords = value
+            })
+            .margin(0)
+            .backgroundBlurStyle(BlurStyle.Regular)
+            .shadow(ShadowStyle.OUTER_DEFAULT_SM)
+            .layoutWeight(1)
+
+          // 更多选项按钮
+          Row() {
+            Image($r('app.media.ic_more'))
+              .width(20)
+              .height(20)
+              .fillColor($r('app.color.text_primary'))
           }
-        })
-
-        // 更多选项按钮
-        Row() {
-          Image($r('app.media.ic_more'))
-            .width(20)
-            .height(20)
-            .fillColor($r('app.color.text_primary'))
+          .width(36)
+          .height(36)
+          .borderRadius(18)
+          .shadow(ShadowStyle.OUTER_DEFAULT_SM)
+          .backgroundColor($r('app.color.setting_item_background'))
+          .backgroundBlurStyle(BlurStyle.Regular)
+          .justifyContent(FlexAlign.Center)
+          .bindMenu(this.generatePlaylistMenu())
+          .clickEffect({ level: ClickEffectLevel.LIGHT })
+          .stateStyles({
+            pressed: this.pressedStyles,
+            normal: this.normalStyles
+          })
         }
-        .width(36)
-        .height(36)
-        .borderRadius(8)
-        .shadow(ShadowStyle.OUTER_DEFAULT_XS)
-        .backgroundColor($r('app.color.setting_item_background'))
-        .justifyContent(FlexAlign.Center)
-        .margin({ left: 8 })
-        .bindMenu(this.generatePlaylistMenu())
-        .clickEffect({ level: ClickEffectLevel.LIGHT })
-        .stateStyles({
-          pressed: this.pressedStyles,
-          normal: this.normalStyles
+        .width('67%')
+        .padding({
+          top: 8,
+          bottom: 4,
+          left: 12,
+          right: 12
+        })
+      } else {
+        // 小屏幕布局：搜索框和按钮一行显示
+        Row({ space: 8 }) {
+          // 播放全部按钮
+          Row() {
+            Image($r('app.media.ic_repeat'))
+              .width(20)
+              .height(20)
+              .fillColor($r('app.color.text_primary'))
+          }
+          .clickEffect({ level: ClickEffectLevel.LIGHT })
+          .stateStyles({
+            pressed: this.pressedStyles,
+            normal: this.normalStyles
+          })
+          .shadow(ShadowStyle.OUTER_DEFAULT_SM)
+          .height(36)
+          .width(36)
+          .borderRadius(18)
+          .backgroundColor($r('app.color.setting_item_background'))
+          .backgroundBlurStyle(BlurStyle.Regular)
+          .justifyContent(FlexAlign.Center)
+          .onClick(() => {
+            if (this.songs && this.songs.length > 0) {
+              const song = this.songs.find(song => song.privilege.playable)
+              this.handlePlaylistPlayAll(song || this.songs[0])
+              PlaylistManager.switchPlayMode(PlayMode.LOOP)
+            }
+          })
+
+          // 搜索框
+          Search({ value: this.searchKeywords, placeholder: $r('app.string.search_songs') })
+            .searchButton(ResourceManager.getStringValueSync($r('app.string.search')))
+            .onSubmit((value: string) => {
+              this.searchKeywords = value
+              this.filterSongs()
+            })
+            .onChange((value: string) => {
+              this.searchKeywords = value
+            })
+            .margin(0)
+            .backgroundBlurStyle(BlurStyle.Regular)
+            .shadow(ShadowStyle.OUTER_DEFAULT_SM)
+            .layoutWeight(1)
+
+          // 更多选项按钮
+          Row() {
+            Image($r('app.media.ic_more'))
+              .width(20)
+              .height(20)
+              .fillColor($r('app.color.text_primary'))
+
+          }
+          .width(36)
+          .height(36)
+          .borderRadius(18)
+          .shadow(ShadowStyle.OUTER_DEFAULT_SM)
+          .backgroundColor($r('app.color.setting_item_background'))
+          .backgroundBlurStyle(BlurStyle.Regular)
+          .justifyContent(FlexAlign.Center)
+          .bindMenu(this.generatePlaylistMenu())
+          .clickEffect({ level: ClickEffectLevel.LIGHT })
+          .stateStyles({
+            pressed: this.pressedStyles,
+            normal: this.normalStyles
+          })
+        }
+        .padding({
+          top: 8,
+          bottom: 4,
+          left: 12,
+          right: 12
         })
       }
-      .padding({
-        left: 8,
-        right: 8,
-        top: 4,
-        bottom: 4
-      })
-      .backgroundColor($r('app.color.page_background'))
-      .borderRadius(8)
     }
+    .onAreaChange((_: Area, newValue: Area) => {
+      this.placeholderOffset = newValue.height as number
+    })
   }
 
   private generatePlaylistMenu(): Array<MenuElement> {
@@ -714,7 +731,7 @@ export struct PlayList {
   }
 
   countSubVp(): number {
-    let sub: number = this.winHeight - 50 - this.groupHeight - (this.bottomRect+this.topRect)
+    let sub: number = this.winHeight - 50 - this.groupHeight - (this.bottomRect+this.topRect)  - this.placeholderOffset - 10
     // if(this.songDataSource.totalCount() <= 15){
     //   // 填补高度=屏幕高度 - title高度50 - (播放组件高度40+上下padding高度2*4) - 状态栏高度 - 导航栏高度
     //   sub = px2vp(this.winHeight) - (50+40+12*2+(68+2*4)*this.songDataSource.totalCount()) - px2vp(this.topRect) - px2vp(this.bottomRect)
