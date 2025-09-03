@@ -574,7 +574,10 @@ struct Index_page {
           .height(StyleConstants.FULL_HEIGHT)
           .zIndex(0)
 
-          MiniPlaybackControl()
+          MiniPlaybackControl({
+            scrollOffsetY: this.scrollOffsetY,
+            startScrollOffsetY: this.startScrollOffsetY
+          })
 
           HeaderComponent({
             scrollOffsetY: this.scrollOffsetY,

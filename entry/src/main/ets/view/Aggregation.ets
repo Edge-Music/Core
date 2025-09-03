@@ -51,7 +51,10 @@ export struct Aggregation {
         .width(StyleConstants.FULL_WIDTH)
         .height(StyleConstants.FULL_HEIGHT)
 
-        MiniPlaybackControl()
+        MiniPlaybackControl({
+          scrollOffsetY: this.scrollOffsetY,
+          startScrollOffsetY: this.startScrollOffsetY
+        })
 
         this.AddButton()
 

@@ -778,7 +778,10 @@ export struct Setting {
         .width(StyleConstants.FULL_WIDTH)
         .height(StyleConstants.FULL_HEIGHT)
 
-        MiniPlaybackControl()
+        MiniPlaybackControl({
+          scrollOffsetY: this.scrollOffsetY,
+          startScrollOffsetY: this.startScrollOffsetY
+        })
 
         HeaderComponent({
           scrollOffsetY: this.scrollOffsetY,
@@ -830,7 +833,8 @@ export struct Setting {
               })
               this.AddSourceButton()
             }
-            .visibility(this.isExpanded ? Visibility.Visible : Visibility.None)
+            .height(this.isExpanded ? undefined : 0)
+            .opacity(this.isExpanded ? 1 : 0)
             .animation({
               duration: 250,
               curve: Curve.FastOutSlowIn
@@ -842,6 +846,7 @@ export struct Setting {
     .onAreaChange((_: Area, newValue: Area) => {
       this.placeholderOffset = newValue.height as number
     })
-    .padding({ left: 12, right: 12 })
+    .padding({ left: 12, right: 12, top: 8 })
   }
+
 }

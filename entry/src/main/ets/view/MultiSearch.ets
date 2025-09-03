@@ -182,7 +182,10 @@ export struct MultiSearch {
         .width(StyleConstants.FULL_WIDTH)
         .height(StyleConstants.FULL_HEIGHT)
 
-        MiniPlaybackControl()
+        MiniPlaybackControl({
+          scrollOffsetY: this.scrollOffsetY,
+          startScrollOffsetY: this.startScrollOffsetY
+        })
 
         HeaderComponent({
           scrollOffsetY: this.scrollOffsetY,

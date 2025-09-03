@@ -512,7 +512,10 @@ export struct PlayList {
         .height(StyleConstants.FULL_HEIGHT)
 
         // 底部迷你播放控制器 - 直接放在Stack底部
-        MiniPlaybackControl()
+        MiniPlaybackControl({
+          scrollOffsetY: this.scrollOffsetY,
+          startScrollOffsetY: this.startScrollOffsetY
+        })
 
         HeaderComponent({
           scrollOffsetY: this.scrollOffsetY,

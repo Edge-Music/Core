@@ -10,6 +10,10 @@ export struct HeaderPlaceholder {
   build() {
     ListItem() {
       Row().width('100%').height((this.topRect > this.decorHeight ? this.topRect : this.decorHeight) + StyleConstants.TITLE_HEIGHT + this.offsetY)
+        .animation({
+          duration: 250,
+          curve: Curve.FastOutSlowIn
+        })
     }
   }
 }

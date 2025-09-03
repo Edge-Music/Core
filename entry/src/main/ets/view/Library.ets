@@ -425,7 +425,10 @@ struct Library {
         .height(StyleConstants.FULL_HEIGHT)
 
         // 底部迷你播控组件
-        MiniPlaybackControl()
+        MiniPlaybackControl({
+          scrollOffsetY: this.scrollOffsetY,
+          startScrollOffsetY: this.startScrollOffsetY
+        })
 
         HeaderComponent({
           scrollOffsetY: this.scrollOffsetY,
