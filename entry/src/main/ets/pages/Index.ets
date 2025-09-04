@@ -25,7 +25,7 @@ import { Aggregation } from '../view/Aggregation'
 import { LogUtil, ToastUtil, WantUtil } from '@pura/harmony-utils'
 import { BusinessError } from '@kit.BasicServicesKit'
 import { common } from '@kit.AbilityKit'
-import { HeaderComponent } from '../util/HeaderComponent'
+import { HeaderComponent } from '../component/HeaderComponent'
 import { HeaderPlaceholder } from '../component/HeaderPlaceholder'
 import { FooterPlaceholder } from '../component/FooterPlaceholder'
 

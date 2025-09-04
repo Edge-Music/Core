@@ -1,6 +1,6 @@
 import { StyleConstants } from "../constants/StyleConstants"
 import { curves } from "@kit.ArkUI"
-import { PreferencesCache } from "./PreferenceCache"
+import { PreferencesCache } from "../util/PreferenceCache"
 import { LogUtil } from "@pura/harmony-utils"
 
 const BOUNCE_OFFSET: number = 20
@@ -12,6 +12,7 @@ export struct HeaderComponent {
   @StorageProp('decorHeight') @Watch('onChangedRect') decorHeight: number = 0
   @StorageProp('winHeight') @Watch('onChangedRect') winHeight: number = 0
   @StorageProp('slide_up_hide_title') @Watch('onChangedRect') hideTitle: string = PreferencesCache.getUserPreference('slide_up_hide_title', '0')
+  @StorageProp('current_height_breakpoint') heightBreakpoint: HeightBreakpoint = HeightBreakpoint.HEIGHT_SM
 
   private readonly SHOW_THRESHOLD: number = 10; // 显示需要的下拉距离
 
@@ -86,7 +87,7 @@ export struct HeaderComponent {
   }
 
   getShowTitle(): void {
-    if(this.hideTitle === '1') {
+    if(this.hideTitle === '1' || this.heightBreakpoint <= HeightBreakpoint.HEIGHT_MD) {
       if(this.scrollOffsetY > this.HIDE_THRESHOLD && this.scrollOffsetY - this.startScrollOffsetY >= this.SHOW_THRESHOLD) {
         this.startScrollOffsetY = this.scrollOffsetY
         if(this.showTitle) {

@@ -23,6 +23,7 @@ export struct MiniPlaybackControl {
   @StorageProp('slide_up_hide_title') @Watch('onChangedOffsetY') hideTitle: string = PreferencesCache.getUserPreference('slide_up_hide_title', '0')
   @StorageProp('current_line_lyrics') currentLineLyrics: LyricsLine | undefined = AppStorage.get<LyricsLine>('current_line_lyrics')
   @StorageProp('current_width_breakpoint') widthBreakpoint: WidthBreakpoint = WidthBreakpoint.WIDTH_SM
+  @StorageProp('current_height_breakpoint') heightBreakpoint: HeightBreakpoint = HeightBreakpoint.HEIGHT_SM
   @StorageProp('topRect') topRect: number = 0
   @StorageProp('decorHeight') decorHeight: number = 0
 
@@ -436,7 +437,7 @@ export struct MiniPlaybackControl {
         this.showPlaylist = false;
       }
     })
-    .translate({ y: this.currentOrientation === 'portrait' ? 0 : this.miniPlaybackOffsetY })
+    .translate({ y: this.currentOrientation === 'landscape' || this.heightBreakpoint <= HeightBreakpoint.HEIGHT_MD ? this.miniPlaybackOffsetY : 0 })
     .animation({
       duration: 500,
       curve: Curve.FastOutSlowIn
@@ -444,7 +445,7 @@ export struct MiniPlaybackControl {
   }
 
   onChangedOffsetY() {
-    if(this.hideTitle === '1') {
+    if(this.hideTitle === '1' || this.heightBreakpoint <= HeightBreakpoint.HEIGHT_MD) {
       this.getUIContext().animateTo({
         duration: 800,
         // curve: curves.cubicBezierCurve(0.5, 1.5, 0.7, 1.0),

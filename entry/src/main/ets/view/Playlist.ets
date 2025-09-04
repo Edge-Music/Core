@@ -18,7 +18,7 @@ import { DialogHelper } from "@pura/harmony-dialog";
 import { SongsDataSource } from "../util/SongsDataSource";
 import { HeaderPlaceholder } from "../component/HeaderPlaceholder";
 import { FooterPlaceholder } from "../component/FooterPlaceholder";
-import { HeaderComponent } from "../util/HeaderComponent";
+import { HeaderComponent } from "../component/HeaderComponent";
 
 const TAG = 'PlayList'
 

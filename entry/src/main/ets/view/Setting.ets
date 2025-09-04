@@ -18,7 +18,7 @@ import ResourceManager from "../util/ResourceManager";
 import { HeaderPlaceholder } from "../component/HeaderPlaceholder";
 import { FooterPlaceholder } from "../component/FooterPlaceholder";
 import { MiniPlaybackControl } from "../component/MiniPlaybackControl";
-import { HeaderComponent } from "../util/HeaderComponent";
+import { HeaderComponent } from "../component/HeaderComponent";
 
 const TAG = 'Setting'
 
@@ -835,6 +835,7 @@ export struct Setting {
             }
             .height(this.isExpanded ? undefined : 0)
             .opacity(this.isExpanded ? 1 : 0)
+            .visibility(this.isExpanded ? Visibility.Visible : Visibility.None)
             .animation({
               duration: 250,
               curve: Curve.FastOutSlowIn

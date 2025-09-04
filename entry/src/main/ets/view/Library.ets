@@ -11,7 +11,7 @@ import { PreferencesCache } from "../util/PreferenceCache";
 import { HeaderAnimation } from "../component/HeaderAnimation";
 import { ScrollController } from "../util/ScrollController";
 import { ResponseCacheUtil } from "../util/ResponseCacheUtil";
-import { HeaderComponent } from "../util/HeaderComponent";
+import { HeaderComponent } from "../component/HeaderComponent";
 import { LogUtil } from "@pura/harmony-utils";
 import { HeaderPlaceholder } from "../component/HeaderPlaceholder";
 import { PlaylistsDataSource } from "../util/PlaylistsDataSource";
