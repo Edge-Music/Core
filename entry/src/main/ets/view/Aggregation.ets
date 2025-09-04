@@ -12,7 +12,7 @@ import { ScrollController } from "../util/ScrollController";
 import { LogUtil } from "@pura/harmony-utils";
 import { AddAggregationPlaylist } from "../component/CustomTextBuilder";
 import ResourceManager from "../util/ResourceManager";
-import { HeaderComponent } from "../util/HeaderComponent";
+import { HeaderComponent } from "../component/HeaderComponent";
 import { FooterPlaceholder } from "../component/FooterPlaceholder";
 
 const TAG = 'Aggregation'

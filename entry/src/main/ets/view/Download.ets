@@ -6,7 +6,7 @@ import { TitleHeader } from '../component/TitleHeader';
 import { ScrollController } from '../util/ScrollController';
 import { HeaderAnimation } from '../component/HeaderAnimation';
 import { HeaderPlaceholder } from '../component/HeaderPlaceholder';
-import { HeaderComponent } from '../util/HeaderComponent';
+import { HeaderComponent } from '../component/HeaderComponent';
 import { FooterPlaceholder } from '../component/FooterPlaceholder';
 
 const TAG = 'Download'

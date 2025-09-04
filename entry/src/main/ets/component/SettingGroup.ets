@@ -227,7 +227,7 @@ export struct SettingGroup {
       .borderRadius(8)
     }
     .width(StyleConstants.FULL_WIDTH)
-    .padding({ left: 12, right: 12 })
+    .padding({ left: 12, right: 12, bottom: 8 })
     .transition({ opacity: 250, scale: { x: 1, y: 1 } })
     .animation({
       delay: 50,
