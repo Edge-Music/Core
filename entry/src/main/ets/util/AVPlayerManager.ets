@@ -775,7 +775,7 @@ class AVPlayerManager {
       if (currentStep < this.FADE_STEPS) {
         this.currentVolume += stepIncrease;
         const currentPlayer = await this.getAVPlayerInstance();
-        LogUtil.info(`[${TAG}]`, `currentVolume: ${this.currentVolume}`)
+        LogUtil.debug(`[${TAG}]`, `currentVolume: ${this.currentVolume}`)
         currentPlayer.setVolume(Math.min(maxVolume, this.currentVolume))
         currentStep++;
       } else {
@@ -813,7 +813,7 @@ class AVPlayerManager {
       if (currentStep < this.FADE_STEPS) {
         this.currentVolume -= stepDecrease;
         const currentPlayer = await this.getAVPlayerInstance();
-        LogUtil.info(`[${TAG}]`, `currentVolume: ${this.currentVolume}`)
+        LogUtil.debug(`[${TAG}]`, `currentVolume: ${this.currentVolume}`)
         currentPlayer.setVolume(Math.max(0, this.currentVolume))
         currentStep++;
       } else {
