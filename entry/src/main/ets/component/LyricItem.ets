@@ -1,9 +1,5 @@
 import { StyleConstants } from '../constants/StyleConstants';
-import { avPlayerManager } from '../util/AVPlayerManager';
-import { EventHelper } from '../util/EventHelper';
 import { LyricsLine } from '../util/LyricsManager';
-
-const waveFactor: number = 0.2; // 跟随强度系数
 
 @Reusable
 @Component

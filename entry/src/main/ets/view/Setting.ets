@@ -427,7 +427,7 @@ export struct Setting {
                 .animation({ delay: 50, duration: 250, curve: Curve.FastOutSlowIn })
 
               TextInput({ placeholder: $r('app.string.please_input_data_source_name'), text: $$this.formData.name })
-                .onSubmit((enterKey: EnterKeyType, event: SubmitEvent) => {
+                .onSubmit(() => {
                   focusControl.requestFocus('data_source_address_1')
                 })
                 .width(StyleConstants.FULL_WIDTH)
@@ -446,7 +446,7 @@ export struct Setting {
 
               TextInput({ placeholder: $r('app.string.please_input_data_source_name_address'), text: $$this.formData.url })
                 .id('data_source_address_1')
-                .onSubmit((enterKey: EnterKeyType, event: SubmitEvent) => {
+                .onSubmit(() => {
                   focusControl.requestFocus('data_source_desc_1')
                 })
                 .width(StyleConstants.FULL_WIDTH)
@@ -739,7 +739,7 @@ export struct Setting {
                 })
               }
             }
-            .onAreaChange((oldValue: Area, newValue: Area) => {
+            .onAreaChange((_: Area, newValue: Area) => {
               this.groupHeight = newValue.height as number
             })
             .animation({
@@ -765,7 +765,7 @@ export struct Setting {
           .sticky(StickyStyle.Header | StickyStyle.Footer)
           .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
           .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
-          .onDidScroll((_: number, scrollState: ScrollState) => {
+          .onDidScroll(() => {
             this.scrollOffsetY = this.scroller.currentOffset().yOffset
           })
           .onTouch((event) => {

@@ -224,7 +224,7 @@ struct Library {
   SwitchSourceMenu(){
     Menu(){
       ForEach(this.adapters, (adapter: SourceConfig, sIndex) => {
-        MenuItem(this.SourceMenuContent(adapter, sIndex))
+        MenuItem(this.SourceMenuContent(adapter))
           .backgroundColor(this.getBackgroundColor(adapter))
           .border({
             width: 1,
@@ -247,7 +247,7 @@ struct Library {
   }
 
   @Builder
-  SourceMenuContent(sourceConfig: SourceConfig, sIndex: number){
+  SourceMenuContent(sourceConfig: SourceConfig){
     Row() {
       Row({ space: 5}) {
         Image(cover(sourceConfig.auth?.user?.avatar ?? ''))
@@ -372,7 +372,7 @@ struct Library {
             } else {
               // 我的歌单部分
               ListItemGroup() {
-                LazyForEach(this.playlistsDataSource, (playlist: Playlist, index: number) => {
+                LazyForEach(this.playlistsDataSource, (playlist: Playlist) => {
                   ListItem() {
                     PlaylistItem({
                       playlist: playlist,

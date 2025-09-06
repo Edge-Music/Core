@@ -2,7 +2,6 @@ import { Artist, Playlist, Song } from '../type/Adapter'
 import { StyleConstants } from "../constants/StyleConstants"
 import { BreakpointConstants } from '../constants/BreakpointConstants'
 import { cover } from '../util/AdapterHelper'
-import { BreakPointType } from '../component/BreakpointSystem'
 import { PlaylistManager } from '../util/PlaylistManager'
 import { EventHelper } from '../util/EventHelper'
 import { avPlayerManager } from '../util/AVPlayerManager'
@@ -18,14 +17,13 @@ import { SongDownloadManager } from '../util/SongDownloadManager'
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { http } from '@kit.NetworkKit';
 import ImageUtils from '../util/ImageUtils';
-import { curves, promptAction } from '@kit.ArkUI'
+import { curves } from '@kit.ArkUI'
 import { PipManager } from '../util/PipManager'
 import WindowUtil from '../util/WindowUtil'
 import SensorUtil from '../util/SensorUtil'
 import { DialogHelper } from '@pura/harmony-dialog'
 import { resourceManager } from '@kit.LocalizationKit'
 import { LyricsLine } from '../util/LyricsManager'
-import ResourceManager from '../util/ResourceManager'
 import { PushPathHelper } from '../util/PushPathHelper'
 
 type ShowLyricsStatus = -1 | 0 | 1 | 2
@@ -1005,11 +1003,6 @@ struct Playing {
     .height(judge ? 40 : 30) // 固定整个进度条区域的高度
   }
 
-  private coverWidth = new BreakPointType({
-    sm: '100%',
-    md: '60%',
-    lg: '50%'
-  })
   private buttonSize = 48
   private smallButtonSize = 36
 
@@ -1661,7 +1654,7 @@ struct Playing {
       // 艺术家列表
       if (this.song?.artists && this.song.artists.length > 0) {
         List({ space: 8 }) {
-          ForEach(this.song.artists, (artist: Artist, index: number) => {
+          ForEach(this.song.artists, (artist: Artist) => {
             ListItem() {
               Row({ space: 16 }) {
                 // 艺术家信息

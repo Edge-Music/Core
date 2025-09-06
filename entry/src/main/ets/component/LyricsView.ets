@@ -11,7 +11,6 @@ import { ToastUtil } from "@pura/harmony-utils";
 export struct LyricsView {
   private scroller: Scroller = new Scroller()
   private readonly SCROLL_ANIMATION_DURATION: number = 600
-  private lastTriggerTime: number = 0;
   private uiContext: UIContext | undefined = undefined;
 
   @StorageProp('leftCutoutRectWidth') leftCutoutRectWidth: number = 0
@@ -79,18 +78,6 @@ export struct LyricsView {
       PreferencesCache.showTranslationLyric(this.showTranslation)
       VibrationControl.handlePresetVibration()
     })
-  }
-
-  /**
-   * 双指操作防抖
-   * @param func
-   */
-  private debounce(func: Function) {
-    const now = Date.now();
-    if (now - this.lastTriggerTime > 300) {
-      func();
-      this.lastTriggerTime = now;
-    }
   }
 
   build() {

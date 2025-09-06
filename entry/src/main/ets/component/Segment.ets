@@ -1,6 +1,4 @@
 import { StyleConstants } from "../constants/StyleConstants"
-import { Artist, Playlist, Song } from "../type/Adapter"
-import { Cover } from "./Cover"
 import { HorizontalScroll } from "./HorizontalScroll"
 
 @Component

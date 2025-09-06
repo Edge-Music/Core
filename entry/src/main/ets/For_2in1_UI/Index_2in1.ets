@@ -18,7 +18,6 @@ import { LogUtil } from '@pura/harmony-utils'
 // 缓存常用值以避免重复计算
 const COLUMNS_TEMPLATE_LG = '1fr 1fr 1fr 1fr'
 const COLUMNS_TEMPLATE_SM = '1fr 1fr'
-const DEFAULT_COVER_SIZE = 256
 const TAG = 'Index'
 @Component
 export struct Index_page {
