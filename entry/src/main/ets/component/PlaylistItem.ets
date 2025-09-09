@@ -202,7 +202,7 @@ export struct PlaylistItem {
               primaryTitle: `是否删除歌单[${playlist.name}]？`,
               primaryButton: $r('app.string.cancel'),
               secondaryButton: $r('app.string.confirm'),
-              onAction: (action: number, dialogId: string): void => {
+              onAction: (action: number, _: string): void => {
                 if(action === DialogAction.TWO){
                   this.deleteFromAggregationPlaylist(playlist)
                 }

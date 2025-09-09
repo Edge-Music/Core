@@ -420,7 +420,7 @@ export struct Setting_2in1 {
                 .animation({ delay: 50, duration: 250, curve: Curve.FastOutSlowIn })
 
               TextInput({ placeholder: $r('app.string.please_input_data_source_name'), text: $$this.formData.name })
-                .onSubmit((enterKey: EnterKeyType, event: SubmitEvent) => {
+                .onSubmit(() => {
                   focusControl.requestFocus('data_source_address_2')
                 })
                 .width(StyleConstants.FULL_WIDTH)
@@ -439,7 +439,7 @@ export struct Setting_2in1 {
 
               TextInput({ placeholder: $r('app.string.please_input_data_source_name_address'), text: $$this.formData.url })
                 .id('data_source_address_2')
-                .onSubmit((enterKey: EnterKeyType, event: SubmitEvent) => {
+                .onSubmit(() => {
                   focusControl.requestFocus('data_source_desc_2')
                 })
                 .width(StyleConstants.FULL_WIDTH)
@@ -729,7 +729,7 @@ export struct Setting_2in1 {
             }
             ListItem().height(80).backgroundColor('transparent')
           }
-          .onAreaChange((oldValue: Area, newValue: Area) => {
+          .onAreaChange((_: Area, newValue: Area) => {
             this.groupHeight = newValue.height as number
           })
           .translate({ y: this.translateY })

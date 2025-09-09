@@ -109,7 +109,7 @@ export struct Download {
                   .padding({ left: 16, right: 16 })
                 })
               }
-              .onAreaChange((oldValue: Area, newValue: Area) => {
+              .onAreaChange((_: Area, newValue: Area) => {
                 this.groupHeight = newValue.height as number
               })
 
@@ -132,7 +132,7 @@ export struct Download {
           .scrollBar(BarState.Off)
           .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
           .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
-          .onDidScroll((_: number, scrollState: ScrollState) => {
+          .onDidScroll(() => {
             this.scrollOffsetY = this.scroller.currentOffset().yOffset
           })
           .onTouch((event) => {

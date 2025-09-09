@@ -116,7 +116,7 @@ class LyricsManager {
    * 解析LRC格式原文歌词
    */
   private async parseLyrics() {
-    console.info(`开始解析[${this.song?.name}]歌词`)
+    LogUtil.info(`[${TAG}]`, `开始解析[${this.song?.name}]歌词`)
     // 重置状态
     this.currentIndex = 0
 
@@ -151,8 +151,8 @@ class LyricsManager {
     AppStorage.setOrCreate<boolean>('current_lyrics_has_transliteration', this.hasTransliteration)
     AppStorage.setOrCreate<Array<LyricsLine>>('current_parsed_lyrics', this.parsedLyrics)
     // FormUtils.updateCardLyrics(this.parsedLyrics)
-    console.info(`完成解析[${this.song?.name}]歌词`)
-    console.info(`歌词：${JSON.stringify(this.parsedLyrics)}`)
+    LogUtil.info(`[${TAG}]`, `完成解析[${this.song?.name}]歌词`)
+    LogUtil.info(`[${TAG}]`, `歌词：${JSON.stringify(this.parsedLyrics)}`)
   }
 
   /**

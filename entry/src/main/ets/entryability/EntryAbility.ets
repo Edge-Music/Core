@@ -1,4 +1,4 @@
-import { AbilityConstant, common, Context, UIAbility, Want } from '@kit.AbilityKit';
+import { AbilityConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { window } from '@kit.ArkUI';
 import { AppUtil, CrashUtil, LogUtil } from '@pura/harmony-utils';
 import { ImageKnife } from '@ohos/imageknife';
@@ -18,6 +18,7 @@ import { PipManager } from '../util/PipManager';
 import { PreferencesCache } from '../util/PreferenceCache';
 import ResourceManager from '../util/ResourceManager';
 import { SourceAdapter } from '../adapter';
+import { ExceptionInfo } from '@pura/harmony-utils/src/main/ets/entity/ExceptionInfo';
 
 const TAG = 'EntryAbility'
 export default class EntryAbility extends UIAbility {
@@ -47,7 +48,9 @@ export default class EntryAbility extends UIAbility {
 
     SongCacheManager.initialize() // 初始化歌曲缓存管理器
     SongDownloadManager.init(this.context) // 初始化歌曲下载管理器
-    CrashUtil.onError(); // 注册错误处理
+    CrashUtil.onHandled((errMsg: ExceptionInfo) => {
+      LogUtil.error(`[${TAG}]`, `ExceptionInfo: ${JSON.stringify(errMsg)}`)
+    }); // 注册错误处理
     ContextHelper.init(this.context) // 初始化上下文工具类
     DownloadManager.init(this.context) // 初始化下载工具类
     ResourceManager.init(this.context)

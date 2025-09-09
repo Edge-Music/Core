@@ -98,68 +98,6 @@ export struct PlayList {
     }
   }
 
-  @Builder
-  PlayListAction() {
-    Stack() {
-
-      Row() {
-        // 主要播放按钮（占据大部分空间）
-        Row() {
-          Image($r('app.media.ic_repeat'))
-            .width(22)
-            .height(22)
-            .fillColor($r('app.color.text_primary'))
-          Text($r('app.string.play_all'))
-            .fontSize(18)
-            .fontWeight(FontWeight.Medium)
-            .fontColor($r('app.color.text_primary'))
-            .margin({ left: 8 })
-        }
-        .shadow(ShadowStyle.OUTER_DEFAULT_XS)
-        .height(40)
-        .width(120)
-        // .layoutWeight(1)
-        .borderRadius(8)
-        .backgroundColor($r('app.color.setting_item_background'))
-        .justifyContent(FlexAlign.Center)
-        .onClick(() => {
-          if (this.songs && this.songs.length > 0) {
-            // 寻找第一个可以播放的歌曲
-            const song = this.songs.find(song => song.privilege.playable)
-            this.handlePlaylistPlayAll(song || this.songs[0])
-            PlaylistManager.switchPlayMode(PlayMode.LOOP)
-          }
-        })
-
-        // 更多选项按钮（正方形）
-        Row() {
-          Image($r('app.media.ic_more'))
-            .width(22)
-            .height(22)
-            .fillColor($r('app.color.text_primary'))
-        }
-        .width(40)
-        .height(40)
-        .borderRadius(8)
-        .shadow(ShadowStyle.OUTER_DEFAULT_XS)
-        .backgroundColor($r('app.color.setting_item_background'))
-        .justifyContent(FlexAlign.Center)
-        .bindMenu(this.generatePlaylistMenu())
-      }
-      .backgroundColor('transparent')
-      .justifyContent(FlexAlign.SpaceBetween)
-      .width(StyleConstants.FULL_WIDTH)
-      .padding({
-        left: 16,
-        right: 16,
-        top: 12,
-        bottom: 12
-      })
-
-    }
-
-  }
-
   // 歌曲列表逻辑
   @Builder
   SongListSection() {
@@ -212,7 +150,7 @@ export struct PlayList {
                   onTap: (song: Song) => {
                     this.onSongTap(song, index);
                   },
-                  deleteSong: (d_song: Song) => {
+                  deleteSong: (_: Song) => {
                     if(this.playlist?.type === PlaylistType.AGGREGATION) {
                       this.getUIContext().animateTo({
                         duration: 500,
@@ -257,7 +195,7 @@ export struct PlayList {
       .cachedCount(5)
       .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
       .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
-      .onDidScroll((_: number, scrollState: ScrollState) => {
+      .onDidScroll(() => {
         this.scrollOffsetY = this.scroller.currentOffset().yOffset
       })
       .onTouch((event) => {

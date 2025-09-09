@@ -112,7 +112,7 @@ export struct Aggregation {
         }
       } else {
         ListItemGroup(){
-          ForEach(this.aggregationPlaylist, (playlist: Playlist, index: number) => {
+          ForEach(this.aggregationPlaylist, (playlist: Playlist, _: number) => {
             ListItem(){
               PlaylistItem({
                 playlist: playlist,
@@ -151,7 +151,7 @@ export struct Aggregation {
     .scrollBar(BarState.Off)
     .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
     .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
-    .onDidScroll((_: number, scrollState: ScrollState) => {
+    .onDidScroll(() => {
       this.scrollOffsetY = this.scroller.currentOffset().yOffset
     })
     .onTouch((event) => {

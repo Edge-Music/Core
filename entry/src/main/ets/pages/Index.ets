@@ -560,7 +560,7 @@ struct Index_page {
             .edgeEffect(EdgeEffect.Spring)
             .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
             .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
-            .onDidScroll((_: number, scrollState: ScrollState) => {
+            .onDidScroll(() => {
               this.scrollOffsetY = this.scroller.currentOffset().yOffset
             })
             .onTouch((event) => {

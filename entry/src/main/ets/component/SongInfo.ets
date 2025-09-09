@@ -1,4 +1,3 @@
-import { ImageKnifeComponent } from "@ohos/imageknife";
 import { DialogAction, DialogHelper } from "@pura/harmony-dialog";
 import { LogUtil, ToastUtil } from "@pura/harmony-utils";
 import { StyleConstants } from "../constants/StyleConstants";
@@ -119,16 +118,6 @@ export struct SongInfo {
     }
   }
 
-  // 获取边框颜色
-  private getBorderColor() {
-    if (this.isHighlighting) {
-      return 'rgba(100, 149, 237, 0.4)'; // 高亮边框色
-    } else if (!this.showBorder) {
-      return Color.Transparent;
-    }
-    return $r('app.color.border_line');
-  }
-
   build() {
     Column() {
       Row({ space: 8 }) {
@@ -247,7 +236,7 @@ export struct SongInfo {
       .height(68)
       .padding({ left: 12, right: 12 })
       .borderRadius(10)
-      .onHover((isHover: boolean, event: HoverEvent)=>{
+      .onHover((isHover: boolean, _: HoverEvent)=>{
           this.On_Mouse =isHover
       })
       .backgroundColor(this.On_Mouse? 'rgba(100, 149, 237, 0.15)':this.getBackgroundColor())

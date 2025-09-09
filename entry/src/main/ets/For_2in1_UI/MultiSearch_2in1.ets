@@ -1,14 +1,10 @@
-import { ToastUtil } from "@pura/harmony-utils";
 import { SourceAdapter } from "../adapter";
-import { Cover } from "../component/Cover";
 import { HeaderAnimation } from "../component/HeaderAnimation";
 import { MiniPlaybackControl } from "../component/MiniPlaybackControl";
 import { Segment } from "../component/Segment";
 import { TitleHeader } from "../component/TitleHeader";
 import { StyleConstants } from "../constants/StyleConstants";
 import { Album, Artist, Playlist, SearchResult, Song } from "../type/Adapter";
-import { PlaylistManager } from "../util/PlaylistManager";
-import { PushPathHelper } from "../util/PushPathHelper";
 import ResourceManager from "../util/ResourceManager";
 import { ScrollController } from "../util/ScrollController";
 
@@ -30,46 +26,6 @@ export struct MultiSearch_2in1 {
     onIndexChange: (index): void => this.onMenuIconClick(index),
     componentTag: TAG
   }).linkController(this.scroller)
-
-  private generatePlaylistMenu(playlist: Playlist) {
-    return [
-      {
-        value: $r('app.string.play_this_playlist'),
-        action: () => {
-          PushPathHelper.loading("Playing", async () => {
-            const playlistDetail = await SourceAdapter.getPlaylistDetail(playlist)
-            const songs = playlistDetail?.songs?.filter(song => song.privilege.playable)
-            if (!songs || songs.length === 0) {
-              ToastUtil.showShort("此歌单无可播放歌曲")
-              return
-            }
-            PlaylistManager.loadPlaylist(songs, songs[0])
-          })
-        }
-      },
-    // {
-    //   value: '收藏此歌单',
-    //   action: () => {
-    //   }
-    // }
-    ] as MenuElement[]
-  }
-
-  private generateSongMenu(song: Song) {
-    return [
-      {
-        value: $r('app.string.add_to_play_next'),
-        action: () => {
-          PlaylistManager.insertSongs([song])
-        }
-      },
-    // {
-    //   value: '收藏到歌单',
-    //   action: () => {
-    //   }
-    // }
-    ] as MenuElement[]
-  }
 
   async search() {
     this.loading = true
@@ -142,7 +98,7 @@ export struct MultiSearch_2in1 {
               }
 
             }
-            .onAreaChange((oldValue: Area, newValue: Area) => {
+            .onAreaChange((_: Area, newValue: Area) => {
               this.groupHeight = newValue.height as number
             })
 
