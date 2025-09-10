@@ -1,5 +1,6 @@
 import { Artist, ID, Playlist, Song, SourceConfig } from "../type/Adapter";
 import { LogUtil, PreferencesUtil, ToastUtil } from '@pura/harmony-utils';
+import { display } from "@kit.ArkUI";
 
 // 比特率类型
 export type BitrateType = 128000 | 192000 | 320000 | 350000 | 999000 | number;
@@ -8,6 +9,19 @@ export interface QualityLevel {
   level: string;
   description: string | Resource
   bitrate: BitrateType;
+}
+
+export interface SBLyricsPre{
+  open:boolean;
+  lines:number;
+  alignment:number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  transparency: number;
+  fontSize: number;
+  fontColor: Color | ResourceColor
 }
 
 export const qualityLevels: QualityLevel[] = [
@@ -563,5 +577,33 @@ export class PreferencesCache {
       LogUtil.info(`[${TAG}]`, ` currentLyricsOffsetTime: ${value}`)
     }
     return parseInt(PreferencesCache.getUserPreference('current_lyrics_offset_time', '0'))
+  }
+
+  /**
+   * 状态栏歌词设置
+   */
+  static statusBarLyricsSetting(value?: SBLyricsPre): SBLyricsPre {
+    if (value !== undefined) {
+      PreferencesCache.setUserPreference('status_bar_lyrics_setting',JSON.stringify(value));
+    }
+    let output  = PreferencesCache.getUserPreference('status_bar_lyrics_setting')
+    if (!output){
+      const data: SBLyricsPre = {
+        open: false,
+        lines: 0,
+        alignment: 0,
+        x: 0,
+        y: 0,
+        width: display.getDefaultDisplaySync().width/2,
+        height: 0,
+        transparency: 0,
+        fontSize: 0,
+        fontColor: '#FF6A6A'
+      }
+      PreferencesCache.setUserPreference('status_bar_lyrics_setting',JSON.stringify(data));
+      output = JSON.stringify(data)
+      AppStorage.setOrCreate('status_bar_lyrics_setting', JSON.parse(output) as SBLyricsPre)
+    }
+    return JSON.parse(output) as SBLyricsPre
   }
 }

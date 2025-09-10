@@ -19,6 +19,7 @@ import { HeaderPlaceholder } from "../component/HeaderPlaceholder";
 import { FooterPlaceholder } from "../component/FooterPlaceholder";
 import { MiniPlaybackControl } from "../component/MiniPlaybackControl";
 import { HeaderComponent } from "../component/HeaderComponent";
+import { SBLyricsSetting } from "./SBLyricsSetting";
 
 const TAG = 'Setting'
 
@@ -699,10 +700,12 @@ export struct Setting {
   sheet() {
     if (this.nowSheet === "about") {
       this.AboutPage()
-    }else if (this.nowSheet === "form"){
+    }else if (this.nowSheet === "form") {
       this.FormContent()
-    }else if (this.nowSheet === "Personalized_settings"){
+    }else if (this.nowSheet === "Personalized_settings") {
       this.Personalized_Settings()
+    } else if (this.nowSheet === "SBLyricsSetting") {
+      SBLyricsSetting()
     }
   }
   build() {

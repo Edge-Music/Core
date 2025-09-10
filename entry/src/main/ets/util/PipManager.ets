@@ -9,6 +9,7 @@ import { cover } from './AdapterHelper';
 import { PreferencesCache } from './PreferenceCache';
 import { EventHelper } from './EventHelper';
 import { LogUtil } from '@pura/harmony-utils';
+import { media } from '@kit.MediaKit';
 
 let song: Song
 let Is_PAD:boolean
@@ -99,9 +100,13 @@ export let nodeController: TextNodeController = new TextNodeController();
 // 自定义XComponentController
 class CustomXComponentController extends XComponentController {
   // 监听onSurfaceCreated，并将surfaceId设置给播放器
-  onSurfaceCreated(surfaceId: string): void {
+  onSurfaceCreated(surfaceId: string) {
     console.log(TAG, `onSurfaceCreated surfaceId: ${surfaceId}`);
-    if (PipManager.getInstance().player?.surfaceId === surfaceId) {
+    let t_surfaceId: string = ''
+    avPlayerManager.getAVPlayerInstance().then((player) => {
+      t_surfaceId = player?.surfaceId as string
+    });
+    if (t_surfaceId === surfaceId) {
       return;
     }
     // PipManager.getInstance().player.surfaceId = surfaceId;
@@ -116,7 +121,6 @@ class CustomXComponentController extends XComponentController {
 const TAG = 'PipManager';
 
 export class PipManager {
-  player=avPlayerManager.avPlayer;
   private static instance: PipManager = new PipManager();
   private pipController?: PiPWindow.PiPController = undefined;
   private mXComponentController: XComponentController;
@@ -127,14 +131,13 @@ export class PipManager {
   // private message_text:LyricsLine=AppStorage.get('current_line_lyrics')
 
 
-  private mess:string=AppStorage.get('test_index')??'w'
+  private mess: string= AppStorage.get('test_index') ?? 'w'
 
   public static getInstance(): PipManager {
     return PipManager.instance;
   }
 
   constructor() {
-    this.player = avPlayerManager.avPlayer;
     this.mXComponentController = new CustomXComponentController();
   }
 

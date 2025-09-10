@@ -2,10 +2,51 @@ import { display, window } from '@kit.ArkUI';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { PipManager } from './PipManager';
 import { EventHelper } from './EventHelper';
-import { LogUtil } from '@pura/harmony-utils';
+import { LogUtil, ToastUtil } from '@pura/harmony-utils';
+import { PreferencesCache, SBLyricsPre } from './PreferenceCache';
 
 const TAG = 'WindowUtil'
 class WindowUtil {
+
+  private lyricsFloatWindow: window.Window | undefined = undefined
+
+  loadContent(windowStage: window.WindowStage, page: string | undefined | null) {
+    if(!windowStage) return
+
+    windowStage.loadContent('pages/Index', (err) => {
+      if (err.code) {
+        LogUtil.error(`[${TAG}]`, 'Failed to load the content. Cause: ', JSON.stringify(err) ?? '');
+        return;
+      }
+      LogUtil.info(`[${TAG}]`, 'Succeeded in loading the content.');
+    });
+
+    let storage: LocalStorage = new LocalStorage();
+    windowStage.getMainWindow().then((windowClass) => {
+      windowClass.loadContent('pages/Index', storage, (err: BusinessError) => {
+        let errCode: number = err.code;
+        if (errCode) {
+          LogUtil.error(`[${TAG}]`, `Failed to load the content. Cause code: ${err.code}, message: ${err.message}`);
+          return;
+        }
+        LogUtil.info(`[${TAG}]`, 'Succeeded in loading the content.');
+        // 调用setWindowDecorVisible接口
+        try {
+          this.setWindowProperties(windowClass)
+          this.setWindowListeners(windowClass)
+          this.setPipManager(windowClass)
+          this.setWindowFullScreen(windowClass, true)
+          this.setWindowStatus(windowClass)
+          if (page){
+            this.setPageJump(page)
+          }
+        } catch (exception) {
+          LogUtil.error(`[${TAG}]`, `Failed to set the visibility of window decor. Cause code: ${exception.code}, message: ${exception.message}`);
+        }
+      });
+    })
+
+  }
 
   setPipManager(windowClass: window.Window) {
     const uiContext = windowClass.getUIContext();
@@ -83,44 +124,6 @@ class WindowUtil {
         LogUtil.info(`[${TAG}]`, 'targetPage: ' + page);
       }, 500, page);
     }
-  }
-
-  loadContent(windowStage: window.WindowStage, page: string | undefined | null) {
-    if(!windowStage) return
-
-    windowStage.loadContent('pages/Index', (err) => {
-      if (err.code) {
-        LogUtil.error(`[${TAG}]`, 'Failed to load the content. Cause: ', JSON.stringify(err) ?? '');
-        return;
-      }
-      LogUtil.info(`[${TAG}]`, 'Succeeded in loading the content.');
-    });
-
-    let storage: LocalStorage = new LocalStorage();
-    windowStage.getMainWindow().then((windowClass) => {
-      windowClass.loadContent('pages/Index', storage, (err: BusinessError) => {
-        let errCode: number = err.code;
-        if (errCode) {
-          LogUtil.error(`[${TAG}]`, `Failed to load the content. Cause code: ${err.code}, message: ${err.message}`);
-          return;
-        }
-        LogUtil.info(`[${TAG}]`, 'Succeeded in loading the content.');
-        // 调用setWindowDecorVisible接口
-        try {
-          this.setWindowProperties(windowClass)
-          this.setWindowListeners(windowClass)
-          this.setPipManager(windowClass)
-          this.setWindowFullScreen(windowClass, true)
-          this.setWindowStatus(windowClass)
-          if (page){
-            this.setPageJump(page)
-          }
-        } catch (exception) {
-          LogUtil.error(`[${TAG}]`, `Failed to set the visibility of window decor. Cause code: ${exception.code}, message: ${exception.message}`);
-        }
-      });
-    })
-
   }
 
   addListenerOrientationChange(windowStage: window.WindowStage, enable: boolean = true){
@@ -207,6 +210,53 @@ class WindowUtil {
         LogUtil.info(`[${TAG}]`, `WindowStatus Change: ${windowStatus}.`);
       })
     }
+  }
+
+  createLyricsFloatWindow(): void {
+    if(this.lyricsFloatWindow) return
+    let config: window.Configuration = {
+      name: 'SBLyrics',
+      windowType: window.WindowType.TYPE_FLOAT,
+      ctx: getContext(this)
+    };
+
+    window.createWindow(config, async (err, data) => {
+      if (err.code) {
+        ToastUtil.showToast(`开启悬浮窗失败: code-${err.code}`)
+        LogUtil.error(`[${TAG}]`, 'Failed to create the floatWindow. Cause: ' + JSON.stringify(err));
+        return;
+      }
+      this.lyricsFloatWindow = data;
+      await this.lyricsFloatWindow.setUIContent('pages/FloatLyrics')
+      const uiContext = data.getUIContext()
+      let settingData = PreferencesCache.statusBarLyricsSetting()
+      let displayW = display.getDefaultDisplaySync().width;
+      let displayH = display.getDefaultDisplaySync().height;
+      const showWidth = settingData.width*displayW-uiContext.vp2px(8)
+      const showHeight = uiContext.vp2px(settingData.fontSize+8)
+      this.lyricsFloatWindow.resize(showWidth, showHeight);
+      const offsetX_1 = settingData.x*displayW + uiContext.vp2px(4)
+      const offsetX_2 = settingData.x*displayW - showWidth - uiContext.vp2px(4)
+      const offsetX = Math.min(offsetX_1, Math.max(uiContext.vp2px(4), offsetX_2))
+      const offsetY_1 = settingData.y*displayH
+      const offsetY_2 = settingData.y*displayH - showHeight
+      const offsetY = Math.min(offsetY_1, Math.max(0, offsetY_2))
+      this.lyricsFloatWindow.moveWindowToGlobal(offsetX, offsetY);
+      this.lyricsFloatWindow.setWindowBackgroundColor("#00000000")
+      this.lyricsFloatWindow.setWindowTouchable(false)
+      this.lyricsFloatWindow.setWindowFocusable(false)
+      this.lyricsFloatWindow.showWindow()
+
+      LogUtil.info(`[${TAG}]`, 'Successfully created the floating window. Data: ' + JSON.stringify(data));
+    });
+  }
+
+  destroyLyricsFloatWindow(): void {
+    if(!this.lyricsFloatWindow) return
+    this.lyricsFloatWindow.destroyWindow(() => {
+      this.lyricsFloatWindow = undefined
+      LogUtil.info(`[${TAG}]`, 'Successfully destroyed the floating window.');
+    })
   }
 
 }
