@@ -19,8 +19,7 @@ export struct Personalized_settings_Component {
         Blank()
           .layoutWeight(1)
         Toggle({ type: ToggleType.Switch, isOn: PreferencesCache.getUserPreference(this.setUserPreference_name)==='1'?true:false})
-          .switchPointColor($r('app.color.text_primary'))
-          .selectedColor($r('app.color.Personalized_settings_button_background'))
+          .selectedColor($r('app.color.title_emphasis_color'))
           .onChange((isOn: boolean) => {
             this.onSwitchChangeHandler(isOn)
           })
@@ -30,7 +29,7 @@ export struct Personalized_settings_Component {
 
     }
     .padding(16)
-    .backgroundColor($r('app.color.card_background_two'))
+    .backgroundColor($r('app.color.setting_item_background'))
     .borderRadius(12)
     .alignItems(HorizontalAlign.Start)
   }
@@ -72,8 +71,7 @@ export struct Personalized_settings{
         Blank()
           .layoutWeight(1)
         Toggle({ type: ToggleType.Switch, isOn: this.HorizontalMode_ctrl==='1'?true:false})
-          .switchPointColor($r('app.color.text_primary'))
-          .selectedColor($r('app.color.Personalized_settings_button_background'))
+          .selectedColor($r('app.color.title_emphasis_color'))
           .onChange((isOn: boolean) => {
             if (isOn) {
               this.HorizontalMode_ctrl ='1'
@@ -92,7 +90,7 @@ export struct Personalized_settings{
 
     }
     .padding(16)
-    .backgroundColor($r('app.color.card_background_two'))
+    .backgroundColor($r('app.color.setting_item_background'))
     .borderRadius(12)
     .alignItems(HorizontalAlign.Start)
   }
@@ -117,10 +115,12 @@ export struct Personalized_settings{
         .width('100%')
         .height('100%')
       }
-      .padding({ top: 16, left: 16, right: 16 })
+      .padding({ top: 12, left: 12, right: 12 })
     }
-    .title($r('app.string.custom_settings')).hideToolBar(true)
-    .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.BOTTOM])
+    .title($r('app.string.custom_settings'))
+    .hideToolBar(true)
+    .backgroundColor($r('app.color.page_background'))
+    .expandSafeArea()
 
   }
 }

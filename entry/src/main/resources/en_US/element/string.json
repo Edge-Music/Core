@@ -599,6 +599,10 @@
     {
       "name": "slide_up_hide_title",
       "value": "Slide Up To Hide Title"
+    },
+    {
+      "name": "reason_float_lyrics_window",
+      "value": "Enable floating lyrics window"
     }
   ]
 }

@@ -11,6 +11,8 @@ import { SourceAdapter } from '../adapter';
 import { Song } from '../type/Adapter';
 import LyricsManager from './LyricsManager';
 import { JSON } from '@kit.ArkTS';
+import { window } from '@kit.ArkUI';
+import WindowUtil from './WindowUtil';
 
 const TAG = 'AVPlayerManager'
 // 定义回调函数的类型
@@ -661,6 +663,9 @@ class AVPlayerManager {
         this.triggerPlay();
         EventHelper.postSongState('PLAY');
       }
+      if (PreferencesCache.statusBarLyricsSetting().open) {
+        WindowUtil.createLyricsFloatWindow()
+      }
     } catch (error) {
       this.triggerError(error);
     }
@@ -680,6 +685,7 @@ class AVPlayerManager {
           this.triggerPause();
           EventHelper.postSongState('PAUSE');
         }
+        WindowUtil.destroyLyricsFloatWindow()
       }
     } catch (error) {
       this.triggerError(error);
@@ -828,6 +834,7 @@ class AVPlayerManager {
         this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PAUSE);
         this.triggerPause();
         EventHelper.postSongState('PAUSE');
+        window.findWindow('SBLyrics')?.destroyWindow()
         this.currentVolume = maxVolume; // 重置音量
         finalPlayer.setVolume(maxVolume);
       }

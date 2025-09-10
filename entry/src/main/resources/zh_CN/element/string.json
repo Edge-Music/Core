@@ -599,6 +599,10 @@
     {
       "name": "slide_up_hide_title",
       "value": "上滑隐藏标题栏"
+    },
+    {
+      "name": "reason_float_lyrics_window",
+      "value": "开启悬浮歌词"
     }
   ]
 }
