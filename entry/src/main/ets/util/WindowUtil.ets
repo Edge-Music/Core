@@ -131,6 +131,14 @@ class WindowUtil {
     display.on('change', () => {
       LogUtil.info(`[${TAG}]`, 'Succeeded to change orientation.');
       this.setSystemBarEnabled(windowStage, enable)
+      try {
+        let displayW = display.getDefaultDisplaySync().width;
+        let displayH = display.getDefaultDisplaySync().height;
+        AppStorage.setOrCreate('displayW', displayW);
+        AppStorage.setOrCreate('displayH', displayH);
+      } catch (error) {
+        LogUtil.info(`[${TAG}]`, `Failed to get display info, message: ${error.message}`)
+      }
     })
   }
 
@@ -257,6 +265,21 @@ class WindowUtil {
       this.lyricsFloatWindow = undefined
       LogUtil.info(`[${TAG}]`, 'Successfully destroyed the floating window.');
     })
+  }
+
+  getLyricsFloatWindow(): window.Window {
+    let resultWindow: window.Window | undefined = undefined
+    if(this.lyricsFloatWindow) {
+      resultWindow = this.lyricsFloatWindow
+    } else {
+      this.createLyricsFloatWindow()
+      try {
+        resultWindow = window.findWindow('SBLyrics')
+      } catch (error) {
+        LogUtil.error(`[${TAG}]`, 'Failed to find the floating window. Cause: ' + JSON.stringify(error))
+      }
+    }
+    return resultWindow as window.Window
   }
 
 }

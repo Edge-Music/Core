@@ -1,5 +1,4 @@
 import { display, window } from "@kit.ArkUI"
-import { LogUtil } from "@pura/harmony-utils";
 import { PreferencesCache, SBLyricsPre } from "../util/PreferenceCache";
 
 const TAG = 'FloatingLyrics'
@@ -9,12 +8,21 @@ const TAG = 'FloatingLyrics'
 export struct FloatingLyrics {
 
   @StorageLink('test_index') currentLyric: string = '歌词'
-  @StorageProp('SBLyricsSetting') @Watch('onLyricStyleChange') settingData: string = ''
+  @StorageProp('SBLyricsSetting') @Watch('onLyricStyleChange') settingData: string = PreferencesCache.getUserPreference('status_bar_lyrics_setting')
   @StorageProp('currentOrientation') @Watch('onLyricStyleChange') currentOrientation: string = 'portrait'
   @State floatLyricStyle: SBLyricsPre = PreferencesCache.statusBarLyricsSetting()
   private uiContext = this.getUIContext()
+  private timerID: number = -1
   aboutToAppear(): void {
+    if(this.timerID === -1) {
+      this.timerID = setInterval(() => {
+        this.onLyricStyleChange()
+      }, 500)
+    }
+  }
 
+  aboutToDisappear(): void {
+    this.timerID = -1
   }
 
   onLyricStyleChange() {
@@ -32,7 +40,6 @@ export struct FloatingLyrics {
     const offsetY_2 = this.floatLyricStyle.y*displayH - showHeight
     const offsetY = Math.min(offsetY_1, Math.max(0, offsetY_2))
     window.findWindow('SBLyrics')?.moveWindowTo(offsetX, offsetY)
-    LogUtil.info('FloatLyric '+ showWidth)
   }
 
   build() {

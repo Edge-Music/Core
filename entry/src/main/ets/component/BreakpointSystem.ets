@@ -1,6 +1,7 @@
 import mediaQuery from '@ohos.mediaquery';
 import { BreakpointConstants } from '../constants/BreakpointConstants';
 import { deviceInfo } from '@kit.BasicServicesKit';
+import { EventHelper } from '../util/EventHelper';
 
 declare interface BreakPointTypeOption<T> {
   sm?: T
