@@ -1,9 +1,9 @@
 import { StyleConstants } from "../constants/StyleConstants";
 import { PreferencesCache, SBLyricsPre } from "../util/PreferenceCache";
-import { display, ItemRestriction, SegmentButton, SegmentButtonOptions, SegmentButtonTextItem } from "@kit.ArkUI";
+import { ItemRestriction, SegmentButton, SegmentButtonOptions, SegmentButtonTextItem } from "@kit.ArkUI";
 import { LogUtil, ToastUtil } from "@pura/harmony-utils";
 import WindowUtil from "../util/WindowUtil";
-import { abilityAccessCtrl, common, Permissions } from "@kit.AbilityKit";
+import { common, Permissions } from "@kit.AbilityKit";
 import { reqPermissionsFromUser } from "../util/PermissionManager";
 
 const TAG = 'SBLyricsSetting'
