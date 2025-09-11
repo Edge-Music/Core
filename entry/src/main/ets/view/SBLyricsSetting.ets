@@ -1,14 +1,18 @@
 import { StyleConstants } from "../constants/StyleConstants";
 import { PreferencesCache, SBLyricsPre } from "../util/PreferenceCache";
 import { display, ItemRestriction, SegmentButton, SegmentButtonOptions, SegmentButtonTextItem } from "@kit.ArkUI";
-import { LogUtil } from "@pura/harmony-utils";
+import { LogUtil, ToastUtil } from "@pura/harmony-utils";
 import WindowUtil from "../util/WindowUtil";
+import { abilityAccessCtrl, common, Permissions } from "@kit.AbilityKit";
+import { reqPermissionsFromUser } from "../util/PermissionManager";
 
+const TAG = 'SBLyricsSetting'
 @Component
 export struct SBLyricsSetting{
   @Consume('NavPathStack') pageStack: NavPathStack;
   @StorageProp('bottomRect') bottomRect: number = 0
   @StorageProp('topRect') topRect: number = 0
+  @StorageProp('winHeight') winHeight: number = 0
   @State @Watch("onChangeSetting") settingData: SBLyricsPre = PreferencesCache.statusBarLyricsSetting()
   @State linesIndex: number[] = [this.settingData.lines]
   @State alignIndex:number[] = [this.settingData.alignment]
@@ -47,7 +51,20 @@ export struct SBLyricsSetting{
                 .onChange((isOn: boolean) => {
                   this.settingData.open = isOn
                   if (isOn) {
-                    WindowUtil.createLyricsFloatWindow()
+                    const permissions: Array<Permissions> = ['ohos.permission.SYSTEM_FLOAT_WINDOW'];
+                    const context: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
+                    reqPermissionsFromUser(permissions, context).then((result: boolean) => {
+                      if(result) {
+                        WindowUtil.createLyricsFloatWindow()
+                        LogUtil.info(`[${TAG}]`, `悬浮窗权限已获取: [SYSTEM_FLOAT_WINDOW]`);
+                        ToastUtil.showToast("悬浮窗权限授权成功", { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } });
+                      } else {
+                        this.settingData.open = false
+                        WindowUtil.destroyLyricsFloatWindow()
+                        LogUtil.info(`[${TAG}]`, `悬浮窗权限未获取: [SYSTEM_FLOAT_WINDOW]`);
+                        ToastUtil.showToast("未获得悬浮窗授权，用户可再次授予", { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } });
+                      }
+                    })
                   } else {
                     WindowUtil.destroyLyricsFloatWindow()
                   }
