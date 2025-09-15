@@ -4,6 +4,7 @@ import { PipManager } from './PipManager';
 import { EventHelper } from './EventHelper';
 import { LogUtil, ToastUtil } from '@pura/harmony-utils';
 import { PreferencesCache, SBLyricsPre } from './PreferenceCache';
+import { resourceManager } from '@kit.LocalizationKit';
 
 const TAG = 'WindowUtil'
 class WindowUtil {
@@ -235,9 +236,17 @@ class WindowUtil {
         return;
       }
       this.lyricsFloatWindow = data;
+      let settingData = PreferencesCache.statusBarLyricsSetting()
+      let deviceType = AppStorage.get('deviceType') as resourceManager.DeviceType
+      if((deviceType === resourceManager.DeviceType.DEVICE_TYPE_PC ||
+      deviceType === resourceManager.DeviceType.DEVICE_TYPE_TABLET ||
+      deviceType === resourceManager.DeviceType.DEVICE_TYPE_2IN1) &&
+      !settingData.showShadow) {
+        this.lyricsFloatWindow?.setWindowShadowRadius(0)
+      }
+      this.lyricsFloatWindow.setWindowCornerRadius(settingData.cornerRadius)
       await this.lyricsFloatWindow.setUIContent('pages/FloatLyrics')
       const uiContext = data.getUIContext()
-      let settingData = PreferencesCache.statusBarLyricsSetting()
       let displayW = display.getDefaultDisplaySync().width;
       let displayH = display.getDefaultDisplaySync().height;
       const showWidth = settingData.width*displayW-uiContext.vp2px(8)
@@ -250,7 +259,7 @@ class WindowUtil {
       const offsetY_2 = settingData.y*displayH - showHeight
       const offsetY = Math.min(offsetY_1, Math.max(0, offsetY_2))
       this.lyricsFloatWindow.moveWindowToGlobal(offsetX, offsetY);
-      this.lyricsFloatWindow.setWindowBackgroundColor("#00000000")
+      this.lyricsFloatWindow.setWindowBackgroundColor("#00ffffff")
       this.lyricsFloatWindow.setWindowTouchable(false)
       this.lyricsFloatWindow.setWindowFocusable(false)
       this.lyricsFloatWindow.showWindow()
@@ -264,6 +273,15 @@ class WindowUtil {
     this.lyricsFloatWindow.destroyWindow(() => {
       this.lyricsFloatWindow = undefined
       LogUtil.info(`[${TAG}]`, 'Successfully destroyed the floating window.');
+    })
+  }
+
+  resetFloatLyricsWindow() {
+    if(!this.lyricsFloatWindow) return
+    this.lyricsFloatWindow.destroyWindow(() => {
+      this.lyricsFloatWindow = undefined
+      this.createLyricsFloatWindow()
+      LogUtil.info(`[${TAG}]`, 'Successfully reset the floating window.');
     })
   }
 

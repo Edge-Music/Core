@@ -59,6 +59,7 @@ struct Playing {
   @StorageProp('current_width_breakpoint') widthBreakpoint: WidthBreakpoint = WidthBreakpoint.WIDTH_SM
   @StorageProp('current_height_breakpoint') heightBreakpoint: HeightBreakpoint = HeightBreakpoint.HEIGHT_SM
   @StorageLink('current_playing_playlist') playlist: Array<Song> = [];
+  @StorageProp('playing_title_show_lyrics') showTitleLyrics: string = PreferencesCache.getUserPreference('playing_title_show_lyrics','0')
 
   @Consume('NavPathStack') pageStack: NavPathStack
   @State curColorIndex: number = 0
@@ -96,7 +97,7 @@ struct Playing {
   @State flipCoverLyric: boolean = PreferencesCache.flipCoverLyric()
   @State Pura_X: string = PreferencesCache.getUserPreference('is_Pura_X', '0')//pura_x尝试适配
   @State sheetType: "playlist" | "timer" | "artist" = "playlist" // 用于控制底部弹出表单的类型，默认为播放列表
-  @State showLyricType: ShowLyricsStatus = parseInt(PreferencesCache.getUserPreference('playing_title_lyric_show_status', '-1')) as ShowLyricsStatus
+  @State showLyricType: ShowLyricsStatus = parseInt(PreferencesCache.getUserPreference('playing_title_lyric_show_status', '0')) as ShowLyricsStatus
 
   private uiContext: UIContext | undefined = undefined;
   private readonly SWIPE_THRESHOLD: number = 80; // 触发切换的阈值
@@ -1777,47 +1778,70 @@ struct Playing {
           }
           .layoutWeight(1)
         } else {
-          Column(){
-            Text(this.getTitleLyrics(this.currentLineLyrics as LyricsLine))
-              .fontSize(20)
-              .fontWeight(700)
-              .fontColor(Color.White)
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.MARQUEE })
-              .textAlign(TextAlign.Center)
-              .borderRadius(8)
-          }
-          .justifyContent(FlexAlign.Center)
-          .alignItems(HorizontalAlign.Center)
-          .width(StyleConstants.FULL_WIDTH)
-          .opacity(this.showLyricType === -1 ? 0 : 1)
-          .layoutWeight(1)
-          .onClick(() => {
-            switch(this.showLyricType) {
-              case -1:
-                this.showLyricType += 1
-                break
-              case 0:
-                if(this.currentLineLyrics?.translation) {
-                  this.showLyricType += 1
-                } else {
-                  this.showLyricType = -1
-                }
-                break
-              case 1:
-                if(this.currentLineLyrics?.transliteration) {
-                  this.showLyricType += 1
-                } else {
-                  this.showLyricType = -1
-                }
-                break
-              case 2:
-                this.showLyricType = -1
+          if(this.showTitleLyrics === '0') {
+            Row() {
+              Button({ type: ButtonType.Circle }) {
+                Image($r('app.media.ic_arrow_down_3'))
+                  .width(36)
+                  .height(36)
+                  .fillColor(Color.White)
+              }
+              .width(this.buttonSize)
+              .height(this.buttonSize)
+              .backgroundColor(Color.Transparent)
+              .onClick(() => {
+                this.pageStack.pop()
+              })
+
             }
-            AppStorage.setOrCreate<number>('playing_title_lyric_show_status', this.showLyricType)
-            PreferencesCache.setUserPreference('playing_title_lyric_show_status', this.showLyricType.toString())
-          })
+            .width('100%')
+            .layoutWeight(1)
+            .justifyContent(FlexAlign.Start)
+
+          } else {
+            Column(){
+              Text(this.getTitleLyrics(this.currentLineLyrics as LyricsLine))
+                .fontSize(20)
+                .fontWeight(700)
+                .fontColor(Color.White)
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.MARQUEE })
+                .textAlign(TextAlign.Center)
+                .borderRadius(8)
+            }
+            .justifyContent(FlexAlign.Center)
+            .alignItems(HorizontalAlign.Center)
+            .width(StyleConstants.FULL_WIDTH)
+            .opacity(this.showLyricType === -1 ? 0 : 1)
+            .layoutWeight(1)
+            .onClick(() => {
+              switch(this.showLyricType) {
+                case -1:
+                  this.showLyricType += 1
+                  break
+                case 0:
+                  if(this.currentLineLyrics?.translation) {
+                    this.showLyricType += 1
+                  } else {
+                    this.showLyricType = -1
+                  }
+                  break
+                case 1:
+                  if(this.currentLineLyrics?.transliteration) {
+                    this.showLyricType += 1
+                  } else {
+                    this.showLyricType = -1
+                  }
+                  break
+                case 2:
+                  this.showLyricType = -1
+              }
+              AppStorage.setOrCreate<number>('playing_title_lyric_show_status', this.showLyricType)
+              PreferencesCache.setUserPreference('playing_title_lyric_show_status', this.showLyricType.toString())
+            })
+          }
         }
+
         if (judge || this.selectedTabIndex === 1){
           Blank()
           Button({ type: ButtonType.Circle }) {
@@ -1884,6 +1908,7 @@ struct Playing {
           })
           .bindMenu(this.isWideScreen ? this.getWideScreenMenu() : this.getNarrowScreenMenu())
         }
+
         if(this.selectedTabIndex === 1 ||this.isWideScreen && this.Playing_Next == false){
           Blank()
           Button({ type: ButtonType.Circle }){
