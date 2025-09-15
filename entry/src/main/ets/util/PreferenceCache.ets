@@ -21,7 +21,9 @@ export interface SBLyricsPre{
   height: number;
   transparency: number;
   fontSize: number;
-  fontColor: Color | ResourceColor
+  fontColor: Color | ResourceColor,
+  showShadow: boolean,
+  cornerRadius: number
 }
 
 export const qualityLevels: QualityLevel[] = [
@@ -598,7 +600,9 @@ export class PreferencesCache {
         height: 0,
         transparency: 0,
         fontSize: 0,
-        fontColor: '#FF6A6A'
+        fontColor: '#FF6A6A',
+        showShadow: false,
+        cornerRadius: 0
       }
       PreferencesCache.setUserPreference('status_bar_lyrics_setting',JSON.stringify(data));
       output = JSON.stringify(data)

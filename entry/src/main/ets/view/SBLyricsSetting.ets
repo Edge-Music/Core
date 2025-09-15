@@ -9,6 +9,7 @@ import { reqPermissionsFromUser } from "../util/PermissionManager";
 const TAG = 'SBLyricsSetting'
 @Component
 export struct SBLyricsSetting{
+  @State handlePopup: boolean = false
   @Consume('NavPathStack') pageStack: NavPathStack;
   @StorageProp('bottomRect') bottomRect: number = 0
   @StorageProp('topRect') topRect: number = 0
@@ -116,6 +117,35 @@ export struct SBLyricsSetting{
                 }
                 .height(26)
                 .width(StyleConstants.FULL_WIDTH)
+
+                Row() {
+                  Text('展示阴影')
+                    .fontSize(16)
+                    .fontColor($r('app.color.text_title'))
+                    .fontWeight(FontWeight.Medium)
+                  Text('󰄀')
+                    .margin({ left: 2 })
+                    .fontSize(16)
+                    .fontColor($r('app.color.text_title'))
+                    .onClick(() => {
+                      this.handlePopup = true
+                    })
+                    .bindPopup($$this.handlePopup, {
+                      message: '仅2in1、PC、平板设备生效',
+                      placement: Placement.Top,
+                      onWillDismiss: () => {
+                        this.handlePopup = false
+                      }
+                    })
+                  Blank()
+                  Toggle({ type: ToggleType.Switch, isOn: this.settingData.showShadow })
+                    .onChange((isOn: boolean) => {
+                      this.settingData.showShadow = isOn
+                    })
+                    .selectedColor($r('app.color.title_emphasis_color'))
+                }
+                .width(StyleConstants.FULL_WIDTH)
+
                 Row() {
                   Text('左右调节')
                     .fontSize(16)
@@ -193,6 +223,27 @@ export struct SBLyricsSetting{
                     .layoutWeight(1)
                     .onChange((value: number)=>{
                       this.settingData.transparency = value
+                    })
+                }
+                .width(StyleConstants.FULL_WIDTH)
+
+                Row() {
+                  Text('圆角半径')
+                    .fontSize(16)
+                    .fontColor($r('app.color.text_title'))
+                    .fontWeight(FontWeight.Medium)
+                  Blank()
+                  Slider({
+                    value:this.settingData.cornerRadius,
+                    min: 0,
+                    max: 16,
+                    step: 1,
+                    style: SliderStyle.InSet
+                  })
+                    .selectedColor($r('app.color.title_emphasis_color'))
+                    .layoutWeight(1)
+                    .onChange((value: number)=>{
+                      this.settingData.cornerRadius = value
                     })
                 }
                 .width(StyleConstants.FULL_WIDTH)

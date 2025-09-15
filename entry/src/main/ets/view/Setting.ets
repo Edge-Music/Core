@@ -9,7 +9,7 @@ import { StyleConstants } from "../constants/StyleConstants";
 import { SettingItem } from "../model/SettingItem";
 import { SourceConfig } from "../type/Adapter";
 import { PreferencesCache } from "../util/PreferenceCache";
-import { AboutSetting, PlayerSetting, SoftwareSetting } from "../viewmodel/SettingGroupData";
+import { AboutSetting, funcAndStyleSetting, PlayerSetting, SoftwareSetting } from "../viewmodel/SettingGroupData";
 import { About } from "./About";
 import {Personalized_settings}from '../view/Personalized_settings'
 import { HeaderAnimation } from "../component/HeaderAnimation";
@@ -60,6 +60,7 @@ export struct Setting {
   // 设置存储
   @StorageLink("PlayerSetting") playerSetting: SettingItem[] = PlayerSetting
   @StorageLink("SoftwareSetting") softwareSetting: SettingItem[] = SoftwareSetting
+  @StorageLink("funcAndStyleSetting") funcAndStyleSetting: SettingItem[] = funcAndStyleSetting
   @StorageLink("about_page_show") aboutPageShow: boolean = false
   @StorageLink("setting_page_sheet_content") nowSheet: string = "form"
   @StorageProp('winHeight') winHeight: number = 0;
@@ -737,6 +738,13 @@ export struct Setting {
 
               ListItem() {
                 SettingGroup({
+                  title: $r('app.string.setting_style_and_function'),
+                  items: this.funcAndStyleSetting
+                })
+              }
+
+              ListItem() {
+                SettingGroup({
                   title: $r('app.string.setting_about'),
                   items: AboutSetting
                 })
@@ -809,9 +817,9 @@ export struct Setting {
     .height(StyleConstants.FULL_HEIGHT)
     .bindSheet($$this.isShow, this.sheet, {
       showClose: this.nowSheet !== "form",
-      height:this.Pura_X?SheetSize.LARGE:SheetSize.FIT_CONTENT,
-      detents:this.Pura_X? [SheetSize.LARGE]:[SheetSize.MEDIUM],
-      preferType: this.currentBreakpoint === BreakpointConstants.BREAKPOINT_SM ? SheetType.BOTTOM : SheetType.CENTER
+      height:this.Pura_X ? SheetSize.LARGE : SheetSize.FIT_CONTENT,
+      detents:this.Pura_X ? [SheetSize.LARGE] : [SheetSize.MEDIUM],
+      preferType: this.currentBreakpoint === BreakpointConstants.BREAKPOINT_SM ? SheetType.BOTTOM : SheetType.CENTER,
     })
   }
 
