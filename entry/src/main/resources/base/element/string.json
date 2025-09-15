@@ -607,6 +607,10 @@
     {
       "name": "reason_float_lyrics_window",
       "value": "开启悬浮歌词"
+    },
+    {
+      "name": "playing_title_show_lyrics",
+      "value": "播控界面顶部展示歌词"
     }
   ]
 }

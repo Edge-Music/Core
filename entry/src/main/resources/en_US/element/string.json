@@ -607,6 +607,10 @@
     {
       "name": "setting_style_and_function",
       "value": "Function And Style Settings"
+    },
+    {
+      "name": "playing_title_show_lyrics",
+      "value": "Show Lyrics Above Playback"
     }
   ]
 }
