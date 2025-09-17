@@ -834,7 +834,7 @@ class AVPlayerManager {
         this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PAUSE);
         this.triggerPause();
         EventHelper.postSongState('PAUSE');
-        window.findWindow('SBLyrics')?.destroyWindow()
+        WindowUtil.destroyLyricsFloatWindow()
         this.currentVolume = maxVolume; // 重置音量
         finalPlayer.setVolume(maxVolume);
       }
