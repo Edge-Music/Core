@@ -45,7 +45,13 @@ export class PlaylistManager {
   }
 
   public static async playSong(song: Song, pause = false) {
-    avPlayerManager.pause()
+    const fadeInOutEnabled = PreferencesCache.getUserPreference('fade_in_out', '0');
+    let delayTime: number = 0
+    if(fadeInOutEnabled === '1') {
+      avPlayerManager.pause()
+      // 这里的延迟时间与淡入淡出的最大时间保持一致750ms
+      delayTime = 750
+    }
 
     setTimeout(async () => {
       try {
@@ -71,8 +77,7 @@ export class PlaylistManager {
       } catch (error) {
         LogUtil.error("AVPlayerManager ", "playSong ", "Error: ", error.message)
       }
-    }, 750)
-    // 这里的延迟时间与淡入淡出的最大时间保持一致750ms
+    }, delayTime)
   }
 
   /**
