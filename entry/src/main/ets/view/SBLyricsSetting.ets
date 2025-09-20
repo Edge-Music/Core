@@ -5,6 +5,7 @@ import { LogUtil, ToastUtil } from "@pura/harmony-utils";
 import WindowUtil from "../util/WindowUtil";
 import { common, Permissions } from "@kit.AbilityKit";
 import { reqPermissionsFromUser } from "../util/PermissionManager";
+import { avPlayerManager } from "../util/AVPlayerManager";
 
 const TAG = 'SBLyricsSetting'
 @Component
@@ -30,6 +31,20 @@ export struct SBLyricsSetting{
     selectedBackgroundColor: $r('app.color.title_emphasis_color'),
     fontSize: 12
   })
+
+  aboutToAppear(): void {
+    if(this.settingData.open) {
+      WindowUtil.createLyricsFloatWindow()
+    }
+  }
+
+  async aboutToDisappear(): Promise<void> {
+    avPlayerManager.avPlayer
+    const player = await avPlayerManager.getAVPlayerInstance();
+    if(player.state !== 'playing') {
+      WindowUtil.destroyLyricsFloatWindow()
+    }
+  }
 
   onChangeSetting(){
     LogUtil.info('SBLSetting '+ JSON.stringify(this.settingData))

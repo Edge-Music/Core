@@ -18,10 +18,11 @@ export struct FloatingLyrics {
   private floatWindow: window.Window | undefined
   private uiContext = this.getUIContext()
   @State timerID: number = -1
-  @State currentShadowStatus: boolean = false
+  @State lastShadowStatus: boolean = false
 
   aboutToAppear(): void {
-    this.currentShadowStatus = this.floatLyricStyle.showShadow
+    this.lastShadowStatus = this.floatLyricStyle.showShadow
+
     if(this.timerID === -1) {
       this.timerID = setInterval(() => {
         this.onLyricStyleChange()
@@ -38,9 +39,9 @@ export struct FloatingLyrics {
     this.floatLyricStyle = JSON.parse(this.settingData)
     if((this.deviceType === resourceManager.DeviceType.DEVICE_TYPE_PC ||
       this.deviceType === resourceManager.DeviceType.DEVICE_TYPE_TABLET ||
-      this.deviceType === resourceManager.DeviceType.DEVICE_TYPE_2IN1) && this.floatLyricStyle.showShadow != this.currentShadowStatus) {
+      this.deviceType === resourceManager.DeviceType.DEVICE_TYPE_2IN1) && this.floatLyricStyle.showShadow != this.lastShadowStatus) {
 
-      this.currentShadowStatus = this.floatLyricStyle.showShadow
+      this.lastShadowStatus = this.floatLyricStyle.showShadow
       WindowUtil.resetFloatLyricsWindow()
       return
     }
