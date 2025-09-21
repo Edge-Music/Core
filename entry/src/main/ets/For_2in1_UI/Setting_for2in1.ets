@@ -9,7 +9,7 @@ import { StyleConstants } from "../constants/StyleConstants";
 import { SettingItem } from "../model/SettingItem";
 import { SourceConfig } from "../type/Adapter";
 import { PreferencesCache } from "../util/PreferenceCache";
-import { AboutSetting, PlayerSetting, SoftwareSetting } from "../viewmodel/SettingGroupData";
+import { AboutSetting, funcAndStyleSetting, PlayerSetting, SoftwareSetting } from "../viewmodel/SettingGroupData";
 import { About } from "../view/About";
 import {Personalized_settings}from '../view/Personalized_settings'
 import { ScrollController } from "../util/ScrollController";
@@ -53,6 +53,7 @@ export struct Setting_2in1 {
   // 设置存储
   @StorageLink("PlayerSetting") playerSetting: SettingItem[] = PlayerSetting
   @StorageLink("SoftwareSetting") softwareSetting: SettingItem[] = SoftwareSetting
+  @StorageLink("funcAndStyleSetting") funcAndStyleSetting: SettingItem[] = funcAndStyleSetting
   @StorageLink("about_page_show") aboutPageShow: boolean = false
   @StorageLink("setting_page_sheet_content") nowSheet: string = "form"
   @StorageProp('winHeight') winHeight: number = 0;
@@ -718,6 +719,13 @@ export struct Setting_2in1 {
               SettingGroup({
                 title: $r('app.string.setting_cache'),
                 items: this.softwareSetting
+              })
+            }
+
+            ListItem() {
+              SettingGroup({
+                title: $r('app.string.setting_style_and_function'),
+                items: this.funcAndStyleSetting
               })
             }
 

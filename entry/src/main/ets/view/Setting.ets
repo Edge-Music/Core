@@ -686,11 +686,10 @@ export struct Setting {
         this.isExpanded = !this.isExpanded
       })
     })
-    .padding(16)
+    .padding(12)
     .width(StyleConstants.FULL_WIDTH)
     .borderRadius(8)
-    // .backgroundColor($r('app.color.setting_item_background'))
-    .backgroundBlurStyle(BlurStyle.Regular)
+    .backgroundColor($r('app.color.setting_item_background'))
   }
 
   @Builder
@@ -715,13 +714,15 @@ export struct Setting {
         Column() {
 
           List({ scroller: this.scroller }) {
-            HeaderPlaceholder({ offsetY: this.placeholderOffset+10 })
+            HeaderPlaceholder()
 
             ListItem() {
               HeaderAnimation({ scrollController: this.scrollController })
             }
 
             ListItemGroup() {
+              this.SourceButton()
+
               ListItem() {
                 SettingGroup({
                   title: $r('app.string.setting_player'),
@@ -797,12 +798,9 @@ export struct Setting {
         HeaderComponent({
           scrollOffsetY: this.scrollOffsetY,
           startScrollOffsetY: this.startScrollOffsetY,
-          hasHeaderBuilder: true,
+          hasHeaderBuilder: false,
           titleBuilder: () => {
             this.Title()
-          },
-          headerBuilder: () => {
-            this.SourceButton()
           }
         })
       }

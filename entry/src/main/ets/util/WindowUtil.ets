@@ -3,7 +3,7 @@ import { BusinessError } from '@kit.BasicServicesKit';
 import { PipManager } from './PipManager';
 import { EventHelper } from './EventHelper';
 import { LogUtil, ToastUtil } from '@pura/harmony-utils';
-import { PreferencesCache, SBLyricsPre } from './PreferenceCache';
+import { PreferencesCache } from './PreferenceCache';
 import { resourceManager } from '@kit.LocalizationKit';
 
 const TAG = 'WindowUtil'

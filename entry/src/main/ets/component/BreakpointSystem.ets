@@ -1,7 +1,8 @@
 import mediaQuery from '@ohos.mediaquery';
 import { BreakpointConstants } from '../constants/BreakpointConstants';
 import { deviceInfo } from '@kit.BasicServicesKit';
-import { EventHelper } from '../util/EventHelper';
+import { display } from '@kit.ArkUI';
+import { LogUtil } from '@pura/harmony-utils';
 
 declare interface BreakPointTypeOption<T> {
   sm?: T
@@ -24,6 +25,8 @@ export class BreakPointType<T> {
     return Object(this.options)[currentBreakPoint] as T
   }
 }
+
+const TAG = 'BreakpointSystem'
 
 export class BreakpointSystem {
   private currentBreakpoint: string = '';
@@ -88,6 +91,15 @@ export class BreakpointSystem {
       AppStorage.setOrCreate<string>(BreakpointConstants.CURRENT_ORIENTATION, this.currentOrientation);
       console.info(`设备方向已更新: ${this.currentOrientation}`);
 
+      try {
+        let displayW = display.getDefaultDisplaySync().width;
+        let displayH = display.getDefaultDisplaySync().height;
+        AppStorage.setOrCreate('displayW', displayW);
+        AppStorage.setOrCreate('displayH', displayH);
+      } catch (error) {
+        LogUtil.error(`[${TAG}]`, `Failed to get display info, message: ${error.message}`)
+      }
+
       // 方向改变时，如果当前有断点，重新触发断点的更新
       if (this.currentBreakpoint) {
         this.detectCurrentBreakpoint();
@@ -138,6 +150,16 @@ export class BreakpointSystem {
 
     // 3. 检测当前断点
     this.detectCurrentBreakpoint();
+
+    // 4.初始化屏幕高度
+    try {
+      let displayW = display.getDefaultDisplaySync().width;
+      let displayH = display.getDefaultDisplaySync().height;
+      AppStorage.setOrCreate('displayW', displayW);
+      AppStorage.setOrCreate('displayH', displayH);
+    } catch (error) {
+      LogUtil.error(`[${TAG}]`, `Failed to get display info, message: ${error.message}`)
+    }
   }
 
   public register(uiContext: UIContext) {
