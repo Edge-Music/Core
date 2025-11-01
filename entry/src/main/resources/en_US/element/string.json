@@ -715,6 +715,10 @@
     {
       "name": "retry_count",
       "value": "Retrying %s/3"
+    },
+    {
+      "name": "enable_wave_lyrics",
+      "value": "Enable Wave Lyrics"
     }
   ]
 }

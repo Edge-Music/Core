@@ -1,6 +1,7 @@
 import { StyleConstants } from '../constants/StyleConstants';
 import { AnimationConstants } from '../constants/AnimationConstants';
 import { LyricsLine } from '../util/LyricsManager';
+import { PreferencesCache } from '../util/PreferenceCache';
 
 @Reusable
 @Component
@@ -10,6 +11,7 @@ export struct LyricItem {
   @Prop showTranslation: boolean
   @Prop currentLyricsIndex: number
   @Prop offsetY: number = 0 // 波浪动画偏移量
+  @StorageProp('enable_wave_lyrics') showWaveLyrics: string = PreferencesCache.getUserPreference('enable_wave_lyrics', '0')
 
   // 性能优化：缓存计算结果
   private isCurrent: boolean = false
@@ -65,7 +67,7 @@ export struct LyricItem {
       }
     }
     .width(StyleConstants.FULL_WIDTH)
-    .translate({ y: this.offsetY })
+    .translate({ y: this.showWaveLyrics === '1' ? this.offsetY : 0 })
     .animation({
       duration: AnimationConstants.DURATION_NORMAL,
       curve: AnimationConstants.CURVE_SPRING

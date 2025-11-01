@@ -671,6 +671,54 @@
     {
       "name": "retry_count",
       "value": "重试中 %s/3"
+    },
+    {
+      "name": "enable_wave_lyrics",
+      "value": "开启波浪歌词"
+    },
+    {
+      "name": "for_you",
+      "value": "专属于你"
+    },
+    {
+      "name": "daily_recommend",
+      "value": "每日推荐"
+    },
+    {
+      "name": "favorite_songs",
+      "value": "我喜欢的音乐"
+    },
+    {
+      "name": "filter_all",
+      "value": "全部"
+    },
+    {
+      "name": "filter_songs",
+      "value": "歌曲"
+    },
+    {
+      "name": "filter_playlists",
+      "value": "歌单"
+    },
+    {
+      "name": "filter_artists",
+      "value": "歌手"
+    },
+    {
+      "name": "filter_albums",
+      "value": "专辑"
+    },
+    {
+      "name": "view_more",
+      "value": "查看更多"
+    },
+    {
+      "name": "compact_view",
+      "value": "紧凑视图"
+    },
+    {
+      "name": "grid_view",
+      "value": "网格视图"
     }
   ]
 }
