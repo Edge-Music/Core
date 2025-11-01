@@ -1,5 +1,6 @@
 import { SongInfo } from '../component/SongInfo';
 import { StyleConstants } from '../constants/StyleConstants';
+import { AnimationConstants } from '../constants/AnimationConstants';
 import { Playlist, Song } from '../type/Adapter';
 import { PlaylistManager } from '../util/PlaylistManager';
 import { ToastUtil } from '@pura/harmony-utils';
@@ -7,6 +8,13 @@ import { LogUtil } from '@pura/harmony-utils';
 import { SongsDataSource } from '../util/SongsDataSource';
 import { cover } from '../util/AdapterHelper';
 
+/**
+ * 现代化播放列表视图组件
+ * - 优化布局结构
+ * - 增强动画效果
+ * - 统一列表项样式
+ * - 改进滚动体验
+ */
 @Component
 export struct PlaylistView {
   @StorageLink('current_playing_song') currentSong: Song | null = null;
@@ -52,12 +60,12 @@ export struct PlaylistView {
     this.currentIndex = index
   }
 
-  // 处理歌曲删除
+  // 处理歌曲删除 - 优化动画效果
   private handleSongDelete(d_song: Song, index: number): void {
-
-    // 直接从数据源删除
+    // 使用现代化动画删除
     this.getUIContext().animateTo({
-      duration: 500,
+      duration: AnimationConstants.DURATION_SLOW,
+      curve: AnimationConstants.CURVE_DECELERATE,
       onFinish: () => {
         this.songsDataSource.reloadData()
       }
@@ -95,7 +103,7 @@ export struct PlaylistView {
     }
   }
 
-  // 删除按钮构建器
+  // 现代化删除按钮 - 增强模糊效果和交互
   @Builder
   DeleteButton(song: Song, index: number) {
     Button({ type: ButtonType.Circle }) {
@@ -104,12 +112,20 @@ export struct PlaylistView {
         .height(20)
         .fillColor($r('app.color.text_secondary'))
     }
-    .width(36)
-    .height(36)
-    .backgroundColor('rgba(200, 200, 200, 0.1)')
+    .width(40)
+    .height(40)
+    .backgroundColor($r('app.color.surface_2'))
+    .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
+    .shadow(ShadowStyle.OUTER_DEFAULT_XS)
     .margin({ left: 8 })
+    .clickEffect({ level: ClickEffectLevel.LIGHT, scale: 0.9 })
+    .hoverEffect(HoverEffect.Highlight)
     .onClick(() => {
       this.handleSongDelete(song, index);
+    })
+    .animation({
+      duration: AnimationConstants.DURATION_FAST,
+      curve: AnimationConstants.CURVE_DECELERATE
     })
   }
 
@@ -134,41 +150,58 @@ export struct PlaylistView {
 
   build() {
     Column() {
+      // 现代化标题栏
       Row() {
         Row() {
           Text($r('app.string.playing_list'))
-            .fontSize(20)
-            .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
+            .fontSize(22)
+            .fontWeight(FontWeight.Bolder)
             .fontColor($r('app.color.text_title'))
           Text(`(${this.playlist.length})`)
-            .fontSize(14)
-            .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-            .fontColor($r('app.color.text_title'))
-            .margin({ left: 2 })
+            .fontSize(16)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.text_secondary'))
+            .margin({ left: 6 })
         }
 
-        Row() {
-          SymbolGlyph($r('sys.symbol.scope'))
-            .fontSize(20)
-            .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-            .fontColor([$r('app.color.text_title')])
-            .clickEffect({ level: ClickEffectLevel.LIGHT })
-            .onClick(() => {
-              this.scrollController.scrollToIndex(this.currentIndex, true)
-            })
+        Row({ space: 8 }) {
+          // 定位到当前播放按钮
+          Button({ type: ButtonType.Circle }) {
+            SymbolGlyph($r('sys.symbol.scope'))
+              .fontSize(20)
+              .fontWeight(FontWeight.Bold)
+              .fontColor([$r('app.color.text_title')])
+          }
+          .width(44)
+          .height(44)
+          .backgroundColor($r('app.color.surface_2'))
+          .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
+          .shadow(ShadowStyle.OUTER_DEFAULT_XS)
+          .clickEffect({ level: ClickEffectLevel.LIGHT, scale: 0.9 })
+          .hoverEffect(HoverEffect.Highlight)
+          .onClick(() => {
+            this.scrollController.scrollToIndex(this.currentIndex, true)
+          })
 
-          SymbolGlyph($r('sys.symbol.ohos_trash'))
-            .fontSize(20)
-            .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-            .fontColor([$r('app.color.text_title')])
-            .margin({ left: 10 })
-            .clickEffect({ level: ClickEffectLevel.LIGHT })
-            .onClick(() => {
-              this.songsDataSource.clearData()
-              PlaylistManager.clearPlaylist();
-            })
+          // 清空列表按钮
+          Button({ type: ButtonType.Circle }) {
+            SymbolGlyph($r('sys.symbol.ohos_trash'))
+              .fontSize(20)
+              .fontWeight(FontWeight.Bold)
+              .fontColor([$r('app.color.text_title')])
+          }
+          .width(44)
+          .height(44)
+          .backgroundColor($r('app.color.surface_2'))
+          .backgroundBlurStyle(BlurStyle.COMPONENT_THIN)
+          .shadow(ShadowStyle.OUTER_DEFAULT_XS)
+          .clickEffect({ level: ClickEffectLevel.LIGHT, scale: 0.9 })
+          .hoverEffect(HoverEffect.Highlight)
+          .onClick(() => {
+            this.songsDataSource.clearData()
+            PlaylistManager.clearPlaylist();
+          })
         }
-
       }
       .padding(16)
       .justifyContent(FlexAlign.SpaceBetween)
@@ -197,8 +230,12 @@ export struct PlaylistView {
               }
             }
             .transition(
-              TransitionEffect.opacity(0)
+              TransitionEffect.OPACITY
                 .combine(TransitionEffect.translate({ x: '-200vp' }))
+                .animation({
+                  duration: AnimationConstants.DURATION_SLOW,
+                  curve: AnimationConstants.CURVE_DECELERATE
+                })
             )
             .margin({ bottom: 4 })
           }, (song: Song, index: number) => `${song.id}-${index}`) // 使用歌曲ID作为唯一标识符

@@ -493,6 +493,10 @@
       "value": "Aggregation"
     },
     {
+      "name": "statistics",
+      "value": "Statistics"
+    },
+    {
       "name": "no_aggregation_playlist",
       "value": "No Aggregation Playlists"
     },
@@ -611,6 +615,106 @@
     {
       "name": "playing_title_show_lyrics",
       "value": "Show Lyrics Above Playback"
+    },
+    {
+      "name": "for_you",
+      "value": "For You"
+    },
+    {
+      "name": "daily_recommend",
+      "value": "Daily Mix"
+    },
+    {
+      "name": "favorite_songs",
+      "value": "Favorite Songs"
+    },
+    {
+      "name": "filter_all",
+      "value": "All"
+    },
+    {
+      "name": "filter_songs",
+      "value": "Songs"
+    },
+    {
+      "name": "filter_playlists",
+      "value": "Playlists"
+    },
+    {
+      "name": "filter_artists",
+      "value": "Artists"
+    },
+    {
+      "name": "filter_albums",
+      "value": "Albums"
+    },
+    {
+      "name": "view_more",
+      "value": "View More"
+    },
+    {
+      "name": "compact_view",
+      "value": "Compact View"
+    },
+    {
+      "name": "grid_view",
+      "value": "Grid View"
+    },
+    {
+      "name": "downloading",
+      "value": "Downloading"
+    },
+    {
+      "name": "download_history",
+      "value": "Download History"
+    },
+    {
+      "name": "waiting",
+      "value": "Waiting"
+    },
+    {
+      "name": "downloading_with_progress",
+      "value": "Downloading"
+    },
+    {
+      "name": "completed",
+      "value": "Completed"
+    },
+    {
+      "name": "no_download_history",
+      "value": "No download history"
+    },
+    {
+      "name": "pause_all",
+      "value": "Pause All"
+    },
+    {
+      "name": "resume_all",
+      "value": "Resume All"
+    },
+    {
+      "name": "clear_completed",
+      "value": "Clear Completed"
+    },
+    {
+      "name": "paused",
+      "value": "Paused"
+    },
+    {
+      "name": "retrying",
+      "value": "Retrying"
+    },
+    {
+      "name": "failed",
+      "value": "Failed"
+    },
+    {
+      "name": "waiting_position",
+      "value": "Waiting %s/%s"
+    },
+    {
+      "name": "retry_count",
+      "value": "Retrying %s/3"
     }
   ]
 }

@@ -1,4 +1,5 @@
 import { StyleConstants } from "../constants/StyleConstants"
+import { AnimationConstants } from "../constants/AnimationConstants"
 
 @Component
 export struct MenuButton {
@@ -15,67 +16,77 @@ export struct MenuButton {
 
   @Builder
   private ArrowIcon() {
-    Row() {
-      Image($r('app.media.ic_chevron_right'))
-        .width(16)
-        .height(16)
-        .fillColor($r("app.color.icon_normal"))
-        .translate({ x: this.isAnimating ? 4 : 0 })
-        .scale({ x: this.isAnimating ? 1.1 : 1, y: this.isAnimating ? 1.1 : 1 })
-        .animation({
-          duration: 200,
-          curve: Curve.EaseOut,
-          iterations: 1,
-          playMode: PlayMode.Normal,
-          onFinish: () => {
-            this.isAnimating = false // 动画结束时直接重置状态
-          }
-        })
-    }
-    .margin({ right: this.isAnimating ? -8 : -4 })
-    .animation({
-      duration: 200,
-      curve: Curve.EaseOut
-    })
+    Image($r('app.media.ic_chevron_right'))
+      .width(18)
+      .height(18)
+      .fillColor($r("app.color.accent_primary"))
+      .translate({ x: this.isAnimating ? 6 : 0 })
+      .animation({
+        duration: AnimationConstants.DURATION_FAST,
+        curve: AnimationConstants.CURVE_SPRING,
+        iterations: 1,
+        playMode: PlayMode.Normal,
+        onFinish: () => {
+          this.isAnimating = false
+        }
+      })
   }
 
   build() {
-    Row() {
+    Row({ space: 8 }) {
       Text(this.title)
-        .fontSize(16)
-        .fontColor($r("app.color.text_secondary"))
-        .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
-      Blank()
+        .fontSize(15)
+        .fontColor($r("app.color.text_primary"))
+        .fontWeight(FontWeight.Medium)
+        .layoutWeight(1)
+        .textAlign(TextAlign.Center)
+
       this.ArrowIcon()
     }
-    .hoverEffect(HoverEffect.Scale)
     .width(StyleConstants.FULL_WIDTH)
-    .height(48)
+    .height(52)
     .padding({ left: 16, right: 16 })
+    .borderRadius(14)
     .stateStyles({
       normal: this.normalStyles,
-      pressed: this.pressedStyles
+      pressed: this.pressedStyles,
+      focused: this.focusedStyles
     })
-    .border({ width: 0.5, color: $r("app.color.homepage_menu_button_divider") })
-    .borderRadius(8)
+    .shadow({
+      radius: 12,
+      color: $r("app.color.shadow_light"),
+      offsetX: 0,
+      offsetY: 2
+    })
     .onClick((event: ClickEvent) => {
-      // 立即触发导航回调，不等待动画完成
       this.onNavigate?.(event)
 
-      // 只有在没有动画时才开始新动画
+      // 触发箭头动画
       if (!this.isAnimating) {
         this.isAnimating = true
       }
     })
-    .backgroundBlurStyle(BlurStyle.COMPONENT_ULTRA_THIN)
-    .clickEffect({ level: ClickEffectLevel.LIGHT })
+    .backgroundBlurStyle(BlurStyle.COMPONENT_ULTRA_THICK)
+    .clickEffect({
+      level: ClickEffectLevel.LIGHT,
+      scale: 0.95
+    })
+    .hoverEffect(HoverEffect.Highlight)
   }
 
-  @Styles normalStyles(){
-    .backgroundColor($r("app.color.homepage_menu_button_normal"))
+  @Styles normalStyles() {
+    .backgroundColor($r("app.color.card_elevated"))
   }
 
-  @Styles pressedStyles(){
-    .backgroundColor($r("app.color.homepage_menu_button_pressed"))
+  @Styles pressedStyles() {
+    .backgroundColor($r("app.color.interactive_pressed"))
+  }
+
+  @Styles focusedStyles() {
+    .backgroundColor($r("app.color.card_hover"))
+    .border({
+      width: 2,
+      color: $r("app.color.accent_primary")
+    })
   }
 }

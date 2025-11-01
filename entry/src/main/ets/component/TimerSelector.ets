@@ -1,6 +1,7 @@
 import { DialogAction, DialogHelper } from "@pura/harmony-dialog"
 import { ToastUtil } from "@pura/harmony-utils"
 import { EventHelper } from "../util/EventHelper"
+import { AnimationConstants } from "../constants/AnimationConstants"
 
 @Component
 export struct TimerSelector {
@@ -82,8 +83,8 @@ export struct TimerSelector {
 
   private setTimer(minutes: number) {
     this.uiContext?.animateTo({
-      duration: 300,
-      curve: Curve.EaseInOut
+      duration: AnimationConstants.DURATION_NORMAL,
+      curve: AnimationConstants.CURVE_DECELERATE
     }, () => {
       this.showTimerUI = true
       const now = Date.now()
@@ -96,8 +97,8 @@ export struct TimerSelector {
 
   private cancelTimer() {
     this.uiContext?.animateTo({
-      duration: 300,
-      curve: Curve.EaseInOut
+      duration: AnimationConstants.DURATION_NORMAL,
+      curve: AnimationConstants.CURVE_DECELERATE
     }, () => {
       this.showTimerUI = false
       this.pauseAt = -1
@@ -111,129 +112,147 @@ export struct TimerSelector {
     Button({ type: ButtonType.Capsule }) {
       Row() {
         Text(minutes.toString())
-          .fontSize(16)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(minutes === this.selectedOption ? $r('app.color.dialog_background') : $r('app.color.text_primary'))
+          .fontSize(17)
+          .fontWeight(FontWeight.Bold)
+          .fontColor(minutes === this.selectedOption ? Color.White : $r('app.color.text_title'))
 
         Text($r('app.string.minute'))
-          .fontSize(12)
-          .opacity(0.9)
+          .fontSize(13)
+          .fontWeight(FontWeight.Medium)
           .margin({ left: 4 })
-          .fontColor(minutes === this.selectedOption ? $r('app.color.dialog_background') :
+          .fontColor(minutes === this.selectedOption ? 'rgba(255, 255, 255, 0.9)' :
           $r('app.color.text_secondary'))
       }
       .alignItems(VerticalAlign.Center)
-      .padding({ left: 16, right: 16 })
+      .padding({ left: 18, right: 18 })
     }
-    .height(44)
-    .backgroundColor(minutes === this.selectedOption ? $r('app.color.text_primary') :
-    $r('app.color.back_button_normal'))
+    .height(48)
+    .backgroundColor(minutes === this.selectedOption ? $r('app.color.accent_primary') :
+    $r('app.color.surface_2'))
+    .backgroundBlurStyle(minutes === this.selectedOption ? BlurStyle.COMPONENT_THICK : BlurStyle.COMPONENT_THIN)
+    .shadow(minutes === this.selectedOption ? ShadowStyle.OUTER_DEFAULT_MD : ShadowStyle.OUTER_DEFAULT_SM)
     .margin({ right: 12, bottom: 16 })
-    .borderRadius(22)
-    .stateEffect(true)
+    .borderRadius(24)
+    .clickEffect({ level: ClickEffectLevel.LIGHT, scale: 0.95 })
+    .hoverEffect(HoverEffect.Highlight)
     .onClick(() => this.setTimer(minutes))
     .animation({
-      duration: 300,
-      curve: Curve.EaseOut,
+      duration: AnimationConstants.DURATION_NORMAL,
+      curve: AnimationConstants.CURVE_DECELERATE,
       delay: 50 + index * 30,
       iterations: 1,
       playMode: PlayMode.Normal
     })
-    .transition({ type: TransitionType.All })
+    .transition(TransitionEffect.OPACITY
+      .combine(TransitionEffect.translate({ y: 20 }))
+      .animation({
+        duration: AnimationConstants.DURATION_NORMAL,
+        curve: AnimationConstants.CURVE_DECELERATE,
+        delay: 50 + index * 30
+      }))
     .opacity(this.isVisible ? 1 : 0)
-    .translate({ y: this.isVisible ? 0 : 20 })
   }
 
   build() {
     Column() {
       // Use fixed heights for transition areas to prevent content jump
-      Column() {
-        if (this.remainingTime !== '') {
-          // Timer controls area - animate its height and opacity
-          Row() {
-            Text('开启')
-              .fontSize(14)
-              .fontColor($r('app.color.text_secondary'))
-              .margin({ right: 12 })
-
-            Toggle({ type: ToggleType.Switch, isOn: true })
-              .width(44)
-              .height(24)
-              .switchPointColor($r('app.color.icon_normal'))
-              .selectedColor($r('app.color.back_button_normal'))
-              .onChange((isOn) => {
-                if (!isOn) {
-                  this.cancelTimer()
-                }
-              })
-          }
-          .width('100%')
-          .justifyContent(FlexAlign.End)
-          .alignItems(VerticalAlign.Center)
-          .padding({ top: 8, bottom: 8 })
-          .animation({
-            duration: 300,
-            curve: Curve.EaseInOut
-          })
-          .opacity(this.showTimerUI ? 1 : 0)
-          .height(this.showTimerUI ? 40 : 0)
-        }
-      }
-      .width('100%')
-      .height(this.remainingTime !== '' ? 40 : 0)
-      .transition({ type: TransitionType.All })
-
-      // Timer display area - fixed height container that animates
+      // 紧凑型倒计时显示区域 - 横向布局，节省垂直空间
       Column() {
         if (this.remainingTime) {
-          Column() {
-            Text('剩余时间')
-              .fontSize(14)
-              .fontColor($r('app.color.text_secondary'))
-              .margin({ bottom: 8 })
+          Row() {
+            // 左侧：倒计时信息
+            Row({ space: 12 }) {
+              // 时钟图标
+              SymbolGlyph($r('sys.symbol.timer'))
+                .fontSize(24)
+                .fontWeight(FontWeight.Bold)
+                .fontColor([$r('app.color.accent_primary')])
 
-            Text(this.remainingTime)
-              .fontSize(40)
-              .fontWeight(FontWeight.Bold)
-              .fontColor($r('app.color.text_primary'))
+              // 倒计时文字
+              Column({ space: 2 }) {
+                Text('剩余时间')
+                  .fontSize(12)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor($r('app.color.text_secondary'))
+
+                Text(this.remainingTime)
+                  .fontSize(24)
+                  .fontWeight(FontWeight.Bolder)
+                  .fontColor($r('app.color.accent_primary'))
+                  .textShadow({
+                    radius: 6,
+                    color: 'rgba(255, 107, 129, 0.25)',
+                    offsetX: 0,
+                    offsetY: 0
+                  })
+              }
+              .alignItems(HorizontalAlign.Start)
+            }
+            .layoutWeight(1)
+
+            // 右侧：开关控制
+            Row({ space: 8 }) {
+              Text('开启')
+                .fontSize(14)
+                .fontWeight(FontWeight.Medium)
+                .fontColor($r('app.color.text_secondary'))
+
+              Toggle({ type: ToggleType.Switch, isOn: true })
+                .width(48)
+                .height(28)
+                .switchPointColor(Color.White)
+                .selectedColor($r('app.color.accent_primary'))
+                .onChange((isOn) => {
+                  if (!isOn) {
+                    this.cancelTimer()
+                  }
+                })
+            }
           }
-          .alignItems(HorizontalAlign.Center)
           .width('100%')
-          .padding({ top: 20, bottom: 20 })
-          .backgroundColor($r('app.color.background_gray'))
+          .justifyContent(FlexAlign.SpaceBetween)
+          .alignItems(VerticalAlign.Center)
+          .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+          .backgroundColor($r('app.color.surface_1'))
+          .backgroundBlurStyle(BlurStyle.COMPONENT_ULTRA_THICK)
+          .shadow(ShadowStyle.OUTER_DEFAULT_MD)
           .borderRadius(16)
           .animation({
-            duration: 300,
-            curve: Curve.EaseInOut
+            duration: AnimationConstants.DURATION_NORMAL,
+            curve: AnimationConstants.CURVE_SPRING
           })
           .opacity(this.showTimerUI ? 1 : 0)
           .scale({ x: this.showTimerUI ? 1 : 0.95, y: this.showTimerUI ? 1 : 0.95 })
         }
       }
       .animation({
-        duration: 300,
-        curve: Curve.EaseInOut
+        duration: AnimationConstants.DURATION_NORMAL,
+        curve: AnimationConstants.CURVE_SPRING
       })
-      .height(this.remainingTime ? (this.showTimerUI ? 120 : 0) : 0)
-      .margin({ bottom: this.remainingTime && this.showTimerUI ? 24 : 0 })
-      .transition({ type: TransitionType.All })
-
-      // Section title for time options
-      Text($r('app.string.select_time'))
-        .fontSize(16)
-        .fontWeight(FontWeight.Medium)
-        .fontColor($r('app.color.text_primary'))
-        .alignSelf(ItemAlign.Start)
-        .margin({ top: 8, bottom: 16 })
+      .height(this.remainingTime ? (this.showTimerUI ? 68 : 0) : 0)
+      .margin({ bottom: this.remainingTime && this.showTimerUI ? 20 : 0 })
+      .transition(TransitionEffect.OPACITY
+        .combine(TransitionEffect.scale({ x: 0.95, y: 0.95 }))
         .animation({
-          duration: 400,
-          curve: Curve.EaseOut,
-          delay: 200,
-          iterations: 1,
-          playMode: PlayMode.Normal
-        })
+          duration: AnimationConstants.DURATION_NORMAL,
+          curve: AnimationConstants.CURVE_SPRING
+        }))
+
+      // 现代化标题
+      Text($r('app.string.select_time'))
+        .fontSize(17)
+        .fontWeight(FontWeight.Bold)
+        .fontColor($r('app.color.text_title'))
+        .alignSelf(ItemAlign.Start)
+        .margin({ top: 8, bottom: 20 })
+        .transition(TransitionEffect.OPACITY
+          .combine(TransitionEffect.translate({ y: 10 }))
+          .animation({
+            duration: AnimationConstants.DURATION_SLOW,
+            curve: AnimationConstants.CURVE_DECELERATE,
+            delay: 200
+          }))
         .opacity(this.isVisible ? 1 : 0)
-        .translate({ y: this.isVisible ? 0 : 10 })
 
       // Preset time options with more spacing
       Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start }) {
@@ -245,21 +264,25 @@ export struct TimerSelector {
       .padding({ top: 8, bottom: 12 })
       .margin({ bottom: 24 })
 
-      // Custom time button
+      // 现代化自定义时间按钮 - 增强模糊效果
       Button() {
         Row() {
           Text($r('app.string.custom_time'))
-            .fontColor($r('app.color.text_primary'))
-            .fontSize(16)
-            .fontWeight(FontWeight.Medium)
+            .fontColor($r('app.color.text_title'))
+            .fontSize(17)
+            .fontWeight(FontWeight.Bold)
         }
         .width('100%')
         .justifyContent(FlexAlign.Center)
       }
-      .backgroundColor($r('app.color.tag_background'))
-      .height(52)
+      .backgroundColor($r('app.color.surface_2'))
+      .backgroundBlurStyle(BlurStyle.COMPONENT_REGULAR)
+      .shadow(ShadowStyle.OUTER_DEFAULT_SM)
+      .height(56)
       .width('100%')
-      .borderRadius(26)
+      .borderRadius(28)
+      .clickEffect({ level: ClickEffectLevel.LIGHT, scale: 0.96 })
+      .hoverEffect(HoverEffect.Highlight)
       .onClick(() => {
         DialogHelper.showTextInputDialog({
           title: $r('app.string.set_scheduled_shutdown'),
@@ -280,27 +303,25 @@ export struct TimerSelector {
           }
         })
       })
-      .animation({
-        duration: 500,
-        curve: Curve.EaseOut,
-        delay: 300 + this.timeOptions.length * 30,
-        iterations: 1,
-        playMode: PlayMode.Normal
-      })
+      .transition(TransitionEffect.OPACITY
+        .combine(TransitionEffect.scale({ x: 0.9, y: 0.9 }))
+        .animation({
+          duration: AnimationConstants.DURATION_SLOW,
+          curve: AnimationConstants.CURVE_DECELERATE,
+          delay: 300 + this.timeOptions.length * 30
+        }))
       .opacity(this.isVisible ? 1 : 0)
-      .scale({ x: this.isVisible ? 1 : 0.9, y: this.isVisible ? 1 : 0.9 })
     }
     .width('100%')
     .height("100%")
     .padding(24)
     .borderRadius(20)
-    .animation({
-      duration: 350,
-      curve: Curve.EaseOut,
-      iterations: 1,
-      playMode: PlayMode.Normal
-    })
+    .transition(TransitionEffect.OPACITY
+      .combine(TransitionEffect.scale({ x: 0.9, y: 0.9 }))
+      .animation({
+        duration: AnimationConstants.DURATION_SLOW,
+        curve: AnimationConstants.CURVE_SPRING
+      }))
     .opacity(this.isVisible ? 1 : 0)
-    .scale({ x: this.isVisible ? 1 : 0.9, y: this.isVisible ? 1 : 0.9 })
   }
 }

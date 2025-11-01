@@ -135,6 +135,110 @@
     {
       "name": "Personalized_settings_button_background",
       "value": "#ffffff"
+    },
+    {
+      "name": "accent_primary",
+      "value": "#FF3B82F6"
+    },
+    {
+      "name": "accent_secondary",
+      "value": "#FF8B5CF6"
+    },
+    {
+      "name": "accent_tertiary",
+      "value": "#FFEC4899"
+    },
+    {
+      "name": "gradient_start",
+      "value": "#FF6366F1"
+    },
+    {
+      "name": "gradient_end",
+      "value": "#FFA855F7"
+    },
+    {
+      "name": "card_elevated",
+      "value": "#FFFFFFFF"
+    },
+    {
+      "name": "card_hover",
+      "value": "#FFF5F5F5"
+    },
+    {
+      "name": "overlay_light",
+      "value": "#1A000000"
+    },
+    {
+      "name": "overlay_medium",
+      "value": "#4D000000"
+    },
+    {
+      "name": "overlay_dark",
+      "value": "#80000000"
+    },
+    {
+      "name": "surface_1",
+      "value": "#FFFAFAFA"
+    },
+    {
+      "name": "surface_2",
+      "value": "#FFF5F5F5"
+    },
+    {
+      "name": "surface_3",
+      "value": "#FFEEEEEE"
+    },
+    {
+      "name": "interactive_normal",
+      "value": "#FFF0F0F0"
+    },
+    {
+      "name": "interactive_hover",
+      "value": "#FFE8E8E8"
+    },
+    {
+      "name": "interactive_pressed",
+      "value": "#FFE0E0E0"
+    },
+    {
+      "name": "shadow_light",
+      "value": "#0D000000"
+    },
+    {
+      "name": "shadow_medium",
+      "value": "#1A000000"
+    },
+    {
+      "name": "shadow_heavy",
+      "value": "#26000000"
+    },
+    {
+      "name": "music_red",
+      "value": "#FFEF4444"
+    },
+    {
+      "name": "music_orange",
+      "value": "#FFF97316"
+    },
+    {
+      "name": "music_yellow",
+      "value": "#FFEAB308"
+    },
+    {
+      "name": "music_green",
+      "value": "#FF10B981"
+    },
+    {
+      "name": "music_blue",
+      "value": "#FF3B82F6"
+    },
+    {
+      "name": "music_purple",
+      "value": "#FF8B5CF6"
+    },
+    {
+      "name": "music_pink",
+      "value": "#FFEC4899"
     }
   ]
 }

@@ -5,6 +5,7 @@ import { MiniPlaybackControl } from "../component/MiniPlaybackControl";
 import { PlaylistItem } from "../component/PlaylistItem";
 import { TitleHeader } from "../component/TitleHeader";
 import { StyleConstants } from "../constants/StyleConstants";
+import { AnimationConstants } from "../constants/AnimationConstants";
 import { Playlist, PlaylistType, Song } from "../type/Adapter";
 import { PreferencesCache } from "../util/PreferenceCache";
 import { PushPathHelper } from "../util/PushPathHelper";

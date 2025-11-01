@@ -1,5 +1,6 @@
 import { Artist, Playlist, Song } from '../type/Adapter'
 import { StyleConstants } from "../constants/StyleConstants"
+import { AnimationConstants } from "../constants/AnimationConstants"
 import { BreakpointConstants } from '../constants/BreakpointConstants'
 import { cover } from '../util/AdapterHelper'
 import { PlaylistManager } from '../util/PlaylistManager'
@@ -152,13 +153,16 @@ struct Playing {
           avPlayerManager.avPlayer?.setVolume(value/100)
           PreferencesCache.setUserPreference('Volume', value.toString())
           console.info('value:' + value + 'mode:' + mode.toString())
-          this.uiContext?.animateTo({ duration: 100, curve: Curve.EaseOut }, () => {
+          this.uiContext?.animateTo({
+            duration: AnimationConstants.DURATION_FAST,
+            curve: AnimationConstants.CURVE_DECELERATE
+          }, () => {
             this.rotateAngle = value
           })
         })
         .animation({
-          duration: 250,
-          curve: Curve.EaseOut,
+          duration: AnimationConstants.DURATION_FAST,
+          curve: AnimationConstants.CURVE_DECELERATE,
           iterations: 1,
           playMode: PlayMode.Normal
         })
@@ -263,7 +267,10 @@ struct Playing {
           .clip(false)
           .barHeight(0)
           .onChange((index: number) => {
-            this.uiContext?.animateTo({ duration: 400, curve: Curve.EaseInOut }, () => {
+            this.uiContext?.animateTo({
+              duration: AnimationConstants.DURATION_SLOW,
+              curve: AnimationConstants.CURVE_DECELERATE
+            }, () => {
               this.selectedTabIndex = index
             })
           })
@@ -382,7 +389,7 @@ struct Playing {
         .margin({ left: 36, top: 16, bottom: 16 })
         .width(StyleConstants.FULL_WIDTH)
         .textAlign(TextAlign.Start)
-      TimerSelector()
+        TimerSelector()
     }
     .height(StyleConstants.FULL_HEIGHT)
     .layoutWeight(1)
@@ -890,19 +897,32 @@ struct Playing {
   @Builder
   BlurBackground(judge:boolean = true) {
     Stack() {
+      // 背景图片 - 第一层（使用超强模糊）
       Image(cover(this.song?.album?.cover ?? "", 512))
         .width(StyleConstants.FULL_WIDTH)
         .height(StyleConstants.FULL_HEIGHT)
         .objectFit(ImageFit.Cover)
-        .blur(98)
-        .opacity(0.6)
+        .backgroundBlurStyle(BlurStyle.BACKGROUND_ULTRA_THICK)
+        .opacity(0.4)
 
+      // 毛玻璃效果层 - 使用 backgroundEffect 增强质感
+      Column()
+        .width(StyleConstants.FULL_WIDTH)
+        .height(StyleConstants.FULL_HEIGHT)
+        .backgroundEffect({
+          radius: 60,
+          saturation: 1.3,
+          brightness: 0.9
+        })
+        .backgroundColor('rgba(0, 0, 0, 0.2)')
+
+      // 渐变遮罩层 - 增强视觉层次和对比度
       Column()
         .width(StyleConstants.FULL_WIDTH)
         .height(StyleConstants.FULL_HEIGHT)
         .linearGradient({
           angle: 180,
-          colors: [['rgba(0, 0, 0, 0.50)', 0.0], ['rgba(0, 0, 0, 0.20)', 0.5], ['rgba(0, 0, 0, 0.50)', 1.0]]
+          colors: [['rgba(0, 0, 0, 0.60)', 0.0], ['rgba(0, 0, 0, 0.30)', 0.5], ['rgba(0, 0, 0, 0.60)', 1.0]]
         })
     }
     .width(judge?StyleConstants.FULL_WIDTH:0)
@@ -1201,15 +1221,13 @@ struct Playing {
   // 下载歌曲
   async downloadSong() {
     if (this.song) {
-      ToastUtil.showShort($r('app.string.added_to_the_download_queue'))
-      SongDownloadManager.downloadSong(
+      const success = SongDownloadManager.downloadSong(
         this.song.id.toString(),
-        this.song,
-        undefined,
-        () => {
-          ToastUtil.showShort($r('app.string.download_successful'))
-        },
-      )
+        this.song
+      );
+      if (success) {
+        ToastUtil.showShort($r('app.string.added_to_the_download_queue'));
+      }
     }
   }
 

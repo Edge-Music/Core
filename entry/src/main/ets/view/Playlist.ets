@@ -1,7 +1,8 @@
-import { AlbumCoversCarousel } from "../component/AlbumCoversCarousel";
+
 import { SongInfo } from "../component/SongInfo";
 import { TitleHeader } from "../component/TitleHeader";
 import { StyleConstants } from "../constants/StyleConstants";
+import { AnimationConstants } from "../constants/AnimationConstants";
 import { Playlist, PlaylistType, Song } from "../type/Adapter";
 import { BreakpointConstants } from "../constants/BreakpointConstants";
 import { cover } from "../util/AdapterHelper";
@@ -112,8 +113,8 @@ export struct PlayList {
         }
 
         ListItem() {
-          // 轮播图部分（如果符合条件）
-          this.AlbumCoversSection()
+          // 手机端歌单信息头部
+          this.MobilePlaylistHeader()
         }
 
         ListItemGroup() {
@@ -153,7 +154,8 @@ export struct PlayList {
                   deleteSong: (_: Song) => {
                     if(this.playlist?.type === PlaylistType.AGGREGATION) {
                       this.getUIContext().animateTo({
-                        duration: 500,
+                        duration: AnimationConstants.DURATION_SLOW,
+                        curve: AnimationConstants.CURVE_DECELERATE,
                         onFinish: () => {
                           this.songsDataSource.reloadData()
                         }
@@ -226,23 +228,74 @@ export struct PlayList {
     }, 1000);
   }
 
+
+
+  // 手机端歌单信息头部
   @Builder
-  AlbumCoversSection() {
-    if (this.songs && this.songs.length >= 50) {
-      Column() {
-        AlbumCoversCarousel({
-          coverSize: 56,
-          scrollSpeed: 60,
-          rows: 1,
-          songs: this.songs.slice(0, 30) || [],
-          onCoverClick: (song: Song, index: number) => {
-            this.handleCoverClick(song, index);
+  MobilePlaylistHeader() {
+    if (this.playlist && !this.isWideScreen) {
+      Column({ space: 12 }) {
+        // 封面和基本信息
+        Row({ space: 14 }) {
+          // 封面
+          Image(cover(this.playlist.cover || '', 200))
+            .width(100)
+            .height(100)
+            .borderRadius(10)
+            .backgroundColor($r('app.color.skeleton_loading'))
+            .shadow({
+              radius: 10,
+              color: $r("app.color.shadow_medium"),
+              offsetX: 0,
+              offsetY: 3
+            })
+
+          // 信息
+          Column({ space: 6 }) {
+            Text(this.playlist.name)
+              .fontSize(16)
+              .fontColor($r('app.color.text_primary'))
+              .fontWeight(FontWeight.Bold)
+              .maxLines(2)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+            if (this.playlist.creator) {
+              Text(this.playlist.creator.name || '未知')
+                .fontSize(12)
+                .fontColor($r('app.color.text_secondary'))
+                .maxLines(1)
+            }
+
+            Row({ space: 4 }) {
+              Text(`${this.songs?.length || 0}`)
+                .fontSize(12)
+                .fontColor($r('app.color.accent_primary'))
+                .fontWeight(FontWeight.Medium)
+              Text('首')
+                .fontSize(12)
+                .fontColor($r('app.color.text_secondary'))
+            }
           }
-        })
+          .alignItems(HorizontalAlign.Start)
+          .layoutWeight(1)
+        }
+        .width(StyleConstants.FULL_WIDTH)
+        .padding({ left: 16, right: 16, top: 12, bottom: 8 })
+
+        // 描述（如果有且不为空）
+        if (this.playlist.description && this.playlist.description.trim().length > 0) {
+          Text(this.playlist.description)
+            .fontSize(12)
+            .fontColor($r('app.color.text_secondary'))
+            .maxLines(2)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .lineHeight(16)
+            .padding({ left: 16, right: 16, bottom: 8 })
+        }
       }
-      .backgroundColor($r('app.color.page_background'))
       .width(StyleConstants.FULL_WIDTH)
-      .padding({ bottom: 12 })
+      // .backgroundColor($r('app.color.surface_1'))
+      .borderRadius({ bottomLeft: 16, bottomRight: 16 })
     }
   }
 
@@ -271,19 +324,25 @@ export struct PlayList {
   LeftPanel() {
     Column() {
       if (this.playlist) {
-        // 创建一个填满整个区域的大卡片
-        Column() {
-          // 歌单封面
+          // 歌单封面 - 完全居中
           Column() {
-            // 封面图
-            Image(cover(this.playlist.cover || '', 300))
-              .width(StyleConstants.FULL_WIDTH)
-              .aspectRatio(1)// 保持正方形比例
-              .borderRadius(16)
-              .backgroundColor($r('app.color.setting_button_normal'))
+            Image(cover(this.playlist.cover || '', 400))
+              .width(200)
+              .height(200)
+              .borderRadius(20)
+              .backgroundColor($r('app.color.skeleton_loading'))
+              .shadow({
+                radius: 24,
+                color: $r("app.color.shadow_medium"),
+                offsetX: 0,
+                offsetY: 12
+              })
+              .clip(true)
           }
-          .margin({ top: 20, bottom: 16 })
-          .width('80%')
+          .width(StyleConstants.FULL_WIDTH)
+          .justifyContent(FlexAlign.Center)
+          .alignItems(HorizontalAlign.Center)
+          .margin({ top: 20, bottom: 20 })
 
           // 歌单信息
           Column({ space: 12 }) {
@@ -323,6 +382,7 @@ export struct PlayList {
             }
           }
           .width(StyleConstants.FULL_WIDTH)
+          .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Center)
           .padding({ left: 16, right: 16 })
           .layoutWeight(1) // 使中间部分可以自适应伸缩
@@ -344,20 +404,12 @@ export struct PlayList {
           .padding({ bottom: 24, top: 12 })
           .width(StyleConstants.FULL_WIDTH)
         }
-        .width(StyleConstants.FULL_WIDTH)
-        .height(`calc(100% - ${StyleConstants.PLAYER_CONTROL_HEIGHT + this.bottomRect}px)`) // 避让播放控制器
-        .backgroundColor($r('app.color.card_background'))
-        .opacity(0.8)
-        .borderRadius(24)
-        .alignItems(HorizontalAlign.Center)
-        .justifyContent(FlexAlign.SpaceBetween) // 使用SpaceBetween将歌曲数量推到底部
-      }
     }
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
     .alignItems(HorizontalAlign.Start)
     .justifyContent(FlexAlign.Start)
-    .padding(16)
+    .padding({ left: 16, right: 16, top: 80, bottom: 16 })
   }
 
   // 右侧面板 - 宽屏模式

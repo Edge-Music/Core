@@ -74,9 +74,9 @@ export struct SongInfo {
   // 获取背景颜色
   private getBackgroundColor() {
     if (this.isHighlighting) {
-      return 'rgba(100, 149, 237, 0.15)'; // 高亮背景色
+      return $r('app.color.interactive_hover'); // 使用新配色
     }
-    return $r('app.color.setting_item_background');
+    return $r('app.color.card_background');
   }
 
   // 复制歌曲信息到剪贴板
@@ -239,7 +239,7 @@ export struct SongInfo {
       .onHover((isHover: boolean, _: HoverEvent)=>{
           this.On_Mouse =isHover
       })
-      .backgroundColor(this.On_Mouse? 'rgba(100, 149, 237, 0.15)':this.getBackgroundColor())
+      .backgroundColor(this.On_Mouse ? $r('app.color.card_hover') : this.getBackgroundColor())
       // .border({
       //   width: 1,
       //   color: this.getBorderColor(),
@@ -379,17 +379,15 @@ export struct SongInfo {
 
   async downloadSong() {
     if (this.song) {
-      ToastUtil.showShort($r('app.string.added_to_the_download_queue'))
-      SongDownloadManager.downloadSong(
+      const success = SongDownloadManager.downloadSong(
         this.song.id.toString(),
-        this.song,
-        undefined,
-        () => {
-          ToastUtil.showShort($r('app.string.download_successful'))
-          // 下载完成后更新状态
-          this.checkDownloadStatus();
-        },
-      )
+        this.song
+      );
+      if (success) {
+        ToastUtil.showShort($r('app.string.added_to_the_download_queue'));
+        // 下载完成后更新状态
+        this.checkDownloadStatus();
+      }
     }
   }
 

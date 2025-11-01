@@ -156,28 +156,55 @@ class LyricsManager {
   }
 
   /**
-   * 解析单个LRC文本
+   * 解析单个LRC文本 - 增强版，支持共享时间戳格式
    * @param lrcText - LRC格式文本字符串
    * @returns LyricsLine[] - 包含时间戳和对应歌词的数组，按时间戳升序排序
+   *
+   * 支持格式：
+   * 1. 标准格式：[00:12.00]歌词文本
+   * 2. 共享时间戳：[00:12.00][00:17.20][00:21.10]歌词文本
    */
   private parseLyricsText(lrcText: string): LyricsLine[] {
     const lines = lrcText.split('\n')
-    const timeRegex = /\[(\d{2}):(\d{2})(?:[\.:](\d{2,3}))?\]/
+    const timeRegex = /\[(\d{2}):(\d{2})(?:[\.:](\d{2,3}))?\]/g // 使用全局匹配
     const tempLyrics: LyricsLine[] = []
 
-    lines.forEach(line => {
-      const match = timeRegex.exec(line)
-      if (match) {
-        const minutes = parseInt(match[1])
-        const seconds = parseInt(match[2])
-        const ms = match[3] ? parseInt(match[3]) : 0
-        // 统一转换为毫秒
-        const time = minutes * 60 * 1000 + seconds * 1000 + (ms < 100 ? ms * 10 : ms)
-        const text = line.replace(timeRegex, '').trim()
-
-        if (text) {
-          tempLyrics.push(new LyricsLine(time, text))
+    lines.forEach((line, lineIndex) => {
+      try {
+        // 跳过空行
+        if (!line || line.trim() === '') {
+          return
         }
+
+        // 查找所有时间戳
+        const timestamps: number[] = []
+        let match: RegExpExecArray | null
+
+        // 重置正则表达式的lastIndex
+        timeRegex.lastIndex = 0
+
+        while ((match = timeRegex.exec(line)) !== null) {
+          const minutes = parseInt(match[1])
+          const seconds = parseInt(match[2])
+          const ms = match[3] ? parseInt(match[3]) : 0
+
+          // 统一转换为毫秒
+          const time = minutes * 60 * 1000 + seconds * 1000 + (ms < 100 ? ms * 10 : ms)
+          timestamps.push(time)
+        }
+
+        // 提取歌词文本（移除所有时间戳）
+        const text = line.replace(/\[(\d{2}):(\d{2})(?:[\.:](\d{2,3}))?\]/g, '').trim()
+
+        // 如果有时间戳且有歌词文本，为每个时间戳创建一个歌词行
+        if (timestamps.length > 0 && text) {
+          timestamps.forEach(time => {
+            tempLyrics.push(new LyricsLine(time, text))
+          })
+        }
+      } catch (error) {
+        // 容错处理：跳过无法解析的行
+        LogUtil.warn(`${TAG}`, `解析歌词第 ${lineIndex + 1} 行失败: ${line}, 错误: ${error}`)
       }
     })
 

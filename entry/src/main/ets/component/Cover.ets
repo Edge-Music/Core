@@ -1,4 +1,5 @@
 import { StyleConstants } from "../constants/StyleConstants"
+import { AnimationConstants } from "../constants/AnimationConstants"
 
 @Component
 export struct Cover {
@@ -9,6 +10,7 @@ export struct Cover {
   src: ResourceStr = ''
   radius: number | string = 8
   titleAlign: TextAlign = TextAlign.Start
+  overlayTitle?: boolean = false // 是否将标题叠加在图片上
 
   @Builder
   MoreButton() {
@@ -39,62 +41,70 @@ export struct Cover {
   }
 
   build() {
-    Column({ space: 8 }) {
-      Stack({ alignContent: Alignment.TopStart }) {
+    Column({ space: 10 }) {
+      Stack({ alignContent: this.overlayTitle ? Alignment.Bottom : Alignment.TopStart }) {
         Image(this.src ?? $r("app.media.icon"))
-          .hoverEffect(HoverEffect.Scale)
           .width(StyleConstants.FULL_WIDTH)
           .aspectRatio(1)
           .borderRadius(this.radius)
           .clip(true)
+          .shadow({
+            radius: 12,
+            color: $r("app.color.shadow_medium"),
+            offsetX: 0,
+            offsetY: 4
+          })
+          .hoverEffect(HoverEffect.Scale)
 
         this.MoreButton()
       }
+      .width(StyleConstants.FULL_WIDTH)
 
-      Column({ space: 4 }) {
-        if (this.loading) {
-          Text()
-            .width('80%')
-            .height(16)
-            .backgroundColor('rgba(0, 0, 0, 0.05)')// 骨架屏颜色
-            .borderRadius(4)
-
-          if (this.subTitle) {
+        Column({ space: 6 }) {
+          if (this.loading) {
             Text()
-              .width('60%')
-              .height(14)
-              .backgroundColor('rgba(0, 0, 0, 0.05)')// 骨架屏颜色
+              .width('80%')
+              .height(16)
+              .backgroundColor($r('app.color.skeleton_loading'))
               .borderRadius(4)
-          }
-        } else {
-          if (this.title) {
-            Text(this.title)
-              .width(StyleConstants.FULL_WIDTH)
-              .fontSize(16)
-              .fontColor($r('app.color.text_title'))
-              .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-              .heightAdaptivePolicy(TextHeightAdaptivePolicy.MAX_LINES_FIRST)
-              .textAlign(this.titleAlign)
-          }
 
-          if (this.subTitle) {
-            Text(this.subTitle)
-              .width(StyleConstants.FULL_WIDTH)
-              .fontSize(14)
-              .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
-              .fontColor($r('app.color.text_secondary'))
-              .maxLines(1)
-              .textOverflow({ overflow: TextOverflow.Ellipsis })
-              .heightAdaptivePolicy(TextHeightAdaptivePolicy.MAX_LINES_FIRST)
-              .textAlign(this.titleAlign)
+            if (this.subTitle) {
+              Text()
+                .width('60%')
+                .height(14)
+                .backgroundColor($r('app.color.skeleton_loading'))
+                .borderRadius(4)
+            }
+          } else {
+            if (this.title) {
+              Text(this.title)
+                .width(StyleConstants.FULL_WIDTH)
+                .fontSize(15)
+                .fontColor($r('app.color.text_primary'))
+                .fontWeight(FontWeight.Medium)
+                .maxLines(2)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+                .heightAdaptivePolicy(TextHeightAdaptivePolicy.MAX_LINES_FIRST)
+                .textAlign(this.titleAlign)
+                .lineHeight(20)
+            }
+
+            if (this.subTitle) {
+              Text(this.subTitle)
+                .width(StyleConstants.FULL_WIDTH)
+                .fontSize(13)
+                .fontWeight(FontWeight.Regular)
+                .fontColor($r('app.color.text_secondary'))
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+                .heightAdaptivePolicy(TextHeightAdaptivePolicy.MAX_LINES_FIRST)
+                .textAlign(this.titleAlign)
+            }
           }
         }
-      }
-      .alignItems(HorizontalAlign.Center)
-      .justifyContent(FlexAlign.Center)
-      .width(StyleConstants.FULL_WIDTH)
+        .alignItems(HorizontalAlign.Start)
+        .justifyContent(FlexAlign.Start)
+        .width(StyleConstants.FULL_WIDTH)
     }
     .clickEffect({ level: ClickEffectLevel.LIGHT })
   }

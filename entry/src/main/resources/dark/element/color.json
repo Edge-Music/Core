@@ -127,9 +127,114 @@
     {
       "name": "title_emphasis_color",
       "value": "#fecc11"
-    },{
+    },
+    {
       "name": "Personalized_settings_button_background",
       "value": "#343E4A"
+    },
+    {
+      "name": "accent_primary",
+      "value": "#FF60A5FA"
+    },
+    {
+      "name": "accent_secondary",
+      "value": "#FFA78BFA"
+    },
+    {
+      "name": "accent_tertiary",
+      "value": "#FFF472B6"
+    },
+    {
+      "name": "gradient_start",
+      "value": "#FF818CF8"
+    },
+    {
+      "name": "gradient_end",
+      "value": "#FFC084FC"
+    },
+    {
+      "name": "card_elevated",
+      "value": "#FF1E1E1E"
+    },
+    {
+      "name": "card_hover",
+      "value": "#FF2A2A2A"
+    },
+    {
+      "name": "overlay_light",
+      "value": "#1AFFFFFF"
+    },
+    {
+      "name": "overlay_medium",
+      "value": "#4DFFFFFF"
+    },
+    {
+      "name": "overlay_dark",
+      "value": "#80FFFFFF"
+    },
+    {
+      "name": "surface_1",
+      "value": "#FF1A1A1A"
+    },
+    {
+      "name": "surface_2",
+      "value": "#FF212121"
+    },
+    {
+      "name": "surface_3",
+      "value": "#FF2A2A2A"
+    },
+    {
+      "name": "interactive_normal",
+      "value": "#FF2A2A2A"
+    },
+    {
+      "name": "interactive_hover",
+      "value": "#FF333333"
+    },
+    {
+      "name": "interactive_pressed",
+      "value": "#FF3D3D3D"
+    },
+    {
+      "name": "shadow_light",
+      "value": "#0D000000"
+    },
+    {
+      "name": "shadow_medium",
+      "value": "#26000000"
+    },
+    {
+      "name": "shadow_heavy",
+      "value": "#40000000"
+    },
+    {
+      "name": "music_red",
+      "value": "#FFF87171"
+    },
+    {
+      "name": "music_orange",
+      "value": "#FFFB923C"
+    },
+    {
+      "name": "music_yellow",
+      "value": "#FFFDE047"
+    },
+    {
+      "name": "music_green",
+      "value": "#FF34D399"
+    },
+    {
+      "name": "music_blue",
+      "value": "#FF60A5FA"
+    },
+    {
+      "name": "music_purple",
+      "value": "#FFA78BFA"
+    },
+    {
+      "name": "music_pink",
+      "value": "#FFF472B6"
     }
   ]
 }

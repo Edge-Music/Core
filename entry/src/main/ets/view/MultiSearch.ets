@@ -4,8 +4,11 @@ import { HeaderAnimation } from "../component/HeaderAnimation";
 import { HeaderPlaceholder } from "../component/HeaderPlaceholder";
 import { MiniPlaybackControl } from "../component/MiniPlaybackControl";
 import { Segment } from "../component/Segment";
+import { SearchFilter, SearchFilterType } from "../component/SearchFilter";
+import { SearchResultList } from "../component/SearchResultList";
 import { TitleHeader } from "../component/TitleHeader";
 import { StyleConstants } from "../constants/StyleConstants";
+import { AnimationConstants } from "../constants/AnimationConstants";
 import { Album, Artist, Playlist, SearchResult, Song } from "../type/Adapter";
 import { HeaderComponent } from "../component/HeaderComponent";
 import ResourceManager from "../util/ResourceManager";
@@ -21,6 +24,7 @@ export struct MultiSearch {
   @State result: SearchResult | null = null;
   @State loading: boolean = false;
   @State nullResultFlag: boolean = true
+  @State selectedFilter: SearchFilterType = SearchFilterType.ALL
   @State scrollOffsetY: number = 0
   @State startScrollOffsetY: number = 0
   @State placeholderOffset: number = 0
@@ -52,44 +56,56 @@ export struct MultiSearch {
               HeaderAnimation({ scrollController: this.scrollController })
             }
 
+            // 筛选器
+            ListItem() {
+              SearchFilter({ selectedFilter: $selectedFilter })
+            }
+
             ListItemGroup(){
               if(this.result){
-                // 歌曲
-                if(this.isNullResult(this.result.songs)){
-                  Segment({
-                    lists: this.result.songs,
-                    type: 'Song',
-                    title: "歌曲",
-                    loading: this.loading,
-                  })
+                // 歌曲列表
+                if(this.isNullResult(this.result.songs) &&
+                   (this.selectedFilter === SearchFilterType.ALL || this.selectedFilter === SearchFilterType.SONGS)){
+                  ListItem() {
+                    SearchResultList({
+                      items: this.result.songs,
+                      type: 'Song',
+                      title: "歌曲"
+                    })
+                  }
                 }
-                // 歌单
-                if(this.isNullResult(this.result.playlists)){
-                  Segment({
-                    lists: this.result.playlists,
-                    type: 'Playlist',
-                    title: "歌单",
-                    loading: this.loading,
-                  })
+                // 歌单列表
+                if(this.isNullResult(this.result.playlists) &&
+                   (this.selectedFilter === SearchFilterType.ALL || this.selectedFilter === SearchFilterType.PLAYLISTS)){
+                  ListItem() {
+                    SearchResultList({
+                      items: this.result.playlists,
+                      type: 'Playlist',
+                      title: "歌单"
+                    })
+                  }
                 }
-                // 艺人
-                if(this.isNullResult(this.result.artists)){
-                  Segment({
-                    lists: this.result.artists,
-                    type: 'Artist',
-                    title: "歌手",
-                    loading: this.loading,
-                    radius: "100%",
-                  })
+                // 艺人列表
+                if(this.isNullResult(this.result.artists) &&
+                   (this.selectedFilter === SearchFilterType.ALL || this.selectedFilter === SearchFilterType.ARTISTS)){
+                  ListItem() {
+                    SearchResultList({
+                      items: this.result.artists,
+                      type: 'Artist',
+                      title: "歌手"
+                    })
+                  }
                 }
-                // 专辑
-                if(this.isNullResult(this.result.albums)){
-                  Segment({
-                    lists: this.result.albums,
-                    type: 'Album',
-                    title: "专辑",
-                    loading: this.loading,
-                  })
+                // 专辑列表
+                if(this.isNullResult(this.result.albums) &&
+                   (this.selectedFilter === SearchFilterType.ALL || this.selectedFilter === SearchFilterType.ALBUMS)){
+                  ListItem() {
+                    SearchResultList({
+                      items: this.result.albums,
+                      type: 'Album',
+                      title: "专辑"
+                    })
+                  }
                 }
                 // 如果结果为空
                 if(this.nullResultFlag){

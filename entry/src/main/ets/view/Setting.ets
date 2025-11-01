@@ -6,6 +6,7 @@ import { SettingGroup } from "../component/SettingGroup";
 import { TitleHeader } from "../component/TitleHeader";
 import { BreakpointConstants } from "../constants/BreakpointConstants";
 import { StyleConstants } from "../constants/StyleConstants";
+import { AnimationConstants } from "../constants/AnimationConstants";
 import { SettingItem } from "../model/SettingItem";
 import { SourceConfig } from "../type/Adapter";
 import { PreferencesCache } from "../util/PreferenceCache";
@@ -174,8 +175,8 @@ export struct Setting {
       // 使用setTimeout确保DOM先更新，再开始动画
       setTimeout(() => {
         this.uiContext?.animateTo({
-          duration: 350,
-          curve: Curve.EaseOut,
+          duration: AnimationConstants.DURATION_NORMAL,
+          curve: AnimationConstants.CURVE_DECELERATE,
         }, () => {
           this.qrCodeVisible = true
           this.qrCodeScale = 1.0

@@ -2,6 +2,7 @@ import { CustomContentOptions, DialogAction, DialogHelper } from "@pura/harmony-
 import { LogUtil, ToastUtil } from "@pura/harmony-utils";
 import { SourceAdapter } from "../adapter";
 import { StyleConstants } from "../constants/StyleConstants";
+import { AnimationConstants } from "../constants/AnimationConstants";
 import { Playlist, PlaylistType, Song } from "../type/Adapter";
 import { cover } from "../util/AdapterHelper";
 import { VibrationControl } from "../util/DeviceController";
@@ -19,103 +20,136 @@ export struct PlaylistItem {
   @State playlistDesc: string | undefined = undefined
   @State isShowMenu: boolean = false
   @State selectedIndex: number = 0
+  @State isHovered: boolean = false // 悬停状态
+  @State isPressed: boolean = false // 按压状态
   @Prop playlist: Playlist
   onPlaylistSelected?: (playlist: Playlist) => void;
 
   @StorageLink('aggregation_playlist') aggregationPlaylist: Playlist[] = PreferencesCache.getPlaylistCache('aggregation_playlist')
 
   build() {
-    Row() {
-      // 封面图 - 现代直角设计
-      Stack({ alignContent: Alignment.BottomStart }) {
+    // 外层包装 - 添加间距
+    Column() {
+      Row({ space: 8 }) {
+        // 现代化封面 - 移除不必要的Stack，直接使用Image
         Image(cover(this.playlist?.cover || '', 120) ?? this.playlist?.cover)
-          .width(58)
-          .height(58)
+          .width(48)
+          .height(48)
+          .aspectRatio(1)
           .objectFit(ImageFit.Cover)
           .borderRadius(8)
+          .backgroundColor($r('app.color.skeleton_loading'))
+          .shadow(ShadowStyle.OUTER_DEFAULT_XS)
           .draggable(false)
-      }
-      .margin({ right: 12 })
+          .clip(true)
+          .animation({
+            duration: AnimationConstants.DURATION_FAST,
+            curve: AnimationConstants.CURVE_DECELERATE
+          })
 
-      // 歌单信息 - 层次分明的布局
-      Column({ space: 12 }) {
-        Text(this.playlist?.name || '未知歌单')
-          .fontSize(15)
-          .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
-          .fontColor($r('app.color.text_primary'))
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
+        // 歌单信息 - 与SongInfo一致的布局
+        Column({ space: 6 }) {
+          Text(this.playlist?.name || '未知歌单')
+            .fontSize(16)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('app.color.text_title'))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .width(StyleConstants.FULL_WIDTH)
 
-        // 歌曲信息
-        if (this.playlist?.size || this.playlist?.size === 0) {
-          Text(`${this.playlist.size}首`)
-            .fontSize(12)
-            .fontColor($r('app.color.text_secondary'))
+          // 歌曲数量信息
+          if (this.playlist?.size || this.playlist?.size === 0) {
+            Text(`${this.playlist.size}首`)
+              .fontSize(14)
+              .fontWeight(FontWeight.Medium)
+              .fontColor($r('app.color.text_secondary'))
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .width(StyleConstants.FULL_WIDTH)
+          }
         }
-      }
-      .layoutWeight(1)
-      .alignItems(HorizontalAlign.Start)
+        .layoutWeight(1)
+        .alignItems(HorizontalAlign.Start)
 
-      // 更多操作按钮
-      Button({ type: ButtonType.Circle }) {
-        Image($r('app.media.ic_more'))
-          .width(20)
-          .height(20)
-          .fillColor($r('app.color.icon_normal'))
-          .opacity(0.9)
-      }
-      .width(48)
-      .height(48)
-      .bindMenu(
-        this.isShowMenu,
-        this.generatePlaylistMenu(this.playlist),
-        {
-          onDisappear: () => {
-            this.isShowMenu = false
-         }
-      })
-      .onClick(() => {
-        this.isShowMenu = true
-        VibrationControl.handlePresetVibration()
-      })
-      .clickEffect({ level: ClickEffectLevel.LIGHT })
-      .stateStyles({
-        pressed: this.pressedStyles,
-        normal: this.normalStyles
-      })
-
-    }
-    .width('100%')
-    .justifyContent(FlexAlign.SpaceBetween)
-    .padding({ left: 16, right: 16, top: 0, bottom: 0 })
-    .height(74)
-    .onClick(() => {
-      if (this.onPlaylistSelected) {
-        this.onPlaylistSelected(this.playlist);
-      }
-    })
-    .gesture(
-      LongPressGesture({
-        fingers: 1,
-        repeat: false
-      })
-        .onAction(() => {
+        // 现代化更多按钮 - 与SongInfo一致
+        Button({ type: ButtonType.Circle }) {
+          Image($r('app.media.ic_more'))
+            .width(20)
+            .height(20)
+            .fillColor($r('app.color.icon_normal'))
+            .opacity(0.9)
+        }
+        .width(48)
+        .height(48)
+        .backgroundColor(Color.Transparent)
+        .clickEffect({ level: ClickEffectLevel.LIGHT })
+        .hoverEffect(HoverEffect.Highlight)
+        .bindMenu(
+          this.isShowMenu,
+          this.generatePlaylistMenu(this.playlist),
+          {
+            onDisappear: () => {
+              this.isShowMenu = false
+            }
+          })
+        .onClick(() => {
           this.isShowMenu = true
           VibrationControl.handlePresetVibration()
         })
-    )
-    .clickEffect({ level: ClickEffectLevel.LIGHT })
-    .animation({ duration: 300, curve: Curve.LinearOutSlowIn })
+      }
+      .width(StyleConstants.FULL_WIDTH)
+      .height(68)
+      .padding({ left: 12, right: 12 })
+      .borderRadius(10)
+      .backgroundColor(this.getBackgroundColor())
+      .backgroundBlurStyle(this.isHovered || this.isPressed ? BlurStyle.COMPONENT_THICK : BlurStyle.NONE)
+      .shadow(ShadowStyle.OUTER_DEFAULT_XS)
+      .onClick(() => {
+        if (this.onPlaylistSelected) {
+          this.onPlaylistSelected(this.playlist);
+        }
+      })
+      .onHover((isHover: boolean) => {
+        this.isHovered = isHover;
+      })
+      .gesture(
+        LongPressGesture({
+          fingers: 1,
+          repeat: false
+        })
+          .onAction(() => {
+            this.isShowMenu = true
+            VibrationControl.handlePresetVibration()
+          })
+      )
+      .clickEffect({ level: ClickEffectLevel.LIGHT, scale: 0.98 })
+      .hoverEffect(HoverEffect.Highlight)
+      .stateStyles({
+        pressed: {
+          .scale({ x: 0.98, y: 0.98 })
+        },
+        normal: {
+          .scale({ x: 1, y: 1 })
+        }
+      })
+      .animation({
+        duration: AnimationConstants.DURATION_FAST,
+        curve: AnimationConstants.CURVE_DECELERATE
+      })
+    }
+    .width(StyleConstants.FULL_WIDTH)
+    .padding({ left: 12, right: 12, top: 4, bottom: 4 })
   }
 
-  @Styles pressedStyles(): void {
-    .backgroundColor($r("app.color.homepage_menu_button_pressed"))
-    .animation({ duration: 300, curve: Curve.LinearOutSlowIn })
-  }
-
-  @Styles normalStyles(): void {
-    .backgroundColor('transparent')
-    .animation({ duration: 300, curve: Curve.LinearOutSlowIn })
+  // 获取背景颜色 - 增强视觉反馈
+  private getBackgroundColor(): ResourceColor {
+    if (this.isPressed) {
+      return $r('app.color.interactive_pressed')
+    }
+    if (this.isHovered) {
+      return $r('app.color.card_hover')
+    }
+    return $r('app.color.card_background')
   }
 
   private generatePlaylistMenu(playlist: Playlist): Array<MenuElement> {

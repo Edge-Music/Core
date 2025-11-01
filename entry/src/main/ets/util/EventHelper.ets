@@ -13,6 +13,7 @@ import FormUtils from './FormUtils';
 import { PreferencesCache } from './PreferenceCache';
 import { SongDownloadManager } from './SongDownloadManager';
 import { image } from '@kit.ImageKit';
+import { playRecordManager } from './PlayRecordManager';
 
 const TAG = 'EventHelper'
 
@@ -193,6 +194,14 @@ export function base64ToPixelMap(base64Str: string): image.PixelMap {
 
 const playSong = async (song: Song, path: string, cached: boolean, pause: boolean) => {
   console.info(`[AVPlayerManager]`, `Playing song: ${song.name}, path: ${path}, cached: ${cached}, pause: ${pause}`);
+
+  // 记录播放事件（只在非暂停状态下记录）
+  if (!pause) {
+    playRecordManager.recordPlay(song).catch((error: Error) => {
+      LogUtil.error("EventHelper ", "playSong", `Failed to record play: ${error.message}`);
+    });
+  }
+
   avPlayerManager.stop().then(async () => {
     FormUtils.updateMusicControlCards(song, !pause)
     let meteData: avSession.AVMetadata = {

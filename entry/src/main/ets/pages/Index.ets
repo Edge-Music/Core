@@ -1,6 +1,7 @@
 import { BreakpointSystem } from '../component/BreakpointSystem'
 import { MenuButton } from '../component/MenuButton'
 import { StyleConstants } from '../constants/StyleConstants'
+import { AnimationConstants } from '../constants/AnimationConstants'
 import { HomePageMenu } from '../model/HomePageMenu'
 import { ComingSoon } from '../view/ComingSoon'
 import { HomePageMenuData } from '../viewmodel/HomePageMenuData'
@@ -27,11 +28,12 @@ import { BusinessError } from '@kit.BasicServicesKit'
 import { common } from '@kit.AbilityKit'
 import { HeaderComponent } from '../component/HeaderComponent'
 import { HeaderPlaceholder } from '../component/HeaderPlaceholder'
+import { Statistics } from '../view/Statistics'
 import { FooterPlaceholder } from '../component/FooterPlaceholder'
 
 // 缓存常用值以避免重复计算
-const COLUMNS_TEMPLATE_LG = '1fr 1fr 1fr 1fr'
-const COLUMNS_TEMPLATE_SM = '1fr 1fr'
+const COLUMNS_TEMPLATE_LG = '1fr 1fr 1fr 1fr' // 宽屏4列（1×4布局）
+const COLUMNS_TEMPLATE_SM = '1fr 1fr' // 窄屏2列（2×2布局）
 const TAG = 'Index'
 
 // 隐私协议弹窗组件
@@ -149,6 +151,8 @@ struct Index {
       Download()
     } else if (name === 'Aggregation') {
       Aggregation()
+    } else if (name === 'Statistics') {
+      Statistics()
     }
   }
 
@@ -187,6 +191,7 @@ struct Index_page {
     PreferencesCache.getArtistCache('index_recommend_artists')
   @StorageLink("index_recommend_toplist") topList: Playlist[] =
     PreferencesCache.getPlaylistCache('index_recommend_toplist')
+  @StorageLink('user_playlist') playlists: Playlist[] = []
   @State loading: boolean = false
   // 避让导航栏高度
   @StorageProp('bottomRect') bottomRect: number = 0
@@ -337,7 +342,7 @@ struct Index_page {
           .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
           .fontSize($r('app.float.title_font_size'))
 
-        Row() {
+        Row({space:4}) {
           MenuIcon({
             icon: $r('app.media.ic_search'),
             active: this.scrollController.currentIndex === 1
@@ -384,6 +389,7 @@ struct Index_page {
   // 使用Builder模式优化各个部分的渲染
   @Builder
   MenuGrid() {
+    // 使用Grid布局实现响应式：窄屏2×2，宽屏1×4
     Grid() {
       ForEach(this.menuItems, (item: HomePageMenu) => {
         GridItem() {
@@ -397,7 +403,7 @@ struct Index_page {
         .padding(4)
       })
     }
-    .columnsTemplate(this.currentBreakpoint === 'lg' ? COLUMNS_TEMPLATE_LG : COLUMNS_TEMPLATE_SM)
+    .columnsTemplate(this.currentBreakpoint === 'sm' ? COLUMNS_TEMPLATE_SM : COLUMNS_TEMPLATE_LG)
     .padding(12)
     .width(StyleConstants.FULL_WIDTH)
     .rowsGap(8)
@@ -410,11 +416,7 @@ struct Index_page {
       lists: this.recommendSongs,
       type: 'Song',
       title: $r('app.string.hot_songs'),
-      actionText: $r('app.string.rotate'),
       loading: this.loading,
-      onActionClick: async () => {
-        this.recommendSongs = await SourceAdapter.getRecommendSongs(this.limit)
-      },
     })
   }
 
@@ -424,11 +426,7 @@ struct Index_page {
       lists: this.recommendPlaylist,
       type: 'Playlist',
       title: $r('app.string.recommended_playlists'),
-      actionText: $r('app.string.rotate'),
       loading: this.loading,
-      onActionClick: async () => {
-        this.recommendPlaylist = await SourceAdapter.getRecommendList(this.limit)
-      },
     })
   }
 
@@ -438,12 +436,8 @@ struct Index_page {
       lists: this.recommendArtists,
       type: 'Artist',
       title: $r('app.string.recommended_artists'),
-      actionText: $r('app.string.rotate'),
       loading: this.loading,
       radius: "100%",
-      onActionClick: async () => {
-        this.recommendArtists = await SourceAdapter.getRecommendArtists(this.limit)
-      },
     })
   }
 
@@ -453,6 +447,18 @@ struct Index_page {
       lists: this.topList,
       type: 'TopPlaylist',
       title: $r('app.string.chart'),
+      loading: this.loading
+    })
+  }
+
+  @Builder
+  ForYouSection() {
+    Segment({
+      lists: this.playlists.filter(playlist =>
+      playlist.id && playlist.id.toString().startsWith('key_')
+      ),
+      type: 'Capsule',
+      title: $r('app.string.for_you'),
       loading: this.loading
     })
   }
@@ -507,6 +513,14 @@ struct Index_page {
                 ListItem() {
                   this.MenuGrid()
                 }
+
+                // 专属于你模块
+                ListItem() {
+                  this.ForYouSection()
+                }
+                .visibility(this.loading || this.playlists.filter(playlist =>
+                playlist.id && playlist.id.toString().startsWith('key_')
+                ).length > 0 ? Visibility.Visible : Visibility.None)
 
                 ListItem() {
                   this.RecommendedSongs()

@@ -250,11 +250,7 @@ export struct Index_page {
       lists: this.recommendSongs,
       type: 'Song',
       title: $r('app.string.hot_songs'),
-      actionText: $r('app.string.rotate'),
       loading: this.loading,
-      onActionClick: async () => {
-        this.recommendSongs = await SourceAdapter.getRecommendSongs(this.limit)
-      },
     })
   }
 
@@ -264,11 +260,7 @@ export struct Index_page {
       lists: this.recommendPlaylist,
       type: 'Playlist',
       title: $r('app.string.recommended_playlists'),
-      actionText: $r('app.string.rotate'),
       loading: this.loading,
-      onActionClick: async () => {
-        this.recommendPlaylist = await SourceAdapter.getRecommendList(this.limit)
-      },
     })
   }
 
@@ -278,12 +270,8 @@ export struct Index_page {
       lists: this.recommendArtists,
       type: 'Artist',
       title: $r('app.string.recommended_artists'),
-      actionText: $r('app.string.rotate'),
       loading: this.loading,
       radius: "100%",
-      onActionClick: async () => {
-        this.recommendArtists = await SourceAdapter.getRecommendArtists(this.limit)
-      },
     })
   }
 

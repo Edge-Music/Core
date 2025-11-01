@@ -10,6 +10,7 @@ import { PreferencesCache } from "../util/PreferenceCache"
 import { PushPathHelper } from "../util/PushPathHelper"
 import { SongDownloadManager } from "../util/SongDownloadManager"
 import { Cover } from "./Cover"
+import { CapsuleItem } from "./CapsuleItem"
 
 const DEFAULT_COVER_SIZE = 256
 
@@ -34,6 +35,7 @@ export struct HorizontalScroll {
         if(this.type === 'TopPlaylist') this.TopPlaylistCover()
         if(this.type === 'Template') this.TemplateCover()
         if(this.type === 'Album') this.AlbumCover()
+        if(this.type === 'Capsule') this.CapsuleCover()
       }
       .padding({ left: 6, right: 6 })
       .alignItems(VerticalAlign.Top)
@@ -121,7 +123,8 @@ export struct HorizontalScroll {
             src: cover(item.avatar, DEFAULT_COVER_SIZE),
             title: item.name,
             radius: "100%",
-            titleAlign: TextAlign.Center
+            titleAlign: TextAlign.Center,
+            overlayTitle: true // 启用标题叠加
           })
             .width(this.coverWidth)
             .padding(this.segmentPadding)
@@ -308,15 +311,31 @@ export struct HorizontalScroll {
 
   async downloadSong(song: Song) {
     if (song) {
-      ToastUtil.showShort($r('app.string.added_to_the_download_queue'))
-      SongDownloadManager.downloadSong(
+      const success = SongDownloadManager.downloadSong(
         song.id.toString(),
-        song,
-        undefined,
-        () => {
-          ToastUtil.showShort($r('app.string.download_successful'))
-        },
-      )
+        song
+      );
+      if (success) {
+        ToastUtil.showShort($r('app.string.added_to_the_download_queue'));
+      }
     }
+  }
+
+  @Builder
+  CapsuleCover() {
+    ForEach(this.lists, (item: Playlist) => {
+      CapsuleItem({
+        title: item.name,
+        menuItems: this.generatePlaylistMenu(item),
+        onItemClick: async () => {
+        PushPathHelper.pushPath(this.pageStack, "Playlist", async () => {
+        const playlist = await SourceAdapter.getPlaylistDetail(item)
+        AppStorage.setOrCreate('current_playlist_data', playlist)
+        AppStorage.setOrCreate('current_playlist_songs', playlist.songs)
+      })
+    }
+      })
+        .margin({ right: 8 })
+    })
   }
 }
