@@ -659,6 +659,66 @@
     {
       "name": "grid_view",
       "value": "网格视图"
+    },
+    {
+      "name": "enable_wave_lyrics",
+      "value": "开启波浪歌词"
+    },
+    {
+      "name": "downloading",
+      "value": "正在下载"
+    },
+    {
+      "name": "download_history",
+      "value": "下载历史"
+    },
+    {
+      "name": "waiting",
+      "value": "等待中"
+    },
+    {
+      "name": "downloading_with_progress",
+      "value": "下载中"
+    },
+    {
+      "name": "completed",
+      "value": "已完成"
+    },
+    {
+      "name": "no_download_history",
+      "value": "暂无下载历史"
+    },
+    {
+      "name": "pause_all",
+      "value": "暂停全部"
+    },
+    {
+      "name": "resume_all",
+      "value": "继续全部"
+    },
+    {
+      "name": "clear_completed",
+      "value": "清除已完成"
+    },
+    {
+      "name": "paused",
+      "value": "已暂停"
+    },
+    {
+      "name": "retrying",
+      "value": "重试中"
+    },
+    {
+      "name": "failed",
+      "value": "下载失败"
+    },
+    {
+      "name": "waiting_position",
+      "value": "等待中 %s/%s"
+    },
+    {
+      "name": "retry_count",
+      "value": "重试中 %s/3"
     }
   ]
 }
