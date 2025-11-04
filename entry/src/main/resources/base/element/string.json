@@ -165,6 +165,10 @@
       "value": "下载"
     },
     {
+      "name": "download_short",
+      "value": "下载"
+    },
+    {
       "name": "all_playlists",
       "value": "所有"
     },
