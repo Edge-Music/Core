@@ -719,6 +719,10 @@
     {
       "name": "grid_view",
       "value": "网格视图"
+    },
+    {
+      "name": "download_short",
+      "value": "下载"
     }
   ]
 }
