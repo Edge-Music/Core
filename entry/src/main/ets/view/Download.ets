@@ -17,6 +17,7 @@ const TAG = 'Download'
 @Component
 export struct Download {
   @State groupHeight: number = 0;
+  @State groupHeight1: number = 0;
   @State scrollOffsetY: number = 0
   @State startScrollOffsetY: number = 0
   @State scrollOffsetEndY: number = 0
@@ -27,15 +28,47 @@ export struct Download {
   @StorageLink('download_queue') queue: Map<ID, DownloadProgress> = new Map();
   @State downloadHistory: SongDownloadItem[] = [];
   @State currentTabIndex: number = 0;
-  private scroller: Scroller = new Scroller();
   private tabsController: TabsController = new TabsController();
+  private scroller: Scroller = new Scroller();
   @State scrollController: ScrollController = new ScrollController({
     onIndexChange: (index): void => this.onMenuIconClick(index),
     componentTag: TAG
   }).linkController(this.scroller)
+  private scroller1: Scroller = new Scroller();
+  @State scrollController1: ScrollController = new ScrollController({
+    onIndexChange: (index): void => this.onMenuIconClick(index),
+    componentTag: TAG
+  }).linkController(this.scroller1)
+
+  subTitles: Resource[] = [$r('app.string.downloading'), $r('app.string.download_history')]
+  @State capsuleOffset: number = 0
+  @State capsuleWidth: number = 0
+  @State titleWidths: number[] = []
+  private readonly BUTTON_GAP: number = 10
+  @State capsuleScaleX: number = 0.9
+  @State capsuleScaleY: number = 1.0
+  uiContext: UIContext | undefined = undefined;
+  @State @Watch('onChangeSubTitleIndex') subTitleIndex: number = 0
+  @State downloadButtonStatus: number = 1
+  @State enableDownloadButton: boolean = false
+  @State enableClearButton: boolean = false
+  @State timer: number = -1
 
   aboutToAppear(): void {
+    if(this.timer === -1) {
+      this.timer = setInterval(() => {
+        const stats = SongDownloadManager.getQueueStats();
+        this.enableClearButton = stats.completed > 0
+        this.enableDownloadButton = stats.completed != stats.total
+        this.downloadButtonStatus = stats.completed != stats.total && stats.paused > 0 ? 0 : 1
+      }, 500)
+    }
+    this.uiContext = this.getUIContext();
     this.loadDownloadHistory();
+  }
+
+  aboutToDisappear(): void {
+    this.timer = -1
   }
 
   loadDownloadHistory(): void {
@@ -126,55 +159,56 @@ export struct Download {
 
   @Builder
   Title() {
-    Row() {
-      TitleHeader({
-        title: $r('app.string.download'),
-        backActive: this.scrollController.currentIndex === 0
-      })
-
-      Blank()
-
-      // 控制按钮组
-      Row({ space: 8 }) {
-        // 清除已完成按钮
-        if (this.shouldShowClearButton()) {
-          Text($r('app.string.clear_completed'))
-            .fontSize(14)
-            .fontColor($r('app.color.text_click'))
-            .padding({ left: 12, right: 12, top: 6, bottom: 6 })
-            .borderRadius(16)
-            .backgroundColor($r('app.color.card_background'))
-            .onClick(() => {
-              this.onClearCompleted();
-            })
-        }
-
-        // 暂停/继续按钮
-        if (this.shouldShowPauseButton()) {
-          Text($r('app.string.pause_all'))
-            .fontSize(14)
-            .fontColor($r('app.color.text_click'))
-            .padding({ left: 12, right: 12, top: 6, bottom: 6 })
-            .borderRadius(16)
-            .backgroundColor($r('app.color.card_background'))
-            .onClick(() => {
-              this.onPauseAll();
-            })
-        } else if (this.shouldShowResumeButton()) {
-          Text($r('app.string.resume_all'))
-            .fontSize(14)
-            .fontColor($r('app.color.text_click'))
-            .padding({ left: 12, right: 12, top: 6, bottom: 6 })
-            .borderRadius(16)
-            .backgroundColor($r('app.color.card_background'))
-            .onClick(() => {
-              this.onResumeAll();
-            })
-        }
+    TitleHeader({
+      title: $r('app.string.download_short'),
+      backActive: this.scrollController.currentIndex === 0,
+      midContent: () => {
+        this.TabsTitles()
+      },
+      rightContent: () => {
+        this.ButtonS()
       }
-      .padding({ right: 16 })
+    })
+  }
+
+  @Builder
+  ButtonS() {
+    // 控制按钮组
+    Row({ space: 8 }) {
+      // 清除已完成按钮
+      Button({ type: ButtonType.Circle }) {
+        Image($r('app.media.clean'))
+          .width(24)
+          .height(24)
+          .fillColor($r('app.color.text_primary'))
+      }
+      .width(40)
+      .height(40)
+      .onClick(() => {
+        this.onClearCompleted();
+      })
+      .enabled(this.enableClearButton ? true : false)
+      .backgroundColor('transparent')
+
+      // 暂停/继续按钮
+      Button({ type: ButtonType.Circle }) {
+        Image(this.downloadButtonStatus === 0 ? $r('app.media.ic_download') : $r('app.media.ic_pause'))
+          .width(24)
+          .height(24)
+          .fillColor($r('app.color.text_primary'))
+      }
+      .width(40)
+      .height(40)
+      .onClick(() => {
+        if(this.downloadButtonStatus === 0) {
+          this.onResumeAll();
+        } else {
+          this.onPauseAll();
+        }
+      })
+      .enabled(this.enableDownloadButton ? true : false)
+      .backgroundColor('transparent')
     }
-    .width(StyleConstants.FULL_WIDTH)
   }
 
   @Builder
@@ -221,10 +255,6 @@ export struct Download {
         HeaderAnimation({ scrollController: this.scrollController })
       }
 
-      ListItem() {
-        this.TabBar()
-      }
-
       if (this.queue.size === 0) {
         ListItem() {
           Column() {
@@ -234,7 +264,7 @@ export struct Download {
               .fontColor($r('app.color.text_secondary'))
           }
           .width(StyleConstants.FULL_WIDTH)
-          .height(400)
+          .height(StyleConstants.FULL_HEIGHT)
           .justifyContent(FlexAlign.Center)
           .alignItems(HorizontalAlign.Center)
         }
@@ -297,7 +327,7 @@ export struct Download {
 
         ListItem(){
           Row(){
-            Blank().height(this.getBlankHeight())
+            Blank().height(this.getBlankHeight(this.groupHeight))
           }
         }
       }
@@ -324,15 +354,11 @@ export struct Download {
 
   @Builder
   HistoryTab() {
-    List() {
+    List({ scroller: this.scroller1 }) {
       HeaderPlaceholder()
 
       ListItem(){
-        HeaderAnimation({ scrollController: this.scrollController })
-      }
-
-      ListItem() {
-        this.TabBar()
+        HeaderAnimation({ scrollController: this.scrollController1 })
       }
 
       if (this.downloadHistory.length === 0) {
@@ -395,6 +421,14 @@ export struct Download {
             .width(StyleConstants.FULL_WIDTH)
             .padding({ left: 16, right: 16 })
           }, (item: SongDownloadItem) => item.song.id.toString())
+        }.onAreaChange((_: Area, newValue: Area) => {
+          this.groupHeight1 = newValue.height as number
+        })
+
+        ListItem(){
+          Row(){
+            Blank().height(this.getBlankHeight(this.groupHeight1))
+          }
         }
       }
 
@@ -404,6 +438,17 @@ export struct Download {
     .height(StyleConstants.FULL_HEIGHT)
     .edgeEffect(EdgeEffect.Spring)
     .scrollBar(BarState.Off)
+    .onWillScroll(this.scrollController1.scrollHandlers.onWillScroll)
+    .onScrollStop(this.scrollController1.scrollHandlers.onScrollStop)
+    .onDidScroll(() => {
+      this.scrollOffsetY = this.scroller1.currentOffset().yOffset
+    })
+    .onTouch((event) => {
+      switch (event.type) {
+        case TouchType.Down:
+          this.startScrollOffsetY = this.scroller1.currentOffset().yOffset
+      }
+    })
   }
 
   build() {
@@ -414,17 +459,17 @@ export struct Download {
             TabContent() {
               this.DownloadingTab()
             }
-            .tabBar(SubTabBarStyle.of($r('app.string.downloading')))
 
             TabContent() {
               this.HistoryTab()
             }
-            .tabBar(SubTabBarStyle.of($r('app.string.download_history')))
           }
           .barMode(BarMode.Fixed)
           .barHeight(0)
+          .layoutWeight(1)
           .onChange((index: number) => {
             this.currentTabIndex = index;
+            this.subTitleIndex = index
             if (index === 1) {
               this.loadDownloadHistory();
             }
@@ -460,8 +505,90 @@ export struct Download {
     .height(StyleConstants.FULL_HEIGHT)
   }
 
-  getBlankHeight(): Length {
-    let sub = this.winHeight - this.groupHeight - 50 - (this.bottomRect+this.topRect)
+  @Builder
+  TabsTitles(){
+    Stack(){
+      Row(){
+        Row()
+          .width(this.capsuleWidth)
+          .height(10)
+          .backgroundColor($r('app.color.title_emphasis_color'))
+          .borderRadius(5)
+          .margin({ bottom: -20 })
+          .scale({ x: this.capsuleScaleX, y: this.capsuleScaleY })
+          .shadow(ShadowStyle.OUTER_DEFAULT_XS)
+      }
+      .height(35)
+      .layoutWeight(1)
+      .align(Alignment.BottomStart)
+      .padding({ left: this.capsuleOffset })
+      .animation({ duration: 500, curve: Curve.FastOutSlowIn })
+
+      Row({ space: this.BUTTON_GAP }){
+        ForEach(this.subTitles, (str: string, index: number) => {
+          Text(str)
+            .fontColor($r('app.color.text_secondary'))
+            .fontWeight(FontWeight.Bold)
+            .fontSize('20fp')
+            .backgroundColor('transparent')
+            .onClick(() => this.updateCapsulePosition(index))
+            .onAreaChange((_, area) => {
+              this.titleWidths[index] = area.width as number
+              if (index === this.subTitleIndex) {
+                this.capsuleWidth = area.width as number
+              }
+            })
+            .margin({ bottom: -5 })
+        })
+      }
+      .height(35)
+      .align(Alignment.BottomStart)
+      .layoutWeight(1)
+      .onTouch((event) => {
+        if (event.type === TouchType.Down) {
+          this.uiContext?.animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+            this.capsuleScaleX = 0.75
+            this.capsuleScaleY = 1.1
+          })
+        } else if (event.type === TouchType.Up) {
+          this.uiContext?.animateTo({ duration: 150, curve: Curve.EaseOut }, () => {
+            this.capsuleScaleX = 0.9
+            this.capsuleScaleY = 1.0
+          })
+        }
+      })
+    }
+    .height(35)
+    .layoutWeight(1)
+    .padding({ left: 15 })
+    .align(Alignment.BottomStart)
+  }
+
+  private updateCapsulePosition(index: number) {
+    this.tabsController.changeIndex(index);
+    let offset = 0
+    for (let i = 0; i < index; i++) {
+      offset += (this.titleWidths[i] || 0) + this.BUTTON_GAP
+    }
+
+    this.uiContext?.animateTo({ duration: 200, curve: Curve.EaseInOut }, () => {
+      this.capsuleOffset = offset
+    })
+
+    this.uiContext?.animateTo({ duration: 150, curve: Curve.EaseIn }, () => {
+      this.capsuleScaleX = 0.9
+      this.capsuleScaleY = 1
+      this.capsuleWidth = this.titleWidths[index]
+      this.subTitleIndex = index
+    })
+  }
+
+  getBlankHeight(height: number): Length {
+    let sub = this.winHeight - height - 50 - (this.bottomRect+this.topRect)
     return sub > 0 ? sub : 0
+  }
+
+  onChangeSubTitleIndex() {
+    this.updateCapsulePosition(this.subTitleIndex)
   }
 }
