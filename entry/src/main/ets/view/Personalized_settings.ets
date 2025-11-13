@@ -2,6 +2,7 @@ import { PreferencesCache } from "../util/PreferenceCache";
 import {HorizontalMode}from '../util/HorizontalCheck'
 import ResourceManager from "../util/ResourceManager";
 import { PipManager } from '../util/PipManager';
+import { deviceInfo } from "@kit.BasicServicesKit";
 
 @Component
   //'0'关。'1'开。!!!!(开关颜色日后调)
@@ -111,6 +112,10 @@ export struct Personalized_settings{
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.slide_up_hide_title')), setUserPreference_name:'slide_up_hide_title'})}
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.playing_title_show_lyrics')), setUserPreference_name:'playing_title_show_lyrics'})}
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.enable_wave_lyrics')), setUserPreference_name:'enable_wave_lyrics'})}
+          if (deviceInfo.sdkApiVersion>19){
+            ListItem(){ Personalized_settings_Component({text_name: '开启流光背景', setUserPreference_name:'UV_background'})}
+          }
+
           ListItem(){ Column().height(16+this.bottomRect/2)}
         }
         .scrollBar(BarState.Off)
