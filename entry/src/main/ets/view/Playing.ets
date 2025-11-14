@@ -108,7 +108,7 @@ struct Playing {
   @StorageProp('current_height_breakpoint') heightBreakpoint: HeightBreakpoint = HeightBreakpoint.HEIGHT_SM
   @StorageLink('current_playing_playlist') playlist: Array<Song> = [];
   @StorageProp('playing_title_show_lyrics') showTitleLyrics: string = PreferencesCache.getUserPreference('playing_title_show_lyrics','0')
-
+  @Watch('sys_ColorMode_dark_change')@StorageLink('sys_ColorMode_dark')sys_ColorMode_dark:boolean =false
   @Consume('NavPathStack') pageStack: NavPathStack
   @State curColorIndex: number = 0
   @State currentTime: number = 0
@@ -182,6 +182,10 @@ struct Playing {
 
     }
 }
+  sys_ColorMode_dark_change(){
+    this.getPicture(cover(this.song?.album?.cover ?? "", 512) as string )
+
+  }
   async getPicture(uri:string) {
 
       http.createHttp()
