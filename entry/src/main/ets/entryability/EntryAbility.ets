@@ -1,4 +1,4 @@
-import { AbilityConstant, UIAbility, Want } from '@kit.AbilityKit';
+import { AbilityConstant, Configuration, UIAbility, Want } from '@kit.AbilityKit';
 import { window } from '@kit.ArkUI';
 import { AppUtil, CrashUtil, LogUtil } from '@pura/harmony-utils';
 import { ImageKnife } from '@ohos/imageknife';
@@ -25,7 +25,16 @@ export default class EntryAbility extends UIAbility {
 
   private _pause_timer: number = -1; // 用于存储暂停计时器的ID
   private page?: string | null = null;
-
+  onConfigurationUpdate(newConfig: Configuration): void {
+    let  isDark = newConfig.colorMode ===0   ?true:false
+    AppStorage.setOrCreate('sys_ColorMode_dark',isDark)
+  }
+  // onConfigurationUpdate(newConfig: Configuration): void {
+  //   //颜色深浅变化监听，也可以监听系统语言变化
+  //   PersonalizedSettingData.isDark = newConfig.colorMode ===0   ?true:false
+  //   console.log(`onConfigurationUpdate, config: ${JSON.stringify(PersonalizedSettingData.isDark)}`);
+  //   console.log(`onConfigurationUpdate, config: ${JSON.stringify(newConfig)}`);
+  // }
   async onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): Promise<void> {
     LogUtil.init(0x2003, 'Edge Music', true); // 初始化日志工具类
     AppUtil.init(this.context); // 初始化应用工具类
