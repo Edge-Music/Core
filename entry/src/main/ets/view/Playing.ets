@@ -120,7 +120,7 @@ struct Playing {
   @State playMode: number = PlaylistManager.getPlayMode()
   @State showPlaylist: boolean = false
   @State isWideScreen: boolean = false // 是否为宽屏
-  @State imageColorHex:string='ff06164e'
+  @State imageColorHex: string='ff4e061a'
   @State currentIndex: number = -1
   @State swipeOffset: number = 0; // 滑动偏移量
   @State isSwipingActive: boolean = false; // 是否正在滑动中
@@ -658,20 +658,33 @@ struct Playing {
               .clickEffect({ level: ClickEffectLevel.LIGHT })
 
             Row(){
-              Text(this.song?.artists ? this.song.artists.map(artist => artist.name).join(" / ") : "未知艺术家")
-                .maxLines(1)
-                .fontSize(14)
-                .width('60%')
-                .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-                .fontColor(`#ff${this.imageColorHex}`)
-                .textOverflow({ overflow: TextOverflow.MARQUEE })
-                .blendMode(BlendMode.DIFFERENCE, BlendApplyType.OFFSCREEN)
-                .onClick(() => {
-                  if (this.song?.artists && this.song.artists.length > 0) {
-                    this.sheetType = "artist";
-                    this.showPlaylist = true;
-                  }
-                })
+              Column(){
+                Text((this.song?.name || "未知歌曲"))
+                  .fontSize(this.getFontSize(this.song?.name ?? "", 16, 16))// .fontWeight(FontWeight.Bold)
+                  .maxLines(1)
+                  .textOverflow({ overflow: TextOverflow.MARQUEE })
+                  .blendMode(BlendMode.DIFFERENCE, BlendApplyType.OFFSCREEN)
+                  .fontColor(`#ff${this.imageColorHex}`)
+                  .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
+                  .height(24) // 固定高度确保布局稳定
+
+                Text(this.song?.artists ? this.song.artists.map(artist => artist.name).join(" / ") : "未知艺术家")
+                  .maxLines(1)
+                  .fontSize(14)
+                  .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
+                  .fontColor(`#ff${this.imageColorHex}`)
+                  .textOverflow({ overflow: TextOverflow.MARQUEE })
+                  .blendMode(BlendMode.DIFFERENCE, BlendApplyType.OFFSCREEN)
+                  .onClick(() => {
+                    if (this.song?.artists && this.song.artists.length > 0) {
+                      this.sheetType = "artist";
+                      this.showPlaylist = true;
+                    }
+                  })
+
+              }
+              .width('60%')
+              .alignItems(HorizontalAlign.Start)
 
               Row(){
                 TextClock()
@@ -682,20 +695,13 @@ struct Playing {
             }
             .width(StyleConstants.FULL_WIDTH)
             .justifyContent(FlexAlign.SpaceBetween)
+            .alignItems(VerticalAlign.Bottom)
             .padding(12)
           }
           .alignContent(Alignment.BottomEnd)
           .aspectRatio(1)
-          .layoutWeight(1)
+          .width('90%')
 
-          Text((this.song?.name || "未知歌曲"))
-            .fontSize(this.getFontSize(this.song?.name ?? "", 16, 16))// .fontWeight(FontWeight.Bold)
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.MARQUEE })
-            .fontColor(Color.White)
-            .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
-            .height(24) // 固定高度确保布局稳定
-            .margin({ top: 5 })
         }
         .width('45%')
         .height('100%')
@@ -704,7 +710,7 @@ struct Playing {
           top: 12,
           bottom: 12
         })
-        .justifyContent(FlexAlign.SpaceBetween)
+        .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.Center)
 
         Column() {
@@ -712,27 +718,26 @@ struct Playing {
             mode_judge: false
           })
             .width('95%')
-            .height(StyleConstants.SEVENTY_HEIGHT)
+            .height(StyleConstants.FULL_HEIGHT)
 
-          Column(){
-            this.PlayerControls(this.Pura_X === '1' ? false : true)
-          }
-          .width('100%')
-          .layoutWeight(1)
-
-          Blank()
-
-          Column(){
-            this.ProgressBar(true, 0, false)
-          }
-          .width('100%')
-          .layoutWeight(0.6)
+          // Column(){
+          //   this.PlayerControls(this.Pura_X === '1' ? false : true)
+          // }
+          // .width('100%')
+          // .layoutWeight(1)
+          //
+          // Blank()
+          //
+          // Column(){
+          //   this.ProgressBar(true, 0, false)
+          // }
+          // .width('100%')
+          // .layoutWeight(0.6)
 
         }
         .padding({
           left: 18,
-          right: this.leftCutoutRectWidth > 0 ? 18 : this.rightCutoutRectWidth*2,
-          bottom: 12
+          right: this.leftCutoutRectWidth > 0 ? 18 : this.rightCutoutRectWidth*2
         })
         .width('55%')
       }
