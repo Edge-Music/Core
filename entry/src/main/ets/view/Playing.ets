@@ -26,6 +26,11 @@ import { DialogHelper } from '@pura/harmony-dialog'
 import { resourceManager } from '@kit.LocalizationKit'
 import { LyricsLine } from '../util/LyricsManager'
 import { PushPathHelper } from '../util/PushPathHelper'
+import { hdsEffect, HdsNavDestinationAttribute } from '@kit.UIDesignKit'
+import { image } from '@kit.ImageKit'
+import { effectKit } from '@kit.ArkGraphics2D'
+import { BusinessError, deviceInfo } from '@kit.BasicServicesKit'
+import { Event } from '@kit.ArkTS'
 
 type ShowLyricsStatus = -1 | 0 | 1 | 2
 
@@ -34,7 +39,49 @@ export function PlayingBuilder() {
   Playing()
 }
 const TAG = 'Playing'
+ class MyButtonModifier implements AttributeModifier<ColumnAttribute> {
+  // 可以实现一个Modifier，定义私有的成员变量，外部可动态修改
+  isApi20: boolean = false
+  is_need:boolean =false
+  Ctrl_vision:hdsEffect.ShaderEffectController =  new hdsEffect.ShaderEffectController()
+  // 通过构造函数，创建时传参
+  constructor(isApi20?: boolean,Ctrl_vision?:hdsEffect.ShaderEffectController,is_need?:boolean) {
+    this.is_need=is_need ??false
+    this.isApi20 = isApi20 ?? false
+    this.Ctrl_vision=Ctrl_vision??  new hdsEffect.ShaderEffectController()
 
+  }
+
+  applyNormalAttribute(instance: ColumnAttribute): void {
+    // instance为Button的属性对象，可以通过instance对象对属性进行修改
+    if (this.isApi20&&this.is_need) { // 支持业务逻辑的编写
+      instance.visualEffect(new hdsEffect.HdsEffectBuilder()
+        .shaderEffect({
+          effectType: hdsEffect.EffectType.UV_BACKGROUND_FLOW_LIGHT,
+          animation: {
+            duration: 5000,
+            iterations: -1,
+            autoPlay: true,
+            onFinish: ()=> {
+              console.info('Succeeded in finishing');
+              this.Ctrl_vision.play()
+            }
+          },
+          // params:{colorSource:[this.Color_main,this.Color_sum]},
+          controller: this.Ctrl_vision
+        })
+        .buildEffect())
+
+      // 属性变化触发apply函数时，变化前已设置并且变化后未设置的属性会恢复为默认值
+      // instance.backgroundColor('#707070')
+    } else {
+      // 支持属性的链式调用
+      // instance.backgroundColor('#17A98D')
+      //   .borderColor('#707070')
+      //   .borderWidth(2)
+    }
+  }
+}
 @Component
 struct Playing {
 
@@ -46,7 +93,7 @@ struct Playing {
   @StorageProp('windowStatus') windowStatus: string = 'FULL_SCREEN'
   @StorageProp('deviceType') deviceType: resourceManager.DeviceType = resourceManager.DeviceType.DEVICE_TYPE_PHONE
   @StorageProp('current_line_lyrics') currentLineLyrics: LyricsLine | undefined = AppStorage.get<LyricsLine>('current_line_lyrics')
-  @StorageLink("current_playing_song") song: Song | null = null
+  @Watch('song_change') @StorageLink("current_playing_song") song: Song | null = null
   @StorageLink('Lyic_desktop') Lyic_desktop: string = PreferencesCache.getUserPreference('Lyic_desktop','0')
   @StorageProp('double_tap_switch_songs') isOnDoubleTap: string = PreferencesCache.getUserPreference('double_tap_switch_songs','0')
   @StorageProp('flip_mute') isOnFlipMute: string = PreferencesCache.getUserPreference('flip_mute','0')
@@ -61,7 +108,7 @@ struct Playing {
   @StorageProp('current_height_breakpoint') heightBreakpoint: HeightBreakpoint = HeightBreakpoint.HEIGHT_SM
   @StorageLink('current_playing_playlist') playlist: Array<Song> = [];
   @StorageProp('playing_title_show_lyrics') showTitleLyrics: string = PreferencesCache.getUserPreference('playing_title_show_lyrics','0')
-
+  @Watch('sys_ColorMode_dark_change')@StorageLink('sys_ColorMode_dark')sys_ColorMode_dark:boolean =false
   @Consume('NavPathStack') pageStack: NavPathStack
   @State curColorIndex: number = 0
   @State currentTime: number = 0
@@ -99,11 +146,16 @@ struct Playing {
   @State Pura_X: string = PreferencesCache.getUserPreference('is_Pura_X', '0')//pura_x尝试适配
   @State sheetType: "playlist" | "timer" | "artist" = "playlist" // 用于控制底部弹出表单的类型，默认为播放列表
   @State showLyricType: ShowLyricsStatus = parseInt(PreferencesCache.getUserPreference('playing_title_lyric_show_status', '0')) as ShowLyricsStatus
-
+@State Color_main:string='#121234'
+  @State Color_sum:string='#114514'
+  @State colum_20:MyButtonModifier = new MyButtonModifier()
+  @State UV_background:boolean =false
+  private Ctrl_vision:hdsEffect.ShaderEffectController =  new hdsEffect.ShaderEffectController()
   private uiContext: UIContext | undefined = undefined;
   private readonly SWIPE_THRESHOLD: number = 80; // 触发切换的阈值
   private timerId: number = -1
   private updateTimer: number = -1
+  // private netok:boolean =false
   //TAB,swiper控制
   private controller: TabsController = new TabsController()
   private swiperController: SwiperController = new SwiperController()
@@ -124,7 +176,110 @@ struct Playing {
     this.Playing_Next = isHorizontalMode()
     console.info('Succeeded in obtaining fold status.judge: ' + this.Playing_Next);
   }
+  song_change(){
+    if (this.UV_background) {
+      this.getPicture(cover(this.song?.album?.cover ?? "", 512) as string )
 
+    }
+}
+  sys_ColorMode_dark_change(){
+    this.getPicture(cover(this.song?.album?.cover ?? "", 512) as string )
+
+  }
+  async getPicture(uri:string) {
+
+      http.createHttp()
+        .request(uri, (error: BusinessError, data: http.HttpResponse) => {
+          if (error) {
+            // 下载失败时弹窗提示检查网络，不执行后续逻辑
+            console.error(`request failed, ${JSON.stringify(error.message)}`);
+            return;
+          }
+          this.transcodePixelMap(data);
+        },
+        );
+
+
+  }
+  /**
+   * 使用createPixelMap将ArrayBuffer类型的图片装换为PixelMap类型
+   * @param data：网络获取到的资源
+   */
+  transcodePixelMap(data: http.HttpResponse) {
+    if (http.ResponseCode.OK === data.responseCode) {
+      const imageData: ArrayBuffer = data.result as ArrayBuffer;
+      // 通过ArrayBuffer创建图片源实例
+      const imageSource: image.ImageSource = image.createImageSource(imageData);
+      const options: image.InitializationOptions = {
+        'alphaType': 0,
+        'editable': false,
+        'pixelFormat': 3,
+        'scaleMode': 1,
+        'size': { height: 100, width: 100 },
+      };
+
+      // 通过属性创建PixelMap
+      imageSource.createPixelMap(options).then((pixelMap: PixelMap) => {
+        effectKit.createColorPicker(pixelMap, (err, colorPicker) => {
+          const color = colorPicker.getMainColorSync();
+          console.info('get main color =', '{red:', color.red, 'green:', color.green, 'blue:', color.blue, 'alpha:',
+            color.alpha, '}'); // 立即输出主色值
+          // 获取视觉占比最大值的颜色
+          const b = color.blue
+          const g = color.green
+          const r = color.red
+          const a = color.alpha
+          let rightColor =
+            `#${a.toString(16)}${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16)
+              .padStart(2, '0')}`
+          this.Color_main = rightColor
+          console.info('十六进制数', rightColor)
+          const LargestColor = colorPicker.getLargestProportionColor();
+          console.info('get largest proportion color =' + '{red:', LargestColor.red, 'green:', LargestColor.green,
+            'blue:', LargestColor.blue, 'alpha:', LargestColor.alpha, '}');
+          // 获取像素占比最大值的颜色
+          const topColors = colorPicker.getTopProportionColors(2);
+          for (let index = 0; index < topColors.length; index++) {
+            if (topColors[index]) {
+              console.info('get top proportion colors: index ' + index + ', color ' + '{red:', topColors[index]?.red,
+                'green:', topColors[index]?.green, 'blue:', topColors[index]?.blue, 'alpha:',
+                topColors[index]?.alpha, '}');
+            }
+          }
+          // 获取平均色
+          const averageColor = colorPicker.getAverageColor();
+          console.info('get average color =' + '{red:', averageColor.red, 'green:', averageColor.green, 'blue:',
+            averageColor.blue, 'alpha:', averageColor.alpha, '}');
+          const b1 = averageColor.blue
+          const g1 = averageColor.green
+          const r1 = averageColor.red
+          const a1 = averageColor.alpha
+          let rightColor1 =
+            `#${a1.toString(16)}${r1.toString(16).padStart(2, '0')}${g1.toString(16).padStart(2, '0')}${b1.toString(16)
+              .padStart(2, '0')}`
+          this.Color_sum =rightColor1
+          // 获取饱和度最高的颜色
+          const highestSatColor = colorPicker.getHighestSaturationColor();
+          console.info('get highest SatColor color =', '{red:', highestSatColor.red, 'green:', highestSatColor.green,
+            'blue:', highestSatColor.blue, 'alpha:', highestSatColor.alpha, '}');
+          const b2 = highestSatColor.blue
+          const g2 = highestSatColor.green
+          const r2 = highestSatColor.red
+          const a2 = highestSatColor.alpha
+          let rightColor2 =
+            `#${a2.toString(16)}${r2.toString(16).padStart(2, '0')}${g2.toString(16).padStart(2, '0')}${b2.toString(16)
+              .padStart(2, '0')}`
+          const isNeutral = colorPicker.isBlackOrWhiteOrGrayColor(0xFFFF00FF);
+          console.info('isBlackOrWhiteOrGrayColor', isNeutral)
+          this.Ctrl_vision.stop()
+
+          this.Ctrl_vision.setEffectParams({colorSource:[this.Color_main,this.Color_sum,$r('app.color.card_background')]})
+          this.Ctrl_vision.resume()
+        })
+        // this.image = pixelMap;
+      });
+    }
+  }
   @Builder
   progress_Volume(){
     Column(){
@@ -1474,6 +1629,7 @@ struct Playing {
                 this.controller.changeIndex(1)
               }
             }) //点击图片切换到歌词页面
+
             .borderRadius(this.img_playing_ctrl==='1'?0:24)
             .gesture(
               PanGesture({ direction: PanDirection.Horizontal })
@@ -1968,7 +2124,10 @@ struct Playing {
     NavDestination() {
       FolderStack() {
         // 背景
-        this.BlurBackground(this.is_backblur)
+        if (!this.UV_background){
+          this.BlurBackground(this.is_backblur)
+
+        }
 
         Column() {
 
@@ -2045,6 +2204,23 @@ struct Playing {
             })
           }
         }
+        .attributeModifier(this.colum_20)
+        // .visualEffect(new hdsEffect.HdsEffectBuilder()
+        //   .shaderEffect({
+        //     effectType: hdsEffect.EffectType.UV_BACKGROUND_FLOW_LIGHT,
+        //     animation: {
+        //       duration: 5000,
+        //       iterations: -1,
+        //       autoPlay: true,
+        //       onFinish: ()=> {
+        //         console.info('Succeeded in finishing');
+        //         this.Ctrl_vision.play()
+        //       }
+        //     },
+        //     params:{colorSource:[this.Color_main,this.Color_sum]},
+        //     controller: this.Ctrl_vision
+        //   })
+        //   .buildEffect())
         .width(StyleConstants.FULL_WIDTH)
         .height(StyleConstants.FULL_HEIGHT)
       }
@@ -2062,9 +2238,26 @@ struct Playing {
     .hideTitleBar(true)
     .backgroundColor($r('app.color.page_background'))
     .mode(NavDestinationMode.STANDARD)
+    // .onReady(()=>{
+    //
+    // })
+    .onWillShow(()=>{
+      this.UV_background = PreferencesCache.getUserPreference('UV_background')==='1'?true:false
+      try {
+        if (this.UV_background) {
+          this.colum_20 = new MyButtonModifier(deviceInfo.sdkApiVersion>19,this.Ctrl_vision,this.UV_background)
+          this.getPicture(cover(this.song?.album?.cover ?? "", 256) as string)
+
+        }
+
+      }catch (e) {
+        //TODO::
+      }
+    })
     .onAppear(()=>{
       this.img_playing_ctrl=  PreferencesCache.getUserPreference('img_playing_ctrl','0')
       PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
+
 
     })
     .width(StyleConstants.FULL_WIDTH)
