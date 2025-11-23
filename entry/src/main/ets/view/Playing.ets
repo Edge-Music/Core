@@ -158,6 +158,7 @@ struct Playing {
   private readonly SWIPE_THRESHOLD: number = 80; // 触发切换的阈值
   private timerId: number = -1
   private updateTimer: number = -1
+  @State P_X:number =0
   @State netok:boolean =false
   //TAB,swiper控制
   private controller: TabsController = new TabsController()
@@ -2256,24 +2257,29 @@ struct Playing {
           clearInterval(this.updateTimer);
         }
         if (event.axisHorizontal) {
-        let judge:boolean =  event.axisHorizontal>0
-          if (!judge) {
-            if (this.currentTime+1000<max) {
-              this.currentTime = this.currentTime+1000
-              console.log(this.currentTime+'onAxisEvent_jizhishi'+max)
-              // avPlayerManager.seek(this.currentTime)
-
-            }
-          }else {
-            if (this.currentTime-1000>0) {
-              this.currentTime = this.currentTime-1000
-              console.log(this.currentTime+'onAxisEvent_jizhishi'+max)
-
-            }
+        // let judge:boolean =  event.axisHorizontal>30
+        //   this.P_X = this.P_X+event.axisHorizontal
+        //   console.log('jizhishipx'+this.P_X)
+          if (event.axisHorizontal <0) {
+                this.currentTime = this.currentTime+1000
+                console.log(this.currentTime+'onAxisEvent_jizhishi'+max)
+            this.P_X++
+          }else  {
+            this.currentTime = this.currentTime-1000
+            console.log(this.currentTime+'onAxisEvent_jizhishi'+max)
+            this.P_X--
           }
+
+
+
         }
         if (event.action ===AxisAction.END) {
-          avPlayerManager.seek(this.currentTime)
+          if (this.P_X!=0) {
+            avPlayerManager.seek(this.currentTime)
+            this.P_X =0
+
+          }
+
           const player = await avPlayerManager.getAVPlayerInstance()
 
           this.updateTimer = setInterval(() => {
