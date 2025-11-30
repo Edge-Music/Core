@@ -618,11 +618,11 @@
     },
     {
       "name": "downloading",
-      "value": "正在下载"
+      "value": "下载中"
     },
     {
       "name": "download_history",
-      "value": "下载历史"
+      "value": "历史"
     },
     {
       "name": "waiting",
