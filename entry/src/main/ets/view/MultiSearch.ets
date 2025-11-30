@@ -6,10 +6,11 @@ import { MiniPlaybackControl } from "../component/MiniPlaybackControl";
 import { Segment } from "../component/Segment";
 import { SearchFilter, SearchFilterType } from "../component/SearchFilter";
 import { SearchResultList } from "../component/SearchResultList";
+import { SourceFilter } from "../component/SourceFilter";
 import { TitleHeader } from "../component/TitleHeader";
 import { StyleConstants } from "../constants/StyleConstants";
 import { AnimationConstants } from "../constants/AnimationConstants";
-import { Album, Artist, Playlist, SearchResult, Song } from "../type/Adapter";
+import { Album, Artist, ID, Playlist, SearchResult, Song, SourceConfig } from "../type/Adapter";
 import { HeaderComponent } from "../component/HeaderComponent";
 import ResourceManager from "../util/ResourceManager";
 import { ScrollController } from "../util/ScrollController";
@@ -25,6 +26,7 @@ export struct MultiSearch {
   @State loading: boolean = false;
   @State nullResultFlag: boolean = true
   @State selectedFilter: SearchFilterType = SearchFilterType.ALL
+  @State selectedSourceIds: Set<ID> = new Set<ID>()
   @State scrollOffsetY: number = 0
   @State startScrollOffsetY: number = 0
   @State placeholderOffset: number = 0
@@ -44,6 +46,90 @@ export struct MultiSearch {
     this.loading = false
   }
 
+  /**
+   * 根据数据源筛选歌曲
+   */
+  private filterSongsBySource(songs: Song[] | undefined): Song[] {
+    if (!songs) {
+      return []
+    }
+    if (this.selectedSourceIds.size === 0) {
+      return songs
+    }
+    const filtered: Song[] = []
+    for (let i = 0; i < songs.length; i++) {
+      const song = songs[i]
+      const source = song.source as SourceConfig
+      if (source && this.selectedSourceIds.has(source.id)) {
+        filtered.push(song)
+      }
+    }
+    return filtered
+  }
+
+  /**
+   * 根据数据源筛选歌单
+   */
+  private filterPlaylistsBySource(playlists: Playlist[] | undefined): Playlist[] {
+    if (!playlists) {
+      return []
+    }
+    if (this.selectedSourceIds.size === 0) {
+      return playlists
+    }
+    const filtered: Playlist[] = []
+    for (let i = 0; i < playlists.length; i++) {
+      const playlist = playlists[i]
+      const source = playlist.source as SourceConfig
+      if (source && this.selectedSourceIds.has(source.id)) {
+        filtered.push(playlist)
+      }
+    }
+    return filtered
+  }
+
+  /**
+   * 根据数据源筛选歌手
+   */
+  private filterArtistsBySource(artists: Artist[] | undefined): Artist[] {
+    if (!artists) {
+      return []
+    }
+    if (this.selectedSourceIds.size === 0) {
+      return artists
+    }
+    const filtered: Artist[] = []
+    for (let i = 0; i < artists.length; i++) {
+      const artist = artists[i]
+      const source = artist.source as SourceConfig
+      if (source && this.selectedSourceIds.has(source.id)) {
+        filtered.push(artist)
+      }
+    }
+    return filtered
+  }
+
+  /**
+   * 根据数据源筛选专辑
+   */
+  private filterAlbumsBySource(albums: Album[] | undefined): Album[] {
+    if (!albums) {
+      return []
+    }
+    if (this.selectedSourceIds.size === 0) {
+      return albums
+    }
+    const filtered: Album[] = []
+    for (let i = 0; i < albums.length; i++) {
+      const album = albums[i]
+      const source = album.source as SourceConfig
+      if (source && this.selectedSourceIds.has(source.id)) {
+        filtered.push(album)
+      }
+    }
+    return filtered
+  }
+
   build() {
     NavDestination() {
       Stack({ alignContent: Alignment.Bottom }){
@@ -56,59 +142,64 @@ export struct MultiSearch {
               HeaderAnimation({ scrollController: this.scrollController })
             }
 
-            // 筛选器
+            // 类型筛选器
             ListItem() {
               SearchFilter({ selectedFilter: $selectedFilter })
+            }
+
+            // 数据源筛选器
+            ListItem() {
+              SourceFilter({ selectedSourceIds: $selectedSourceIds })
             }
 
             ListItemGroup(){
               if(this.result){
                 // 歌曲列表
-                if(this.isNullResult(this.result.songs) &&
+                if(this.isFilteredNullResult(this.filterSongsBySource(this.result.songs)) &&
                    (this.selectedFilter === SearchFilterType.ALL || this.selectedFilter === SearchFilterType.SONGS)){
                   ListItem() {
                     SearchResultList({
-                      items: this.result.songs,
+                      items: this.filterSongsBySource(this.result.songs),
                       type: 'Song',
                       title: "歌曲"
                     })
                   }
                 }
                 // 歌单列表
-                if(this.isNullResult(this.result.playlists) &&
+                if(this.isFilteredNullResult(this.filterPlaylistsBySource(this.result.playlists)) &&
                    (this.selectedFilter === SearchFilterType.ALL || this.selectedFilter === SearchFilterType.PLAYLISTS)){
                   ListItem() {
                     SearchResultList({
-                      items: this.result.playlists,
+                      items: this.filterPlaylistsBySource(this.result.playlists),
                       type: 'Playlist',
                       title: "歌单"
                     })
                   }
                 }
                 // 艺人列表
-                if(this.isNullResult(this.result.artists) &&
+                if(this.isFilteredNullResult(this.filterArtistsBySource(this.result.artists)) &&
                    (this.selectedFilter === SearchFilterType.ALL || this.selectedFilter === SearchFilterType.ARTISTS)){
                   ListItem() {
                     SearchResultList({
-                      items: this.result.artists,
+                      items: this.filterArtistsBySource(this.result.artists),
                       type: 'Artist',
                       title: "歌手"
                     })
                   }
                 }
                 // 专辑列表
-                if(this.isNullResult(this.result.albums) &&
+                if(this.isFilteredNullResult(this.filterAlbumsBySource(this.result.albums)) &&
                    (this.selectedFilter === SearchFilterType.ALL || this.selectedFilter === SearchFilterType.ALBUMS)){
                   ListItem() {
                     SearchResultList({
-                      items: this.result.albums,
+                      items: this.filterAlbumsBySource(this.result.albums),
                       type: 'Album',
                       title: "专辑"
                     })
                   }
                 }
                 // 如果结果为空
-                if(this.nullResultFlag){
+                if(this.isAllResultsEmpty()){
                   ListItem(){
                     this.EmptySearchResult(ResourceManager.getStringValueSync($r('app.string.search_no_result')))
                   }
@@ -194,6 +285,47 @@ export struct MultiSearch {
       return true
     }
     return false
+  }
+
+  /**
+   * 判断过滤后的结果是否非空
+   * @param list
+   * @returns
+   */
+  isFilteredNullResult(list: Song[] | Playlist[] | Artist[] | Album[]): boolean {
+    return list.length > 0
+  }
+
+  /**
+   * 判断所有过滤后的结果是否都为空
+   */
+  isAllResultsEmpty(): boolean {
+    if (!this.result) {
+      return true
+    }
+
+    const filteredSongs = this.filterSongsBySource(this.result.songs)
+    const filteredPlaylists = this.filterPlaylistsBySource(this.result.playlists)
+    const filteredArtists = this.filterArtistsBySource(this.result.artists)
+    const filteredAlbums = this.filterAlbumsBySource(this.result.albums)
+
+    // 根据当前选中的类型筛选器判断
+    switch (this.selectedFilter) {
+      case SearchFilterType.SONGS:
+        return filteredSongs.length === 0
+      case SearchFilterType.PLAYLISTS:
+        return filteredPlaylists.length === 0
+      case SearchFilterType.ARTISTS:
+        return filteredArtists.length === 0
+      case SearchFilterType.ALBUMS:
+        return filteredAlbums.length === 0
+      default:
+        // ALL: 所有类型都为空才显示空结果
+        return filteredSongs.length === 0 &&
+               filteredPlaylists.length === 0 &&
+               filteredArtists.length === 0 &&
+               filteredAlbums.length === 0
+    }
   }
 
   getBlankHeight(): Length {
