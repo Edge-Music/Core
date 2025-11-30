@@ -48,7 +48,9 @@ const TAG = 'Playing'
   constructor(isApi20?: boolean,Ctrl_vision?:hdsEffect.ShaderEffectController,is_need?:boolean) {
     this.is_need=is_need ??false
     this.isApi20 = isApi20 ?? false
-    this.Ctrl_vision=Ctrl_vision??  new hdsEffect.ShaderEffectController()
+    let a =new hdsEffect.ShaderEffectController()
+    a.setEffectParams({colorSource:['#00000000']})
+    this.Ctrl_vision=Ctrl_vision??  a
 
   }
 
@@ -67,7 +69,7 @@ const TAG = 'Playing'
               this.Ctrl_vision.play()
             }
           },
-          // params:{colorSource:[this.Color_main,this.Color_sum]},
+          params:{colorSource:['#00000000','#00000000']},
           controller: this.Ctrl_vision
         })
         .buildEffect())
@@ -150,16 +152,19 @@ struct Playing {
   @State Color_sum:string='#114514'
   @State colum_20:MyButtonModifier = new MyButtonModifier()
   @State UV_background:boolean =false
+  @State is_press_long:boolean =false
   private Ctrl_vision:hdsEffect.ShaderEffectController =  new hdsEffect.ShaderEffectController()
   private uiContext: UIContext | undefined = undefined;
   private readonly SWIPE_THRESHOLD: number = 80; // 触发切换的阈值
   private timerId: number = -1
   private updateTimer: number = -1
-  // private netok:boolean =false
+  @State P_X:number =0
+  @State netok:boolean =false
   //TAB,swiper控制
   private controller: TabsController = new TabsController()
   private swiperController: SwiperController = new SwiperController()
   private windowStage = AppUtil.getWindowStage()
+  // private panOption: PanGestureOptions = new PanGestureOptions({ direction: PanDirection.Left | PanDirection.Right });
   private resetTimer() {
     if (this.timerId !== -1) {
       clearTimeout(this.timerId)
@@ -275,6 +280,8 @@ struct Playing {
 
           this.Ctrl_vision.setEffectParams({colorSource:[this.Color_main,this.Color_sum,$r('app.color.card_background')]})
           this.Ctrl_vision.resume()
+          this.netok = true
+
         })
         // this.image = pixelMap;
       });
@@ -948,6 +955,7 @@ struct Playing {
 
     this.isFavorite = this.song?.meta?.isFavorite || false
     this.uiContext = this.getUIContext();
+
     // 初始化宽屏检测
     this.isWideScreen = this.currentBreakpoint !== BreakpointConstants.BREAKPOINT_SM;
 
@@ -957,7 +965,6 @@ struct Playing {
         this.currentTime = player.currentTime;
       }
     }, 300)
-
     // 初始化监听
     EventHelper.subscribeLoopMode((mode: number) => {
       this.uiContext?.animateTo({ duration: 300, curve: Curve.EaseInOut }, () => {
@@ -1117,7 +1124,7 @@ struct Playing {
         .padding({ left: 8, right: 8 })
         .height(16) // 固定高度以保持布局稳定
       }
-
+// bnm
       Slider({
         value: this.currentTime,
         max: this.song?.duration || 0,
@@ -2129,10 +2136,10 @@ struct Playing {
     NavDestination() {
       FolderStack() {
         // 背景
-        if (!this.UV_background){
-          this.BlurBackground(this.is_backblur)
 
-        }
+            this.BlurBackground(this.is_backblur)
+
+
 
         Column() {
 
@@ -2141,6 +2148,9 @@ struct Playing {
             // 标题栏
             this.Title()
             // 宽屏布局 - 左右分栏
+            if (this.winWidth >WidthBreakpoint.WIDTH_LG) {
+              
+            }
             Row() {
               if (this.flipCoverLyric) {
                 Column() {
@@ -2210,6 +2220,7 @@ struct Playing {
           }
         }
         .attributeModifier(this.colum_20)
+
         // .visualEffect(new hdsEffect.HdsEffectBuilder()
         //   .shaderEffect({
         //     effectType: hdsEffect.EffectType.UV_BACKGROUND_FLOW_LIGHT,
@@ -2235,6 +2246,7 @@ struct Playing {
         console.log('this appRotation:' + msg.appRotation);
         console.log('this windowStatusType:' + msg.windowStatusType);
       })
+
       .width(StyleConstants.FULL_WIDTH)
       .height(StyleConstants.FULL_HEIGHT)
     }
@@ -2243,14 +2255,58 @@ struct Playing {
     .hideTitleBar(true)
     .backgroundColor($r('app.color.page_background'))
     .mode(NavDestinationMode.STANDARD)
-    // .onReady(()=>{
-    //
-    // })
+      .onAxisEvent(async (event)=>{
+        let max:number = this.song?.duration || 0
+        if (event.action ===AxisAction.BEGIN) {
+          // avPlayerManager.seek(this.currentTime)
+          clearInterval(this.updateTimer);
+        }
+        if (event.axisHorizontal) {
+        // let judge:boolean =  event.axisHorizontal>30
+        //   this.P_X = this.P_X+event.axisHorizontal
+        //   console.log('jizhishipx'+this.P_X)
+          if (event.axisHorizontal <0) {
+                this.currentTime = this.currentTime+1000
+                console.log(this.currentTime+'onAxisEvent_jizhishi'+max)
+            this.P_X++
+          }else  {
+            this.currentTime = this.currentTime-1000
+            console.log(this.currentTime+'onAxisEvent_jizhishi'+max)
+            this.P_X--
+          }
+
+
+
+        }
+        if (event.action ===AxisAction.END) {
+          if (this.P_X!=0) {
+            avPlayerManager.seek(this.currentTime)
+            this.P_X =0
+
+          }
+
+          const player = await avPlayerManager.getAVPlayerInstance()
+
+          this.updateTimer = setInterval(() => {
+            if (this.isPlaying && this.currentTime <= (this.song?.duration || 0)) {
+              this.currentTime = player.currentTime;
+            }
+          }, 300)
+        }
+
+      })
     .onWillShow(()=>{
-      this.UV_background = PreferencesCache.getUserPreference('UV_background')==='1'?true:false
       try {
+
+        // let a1:string =AppStorage.get('main_Color')??'#121222'
+        // let a2:string =AppStorage.get('sum_Color')??'#223367'
+        // this.Ctrl_vision.setEffectParams({colorSource:[a1,a2,$r('app.color.card_background')]})
+        this.UV_background = PreferencesCache.getUserPreference('UV_background')==='1'?true:false
+        this.colum_20 = new MyButtonModifier(deviceInfo.sdkApiVersion>19,this.Ctrl_vision,this.UV_background)
         if (this.UV_background) {
-          this.colum_20 = new MyButtonModifier(deviceInfo.sdkApiVersion>19,this.Ctrl_vision,this.UV_background)
+
+
+
           this.getPicture(cover(this.song?.album?.cover ?? "", 256) as string)
 
         }
@@ -2259,6 +2315,27 @@ struct Playing {
         //TODO::
       }
     })
+    .onWillAppear(()=>{
+      try {
+
+        // let a1:string =AppStorage.get('main_Color')??'#121222'
+        // let a2:string =AppStorage.get('sum_Color')??'#223367'
+        // this.Ctrl_vision.setEffectParams({colorSource:[a1,a2,$r('app.color.card_background')]})
+        this.UV_background = PreferencesCache.getUserPreference('UV_background')==='1'?true:false
+        this.colum_20 = new MyButtonModifier(deviceInfo.sdkApiVersion>19,this.Ctrl_vision,this.UV_background)
+        if (this.UV_background) {
+
+
+
+          this.getPicture(cover(this.song?.album?.cover ?? "", 256) as string)
+
+        }
+
+      }catch (e) {
+        //TODO::
+      }
+    })
+
     .onAppear(()=>{
       this.img_playing_ctrl=  PreferencesCache.getUserPreference('img_playing_ctrl','0')
       PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
@@ -2293,7 +2370,28 @@ struct Playing {
           this.pageStack.pop()
         }
       })
+
     )
+    // .gesture(
+    //   PanGesture(this.panOption)
+    //     .onActionStart((event: GestureEvent) => {
+    //       console.info('Pan start');
+    //       console.info('Pan start timeStamp is: ' + event.timestamp);
+    //     })
+    //     .onActionUpdate((event: GestureEvent) => {
+    //       if (event) {
+    //         // this.offsetX = this.positionX + event.offsetX;
+    //         // this.offsetY = this.positionY + event.offsetY;
+    //       }
+    //     })
+    //     .onActionEnd((event: GestureEvent) => {
+    //       event.offsetX
+    //       // this.positionX = this.offsetX;
+    //       // this.positionY = this.offsetY;
+    //       console.info('Pan end');
+    //       console.info('Pan end timeStamp is: ' + event.timestamp);
+    //     })
+    // )
     .onSizeChange(() => {
       this.Playing_Next = isHorizontalMode()
     })
