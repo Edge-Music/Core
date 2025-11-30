@@ -423,6 +423,32 @@ class SongDownloadManagerClass {
       }
     });
 
+    // 恢复所有 retrying 状态的任务
+    this.downloadQueue.forEach((progress, songId) => {
+      if (progress.status === 'retrying') {
+        // 检查是否已在活跃任务中
+        if (!this.activeTasks.has(songId)) {
+          // 创建新任务并加入等待队列
+          const task: DownloadTask = {
+            songId: songId,
+            song: progress.song,
+            retryCount: 0, // 重置重试次数
+            isPaused: false
+          };
+          this.waitingQueue.push(task);
+          this.updateQueue(songId, {
+            song: progress.song,
+            progress: 0,
+            status: 'waiting',
+            retryCount: 0,
+            queuePosition: this.waitingQueue.length,
+            errorMessage: undefined
+          });
+          LogUtil.info('SongDownloadManager', `Retrying task added to waiting queue: ${progress.song.name}`);
+        }
+      }
+    });
+
     // 处理等待队列
     this.processWaitingQueue();
 
@@ -546,6 +572,140 @@ class SongDownloadManagerClass {
       ToastUtil.showShort(`已清除 ${completedIds.length} 个已完成任务`);
       LogUtil.info('SongDownloadManager', `Cleared ${completedIds.length} completed tasks`);
     }
+  }
+
+  /**
+   * 清空所有任务（包括进行中、等待中、已完成、失败的任务）
+   */
+  public clearAllTasks(): void {
+    const totalCount = this.downloadQueue.size;
+
+    if (totalCount === 0) {
+      ToastUtil.showShort('队列已为空');
+      return;
+    }
+
+    // 暂停所有活跃任务
+    this.activeTasks.forEach((task) => {
+      task.isPaused = true;
+    });
+
+    // 清空所有队列和集合
+    this.activeTasks.clear();
+    this.waitingQueue.length = 0;
+    this.pausedTasks.clear();
+    this.downloadQueue.clear();
+    this.globalPaused = false;
+
+    // 触发 UI 更新
+    AppStorage.setOrCreate('download_queue', this.downloadQueue);
+
+    ToastUtil.showShort(`已清空 ${totalCount} 个任务`);
+    LogUtil.info('SongDownloadManager', `Cleared all ${totalCount} tasks`);
+  }
+
+  /**
+   * 暂停所有正在进行和等待中的任务
+   */
+  public pauseAllTasks(): void {
+    let pausedCount = 0;
+
+    // 暂停所有活跃任务
+    this.activeTasks.forEach((task, songId) => {
+      if (!task.isPaused) {
+        task.isPaused = true;
+        this.pausedTasks.add(songId);
+
+        const progress = this.downloadQueue.get(songId);
+        if (progress) {
+          this.updateQueue(songId, {
+            song: progress.song,
+            progress: progress.progress,
+            status: 'paused',
+            retryCount: progress.retryCount,
+            queuePosition: progress.queuePosition,
+            errorMessage: progress.errorMessage
+          });
+        }
+        pausedCount++;
+      }
+    });
+
+    // 暂停所有等待中的任务
+    for (let i = 0; i < this.waitingQueue.length; i++) {
+      const task = this.waitingQueue[i];
+      if (!task.isPaused) {
+        task.isPaused = true;
+        this.pausedTasks.add(task.songId);
+
+        const progress = this.downloadQueue.get(task.songId);
+        if (progress) {
+          this.updateQueue(task.songId, {
+            song: progress.song,
+            progress: progress.progress,
+            status: 'paused',
+            retryCount: progress.retryCount,
+            queuePosition: progress.queuePosition,
+            errorMessage: progress.errorMessage
+          });
+        }
+        pausedCount++;
+      }
+    }
+
+    this.globalPaused = true;
+
+    if (pausedCount > 0) {
+      ToastUtil.showShort(`已暂停 ${pausedCount} 个任务`);
+      LogUtil.info('SongDownloadManager', `Paused ${pausedCount} tasks`);
+    } else {
+      ToastUtil.showShort('没有可暂停的任务');
+    }
+  }
+
+  /**
+   * 恢复所有已暂停的任务
+   */
+  public resumeAllTasks(): void {
+    const pausedCount = this.pausedTasks.size;
+
+    if (pausedCount === 0) {
+      ToastUtil.showShort('没有已暂停的任务');
+      return;
+    }
+
+    this.globalPaused = false;
+    this.resumeAll();
+  }
+
+  /**
+   * 检查是否有正在运行的任务
+   */
+  public hasRunningTasks(): boolean {
+    let hasRunning = false;
+    this.downloadQueue.forEach((progress) => {
+      if (progress.status === 'downloading' || progress.status === 'retrying' || progress.status === 'waiting') {
+        hasRunning = true;
+      }
+    });
+    return hasRunning;
+  }
+
+  /**
+   * 检查是否有已暂停或重试中的任务（需要恢复按钮）
+   */
+  public hasPausedTasks(): boolean {
+    if (this.pausedTasks.size > 0) {
+      return true;
+    }
+    // 检查是否有 retrying 状态的任务
+    let hasRetrying = false;
+    this.downloadQueue.forEach((progress) => {
+      if (progress.status === 'retrying') {
+        hasRetrying = true;
+      }
+    });
+    return hasRetrying;
   }
 
   /**
@@ -745,7 +905,12 @@ class SongDownloadManagerClass {
     }
 
     const ext = getFileExtension(url);
-    const fileName = `${song.artists.map(item => item.name).join("/")}-${song.name}${ext}`;
+    // 使用 & 连接歌手名，避免 / 被解析为目录分隔符
+    // 同时替换文件名中的非法字符
+    const artistNames = song.artists.map(item => item.name).join(" & ");
+    const safeArtistNames = this.sanitizeFileName(artistNames);
+    const safeSongName = this.sanitizeFileName(song.name);
+    const fileName = `${safeArtistNames}-${safeSongName}${ext}`;
 
     // 完整文件路径
     const uri = musicDir + '/' + fileName;
@@ -761,30 +926,66 @@ class SongDownloadManagerClass {
       // 忽略删除文件错误
     }
 
-    // 使用下载工具类下载文件
-    await DownloadManager.downloadFile({
-      url: url,
-      fileName: tempFilePath,
-      background: true,
-      onProgress: (progress) => {
-        // 触发进度回调
-        if (onProgress) {
-          onProgress(progress);
-        }
-      },
+    // 使用 Promise 包装下载过程，确保错误能正确传播
+    return new Promise<void>((resolve, reject) => {
+      DownloadManager.downloadFile({
+        url: url,
+        fileName: tempFilePath,
+        background: true,
+        autoRetry: false, // 由 SongDownloadManager 控制重试
+        onProgress: (progress) => {
+          // 触发进度回调
+          if (onProgress) {
+            onProgress(progress);
+          }
+        },
         onComplete: async () => {
           try {
+            // 验证临时文件是否存在
+            const tempFileExists = await fs.access(tempFilePath);
+            if (!tempFileExists) {
+              throw new Error('Temporary file does not exist after download');
+            }
+
+            // 验证临时文件大小
+            const tempStats = await fs.stat(tempFilePath);
+            if (tempStats.size === 0) {
+              throw new Error('Downloaded file is empty (0 bytes)');
+            }
+
+            LogUtil.info('SongDownloadManager', `Temp file verified: ${tempFilePath}, size: ${tempStats.size} bytes`);
+
             // 移动文件到目标目录
             await fs.moveFile(tempFilePath, filePath);
+
+            // 验证目标文件是否存在
+            const fileExists = await fs.access(filePath);
+            if (!fileExists) {
+              throw new Error('Failed to move file to destination');
+            }
+
+            // 验证目标文件大小
+            const finalStats = await fs.stat(filePath);
+            if (finalStats.size === 0) {
+              throw new Error('Destination file is empty after move');
+            }
+
+            LogUtil.info('SongDownloadManager', `File moved and verified: ${filePath}, size: ${finalStats.size} bytes`);
+
+            // 保存歌词文件
             const lyricContent = song.meta?.lyric?.normal;
             if (lyricContent) {
-              const lyricFilePath = filePath.replace(/\.[^/.]+$/, '.lrc');
-              // 创建歌词文件
-              LogUtil.info('SongDownloadManager', 'Creating lyric file:', lyricFilePath);
-              const lyric = await fs.open(lyricFilePath, fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE);
-              await fs.write(lyric.fd, lyricContent);
+              try {
+                const lyricFilePath = filePath.replace(/\.[^/.]+$/, '.lrc');
+                LogUtil.info('SongDownloadManager', 'Creating lyric file:', lyricFilePath);
+                const lyric = await fs.open(lyricFilePath, fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE);
+                await fs.write(lyric.fd, lyricContent);
+                await fs.close(lyric.fd);
+              } catch (lyricErr) {
+                // 歌词保存失败不影响主流程
+                LogUtil.warn('SongDownloadManager', 'Failed to save lyric file: ' + (lyricErr as Error).message);
+              }
             }
-            LogUtil.info('SongDownloadManager', 'File moved to:', filePath);
 
             // 创建下载项并保存到偏好设置
             const downloadItem: SongDownloadItem = {
@@ -792,7 +993,7 @@ class SongDownloadManagerClass {
               path: filePath,
               downloadTime: Date.now(),
               lastPlayTime: Date.now(),
-              size: song.meta?.size || 0
+              size: finalStats.size
             };
 
             await PreferencesUtil.put(
@@ -802,17 +1003,65 @@ class SongDownloadManagerClass {
             );
 
             LogUtil.info('SongDownloadManager', 'Download completed successfully:', song.name);
+            resolve();
           } catch (err) {
             const error = err as Error;
             LogUtil.error('SongDownloadManager', 'Error in onComplete: ' + error.message);
-            throw new Error(error.message);
+            // 清理可能存在的不完整文件
+            try {
+              await fs.unlink(tempFilePath);
+            } catch (e) {
+              // 忽略
+            }
+            try {
+              await fs.unlink(filePath);
+            } catch (e) {
+              // 忽略
+            }
+            reject(new Error('File processing failed: ' + error.message));
           }
         },
         onError: (err: Error) => {
           LogUtil.error('SongDownloadManager', 'Download error: ' + fileName + ' - ' + err.message);
-          throw new Error('Download failed: ' + err.message);
+          // 清理可能存在的不完整文件
+          fs.unlink(tempFilePath).catch(() => {});
+          reject(new Error('Download failed: ' + err.message));
         }
+      }).catch((err: Error) => {
+        LogUtil.error('SongDownloadManager', 'DownloadManager.downloadFile rejected: ' + err.message);
+        reject(err);
       });
+    });
+  }
+
+  /**
+   * 清理文件名中的非法字符
+   * @param name 原始文件名
+   * @returns 清理后的文件名
+   */
+  private sanitizeFileName(name: string): string {
+    if (!name) {
+      return 'unknown';
+    }
+    // 替换 Windows 和 Unix 文件系统中的非法字符
+    // 非法字符: / \ : * ? " < > |
+    let result = name;
+    result = result.replace(/\//g, '_');
+    result = result.replace(/\\/g, '_');
+    result = result.replace(/:/g, '_');
+    result = result.replace(/\*/g, '_');
+    result = result.replace(/\?/g, '_');
+    result = result.replace(/"/g, '_');
+    result = result.replace(/</g, '_');
+    result = result.replace(/>/g, '_');
+    result = result.replace(/\|/g, '_');
+    // 移除首尾空格
+    result = result.trim();
+    // 如果结果为空，返回默认值
+    if (result.length === 0) {
+      return 'unknown';
+    }
+    return result;
   }
 
   /**

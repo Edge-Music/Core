@@ -52,6 +52,7 @@ export struct Download {
   @State downloadButtonStatus: number = 1
   @State enableDownloadButton: boolean = false
   @State enableClearButton: boolean = false
+  @State enableClearAllButton: boolean = false
   @State timer: number = -1
 
   aboutToAppear(): void {
@@ -61,6 +62,7 @@ export struct Download {
         this.enableClearButton = stats.completed > 0
         this.enableDownloadButton = stats.completed != stats.total
         this.downloadButtonStatus = stats.completed != stats.total && stats.paused > 0 ? 0 : 1
+        this.enableClearAllButton = stats.total > 0
       }, 500)
     }
     this.uiContext = this.getUIContext();
@@ -157,6 +159,30 @@ export struct Download {
     this.loadDownloadHistory();
   }
 
+  onClearAllTasks(): void {
+    // 显示确认对话框
+    AlertDialog.show({
+      title: '清空队列',
+      message: '确定要清空所有下载任务吗？此操作不可撤销。',
+      autoCancel: true,
+      alignment: DialogAlignment.Center,
+      primaryButton: {
+        value: '取消',
+        action: () => {
+          // 用户取消
+        }
+      },
+      secondaryButton: {
+        value: '确定',
+        fontColor: $r('app.color.error'),
+        action: () => {
+          SongDownloadManager.clearAllTasks();
+          this.loadDownloadHistory();
+        }
+      }
+    });
+  }
+
   @Builder
   Title() {
     TitleHeader({
@@ -175,27 +201,44 @@ export struct Download {
   ButtonS() {
     // 控制按钮组
     Row({ space: 8 }) {
+      // 清空队列按钮
+      Button({ type: ButtonType.Circle }) {
+        Image($r('app.media.ic_trash'))
+          .width(24)
+          .height(24)
+          .fillColor(this.enableClearAllButton ? $r('app.color.text_primary') : $r('app.color.text_hint'))
+      }
+      .width(40)
+      .height(40)
+      .onClick(() => {
+        this.onClearAllTasks();
+      })
+      .enabled(this.enableClearAllButton)
+      .backgroundColor('transparent')
+      .opacity(this.enableClearAllButton ? 1.0 : 0.5)
+
       // 清除已完成按钮
       Button({ type: ButtonType.Circle }) {
         Image($r('app.media.clean'))
           .width(24)
           .height(24)
-          .fillColor($r('app.color.text_primary'))
+          .fillColor(this.enableClearButton ? $r('app.color.text_primary') : $r('app.color.text_hint'))
       }
       .width(40)
       .height(40)
       .onClick(() => {
         this.onClearCompleted();
       })
-      .enabled(this.enableClearButton ? true : false)
+      .enabled(this.enableClearButton)
       .backgroundColor('transparent')
+      .opacity(this.enableClearButton ? 1.0 : 0.5)
 
       // 暂停/继续按钮
       Button({ type: ButtonType.Circle }) {
         Image(this.downloadButtonStatus === 0 ? $r('app.media.ic_download') : $r('app.media.ic_pause'))
           .width(24)
           .height(24)
-          .fillColor($r('app.color.text_primary'))
+          .fillColor(this.enableDownloadButton ? $r('app.color.text_primary') : $r('app.color.text_hint'))
       }
       .width(40)
       .height(40)
@@ -206,8 +249,9 @@ export struct Download {
           this.onPauseAll();
         }
       })
-      .enabled(this.enableDownloadButton ? true : false)
+      .enabled(this.enableDownloadButton)
       .backgroundColor('transparent')
+      .opacity(this.enableDownloadButton ? 1.0 : 0.5)
     }
   }
 

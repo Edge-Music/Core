@@ -164,6 +164,46 @@ struct Index {
     Navigation(this.pageStack) {
       // empty
     }
+    .onKeyEvent(async (event?: KeyEvent) => {
+      // 通过stopPropagation阻止事件冒泡
+      let names = this.pageStack.getAllPathName();
+      let pageName = names[names.length-1];
+      if (['Index_page','Playing'].includes(pageName)) {
+        if(event){
+          if(event.stopPropagation){
+            event.stopPropagation();
+          }
+          if (event.type === KeyType.Up) {
+            // this.buttonType = 'Down';
+            if(event.keyCode ===2050){
+              const player = await avPlayerManager.getAVPlayerInstance()
+              // player.ge
+              if (            player.state ==='playing'
+              ) {
+                player.pause().catch(() => {
+                  // TODO: Implement error handling.
+                })
+              }else {
+                player.play().catch(() => {
+                  // TODO: Implement error handling.
+                })
+              }
+
+            }
+          }
+          // if (event.type === KeyType.Up) {
+          //   this.buttonType = 'Up';
+          // }
+          // this.buttonText = 'Button: \n' +
+          //   'KeyType:' + this.buttonType + '\n' +
+          //   'KeyCode:' + event.keyCode + '\n' +
+          //   'KeyText:' + event.keyText;
+        }
+
+      }else {
+
+      }
+    })
     .navDestination(this.PageMap)
     .hideNavBar(true)
     .mode(NavigationMode.Stack)
