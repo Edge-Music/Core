@@ -18,6 +18,7 @@ export struct SBLyricsSetting{
   @State @Watch("onChangeSetting") settingData: SBLyricsPre = PreferencesCache.statusBarLyricsSetting()
   @State linesIndex: number[] = [this.settingData.lines]
   @State alignIndex:number[] = [this.settingData.alignment]
+  @State lyricsTypeIndex:number[] = [this.settingData.lyricsType]
 
   @State linesOptions: SegmentButtonOptions = SegmentButtonOptions.tab({
     buttons: [{ text: '单行' }, { text: '双行' }] as ItemRestriction<SegmentButtonTextItem>,
@@ -27,6 +28,13 @@ export struct SBLyricsSetting{
   })
   @State alignOptions: SegmentButtonOptions = SegmentButtonOptions.tab({
     buttons: [{ text: '居中' }, { text: '居左' }] as ItemRestriction<SegmentButtonTextItem>,
+    backgroundBlurStyle: BlurStyle.BACKGROUND_REGULAR,
+    selectedBackgroundColor: $r('app.color.title_emphasis_color'),
+    fontSize: 12
+  })
+
+  @State lyricsTypeOptions: SegmentButtonOptions = SegmentButtonOptions.tab({
+    buttons: [{ text: '原词' }, { text: '翻译' }, { text: '罗马音' }] as ItemRestriction<SegmentButtonTextItem>,
     backgroundBlurStyle: BlurStyle.BACKGROUND_REGULAR,
     selectedBackgroundColor: $r('app.color.title_emphasis_color'),
     fontSize: 12
@@ -94,25 +102,7 @@ export struct SBLyricsSetting{
 
             Column({ space: 4 }) {
               Column({ space: 12 }) {
-                // Row() {
-                //   Text('展示方式')
-                //     .fontSize(16)
-                //     .fontColor($r('app.color.text_title'))
-                //     .fontWeight(FontWeight.Medium)
-                //   Blank()
-                //     .layoutWeight(1)
-                //   SegmentButton({
-                //     options: this.linesOptions,
-                //     selectedIndexes:this.linesIndex,
-                //     onItemClicked:(data:number)=>{
-                //       this.settingData.lines = data
-                //     }
-                //   })
-                //     .width(120)
-                //     .height(26)
-                //     .margin({right:6})
-                // }
-                // .width(StyleConstants.FULL_WIDTH)
+
                 Row() {
                   Text('对齐方式')
                     .fontSize(16)
@@ -122,12 +112,32 @@ export struct SBLyricsSetting{
                     .layoutWeight(1)
                   SegmentButton({
                     options: this.alignOptions,
-                    selectedIndexes:this.alignIndex,
+                    selectedIndexes: this.alignIndex,
                     onItemClicked:(data:number)=>{
                       this.settingData.alignment = data
                     }
                   })
                     .width(120)
+                    .margin({right:6})
+                }
+                .height(26)
+                .width(StyleConstants.FULL_WIDTH)
+
+                Row() {
+                  Text('歌词展示')
+                    .fontSize(16)
+                    .fontColor($r('app.color.text_title'))
+                    .fontWeight(FontWeight.Medium)
+                  Blank()
+                    .layoutWeight(1)
+                  SegmentButton({
+                    options: this.lyricsTypeOptions,
+                    selectedIndexes: this.lyricsTypeIndex,
+                    onItemClicked:(data: number)=>{
+                      this.settingData.lyricsType = data
+                    }
+                  })
+                    .width(180)
                     .margin({right:6})
                 }
                 .height(26)

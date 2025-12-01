@@ -3,6 +3,7 @@ import { LogUtil } from "@pura/harmony-utils";
 import { PreferencesCache, SBLyricsPre } from "../util/PreferenceCache";
 import { resourceManager } from "@kit.LocalizationKit";
 import WindowUtil from "../util/WindowUtil";
+import { LyricsLine } from "../util/LyricsManager";
 
 const TAG = 'FloatingLyrics'
 
@@ -12,6 +13,7 @@ export struct FloatingLyrics {
 
   @StorageProp('deviceType') deviceType: resourceManager.DeviceType = resourceManager.DeviceType.DEVICE_TYPE_PHONE
   @StorageLink('test_index') currentLyric: string = '歌词'
+  @StorageLink('current_line_lyrics') currentLineLyric: LyricsLine = new LyricsLine(0, '')
   @StorageProp('SBLyricsSetting') @Watch('onLyricStyleChange') settingData: string = PreferencesCache.getUserPreference('status_bar_lyrics_setting')
   @StorageProp('currentOrientation') @Watch('onLyricStyleChange') currentOrientation: string = 'portrait'
   @StorageProp('displayW') displayW: number = 0
@@ -70,7 +72,7 @@ export struct FloatingLyrics {
 
   build() {
     Stack({ alignContent: Alignment.Center }) {
-      Text(this.currentLyric)
+      Text(this.getShowLyric())
         .textStyle(this.floatLyricStyle)
         .textAlign(this.floatLyricStyle.alignment === 0 ? TextAlign.Center : TextAlign.Start)
         .width('100%')
@@ -80,6 +82,22 @@ export struct FloatingLyrics {
     .backgroundColor(`rgba(255, 255, 255, ${this.floatLyricStyle.transparency})`)
     .height(this.floatLyricStyle.fontSize + 8)
     .animation({ duration: 500, curve: Curve.Smooth })
+  }
+
+  getShowLyric(): string {
+    let result: string = ''
+    switch (this.floatLyricStyle.lyricsType) {
+      case 0:
+        result = this.currentLineLyric.text
+        break;
+      case 1:
+        result = this.currentLineLyric.translation ?? this.currentLineLyric.text
+        break;
+      case 2:
+        result = this.currentLineLyric.transliteration ?? this.currentLineLyric.translation ?? this.currentLineLyric.text
+        break;
+    }
+    return result
   }
 }
 
