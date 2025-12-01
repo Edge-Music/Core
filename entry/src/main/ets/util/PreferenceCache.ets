@@ -12,9 +12,10 @@ export interface QualityLevel {
 }
 
 export interface SBLyricsPre{
-  open:boolean;
-  lines:number;
-  alignment:number;
+  open: boolean;
+  lines: number;
+  alignment: number;
+  lyricsType: number;
   x: number;
   y: number;
   width: number;
@@ -594,6 +595,7 @@ export class PreferencesCache {
         open: false,
         lines: 0,
         alignment: 0,
+        lyricsType: 0,
         x: 0,
         y: 0,
         width: display.getDefaultDisplaySync().width/2,

@@ -723,6 +723,10 @@
     {
       "name": "download_short",
       "value": "DLs"
+    },
+    {
+      "name": "pip_lyrics_type",
+      "value": "PIP Lyrics Type"
     }
   ]
 }
