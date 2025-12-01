@@ -3,13 +3,25 @@ import {HorizontalMode}from '../util/HorizontalCheck'
 import ResourceManager from "../util/ResourceManager";
 import { PipManager } from '../util/PipManager';
 import { deviceInfo } from "@kit.BasicServicesKit";
+import { ItemRestriction, SegmentButton, SegmentButtonOptions, SegmentButtonTextItem } from "@kit.ArkUI";
 
 @Component
   //'0'关。'1'开。!!!!(开关颜色日后调)
 export struct Personalized_settings_Component {
   @State text_name: string = '';
   @State setUserPreference_name: string = '';
-  private text_ctrl:string =  PreferencesCache.getUserPreference(this.setUserPreference_name)
+  // 右侧组件类型：0-Toggle 1-Segment
+  @State componentType: number = 0
+  @State lyricTypeIndex: number[] = [parseInt(PreferencesCache.getUserPreference(this.setUserPreference_name))]
+  private text_ctrl: string = PreferencesCache.getUserPreference(this.setUserPreference_name)
+
+  @State lyricsTypeOptions: SegmentButtonOptions = SegmentButtonOptions.tab({
+    buttons: [{ text: '原词' }, { text: '翻译' }, { text: '罗马音' }] as ItemRestriction<SegmentButtonTextItem>,
+    backgroundBlurStyle: BlurStyle.BACKGROUND_REGULAR,
+    selectedBackgroundColor: $r('app.color.title_emphasis_color'),
+    fontSize: 12
+  })
+
   build() {
     Column(){
       Row(){
@@ -24,6 +36,19 @@ export struct Personalized_settings_Component {
           .onChange((isOn: boolean) => {
             this.onSwitchChangeHandler(isOn)
           })
+          .visibility(this.componentType === 0 ? Visibility.Visible : Visibility.None)
+
+        SegmentButton({
+          options: this.lyricsTypeOptions,
+          selectedIndexes: this.lyricTypeIndex,
+          onItemClicked:(data: number)=>{
+            this.lyricTypeIndex = [data]
+            PreferencesCache.setUserPreference(this.setUserPreference_name, data.toString(0))
+            AppStorage.setOrCreate(this.setUserPreference_name, data)
+          }
+        })
+          .width(180)
+          .margin({right:6})
       }
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
@@ -112,6 +137,7 @@ export struct Personalized_settings{
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.slide_up_hide_title')), setUserPreference_name:'slide_up_hide_title'})}
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.playing_title_show_lyrics')), setUserPreference_name:'playing_title_show_lyrics'})}
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.enable_wave_lyrics')), setUserPreference_name:'enable_wave_lyrics'})}
+          ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.pip_lyrics_type')), setUserPreference_name:'pip_lyrics_type', componentType: 1})}
           if (deviceInfo.sdkApiVersion>19){
             ListItem(){ Personalized_settings_Component({text_name: '开启流光背景', setUserPreference_name:'UV_background'})}
           }

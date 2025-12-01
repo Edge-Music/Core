@@ -723,6 +723,10 @@
     {
       "name": "download_short",
       "value": "下载"
+    },
+    {
+      "name": "pip_lyrics_type",
+      "value": "画中画歌词类型"
     }
   ]
 }

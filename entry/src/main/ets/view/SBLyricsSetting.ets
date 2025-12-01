@@ -17,8 +17,8 @@ export struct SBLyricsSetting{
   @StorageProp('winHeight') winHeight: number = 0
   @State @Watch("onChangeSetting") settingData: SBLyricsPre = PreferencesCache.statusBarLyricsSetting()
   @State linesIndex: number[] = [this.settingData.lines]
-  @State alignIndex:number[] = [this.settingData.alignment]
-  @State lyricsTypeIndex:number[] = [this.settingData.lyricsType]
+  @State alignIndex: number[] = [this.settingData.alignment]
+  @State lyricsTypeIndex: number[] = [this.settingData.lyricsType]
 
   @State linesOptions: SegmentButtonOptions = SegmentButtonOptions.tab({
     buttons: [{ text: '单行' }, { text: '双行' }] as ItemRestriction<SegmentButtonTextItem>,
