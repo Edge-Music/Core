@@ -723,6 +723,10 @@
     {
       "name": "retry_count",
       "value": "重试中 %s/3"
+    },
+    {
+      "name": "pip_lyrics_type",
+      "value": "画中画歌词类型"
     }
   ]
 }

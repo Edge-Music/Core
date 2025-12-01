@@ -282,7 +282,7 @@ class LyricsManager {
           if(this.currentIndex !== this.lastIndex){
             this.lastIndex = this.currentIndex
             AppStorage.setOrCreate<LyricsLine>('current_line_lyrics', this.parsedLyrics[this.currentIndex])
-            AppStorage.setOrCreate<string>('test_index', this.parsedLyrics[this.currentIndex].text)
+            this.setPipLyrics()
             AppStorage.setOrCreate<number>('current_lyrics_index', this.currentIndex)
             // FormUtils.updateCardLyricsIndex(this.currentIndex)
             FormUtils.updateCardCurrentLyrics(this.parsedLyrics[this.currentIndex].text)
@@ -299,7 +299,7 @@ class LyricsManager {
           if(this.currentIndex !== this.lastIndex){
             this.lastIndex = this.currentIndex
             AppStorage.setOrCreate<LyricsLine>('current_line_lyrics', this.parsedLyrics[this.currentIndex])
-            AppStorage.setOrCreate<string>('test_index', this.parsedLyrics[this.currentIndex].text)
+            this.setPipLyrics()
             AppStorage.setOrCreate<number>('current_lyrics_index', this.currentIndex)
             // FormUtils.updateCardLyricsIndex(this.currentIndex)
             FormUtils.updateCardCurrentLyrics(this.parsedLyrics[this.currentIndex].text)
@@ -313,6 +313,22 @@ class LyricsManager {
     }
   }
 
+  setPipLyrics() {
+    const lyricsType = parseInt(PreferencesCache.getUserPreference('pip_lyrics_type'))
+    switch (lyricsType) {
+      case 0:
+        AppStorage.setOrCreate<string>('test_index', this.parsedLyrics[this.currentIndex].text)
+        break
+      case 1:
+        AppStorage.setOrCreate<string>('test_index',
+          this.parsedLyrics[this.currentIndex].translation ?? this.parsedLyrics[this.currentIndex].text)
+        break
+      case 2:
+        AppStorage.setOrCreate<string>('test_index',
+          this.parsedLyrics[this.currentIndex].transliteration ?? this.parsedLyrics[this.currentIndex].translation ?? this.parsedLyrics[this.currentIndex].text)
+        break
+    }
+  }
 }
 
 export default new LyricsManager()
