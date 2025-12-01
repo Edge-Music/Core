@@ -26,7 +26,6 @@ import { DialogHelper } from '@pura/harmony-dialog'
 import { resourceManager } from '@kit.LocalizationKit'
 import { LyricsLine } from '../util/LyricsManager'
 import { PushPathHelper } from '../util/PushPathHelper'
-import { hdsEffect, HdsNavDestinationAttribute } from '@kit.UIDesignKit'
 import { image } from '@kit.ImageKit'
 import { effectKit } from '@kit.ArkGraphics2D'
 import { BusinessError, deviceInfo } from '@kit.BasicServicesKit'
@@ -39,51 +38,6 @@ export function PlayingBuilder() {
   Playing()
 }
 const TAG = 'Playing'
- class MyButtonModifier implements AttributeModifier<ColumnAttribute> {
-  // 可以实现一个Modifier，定义私有的成员变量，外部可动态修改
-  isApi20: boolean = false
-  is_need:boolean =false
-  Ctrl_vision:hdsEffect.ShaderEffectController =  new hdsEffect.ShaderEffectController()
-  // 通过构造函数，创建时传参
-  constructor(isApi20?: boolean,Ctrl_vision?:hdsEffect.ShaderEffectController,is_need?:boolean) {
-    this.is_need=is_need ??false
-    this.isApi20 = isApi20 ?? false
-    let a =new hdsEffect.ShaderEffectController()
-    a.setEffectParams({colorSource:['#00000000']})
-    this.Ctrl_vision=Ctrl_vision??  a
-
-  }
-
-  applyNormalAttribute(instance: ColumnAttribute): void {
-    // instance为Button的属性对象，可以通过instance对象对属性进行修改
-    if (this.isApi20&&this.is_need) { // 支持业务逻辑的编写
-      instance.visualEffect(new hdsEffect.HdsEffectBuilder()
-        .shaderEffect({
-          effectType: hdsEffect.EffectType.UV_BACKGROUND_FLOW_LIGHT,
-          animation: {
-            duration: 5000,
-            iterations: -1,
-            autoPlay: true,
-            onFinish: ()=> {
-              console.info('Succeeded in finishing');
-              this.Ctrl_vision.play()
-            }
-          },
-          params:{colorSource:['#00000000','#00000000']},
-          controller: this.Ctrl_vision
-        })
-        .buildEffect())
-
-      // 属性变化触发apply函数时，变化前已设置并且变化后未设置的属性会恢复为默认值
-      // instance.backgroundColor('#707070')
-    } else {
-      // 支持属性的链式调用
-      // instance.backgroundColor('#17A98D')
-      //   .borderColor('#707070')
-      //   .borderWidth(2)
-    }
-  }
-}
 @Component
 struct Playing {
 
@@ -148,12 +102,13 @@ struct Playing {
   @State Pura_X: string = PreferencesCache.getUserPreference('is_Pura_X', '0')//pura_x尝试适配
   @State sheetType: "playlist" | "timer" | "artist" = "playlist" // 用于控制底部弹出表单的类型，默认为播放列表
   @State showLyricType: ShowLyricsStatus = parseInt(PreferencesCache.getUserPreference('playing_title_lyric_show_status', '0')) as ShowLyricsStatus
-@State Color_main:string='#121234'
-  @State Color_sum:string='#114514'
-  @State colum_20:MyButtonModifier = new MyButtonModifier()
-  @State UV_background:boolean =false
-  @State is_press_long:boolean =false
-  private Ctrl_vision:hdsEffect.ShaderEffectController =  new hdsEffect.ShaderEffectController()
+  @State Color_main: string = '#121234'
+  @State Color_sum: string = '#114514'
+  @State colum_20: AttributeModifier<ColumnAttribute> | undefined = undefined
+  @State UV_background: boolean = false
+  @State is_press_long: boolean = false
+  // Ctrl_vision 将在 API 20+ 设备上通过动态导入初始化
+  private Ctrl_vision: ESObject = undefined
   private uiContext: UIContext | undefined = undefined;
   private readonly SWIPE_THRESHOLD: number = 80; // 触发切换的阈值
   private timerId: number = -1
@@ -175,12 +130,95 @@ struct Playing {
 
     }, 3000) // 3秒后隐藏
   }
+
+  /**
+   * 动态加载 UV 背景效果 Modifier
+   * 仅在 API 20+ 设备上加载，避免在低版本设备上导入 hdsEffect 导致崩溃
+   */
+  private loadUVBackgroundModifier(): void {
+    try {
+      this.UV_background = PreferencesCache.getUserPreference('UV_background') === '1'
+
+      LogUtil.info(TAG, `loadUVBackgroundModifier: UV_background=${this.UV_background}, sdkApiVersion=${deviceInfo.sdkApiVersion}`)
+
+      // 仅在 API 20+ 且启用了 UV 背景时才动态加载
+      if (deviceInfo.sdkApiVersion > 19 && this.UV_background) {
+        LogUtil.info(TAG, `Loading MyButtonModifier module...`)
+
+        import('../modifier/MyButtonModifier').then((module) => {
+          LogUtil.info(TAG, `MyButtonModifier module loaded successfully`)
+
+          // 创建 ShaderEffectController
+          this.Ctrl_vision = module.createShaderEffectController()
+          LogUtil.info(TAG, `ShaderEffectController created`)
+
+          // 创建 Modifier
+          this.colum_20 = new module.MyButtonModifier(true, this.Ctrl_vision, this.UV_background)
+          LogUtil.info(TAG, `MyButtonModifier instance created`)
+
+          // 加载封面图片用于提取颜色
+          const coverUrl = cover(this.song?.album?.cover ?? "", 256) as string
+          LogUtil.info(TAG, `Loading cover image for color extraction: ${coverUrl}`)
+          this.getPicture(coverUrl)
+        }).catch((error: Error) => {
+          LogUtil.error(TAG, `Failed to load MyButtonModifier: ${error.message}`)
+          this.colum_20 = undefined
+        })
+      } else {
+        // API 19 及以下或未启用 UV 背景，不使用 Modifier
+        LogUtil.info(TAG, `UV background disabled or API < 20, skipping Modifier`)
+        this.colum_20 = undefined
+      }
+    } catch (e) {
+      LogUtil.error(TAG, `loadUVBackgroundModifier error: ${JSON.stringify(e)}`)
+      this.colum_20 = undefined
+    }
+  }
+
   // 监听屏幕断点变化
   onBreakpointChange() {
     this.isWideScreen = this.currentBreakpoint !== BreakpointConstants.BREAKPOINT_SM;
     this.Playing_Next = isHorizontalMode()
     console.info('Succeeded in obtaining fold status.judge: ' + this.Playing_Next);
   }
+
+  /**
+   * 使用提取的颜色更新 UV 背景效果
+   * 通过重新创建 MyButtonModifier 实例来应用新颜色
+   */
+  private updateUVBackgroundColors(): void {
+    // 仅在 API 20+ 且启用了 UV 背景时更新
+    if (deviceInfo.sdkApiVersion > 19 && this.UV_background) {
+      LogUtil.info(TAG, `Updating UV background with colors: ${this.Color_main}, ${this.Color_sum}`)
+
+      import('../modifier/MyButtonModifier').then((module) => {
+        // 构建颜色数组
+        const colorArray: Array<ResourceColor> = [this.Color_main, this.Color_sum, $r('app.color.card_background')]
+
+        // 如果控制器已存在，先停止动画
+        if (this.Ctrl_vision) {
+          try {
+            this.Ctrl_vision.stop()
+          } catch (e) {
+            LogUtil.warn(TAG, `Failed to stop Ctrl_vision: ${JSON.stringify(e)}`)
+          }
+        }
+
+        // 创建新的控制器
+        this.Ctrl_vision = module.createShaderEffectController()
+        // 设置新颜色
+        module.setControllerParams(this.Ctrl_vision, colorArray)
+
+        // 重新创建 Modifier 实例，使用新颜色
+        this.colum_20 = new module.MyButtonModifier(true, this.Ctrl_vision, this.UV_background, colorArray)
+
+        LogUtil.info(TAG, `UV background Modifier recreated with new colors`)
+      }).catch((error: Error) => {
+        LogUtil.error(TAG, `Failed to update UV background colors: ${error.message}`)
+      })
+    }
+  }
+
   song_change(){
     if (this.UV_background) {
       this.getPicture(cover(this.song?.album?.cover ?? "", 512) as string )
@@ -276,10 +314,11 @@ struct Playing {
               .padStart(2, '0')}`
           const isNeutral = colorPicker.isBlackOrWhiteOrGrayColor(0xFFFF00FF);
           console.info('isBlackOrWhiteOrGrayColor', isNeutral)
-          this.Ctrl_vision.stop()
 
-          this.Ctrl_vision.setEffectParams({colorSource:[this.Color_main,this.Color_sum,$r('app.color.card_background')]})
-          this.Ctrl_vision.resume()
+          LogUtil.info(TAG, `Extracted colors: Color_main=${this.Color_main}, Color_sum=${this.Color_sum}`)
+
+          // 使用提取的颜色更新 UV 背景效果
+          this.updateUVBackgroundColors()
           this.netok = true
 
         })
@@ -2295,45 +2334,11 @@ struct Playing {
         }
 
       })
-    .onWillShow(()=>{
-      try {
-
-        // let a1:string =AppStorage.get('main_Color')??'#121222'
-        // let a2:string =AppStorage.get('sum_Color')??'#223367'
-        // this.Ctrl_vision.setEffectParams({colorSource:[a1,a2,$r('app.color.card_background')]})
-        this.UV_background = PreferencesCache.getUserPreference('UV_background')==='1'?true:false
-        this.colum_20 = new MyButtonModifier(deviceInfo.sdkApiVersion>19,this.Ctrl_vision,this.UV_background)
-        if (this.UV_background) {
-
-
-
-          this.getPicture(cover(this.song?.album?.cover ?? "", 256) as string)
-
-        }
-
-      }catch (e) {
-        //TODO::
-      }
+    .onWillShow(() => {
+      this.loadUVBackgroundModifier()
     })
-    .onWillAppear(()=>{
-      try {
-
-        // let a1:string =AppStorage.get('main_Color')??'#121222'
-        // let a2:string =AppStorage.get('sum_Color')??'#223367'
-        // this.Ctrl_vision.setEffectParams({colorSource:[a1,a2,$r('app.color.card_background')]})
-        this.UV_background = PreferencesCache.getUserPreference('UV_background')==='1'?true:false
-        this.colum_20 = new MyButtonModifier(deviceInfo.sdkApiVersion>19,this.Ctrl_vision,this.UV_background)
-        if (this.UV_background) {
-
-
-
-          this.getPicture(cover(this.song?.album?.cover ?? "", 256) as string)
-
-        }
-
-      }catch (e) {
-        //TODO::
-      }
+    .onWillAppear(() => {
+      this.loadUVBackgroundModifier()
     })
 
     .onAppear(()=>{
