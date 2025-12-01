@@ -12,7 +12,7 @@ export struct Personalized_settings_Component {
   @State setUserPreference_name: string = '';
   // 右侧组件类型：0-Toggle 1-Segment
   @State componentType: number = 0
-  @State lyricTypeIndex: number[] = [parseInt(PreferencesCache.getUserPreference(this.setUserPreference_name))]
+  @State lyricTypeIndex: number[] = []
   private text_ctrl: string = PreferencesCache.getUserPreference(this.setUserPreference_name)
 
   @State lyricsTypeOptions: SegmentButtonOptions = SegmentButtonOptions.tab({
@@ -21,6 +21,10 @@ export struct Personalized_settings_Component {
     selectedBackgroundColor: $r('app.color.title_emphasis_color'),
     fontSize: 12
   })
+
+  aboutToAppear(): void {
+    this.lyricTypeIndex = [parseInt(PreferencesCache.getUserPreference(this.setUserPreference_name, '0'))]
+  }
 
   build() {
     Column(){
@@ -43,10 +47,11 @@ export struct Personalized_settings_Component {
           selectedIndexes: this.lyricTypeIndex,
           onItemClicked:(data: number)=>{
             this.lyricTypeIndex = [data]
-            PreferencesCache.setUserPreference(this.setUserPreference_name, data.toString(0))
+            PreferencesCache.setUserPreference(this.setUserPreference_name, `${data}`)
             AppStorage.setOrCreate(this.setUserPreference_name, data)
           }
         })
+          .visibility(this.componentType === 1 ? Visibility.Visible : Visibility.None)
           .width(180)
           .margin({right:6})
       }
@@ -137,10 +142,10 @@ export struct Personalized_settings{
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.slide_up_hide_title')), setUserPreference_name:'slide_up_hide_title'})}
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.playing_title_show_lyrics')), setUserPreference_name:'playing_title_show_lyrics'})}
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.enable_wave_lyrics')), setUserPreference_name:'enable_wave_lyrics'})}
-          ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.pip_lyrics_type')), setUserPreference_name:'pip_lyrics_type', componentType: 1})}
           if (deviceInfo.sdkApiVersion>19){
             ListItem(){ Personalized_settings_Component({text_name: '开启流光背景', setUserPreference_name:'UV_background'})}
           }
+          ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.pip_lyrics_type')), setUserPreference_name:'pip_lyrics_type', componentType: 1})}
 
           ListItem(){ Column().height(16+this.bottomRect/2)}
         }
