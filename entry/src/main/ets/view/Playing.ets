@@ -28,7 +28,7 @@ import { LyricsLine } from '../util/LyricsManager'
 import { PushPathHelper } from '../util/PushPathHelper'
 import { image } from '@kit.ImageKit'
 import { effectKit } from '@kit.ArkGraphics2D'
-import { BusinessError, deviceInfo } from '@kit.BasicServicesKit'
+import { BusinessError, deviceInfo, emitter } from '@kit.BasicServicesKit'
 import { Event } from '@kit.ArkTS'
 
 type ShowLyricsStatus = -1 | 0 | 1 | 2
@@ -107,6 +107,8 @@ struct Playing {
   @State colum_20: AttributeModifier<ColumnAttribute> | undefined = undefined
   @State UV_background: boolean = false
   @State is_press_long: boolean = false
+  // UV 背景颜色更新事件 ID
+  private uvColorUpdateEventId: number = 0
   // Ctrl_vision 将在 API 20+ 设备上通过动态导入初始化
   private Ctrl_vision: ESObject = undefined
   private uiContext: UIContext | undefined = undefined;
@@ -148,16 +150,20 @@ struct Playing {
         import('../modifier/MyButtonModifier').then((module) => {
           LogUtil.info(TAG, `MyButtonModifier module loaded successfully`)
 
+          // 获取颜色更新事件 ID
+          this.uvColorUpdateEventId = module.getColorUpdateEventId()
+          LogUtil.info(TAG, `Color update event ID: ${this.uvColorUpdateEventId}`)
+
           // 创建 ShaderEffectController
           this.Ctrl_vision = module.createShaderEffectController()
           LogUtil.info(TAG, `ShaderEffectController created`)
 
-          // 创建 Modifier
+          // 创建 Modifier（只创建一次，后续通过 emitter 更新颜色）
           this.colum_20 = new module.MyButtonModifier(true, this.Ctrl_vision, this.UV_background)
           LogUtil.info(TAG, `MyButtonModifier instance created`)
 
           // 加载封面图片用于提取颜色
-          const coverUrl = cover(this.song?.album?.cover ?? "", 256) as string
+          const coverUrl = cover(this.song?.album?.cover ?? "", 100) as string
           LogUtil.info(TAG, `Loading cover image for color extraction: ${coverUrl}`)
           this.getPicture(coverUrl)
         }).catch((error: Error) => {
@@ -184,49 +190,45 @@ struct Playing {
 
   /**
    * 使用提取的颜色更新 UV 背景效果
-   * 通过重新创建 MyButtonModifier 实例来应用新颜色
+   * 通过 emitter 发送颜色更新事件，MyButtonModifier 内部监听并更新
    */
   private updateUVBackgroundColors(): void {
-    // 仅在 API 20+ 且启用了 UV 背景时更新
-    if (deviceInfo.sdkApiVersion > 19 && this.UV_background) {
-      LogUtil.info(TAG, `Updating UV background with colors: ${this.Color_main}, ${this.Color_sum}`)
+    // 仅在 API 20+ 且启用了 UV 背景且事件 ID 已初始化时更新
+    if (deviceInfo.sdkApiVersion > 19 && this.UV_background && this.uvColorUpdateEventId > 0) {
+      LogUtil.info(TAG, `Emitting UV background color update: ${this.Color_main}, ${this.Color_sum}`)
 
-      import('../modifier/MyButtonModifier').then((module) => {
-        // 构建颜色数组
-        const colorArray: Array<ResourceColor> = [this.Color_main, this.Color_sum, $r('app.color.card_background')]
+      // 构建颜色数组
+      const colorArray: Array<ResourceColor> = [this.Color_main, this.Color_sum, $r('app.color.card_background')]
 
-        // 如果控制器已存在，先停止动画
-        if (this.Ctrl_vision) {
-          try {
-            this.Ctrl_vision.stop()
-          } catch (e) {
-            LogUtil.warn(TAG, `Failed to stop Ctrl_vision: ${JSON.stringify(e)}`)
-          }
+      // 构建事件数据
+      const eventData: emitter.EventData = {
+        data: {
+          colors: colorArray
         }
+      }
 
-        // 创建新的控制器
-        this.Ctrl_vision = module.createShaderEffectController()
-        // 设置新颜色
-        module.setControllerParams(this.Ctrl_vision, colorArray)
+      // 构建内部事件
+      const innerEvent: emitter.InnerEvent = {
+        eventId: this.uvColorUpdateEventId,
+        priority: emitter.EventPriority.HIGH
+      }
 
-        // 重新创建 Modifier 实例，使用新颜色
-        this.colum_20 = new module.MyButtonModifier(true, this.Ctrl_vision, this.UV_background, colorArray)
-
-        LogUtil.info(TAG, `UV background Modifier recreated with new colors`)
-      }).catch((error: Error) => {
-        LogUtil.error(TAG, `Failed to update UV background colors: ${error.message}`)
-      })
+      // 发送颜色更新事件
+      emitter.emit(innerEvent, eventData)
+      LogUtil.info(TAG, `Color update event emitted with eventId: ${this.uvColorUpdateEventId}`)
+    } else {
+      LogUtil.info(TAG, `Skipping color update: sdkApiVersion=${deviceInfo.sdkApiVersion}, UV_background=${this.UV_background}, eventId=${this.uvColorUpdateEventId}`)
     }
   }
 
   song_change(){
     if (this.UV_background) {
-      this.getPicture(cover(this.song?.album?.cover ?? "", 512) as string )
+      this.getPicture(cover(this.song?.album?.cover ?? "", 100) as string )
 
     }
 }
   sys_ColorMode_dark_change(){
-    this.getPicture(cover(this.song?.album?.cover ?? "", 512) as string )
+    this.getPicture(cover(this.song?.album?.cover ?? "", 100) as string )
 
   }
   async getPicture(uri:string) {
@@ -2259,23 +2261,6 @@ struct Playing {
           }
         }
         .attributeModifier(this.colum_20)
-
-        // .visualEffect(new hdsEffect.HdsEffectBuilder()
-        //   .shaderEffect({
-        //     effectType: hdsEffect.EffectType.UV_BACKGROUND_FLOW_LIGHT,
-        //     animation: {
-        //       duration: 5000,
-        //       iterations: -1,
-        //       autoPlay: true,
-        //       onFinish: ()=> {
-        //         console.info('Succeeded in finishing');
-        //         this.Ctrl_vision.play()
-        //       }
-        //     },
-        //     params:{colorSource:[this.Color_main,this.Color_sum]},
-        //     controller: this.Ctrl_vision
-        //   })
-        //   .buildEffect())
         .width(StyleConstants.FULL_WIDTH)
         .height(StyleConstants.FULL_HEIGHT)
       }

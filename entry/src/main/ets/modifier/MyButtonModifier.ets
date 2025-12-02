@@ -1,11 +1,15 @@
 import { hdsEffect } from '@kit.UIDesignKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
+import { emitter } from '@kit.BasicServicesKit'
 
 const TAG = 'MyButtonModifier'
 const DOMAIN = 0x0000
 
 // 默认颜色，使用可见的颜色而非透明色
 const DEFAULT_COLORS: Array<ResourceColor> = ['#FF6B6B', '#4ECDC4', '#45B7D1']
+
+// Emitter 事件 ID
+const UV_COLOR_UPDATE_EVENT_ID: number = 10086
 
 /**
  * 自定义按钮/列效果修饰器
@@ -38,6 +42,49 @@ export class MyButtonModifier implements AttributeModifier<ColumnAttribute> {
       this.Ctrl_vision.setEffectParams({ colorSource: this.colors })
       hilog.info(DOMAIN, TAG, `Created new ShaderEffectController with colors: ${JSON.stringify(this.colors)}`)
     }
+
+    // 注册 emitter 监听器，监听颜色更新事件
+    this.registerColorUpdateListener()
+  }
+
+  /**
+   * 注册颜色更新事件监听器
+   */
+  private registerColorUpdateListener(): void {
+    hilog.info(DOMAIN, TAG, `Registering color update listener for eventId: ${UV_COLOR_UPDATE_EVENT_ID}`)
+
+    const innerEvent: emitter.InnerEvent = {
+      eventId: UV_COLOR_UPDATE_EVENT_ID
+    }
+
+    emitter.on(innerEvent, (eventData: emitter.EventData) => {
+      hilog.info(DOMAIN, TAG, `Received color update event: ${JSON.stringify(eventData)}`)
+
+      if (eventData.data) {
+        const data = eventData.data as Record<string, Object>
+        if (data.colors) {
+          const newColors = data.colors as Array<ResourceColor>
+          this.colors = newColors
+
+          hilog.info(DOMAIN, TAG, `Updating UV background colors: ${JSON.stringify(newColors)}`)
+
+          try {
+            // 停止当前动画
+            this.Ctrl_vision.stop()
+            // 更新控制器参数
+            this.Ctrl_vision.setEffectParams({ colorSource: newColors })
+            // 重新播放动画
+            this.Ctrl_vision.play()
+
+            hilog.info(DOMAIN, TAG, `UV background colors updated successfully via emitter`)
+          } catch (error) {
+            hilog.error(DOMAIN, TAG, `Failed to update colors via emitter: ${JSON.stringify(error)}`)
+          }
+        }
+      }
+    })
+
+    hilog.info(DOMAIN, TAG, `Color update listener registered`)
   }
 
   applyNormalAttribute(instance: ColumnAttribute): void {
@@ -73,6 +120,13 @@ export class MyButtonModifier implements AttributeModifier<ColumnAttribute> {
       hilog.info(DOMAIN, TAG, `Skipping UV background effect (isApi20=${this.isApi20}, is_need=${this.is_need})`)
     }
   }
+}
+
+/**
+ * 获取颜色更新事件 ID
+ */
+export function getColorUpdateEventId(): number {
+  return UV_COLOR_UPDATE_EVENT_ID
 }
 
 /**
