@@ -33,19 +33,19 @@
       {
         "name": "ohos.permission.ACCELEROMETER"
       },
-//      {
-//        "name": "ohos.permission.SYSTEM_FLOAT_WINDOW",
-//        "reason": "$string:reason_float_lyrics_window",
-//        "usedScene": {
-//          "abilities": [
-//            "EntryAbility"
-//          ],
-//          "when": "always"
-//        }
-//      },
-//      {
-//        "name": "ohos.permission.SET_WINDOW_TRANSPARENT"
-//      }
+      {
+        "name": "ohos.permission.SYSTEM_FLOAT_WINDOW",
+        "reason": "$string:reason_float_lyrics_window",
+        "usedScene": {
+          "abilities": [
+            "EntryAbility"
+          ],
+          "when": "always"
+        }
+      },
+      {
+        "name": "ohos.permission.SET_WINDOW_TRANSPARENT"
+      }
 //      {
 //        "name": "ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY",
 //        "reason": "$string:reason_read_write_download_directory",
