@@ -51,7 +51,6 @@ struct Playing {
   @StorageProp('current_line_lyrics') currentLineLyrics: LyricsLine | undefined = AppStorage.get<LyricsLine>('current_line_lyrics')
   @Watch('song_change') @StorageLink("current_playing_song") song: Song | null = null
   @StorageLink('Lyic_desktop') Lyic_desktop: string = PreferencesCache.getUserPreference('Lyic_desktop','0')
-  @StorageProp('double_tap_switch_songs') isOnDoubleTap: string = PreferencesCache.getUserPreference('double_tap_switch_songs','0')
   @StorageProp('flip_mute') isOnFlipMute: string = PreferencesCache.getUserPreference('flip_mute','0')
   @StorageLink('aggregation_playlist') aggregationPlaylist: Playlist[] = PreferencesCache.getPlaylistCache('aggregation_playlist')
   @StorageProp('test_index') currentLyric: string = ''
@@ -1051,7 +1050,7 @@ struct Playing {
     WindowUtil.setWindowScreenOn(this.windowStage, true)
 
     LogUtil.info(`${TAG}`, `this.isOnFlipMute: ${this.isOnFlipMute}`)
-    if(this.isOnDoubleTap === '1' || this.isOnFlipMute === '1'){
+    if(this.isOnFlipMute === '1'){
       SensorUtil.onAccelerometer()
     }
   }
@@ -1059,7 +1058,7 @@ struct Playing {
   aboutToDisappear() {
     WindowUtil.setSystemBarEnabled(this.windowStage, true)
     WindowUtil.setWindowScreenOn(this.windowStage, false)
-    if(this.isOnDoubleTap === '1' || this.isOnFlipMute === '1'){
+    if(this.isOnFlipMute === '1'){
       SensorUtil.offAccelerometer()
     }
     if (this.updateTimer !== -1) {
