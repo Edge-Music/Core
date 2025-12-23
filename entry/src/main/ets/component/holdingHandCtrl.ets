@@ -111,3 +111,4 @@ export  struct HandingCtrl{
     } .width(50).borderRadius('100%') .backgroundBlurStyle(10) .padding({top:8,bottom:8})
   }
 }
+

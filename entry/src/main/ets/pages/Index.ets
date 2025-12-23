@@ -30,8 +30,9 @@ import { HeaderComponent } from '../component/HeaderComponent'
 import { HeaderPlaceholder } from '../component/HeaderPlaceholder'
 import { Statistics } from '../view/Statistics'
 import { FooterPlaceholder } from '../component/FooterPlaceholder'
-import { motion } from '@kit.MultimodalAwarenessKit'
+// import { motion } from '@kit.MultimodalAwarenessKit'
 import { HandingCtrl } from '../component/holdingHandCtrl'
+// import { motion } from '@kit.MultimodalAwarenessKit'
 
 // 缓存常用值以避免重复计算
 const COLUMNS_TEMPLATE_LG = '1fr 1fr 1fr 1fr' // 宽屏4列（1×4布局）
@@ -254,8 +255,8 @@ struct Index_page {
     componentTag: TAG
   }).linkController(this.scroller)
   // 诗人握持定时器及类型判断
-  @State hand:number = 0
-  private hand_timer:number = 0
+  @StorageProp('hand') hand:number = 0
+  @StorageProp('hand_timer')  hand_timer:number = 0
   // 隐私协议弹窗控制器
   private privacyDialogController: CustomDialogController | null = new CustomDialogController({
     builder: PrivacyPolicyDialog({
@@ -731,46 +732,49 @@ struct Index_page {
     .onWillShow(()=> {
         console.info(TAG, 'onPageShow')
         PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
-      let callback:Callback<motion.HoldingHandStatus> = (data:motion.HoldingHandStatus) => {
-        console.info('callback succeeded' + data);
-        this.getUIContext().animateTo({
-          duration: 200,
-          curve: Curve.Friction,
-          // delay: 500,
-          // iterations: -1, // 设置-1表示动画无限循环
-          playMode: PlayMode.Alternate,
-          expectedFrameRateRange: {
-            min: 10,
-            max: 120,
-            expected: 60,
-          }
-        }, () => {
-          this.hand = data // 1左 2 右
-        })
-        clearInterval(this.hand_timer)
-
-        this.hand_timer = setInterval(()=>{
-          this.getUIContext().animateTo({
-            duration: 200,
-            curve: Curve.Friction,
-            // delay: 500,
-            // iterations: -1, // 设置-1表示动画无限循环
-            playMode: PlayMode.Alternate,
-            expectedFrameRateRange: {
-              min: 10,
-              max: 120,
-              expected: 60,
-            }
-          }, () => {
-            this.hand = 0
-          })
-        },5000)
-
-
-      };
+      // let callback:Callback<motion.HoldingHandStatus> = (data:motion.HoldingHandStatus) => {
+      //   console.info('callback succeeded' + data);
+      //   this.getUIContext().animateTo({
+      //     duration: 200,
+      //     curve: Curve.Friction,
+      //     // delay: 500,
+      //     // iterations: -1, // 设置-1表示动画无限循环
+      //     playMode: PlayMode.Alternate,
+      //     expectedFrameRateRange: {
+      //       min: 10,
+      //       max: 120,
+      //       expected: 60,
+      //     }
+      //   }, () => {
+      //     this.hand = data // 1左 2 右
+      //   })
+      //   clearInterval(this.hand_timer)
+      //
+      //   this.hand_timer = setInterval(()=>{
+      //     this.getUIContext().animateTo({
+      //       duration: 200,
+      //       curve: Curve.Friction,
+      //       // delay: 500,
+      //       // iterations: -1, // 设置-1表示动画无限循环
+      //       playMode: PlayMode.Alternate,
+      //       expectedFrameRateRange: {
+      //         min: 10,
+      //         max: 120,
+      //         expected: 60,
+      //       }
+      //     }, () => {
+      //       this.hand = 0
+      //     })
+      //   },5000)
+      //
+      //
+      // };
       try {
         if (canIUse("SystemCapability.MultimodalAwareness.Motion")) {
-          motion.on('holdingHandChanged', callback);
+            import('../util/HoldHand').then((nv)=>{
+              nv.startHoldingHand(this.getUIContext())
+            })
+          // motion.on('holdingHandChanged', callback);
         } else {
           // Fallback for unsupported SystemCapability
         }
@@ -787,9 +791,12 @@ struct Index_page {
       clearInterval(this.hand_timer)
       try {
         if (canIUse("SystemCapability.MultimodalAwareness.Motion")) {
-          motion.off('holdingHandChanged');
+          // motion.off('holdingHandChanged');
+          import('../util/HoldHand').then((nv)=>{
+            nv.stopHoldingHand()
+          })
         } else {
-          // Fallback for unsupported SystemCapability
+
         }
         console.info("off succeeded");
       } catch (err) {
