@@ -30,6 +30,8 @@ import { HeaderComponent } from '../component/HeaderComponent'
 import { HeaderPlaceholder } from '../component/HeaderPlaceholder'
 import { Statistics } from '../view/Statistics'
 import { FooterPlaceholder } from '../component/FooterPlaceholder'
+import { motion } from '@kit.MultimodalAwarenessKit'
+import { HandingCtrl } from '../component/holdingHandCtrl'
 
 // 缓存常用值以避免重复计算
 const COLUMNS_TEMPLATE_LG = '1fr 1fr 1fr 1fr' // 宽屏4列（1×4布局）
@@ -251,7 +253,9 @@ struct Index_page {
     },
     componentTag: TAG
   }).linkController(this.scroller)
-
+  // 诗人握持定时器及类型判断
+  @State hand:number = 0
+  private hand_timer:number = 0
   // 隐私协议弹窗控制器
   private privacyDialogController: CustomDialogController | null = new CustomDialogController({
     builder: PrivacyPolicyDialog({
@@ -530,6 +534,7 @@ struct Index_page {
     .justifyContent(FlexAlign.SpaceBetween)
   }
 
+
   build() {
     NavDestination() {
       if (this.zhishi_UI === '1') {
@@ -539,93 +544,121 @@ struct Index_page {
         })
       } else {
         Stack({ alignContent: Alignment.Bottom }) {
+          Stack({ alignContent: this.hand === 1 ? Alignment.Start:Alignment.End }){
+            Column() {
+              List({ scroller: this.scroller }) {
+                HeaderPlaceholder()
 
-          Column() {
-            List({ scroller: this.scroller }) {
-              HeaderPlaceholder()
-
-              ListItem() {
-                HeaderAnimation({ scrollController: this.scrollController, isShowLoadingProgress: true })
-              }
-
-              if (this.adapters.length > 0) {
                 ListItem() {
-                  this.MenuGrid()
+                  HeaderAnimation({ scrollController: this.scrollController, isShowLoadingProgress: true })
                 }
 
-                // 专属于你模块
-                ListItem() {
-                  this.ForYouSection()
-                }
-                .visibility(this.loading || this.playlists.filter(playlist =>
-                playlist.id && playlist.id.toString().startsWith('key_')
-                ).length > 0 ? Visibility.Visible : Visibility.None)
-
-                ListItem() {
-                  this.RecommendedSongs()
-                }
-                .visibility(this.loading || this.recommendPlaylist.length > 0 ? Visibility.Visible : Visibility.None)
-
-                ListItem() {
-                  this.RecommendedPlaylists()
-                }
-                .visibility(this.loading || this.recommendSongs.length > 0 ? Visibility.Visible : Visibility.None)
-
-                ListItem() {
-                  this.RecommendedArtists()
-                }
-                .visibility(this.loading || this.recommendArtists.length > 0 ? Visibility.Visible : Visibility.None)
-
-                ListItem() {
-                  this.TopLists()
-                }
-                .visibility(this.loading || this.topList.length > 0 ? Visibility.Visible : Visibility.None)
-
-                ListItem() {
-                  Row() {
-                    Column() {
-                      Text($r('app.string.no_recommendations'))
-                        .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-                        .fontColor($r('app.color.text_hint'))
-                        .fontSize(16)
-                    }
-                    .width(StyleConstants.FULL_WIDTH)
-                    .height(StyleConstants.FULL_HEIGHT)
-                    .justifyContent(FlexAlign.Center)
+                if (this.adapters.length > 0) {
+                  ListItem() {
+                    this.MenuGrid()
                   }
-                  .height(this.getBlankHeight())
-                }
-                .visibility(this.hasRecommendation() ? Visibility.Visible : Visibility.None)
 
-              } else {
-                ListItem() {
-                  this.EmptyDataSource()
+                  // 专属于你模块
+                  ListItem() {
+                    this.ForYouSection()
+                  }
+                  .visibility(this.loading || this.playlists.filter(playlist =>
+                  playlist.id && playlist.id.toString().startsWith('key_')
+                  ).length > 0 ? Visibility.Visible : Visibility.None)
+
+                  ListItem() {
+                    this.RecommendedSongs()
+                  }
+                  .visibility(this.loading || this.recommendPlaylist.length > 0 ? Visibility.Visible : Visibility.None)
+
+                  ListItem() {
+                    this.RecommendedPlaylists()
+                  }
+                  .visibility(this.loading || this.recommendSongs.length > 0 ? Visibility.Visible : Visibility.None)
+
+                  ListItem() {
+                    this.RecommendedArtists()
+                  }
+                  .visibility(this.loading || this.recommendArtists.length > 0 ? Visibility.Visible : Visibility.None)
+
+                  ListItem() {
+                    this.TopLists()
+                  }
+                  .visibility(this.loading || this.topList.length > 0 ? Visibility.Visible : Visibility.None)
+
+                  ListItem() {
+                    Row() {
+                      Column() {
+                        Text($r('app.string.no_recommendations'))
+                          .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
+                          .fontColor($r('app.color.text_hint'))
+                          .fontSize(16)
+                      }
+                      .width(StyleConstants.FULL_WIDTH)
+                      .height(StyleConstants.FULL_HEIGHT)
+                      .justifyContent(FlexAlign.Center)
+                    }
+                    .height(this.getBlankHeight())
+                  }
+                  .visibility(this.hasRecommendation() ? Visibility.Visible : Visibility.None)
+
+                } else {
+                  ListItem() {
+                    this.EmptyDataSource()
+                  }
                 }
+
+                FooterPlaceholder()
               }
-
-              FooterPlaceholder()
+              .width(StyleConstants.FULL_WIDTH)
+              .height(StyleConstants.FULL_HEIGHT)
+              .layoutWeight(1)
+              .backToTop(true)
+              .scrollBar(BarState.Off)
+              .edgeEffect(EdgeEffect.Spring)
+              .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
+              .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
+              .onDidScroll(() => {
+                this.scrollOffsetY = this.scroller.currentOffset().yOffset
+              })
+              .onTouch((event) => {
+                switch (event.type) {
+                  case TouchType.Down:
+                    this.startScrollOffsetY = this.scroller.currentOffset().yOffset
+                }
+              })
             }
             .width(StyleConstants.FULL_WIDTH)
             .height(StyleConstants.FULL_HEIGHT)
-            .layoutWeight(1)
-            .backToTop(true)
-            .scrollBar(BarState.Off)
-            .edgeEffect(EdgeEffect.Spring)
-            .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
-            .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
-            .onDidScroll(() => {
-              this.scrollOffsetY = this.scroller.currentOffset().yOffset
-            })
-            .onTouch((event) => {
-              switch (event.type) {
-                case TouchType.Down:
-                  this.startScrollOffsetY = this.scroller.currentOffset().yOffset
-              }
-            })
+            .zIndex(0)
+            if (this.hand===1||this.hand===2){
+              Column(){
+                HandingCtrl({on_Click:()=>{
+                  //点击操作触发重置消失定时器
+                  clearInterval(this.hand_timer)
+                  console.log('jizhishidebug_clear')
+                  this.hand_timer = setInterval(()=>{
+                    this.getUIContext().animateTo({
+                      duration: 200,
+                      curve: Curve.Friction,
+                      // delay: 500,
+                      // iterations: -1, // 设置-1表示动画无限循环
+                      playMode: PlayMode.Alternate,
+                      expectedFrameRateRange: {
+                        min: 10,
+                        max: 120,
+                        expected: 60,
+                      }
+                    }, () => {
+                      this.hand = 0
+                    })
+                  },5000)
+                }})
+
+              }.margin(36)
+            }
+
           }
-          .width(StyleConstants.FULL_WIDTH)
-          .height(StyleConstants.FULL_HEIGHT)
-          .zIndex(0)
 
           MiniPlaybackControl({
             scrollOffsetY: this.scrollOffsetY,
@@ -698,11 +731,71 @@ struct Index_page {
     .onWillShow(()=> {
         console.info(TAG, 'onPageShow')
         PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
+      let callback:Callback<motion.HoldingHandStatus> = (data:motion.HoldingHandStatus) => {
+        console.info('callback succeeded' + data);
+        this.getUIContext().animateTo({
+          duration: 200,
+          curve: Curve.Friction,
+          // delay: 500,
+          // iterations: -1, // 设置-1表示动画无限循环
+          playMode: PlayMode.Alternate,
+          expectedFrameRateRange: {
+            min: 10,
+            max: 120,
+            expected: 60,
+          }
+        }, () => {
+          this.hand = data // 1左 2 右
+        })
+        clearInterval(this.hand_timer)
+
+        this.hand_timer = setInterval(()=>{
+          this.getUIContext().animateTo({
+            duration: 200,
+            curve: Curve.Friction,
+            // delay: 500,
+            // iterations: -1, // 设置-1表示动画无限循环
+            playMode: PlayMode.Alternate,
+            expectedFrameRateRange: {
+              min: 10,
+              max: 120,
+              expected: 60,
+            }
+          }, () => {
+            this.hand = 0
+          })
+        },5000)
+
+
+      };
+      try {
+        if (canIUse("SystemCapability.MultimodalAwareness.Motion")) {
+          motion.on('holdingHandChanged', callback);
+        } else {
+          // Fallback for unsupported SystemCapability
+        }
+        console.info("jizhishi 11 on succeeded");
+      } catch (err) {
+        let error = err as BusinessError;
+        console.error("Failed on and err code is " + error.code);
+      }
         // PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
         // PipManager.getInstance().startPip();
       })
     .onWillHide(()=>{
       console.info(TAG, 'onPageHide')
+      clearInterval(this.hand_timer)
+      try {
+        if (canIUse("SystemCapability.MultimodalAwareness.Motion")) {
+          motion.off('holdingHandChanged');
+        } else {
+          // Fallback for unsupported SystemCapability
+        }
+        console.info("off succeeded");
+      } catch (err) {
+        let error = err as BusinessError;
+        console.error("Failed off and err code is " + error.code);
+      }
       // PipManager.getInstance().setAutoStart(false);
     })
     .onWillDisappear(()=>{
