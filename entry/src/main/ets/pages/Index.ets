@@ -274,49 +274,49 @@ struct Index_page {
     }
   })
 
-  async aboutToAppear() {
-    avPlayerManager.setAudioSession()
-
-    this.zhishi_UI = PreferencesCache.getUserPreference('zhishi_UI', '0')
-    if (this.zhishi_UI === '1') {
-      this.limit = 20
-    }
-
-    // avPlayerManager.avPlayer?.setVolume(Number(PreferencesCache.getUserPreference('Volume','100'))/100)
-    if (PreferencesCache.getUserPreference('Lyic_desktop', '0') === '1') {
-      PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
-      PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
-    }
-    // 检查用户是否已同意隐私协议
-    if (PreferencesCache.getUserPreference(this.policyVersion, '0') === '0') {
-      // 延迟显示弹窗，确保UI已完全加载
-      setTimeout(() => {
-        if (this.privacyDialogController) {
-          this.privacyDialogController.open();
-        }
-      }, 500);
-    }
-
-    // 注册断点系统
-    this.breakpointSystem.register(this.getUIContext())
-    HorizontalMode(this.getUIContext().getHostContext() as Context, this.HorizontalMode_ctrl === '1')
-    AppStorage.setOrCreate("pageStack", this.pageStack)
-    let productSeries: string = deviceInfo.productSeries
-    let deviceType: string = deviceInfo.deviceType
-    if (deviceType != 'phone' && productSeries != 'VDE') {
-      AppStorage.setOrCreate<boolean>('isWideScreen', true)
-    } else {
-      AppStorage.setOrCreate<boolean>('isWideScreen', false)
-
-    }
-    AppStorage.setOrCreate("devicetype", deviceType)
-    PreferencesCache.setUserPreference('devicetype', deviceType)
-    if (productSeries == 'VDE') {
-      PreferencesCache.setUserPreference('is_Pura_X', '1')
-    } else {
-      PreferencesCache.setUserPreference('is_Pura_X', '0')
-    }
-  }
+  // async aboutToAppear() {
+  //   avPlayerManager.setAudioSession()
+  //
+  //   this.zhishi_UI = PreferencesCache.getUserPreference('zhishi_UI', '0')
+  //   if (this.zhishi_UI === '1') {
+  //     this.limit = 20
+  //   }
+  //
+  //   // avPlayerManager.avPlayer?.setVolume(Number(PreferencesCache.getUserPreference('Volume','100'))/100)
+  //   if (PreferencesCache.getUserPreference('Lyic_desktop', '0') === '1') {
+  //     PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
+  //     PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
+  //   }
+  //   // 检查用户是否已同意隐私协议
+  //   if (PreferencesCache.getUserPreference(this.policyVersion, '0') === '0') {
+  //     // 延迟显示弹窗，确保UI已完全加载
+  //     setTimeout(() => {
+  //       if (this.privacyDialogController) {
+  //         this.privacyDialogController.open();
+  //       }
+  //     }, 500);
+  //   }
+  //
+  //   // 注册断点系统
+  //   this.breakpointSystem.register(this.getUIContext())
+  //   HorizontalMode(this.getUIContext().getHostContext() as Context, this.HorizontalMode_ctrl === '1')
+  //   AppStorage.setOrCreate("pageStack", this.pageStack)
+  //   let productSeries: string = deviceInfo.productSeries
+  //   let deviceType: string = deviceInfo.deviceType
+  //   if (deviceType != 'phone' && productSeries != 'VDE') {
+  //     AppStorage.setOrCreate<boolean>('isWideScreen', true)
+  //   } else {
+  //     AppStorage.setOrCreate<boolean>('isWideScreen', false)
+  //
+  //   }
+  //   AppStorage.setOrCreate("devicetype", deviceType)
+  //   PreferencesCache.setUserPreference('devicetype', deviceType)
+  //   if (productSeries == 'VDE') {
+  //     PreferencesCache.setUserPreference('is_Pura_X', '1')
+  //   } else {
+  //     PreferencesCache.setUserPreference('is_Pura_X', '0')
+  //   }
+  // }
 
   // 处理用户同意隐私协议
   private onPrivacyAgree() {
@@ -345,26 +345,25 @@ struct Index_page {
 
   }
 
-  onPageShow(): void {
-    console.info(TAG, 'onPageShow')
-    PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
-    PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
-    PipManager.getInstance().startPip();
-  }
+  // onPageShow(): void {
+  //   console.info(TAG, 'onPageShow')
+  //   PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
+  //   PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
+  //   PipManager.getInstance().startPip();
+  // }
 
-  onPageHide(): void {
-    console.info(TAG, 'onPageHide')
-    PipManager.getInstance().setAutoStart(false);
-  }
+  // onPageHide(): void {
+  //
+  // }
 
-  aboutToDisappear() {
-    this.breakpointSystem.unregister()
-    PipManager.getInstance().unregisterPipStateChangeListener(); // 解注册画中画生命周期及状态回调
-    // 清理弹窗控制器
-    if (this.privacyDialogController) {
-      this.privacyDialogController = null;
-    }
-  }
+  // aboutToDisappear() {
+  //   this.breakpointSystem.unregister()
+  //   PipManager.getInstance().unregisterPipStateChangeListener(); // 解注册画中画生命周期及状态回调
+  //   // 清理弹窗控制器
+  //   if (this.privacyDialogController) {
+  //     this.privacyDialogController = null;
+  //   }
+  // }
 
   @Builder
   Title() {
@@ -653,6 +652,67 @@ struct Index_page {
     .hideTitleBar(true)
     .hideBackButton(true)
     .backgroundColor($r('app.color.page_background'))
+    .onWillAppear(()=>{
+      avPlayerManager.setAudioSession()
+
+      this.zhishi_UI = PreferencesCache.getUserPreference('zhishi_UI', '0')
+      if (this.zhishi_UI === '1') {
+        this.limit = 20
+      }
+
+      // avPlayerManager.avPlayer?.setVolume(Number(PreferencesCache.getUserPreference('Volume','100'))/100)
+      if (PreferencesCache.getUserPreference('Lyic_desktop', '0') === '1') {
+        PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
+        PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
+      }
+      // 检查用户是否已同意隐私协议
+      if (PreferencesCache.getUserPreference(this.policyVersion, '0') === '0') {
+        // 延迟显示弹窗，确保UI已完全加载
+        setTimeout(() => {
+          if (this.privacyDialogController) {
+            this.privacyDialogController.open();
+          }
+        }, 500);
+      }
+
+      // 注册断点系统
+      this.breakpointSystem.register(this.getUIContext())
+      HorizontalMode(this.getUIContext().getHostContext() as Context, this.HorizontalMode_ctrl === '1')
+      AppStorage.setOrCreate("pageStack", this.pageStack)
+      let productSeries: string = deviceInfo.productSeries
+      let deviceType: string = deviceInfo.deviceType
+      if (deviceType != 'phone' && productSeries != 'VDE') {
+        AppStorage.setOrCreate<boolean>('isWideScreen', true)
+      } else {
+        AppStorage.setOrCreate<boolean>('isWideScreen', false)
+
+      }
+      AppStorage.setOrCreate("devicetype", deviceType)
+      PreferencesCache.setUserPreference('devicetype', deviceType)
+      if (productSeries == 'VDE') {
+        PreferencesCache.setUserPreference('is_Pura_X', '1')
+      } else {
+        PreferencesCache.setUserPreference('is_Pura_X', '0')
+      }
+    })
+    .onWillShow(()=> {
+        console.info(TAG, 'onPageShow')
+        PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
+        // PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
+        // PipManager.getInstance().startPip();
+      })
+    .onWillHide(()=>{
+      console.info(TAG, 'onPageHide')
+      // PipManager.getInstance().setAutoStart(false);
+    })
+    .onWillDisappear(()=>{
+      this.breakpointSystem.unregister()
+      PipManager.getInstance().unregisterPipStateChangeListener(); // 解注册画中画生命周期及状态回调
+      // 清理弹窗控制器
+      if (this.privacyDialogController) {
+        this.privacyDialogController = null;
+      }
+    })
     .onBackPressed(() => {
       if (this.page_judge !== 'index') {
         this.page_judge = 'index'
