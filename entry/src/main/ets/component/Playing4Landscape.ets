@@ -1,12 +1,12 @@
 import { StyleConstants } from "../constants/StyleConstants"
 import { Song, SongV2 } from "../type/Adapter"
 import { cover } from "../util/AdapterHelper"
-import { AppStorageV2, curves, window } from "@kit.ArkUI"
+import { AppStorageV2, curves, font, window } from "@kit.ArkUI"
 import { avPlayerManager } from "../util/AVPlayerManager"
 import { LyricsView } from "./LyricsView"
 import { PreferencesCache } from "../util/PreferenceCache"
 
-
+const  TAG = 'Playing4Landscape'
 @ComponentV2
 export struct Playing4Landscape {
   //歌曲信息获取
@@ -368,7 +368,7 @@ export struct Playing4Landscape {
   }
 
   @Builder
-  PlayerControls(judge: boolean = true) {
+  PlayerControls() {
     Row({ space: 16 }) {
 
       // 上一首按钮
@@ -620,10 +620,34 @@ export struct Playing4Landscape {
   theme3() {
     Column() {
       if (this.themeSetting || this.ThemeChoose === 2) {
-        Column()
+        Stack(){
+          Column(){
+                    TextClock()
+                      // .fontFamily()
+          }.onClick(()=>{
+            let fontConfig = font.getUIFontConfig();
+            console.info(TAG,"font-dir -----------" + String(fontConfig.fontDir.length));
+            for (let i = 0; i < fontConfig.fontDir.length; i ++) {
+              console.info(fontConfig.fontDir[i]);
+            }
+            console.info(TAG,"generic-------------" + String(fontConfig.generic.length));
+            for (let i = 0; i < fontConfig.generic.length; i ++){
+              console.info(TAG,"family:" + fontConfig.generic[i].family);
+              for (let j = 0; j < fontConfig.generic[i].alias.length; j ++){
+                console.info(fontConfig.generic[i].alias[j].name + " " + fontConfig.generic[i].alias[j].weight);
+              }
+            }
+            console.info(TAG,"fallback------------" + String(fontConfig.fallbackGroups.length));
+            for (let i = 0; i < fontConfig.fallbackGroups.length; i ++){
+              console.info(TAG,"fontSetName:" + fontConfig.fallbackGroups[i].fontSetName);
+              for (let j = 0; j < fontConfig.fallbackGroups[i].fallback.length; j ++){
+                console.info(TAG,"language:" + fontConfig.fallbackGroups[i].fallback[j].language + " family:" + fontConfig.fallbackGroups[i].fallback[j].family);
+              }
+            }
+          })
           .width('100%')
           .height('100%')
-          .backgroundColor(Color.Blue)
+          .backgroundColor(Color.Transparent)
           .aspectRatio(this.screenWidth / this.screenHeight)
           .transition(TransitionEffect.OPACITY.animation({
             duration: this.ThemeChoose - 1 === 2 || this.ThemeChoose + 1 === 2 ? 300 : 0,
@@ -635,6 +659,28 @@ export struct Playing4Landscape {
               z: 0
             })
           ))
+          if (this.themeSetting) {
+            Column() {
+              // Blank()
+            }.width('100%').height('100%').backgroundColor(Color.Transparent).onClick(() => {
+              this.getUIContext().animateTo({
+                duration: 300,
+                curve: curves.springMotion(0, 0.65),
+                // delay: 500,
+                // iterations: -1, // 设置-1表示动画无限循环
+                playMode: PlayMode.Alternate,
+                expectedFrameRateRange: {
+                  min: 10,
+                  max: 120,
+                  expected: 60,
+                }
+              }, () => {
+                this.themeSetting = !this.themeSetting
+                PreferencesCache.setUserPreference('Playing_HorizontalMode_index', '2')
+              })
+            })
+          }
+        }
 
       }
 
