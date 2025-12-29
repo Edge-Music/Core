@@ -223,3 +223,29 @@ export interface LocalSourceConfig {
   // 数据源登录凭证
   auth?: LocalAuth;
 }
+
+@ObservedV2
+export class SongV2 {
+  // 歌曲ID
+ @Trace id: ID = 0;
+  // 歌曲名称
+  @Trace name: string = 'EdgeMusic';
+  // 歌曲封面
+  @Trace artists: Artist[] = new Array;
+  // 专辑
+  @Trace album: Album = {id:0,name:''};
+  // 时长
+  @Trace duration: number = 0;
+  // 是否可播放
+  @Trace privilege: Privilege = {playable:false};
+  // 别名
+  @Trace tns?: string[];
+  // 元数据
+  @Trace meta?: SongMeta;
+
+  // 数据来源
+  @Trace  source?: SourceConfig;
+
+  // 数据源ID
+  @Trace sourceID? : ID
+}
