@@ -1,5 +1,5 @@
 import { EmitterUtil, LogUtil, ToastUtil } from '@pura/harmony-utils';
-import { Song } from '../type/Adapter';
+import { Song, SongV2 } from '../type/Adapter';
 import { avSession } from '@kit.AVSessionKit';
 import { SongCacheItem, SongCacheManager } from './SongCacheManager';
 import { fileIo as fs } from '@kit.CoreFileKit';
@@ -14,6 +14,7 @@ import { PreferencesCache } from './PreferenceCache';
 import { SongDownloadManager } from './SongDownloadManager';
 import { image } from '@kit.ImageKit';
 import { playRecordManager } from './PlayRecordManager';
+import { AppStorageV2 } from '@kit.ArkUI';
 
 const TAG = 'EventHelper'
 
@@ -99,7 +100,28 @@ const handleSongDownload = async (song: Song) => {
   }
 
   song = await SourceAdapter.getSongDetail(song);
+
   AppStorage.setOrCreate("current_playing_song", song)
+  // // 从song转换至SongV2
+  // SongItem.id = song.id;
+  // SongItem.name = song.name;
+  // SongItem.artists =song.artists;
+  // SongItem.album = song.album;
+  // SongItem.duration = song.duration;
+  // SongItem.privilege =song.privilege;
+  // if (song.tns) {
+  //   SongItem.tns = song.tns;
+  // }
+  // if (song.meta) {
+  //   SongItem.meta =song.meta;
+  //
+  // }
+  // if (song.source) {
+  //   SongItem.source =song.source;
+  // }
+  // if (song.sourceID) {
+  //   SongItem.sourceID =song.sourceID;
+  // }
   PreferencesCache.lastSong(song)
 
   // 下载歌曲
