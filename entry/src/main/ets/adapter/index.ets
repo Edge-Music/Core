@@ -535,12 +535,15 @@ export class SourceAdapter {
       if (bitRate) {
         // 获取离当前码率最近的码率，避免因为码率不匹配导致无法播放
         br = bitRate.reduce((prev, curr) => Math.abs(curr - br) < Math.abs(prev - br) ? curr : prev);
+        AppStorage.setOrCreate('malv',br)
+        // song.privilege.bitrates = br
       }
       let uri = `/song/detail?id=${song.id}&br=${br}`;
       if (uid) {
         uri += `&uid=${uid}`;
       }
       const res = (await request.get(uri)).data as BaseResponse<Song>;
+
       song.meta = res.data.meta;
       return song;
     } catch (error) {

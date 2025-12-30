@@ -1,12 +1,15 @@
 import { SourceAdapter } from "../adapter";
-import { Song } from "../type/Adapter";
+import { Song, SongV2 } from "../type/Adapter";
 import { avSession } from "@kit.AVSessionKit";
 import { EventHelper } from "./EventHelper";
 import { avPlayerManager } from "./AVPlayerManager";
 import { LogUtil } from "@pura/harmony-utils";
 import { PreferencesCache } from "./PreferenceCache";
+import { AppStorageV2 } from "@kit.ArkUI";
 
 
+let SongItem: SongV2 =
+  AppStorageV2.connect(SongV2,'SongV2', () => new SongV2())!
 export enum PlayMode {
   SEQUENCE = avSession.LoopMode.LOOP_MODE_SEQUENCE,
   RANDOM = avSession.LoopMode.LOOP_MODE_SHUFFLE,
@@ -72,6 +75,26 @@ export class PlaylistManager {
         }
         LogUtil.info("PlaylistManager ", "playSong ", "song ", JSON.stringify(song))
         AppStorage.setOrCreate("current_playing_song", song)
+        // 从song转换至SongV2
+        SongItem.id = song.id;
+        SongItem.name = song.name;
+        SongItem.artists =song.artists;
+        SongItem.album = song.album;
+        SongItem.duration = song.duration;
+        SongItem.privilege =song.privilege;
+        if (song.tns) {
+          SongItem.tns = song.tns;
+        }
+        if (song.meta) {
+          SongItem.meta =song.meta;
+
+        }
+        if (song.source) {
+          SongItem.source =song.source;
+        }
+        if (song.sourceID) {
+          SongItem.sourceID =song.sourceID;
+        }
         // 获取歌曲信息
         EventHelper.postPlaySong([song, pause]) // 发送播放歌曲事件
       } catch (error) {
