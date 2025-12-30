@@ -983,7 +983,7 @@ export struct Playing4Landscape {
       // .linearGradientBlur(60,
       // { fractionStops: [[0, 0], [0, 0.33], [1, 0.66], [1, 1]], direction: GradientDirection.Top })
       Row() {
-        Text('<')
+        Text(' ')
           .fontSize(24)
         Blank()
         Row({ space: 16 }) {
