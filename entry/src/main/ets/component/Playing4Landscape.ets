@@ -1411,9 +1411,26 @@ export struct Playing4Landscape {
               // this.themeSetting =!this.themeSetting
               this.showTitleBar = true
             })
+            this.Timer4showTitleBar = setInterval(() => {
+              this.getUIContext().animateTo({
+                duration: 300,
+                curve: curves.springMotion(0, 0.65),
+                // delay: 500,
+                // iterations: -1, // 设置-1表示动画无限循环
+                playMode: PlayMode.Alternate,
+                expectedFrameRateRange: {
+                  min: 10,
+                  max: 120,
+                  expected: 60,
+                }
+              }, () => {
+                // this.themeSetting =!this.themeSetting
+                this.showTitleBar = false
+                // this.showSetting = true
+              })
+            }, 3000)
 
-          }
-          this.Timer4showTitleBar = setInterval(() => {
+          }else{
             this.getUIContext().animateTo({
               duration: 300,
               curve: curves.springMotion(0, 0.65),
@@ -1430,7 +1447,7 @@ export struct Playing4Landscape {
               this.showTitleBar = false
               // this.showSetting = true
             })
-          }, 3000)
+          }
         }
 
 
