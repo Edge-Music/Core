@@ -637,6 +637,7 @@ struct Playing {
         isPlaying:this.isPlaying,
         bottomRect:this.bottomRect,
         paramCurrentTime:this.currentTime,
+        OneSentence:this.currentLyric,
         songPlay:()=>{
           avPlayerManager.play()
         },

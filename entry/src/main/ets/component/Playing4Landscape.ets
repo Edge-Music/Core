@@ -854,7 +854,7 @@ export struct Playing4Landscape {
                 }
 
               }
-              .scale({ x: !this.themeSetting ? 1 : 0.8, y: !this.themeSetting ? 1 : 0.8 })
+              .scale({ x: !this.themeSetting ? 1 : 0.7, y: !this.themeSetting ? 1 : 0.7 })
 
               .width('100%')
               .height('100%')
