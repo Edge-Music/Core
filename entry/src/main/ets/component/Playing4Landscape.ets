@@ -5,8 +5,10 @@ import { AppStorageV2, curves, font, window } from "@kit.ArkUI"
 import { avPlayerManager } from "../util/AVPlayerManager"
 import { LyricsView } from "./LyricsView"
 import { PreferencesCache } from "../util/PreferenceCache"
+import { text } from "@kit.ArkGraphics2D"
 
-const  TAG = 'Playing4Landscape'
+const TAG = 'Playing4Landscape'
+
 @ComponentV2
 export struct Playing4Landscape {
   //歌曲信息获取
@@ -53,6 +55,10 @@ export struct Playing4Landscape {
   @Local Timer4showTitleBar: number = 0
   @Local showTitleBar: boolean = false
   @Local isProgressBarExpanded: boolean = false
+  //主题3配置
+  @Local setting4Theme3: boolean = false
+  @Local Font4Theme3: string = '0'
+  @Local FontSize4Theme3: number = 100
 
   //音频播放相关状态及控制
   // private playerManager = avPlayerManager;
@@ -60,6 +66,17 @@ export struct Playing4Landscape {
   aboutToAppear() {
     let context = this.getUIContext();
 
+
+    let fontCollection = text.FontCollection.getGlobalInstance()
+    fontCollection.loadFontSync('yxs0', $rawfile('hwbsj.ttf'))
+    fontCollection.loadFontSync('yxs1', $rawfile('HarmonyClock_01.ttf'))
+    fontCollection.loadFontSync('yxs2', $rawfile('HarmonyClock_02.ttf'))
+    fontCollection.loadFontSync('yxs3', $rawfile('HarmonyClock_03.ttf'))
+    fontCollection.loadFontSync('yxs4', $rawfile('HarmonyClock_04.ttf'))
+    fontCollection.loadFontSync('yxs5', $rawfile('HarmonyClock_05.ttf'))
+    fontCollection.loadFontSync('yxs6', $rawfile('HarmonyClock_06.ttf'))
+    fontCollection.loadFontSync('yxs7', $rawfile('HarmonyClock_07.ttf'))
+    fontCollection.loadFontSync('yxs8', $rawfile('HarmonyClock_08.ttf'))
     // 获取屏幕的宽高
     window.getLastWindow(context.getHostContext())
       .then((windowClass: window.Window) => {
@@ -107,6 +124,9 @@ export struct Playing4Landscape {
         })
       }, 3000)
     }
+    this.Font4Theme3 = PreferencesCache.getUserPreference('Font4Theme3', '0')
+    this.FontSize4Theme3 = Number(PreferencesCache.getUserPreference('FontSize4Theme3', '100'))
+
   }
 
   handleSongChange(direction: 'next' | 'prev') {
@@ -620,31 +640,247 @@ export struct Playing4Landscape {
   theme3() {
     Column() {
       if (this.themeSetting || this.ThemeChoose === 2) {
-        Stack(){
-          Column(){
-                    TextClock()
-                      // .fontFamily()
-          }.onClick(()=>{
-            let fontConfig = font.getUIFontConfig();
-            console.info(TAG,"font-dir -----------" + String(fontConfig.fontDir.length));
-            for (let i = 0; i < fontConfig.fontDir.length; i ++) {
-              console.info(fontConfig.fontDir[i]);
-            }
-            console.info(TAG,"generic-------------" + String(fontConfig.generic.length));
-            for (let i = 0; i < fontConfig.generic.length; i ++){
-              console.info(TAG,"family:" + fontConfig.generic[i].family);
-              for (let j = 0; j < fontConfig.generic[i].alias.length; j ++){
-                console.info(fontConfig.generic[i].alias[j].name + " " + fontConfig.generic[i].alias[j].weight);
+        Stack() {
+          Column() {
+            Stack() {
+              Column() {
+
+                TextClock()
+                  .format('HH:mm:ss')
+                  .fontFeature("ss01")
+                  .fontSize(this.FontSize4Theme3)
+                  .fontFamily('yxs' + this.Font4Theme3)
+                  .width('100%')
+                  .layoutWeight(1)
+
+                if (this.setting4Theme3) {
+                  List({ space: 16 }) {
+
+                    ListItem() {
+                      Column() {
+                        Text('10:08')
+                          .fontFamily('yxs0')
+                      }.borderWidth('yxs0' === ('yxs' + this.Font4Theme3) ? 2 : 0)
+                      .height('100%')
+                      .aspectRatio(1)
+                      .borderRadius(20)
+                      .justifyContent(FlexAlign.Center)
+                      .onClick(() => {
+                        this.Font4Theme3 = '0'
+                        PreferencesCache.setUserPreference('Font4Theme3', this.Font4Theme3)
+                      })
+                    }
+
+
+                    ListItem() {
+                      Column() {
+                        Text('10:08')
+                          .fontFamily('yxs1')
+                      }.borderWidth('yxs1' === ('yxs' + this.Font4Theme3) ? 2 : 0)
+                      .height('100%')
+                      .aspectRatio(1)
+                      .borderRadius(20)
+                      .justifyContent(FlexAlign.Center)
+                      .onClick(() => {
+                        this.Font4Theme3 = '1'
+                        PreferencesCache.setUserPreference('Font4Theme3', this.Font4Theme3)
+                      })
+                    }
+
+                    ListItem() {
+                      Column() {
+                        Text('10:08')
+                          .fontFamily('yxs2')
+                      }.borderWidth('yxs2' === ('yxs' + this.Font4Theme3) ? 2 : 0)
+                      .height('100%')
+                      .aspectRatio(1)
+                      .borderRadius(20)
+                      .justifyContent(FlexAlign.Center)
+                      .onClick(() => {
+                        this.Font4Theme3 = '2'
+                        PreferencesCache.setUserPreference('Font4Theme3', this.Font4Theme3)
+                      })
+                    }
+
+                    ListItem() {
+                      Column() {
+                        Text('10:08')
+                          .fontFamily('yxs3')
+                      }.borderWidth('yxs3' === ('yxs' + this.Font4Theme3) ? 2 : 0)
+                      .height('100%')
+                      .aspectRatio(1)
+                      .borderRadius(20)
+                      .justifyContent(FlexAlign.Center)
+                      .onClick(() => {
+                        this.Font4Theme3 = '3'
+                        PreferencesCache.setUserPreference('Font4Theme3', this.Font4Theme3)
+                      })
+                    }
+
+                    ListItem() {
+                      Column() {
+                        Text('10:08')
+                          .fontFamily('yxs4')
+                      }.borderWidth('yxs4' === ('yxs' + this.Font4Theme3) ? 2 : 0)
+                      .height('100%')
+                      .aspectRatio(1)
+                      .borderRadius(20)
+                      .justifyContent(FlexAlign.Center)
+                      .onClick(() => {
+                        this.Font4Theme3 = '4'
+                        PreferencesCache.setUserPreference('Font4Theme3', this.Font4Theme3)
+                      })
+                    }
+
+                    ListItem() {
+                      Column() {
+                        Text('10:08')
+                          .fontFamily('yxs5')
+                      }.borderWidth('yxs5' === ('yxs' + this.Font4Theme3) ? 2 : 0)
+                      .height('100%')
+                      .aspectRatio(1)
+                      .borderRadius(20)
+                      .justifyContent(FlexAlign.Center)
+                      .onClick(() => {
+                        this.Font4Theme3 = '5'
+                        PreferencesCache.setUserPreference('Font4Theme3', this.Font4Theme3)
+                      })
+                    }
+
+                    ListItem() {
+                      Column() {
+                        Text('10:08')
+                          .fontFamily('yxs6')
+                      }.borderWidth('yxs6' === ('yxs' + this.Font4Theme3) ? 2 : 0)
+                      .height('100%')
+                      .aspectRatio(1)
+                      .borderRadius(20)
+                      .justifyContent(FlexAlign.Center)
+                      .onClick(() => {
+                        this.Font4Theme3 = '6'
+                        PreferencesCache.setUserPreference('Font4Theme3', this.Font4Theme3)
+                      })
+                    }
+
+                    ListItem() {
+                      Column() {
+                        Text('10:08')
+                          .fontFamily('yxs7')
+                      }.borderWidth('yxs7' === ('yxs' + this.Font4Theme3) ? 2 : 0)
+                      .height('100%')
+                      .aspectRatio(1)
+                      .borderRadius(20)
+                      .justifyContent(FlexAlign.Center)
+                      .onClick(() => {
+                        this.Font4Theme3 = '7'
+                        PreferencesCache.setUserPreference('Font4Theme3', this.Font4Theme3)
+                      })
+                    }
+
+                    ListItem() {
+                      Column() {
+                        Text('10:08')
+                          .fontFamily('yxs8')
+                      }.borderWidth('yxs8' === ('yxs' + this.Font4Theme3) ? 2 : 0)
+                      .height('100%')
+                      .aspectRatio(1)
+                      .borderRadius(20)
+                      .justifyContent(FlexAlign.Center)
+                      .onClick(() => {
+                        this.Font4Theme3 = '8'
+                        PreferencesCache.setUserPreference('Font4Theme3', this.Font4Theme3)
+                      })
+                    }
+                  }
+                  .width('100%')
+                  .height('20%')
+                  .listDirection(Axis.Horizontal)
+                  .padding({ left: 16, right: 16 })
+                  .scrollBar(BarState.Off)
+                  Row(){
+                    Text('字体大小')
+                      .fontFamily('yxs0')
+                    Slider({
+                      value: $$this.FontSize4Theme3,
+                      max: 200,
+                      min:50,
+                      step: 1,
+                      style: SliderStyle.InSet
+                    })
+                      .selectedColor('rgba(255, 255, 255, 1.00)')
+                      .trackColor('rgba(177, 177, 177, 0.30)')// 半透明背景
+                      .blockColor('rgba(164, 164, 164, 1.00)')
+                      .width('60%')
+                      .onChange((value)=>{
+                        this.FontSize4Theme3 = value
+                        PreferencesCache.setUserPreference('FontSize4Theme3',String(this.FontSize4Theme3))
+                      })
+                    Button('确定')
+                      .fontColor($r('sys.color.font'))
+                      .backgroundColor('rgba(177, 177, 177, 0.30)')
+                      .onClick(()=>{
+
+                        this.getUIContext().animateTo({
+                          duration: 300,
+                          curve: curves.springMotion(0, 0.65),
+                          // delay: 500,
+                          // iterations: -1, // 设置-1表示动画无限循环
+                          playMode: PlayMode.Alternate,
+                          expectedFrameRateRange: {
+                            min: 10,
+                            max: 120,
+                            expected: 60,
+                          }
+                        }, () => {
+                          this.setting4Theme3 = false
+                        })
+                      })
+                  }.width('100%').justifyContent(FlexAlign.Center)
+                  .margin({bottom:16})
+
+
+
+                }
+
               }
-            }
-            console.info(TAG,"fallback------------" + String(fontConfig.fallbackGroups.length));
-            for (let i = 0; i < fontConfig.fallbackGroups.length; i ++){
-              console.info(TAG,"fontSetName:" + fontConfig.fallbackGroups[i].fontSetName);
-              for (let j = 0; j < fontConfig.fallbackGroups[i].fallback.length; j ++){
-                console.info(TAG,"language:" + fontConfig.fallbackGroups[i].fallback[j].language + " family:" + fontConfig.fallbackGroups[i].fallback[j].family);
-              }
-            }
-          })
+              .scale({ x: !this.themeSetting ? 1 : 0.8, y: !this.themeSetting ? 1 : 0.8 })
+
+              .width('100%')
+              .height('100%')
+              .backgroundColor(Color.Transparent)
+              .justifyContent(FlexAlign.Center)
+
+              // Row({ space: 3 }) {
+              //   Column().width(3).height(this.isPlaying ? 10 : 4)
+              //     .backgroundColor(Color.White)
+              //     .animation({
+              //       duration: 350,
+              //       curve: Curve.EaseInOut,
+              //       delay: 0,
+              //       iterations: this.isPlaying ? -1 : 1
+              //     })
+              //   Column().width(3).height(this.isPlaying ? 10 : 4)
+              //     .backgroundColor(Color.White)
+              //
+              //     .animation({
+              //       duration: 350,
+              //       curve: Curve.EaseInOut,
+              //       delay: 0,
+              //       iterations: this.isPlaying ? -1 : 1
+              //     })
+              //   Column().width(3).height(this.isPlaying ? 10 : 4)
+              //     .backgroundColor(Color.White)
+              //     .animation({
+              //       duration: 350,
+              //       curve: Curve.EaseInOut,
+              //       delay: 0,
+              //       iterations: this.isPlaying ? -1 : 1
+              //     })
+              //
+              // }.margin(16)
+            }.alignContent(Alignment.Top)
+
+          }
           .width('100%')
           .height('100%')
           .backgroundColor(Color.Transparent)
@@ -659,6 +895,7 @@ export struct Playing4Landscape {
               z: 0
             })
           ))
+
           if (this.themeSetting) {
             Column() {
               // Blank()
@@ -749,28 +986,58 @@ export struct Playing4Landscape {
         Text('<')
           .fontSize(24)
         Blank()
-        Text('󰀠')
-          .fontSize(24)
-          .onClick(() => {
-            // this.themeSetting =!this.themeSetting
-            //
-            this.getUIContext().animateTo({
-              duration: 300,
-              curve: curves.springMotion(0, 0.65),
-              // delay: 500,
-              // iterations: -1, // 设置-1表示动画无限循环
-              playMode: PlayMode.Alternate,
-              expectedFrameRateRange: {
-                min: 10,
-                max: 120,
-                expected: 60,
-              }
-            }, () => {
-              this.themeSetting = !this.themeSetting
+        Row({ space: 16 }) {
+
+
+          Button('󰀍', { type: ButtonType.Circle })
+            .backgroundColor(Color.Transparent)
+            .fontSize(24)
+            .onClick(() => {
+              // this.themeSetting =!this.themeSetting
+              //
+              this.getUIContext().animateTo({
+                duration: 300,
+                curve: curves.springMotion(0, 0.65),
+                // delay: 500,
+                // iterations: -1, // 设置-1表示动画无限循环
+                playMode: PlayMode.Alternate,
+                expectedFrameRateRange: {
+                  min: 10,
+                  max: 120,
+                  expected: 60,
+                }
+              }, () => {
+                this.setting4Theme3 = false
+                this.themeSetting = !this.themeSetting
+
+              })
 
             })
 
-          })
+          if (this.ThemeChoose === 2) {
+            Button('󰀠', { type: ButtonType.Circle })
+              .backgroundColor(Color.Transparent)
+              .fontSize(24)
+              .onClick(() => {
+                this.getUIContext().animateTo({
+                  duration: 300,
+                  curve: curves.springMotion(0, 0.65),
+                  // delay: 500,
+                  // iterations: -1, // 设置-1表示动画无限循环
+                  playMode: PlayMode.Alternate,
+                  expectedFrameRateRange: {
+                    min: 10,
+                    max: 120,
+                    expected: 60,
+                  }
+                }, () => {
+                  this.setting4Theme3 = true
+                })
+              })
+          }
+
+        }
+
       }.height(60).width('100%').justifyContent(FlexAlign.SpaceBetween).padding(16)
     }
 
@@ -785,8 +1052,8 @@ export struct Playing4Landscape {
         this.theme1()
         this.theme2()
         this.theme3()
-        this.theme4()
-        this.theme5()
+        // this.theme4()
+        // this.theme5()
 
       }
       .onAppear(() => {
