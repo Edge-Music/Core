@@ -33,6 +33,9 @@
       {
         "name": "ohos.permission.ACCELEROMETER"
       },
+         {
+        "name" : "ohos.permission.DETECT_GESTURE"
+      }
 //      {
 //        "name": "ohos.permission.SYSTEM_FLOAT_WINDOW",
 //        "reason": "$string:reason_float_lyrics_window",
