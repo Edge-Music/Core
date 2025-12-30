@@ -19,7 +19,8 @@ export struct Personalized_settings_Component {
     buttons: [{ text: '原词' }, { text: '翻译' }, { text: '罗马音' }] as ItemRestriction<SegmentButtonTextItem>,
     backgroundBlurStyle: BlurStyle.BACKGROUND_REGULAR,
     selectedBackgroundColor: $r('app.color.title_emphasis_color'),
-    fontSize: 12
+    fontSize: 12,
+    selectedFontSize: 12
   })
 
   aboutToAppear(): void {
