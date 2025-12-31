@@ -67,7 +67,8 @@ export struct Playing4Landscape {
   @Local FontSize4Theme3: number = 100
   // @Local Timer4Theme3ctrl: number = 0
   @Local showSongCtrl4Theme3: boolean = false
-
+  //主题4配置
+  private  textTimerController: TextTimerController = new TextTimerController();
   //音频播放相关状态及控制
   // private playerManager = avPlayerManager;
 
@@ -1073,10 +1074,19 @@ export struct Playing4Landscape {
   theme4() {
     Column() {
       if (this.themeSetting || this.ThemeChoose === 3) {
-        Column()
+        Stack(){
+          Column(){
+            TextTimer()
+              .format('HH:mm:ss')
+              // .fontFeature("\"ss01\" off")
+              .fontSize(this.FontSize4Theme3)
+              .fontFamily('yxs' + this.Font4Theme3)
+              .width('100%')
+              .layoutWeight(1)
+          }
           .width('100%')
           .height('100%')
-          .backgroundColor(Color.Green)
+          .backgroundColor(Color.Transparent)
           .aspectRatio(this.screenWidth / this.screenHeight)
           .transition(TransitionEffect.OPACITY.animation({
             duration: this.ThemeChoose - 1 === 3 || this.ThemeChoose + 1 === 3 ? 300 : 0,
@@ -1088,6 +1098,31 @@ export struct Playing4Landscape {
               z: 0
             })
           ))
+
+          if (this.themeSetting) {
+            Column() {
+              // Blank()
+            }.width('100%').height('100%').backgroundColor(Color.Transparent).onClick(() => {
+              this.getUIContext().animateTo({
+                duration: 300,
+                curve: curves.springMotion(0, 0.65),
+                // delay: 500,
+                // iterations: -1, // 设置-1表示动画无限循环
+                playMode: PlayMode.Alternate,
+                expectedFrameRateRange: {
+                  min: 10,
+                  max: 120,
+                  expected: 60,
+                }
+              }, () => {
+                this.themeSetting = !this.themeSetting
+                PreferencesCache.setUserPreference('Playing_HorizontalMode_index', '3')
+              })
+            })
+          }
+
+        }
+
 
       }
 
@@ -1196,7 +1231,7 @@ export struct Playing4Landscape {
         this.theme1()
         this.theme2()
         this.theme3()
-        // this.theme4()
+        this.theme4()
         // this.theme5()
 
       }
