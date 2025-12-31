@@ -285,7 +285,7 @@ class AVPlayerManager {
     });
 
     this.avSession.on('pause', () => {
-      this.pause();
+      this.pauseWithoutFadeOut();
     });
 
     this.avSession.on('stop', () => {
@@ -366,7 +366,7 @@ class AVPlayerManager {
     return this.avSession;
   }
 
-  private setupAudioInterrupt(player: media.AVPlayer) {
+  private async setupAudioInterrupt(player: media.AVPlayer) {
     // 设置焦点模式为共享模式
     player.audioInterruptMode = audio.InterruptMode.SHARE_MODE;
 
@@ -381,7 +381,7 @@ class AVPlayerManager {
       switch (info.changeReason) {
         case audio.AudioStreamDeviceChangeReason.REASON_OLD_DEVICE_UNAVAILABLE:
           // 设备不可用(如蓝牙断开)，需要暂停播放
-          await this.pause()
+          await this.pauseWithoutFadeOut()
           break;
 
         case audio.AudioStreamDeviceChangeReason.REASON_NEW_DEVICE_AVAILABLE:
@@ -403,7 +403,7 @@ class AVPlayerManager {
           case audio.InterruptHint.INTERRUPT_HINT_PAUSE:
             // 系统强制暂停（临时失去焦点）
             const tempState = this.isPlayingBeforeInterrupt
-            await this.pause();
+            await this.pauseWithoutFadeOut();
             this.isPlayingBeforeInterrupt = tempState;
             break;
 
@@ -417,7 +417,7 @@ class AVPlayerManager {
           case audio.InterruptHint.INTERRUPT_HINT_STOP:
             // 系统强制停止（永久失去焦点）
             this.isPlayingBeforeInterrupt = false;
-            await this.pause();
+            await this.pauseWithoutFadeOut();
             break;
 
           case audio.InterruptHint.INTERRUPT_HINT_DUCK:
@@ -435,7 +435,7 @@ class AVPlayerManager {
         // 非强制打断
         switch (interruptEvent.hintType) {
           case audio.InterruptHint.INTERRUPT_HINT_PAUSE:
-            await this.pause();
+            await this.pauseWithoutFadeOut();
             break;
           case audio.InterruptHint.INTERRUPT_HINT_RESUME:
             if (this.isPlayingBeforeInterrupt) {
@@ -685,6 +685,22 @@ class AVPlayerManager {
           this.triggerPause();
           EventHelper.postSongState('PAUSE');
         }
+        WindowUtil.destroyLyricsFloatWindow()
+      }
+    } catch (error) {
+      this.triggerError(error);
+    }
+  }
+
+  async pauseWithoutFadeOut() {
+    try {
+      const player = await this.getAVPlayerInstance();
+      if(player.state === 'playing'){
+        await player.pause();
+        AppStorage.setOrCreate<boolean>("playing_judge", false);
+        this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PAUSE);
+        this.triggerPause();
+        EventHelper.postSongState('PAUSE');
         WindowUtil.destroyLyricsFloatWindow()
       }
     } catch (error) {
