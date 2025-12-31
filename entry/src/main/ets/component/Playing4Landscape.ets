@@ -23,6 +23,9 @@ export struct Playing4Landscape {
   @Require @Param paramCurrentTime: number
   @Local currentTime: number = 0
 
+  @Require @BuilderParam playControl: () => void
+  @Require @BuilderParam playControlWithHeart: () => void
+
   @Monitor('paramCurrentTime')
   onStrChange(monitor: IMonitor) {
     this.currentTime = this.paramCurrentTime
@@ -189,7 +192,6 @@ export struct Playing4Landscape {
         Image(cover(this.song?.album?.cover ?? "", 512))
         // .geometryTransition("picture", { follow: false })
         // .transition(TransitionEffect.OPACITY)
-          .scale({ x: this.isPlaying ? 1 : 0.8, y: this.isPlaying ? 1 : 0.8 })
           .layoutWeight(1)
         // Image(cover(this.song?.album?.cover ?? "", 512))
 
@@ -202,12 +204,6 @@ export struct Playing4Landscape {
             offsetY: 2
           })
           .borderRadius(24)
-          .animation({
-            duration: 300,
-            curve: curves.springMotion(0, 0.65),
-            // iterations: 3,
-            playMode: PlayMode.Normal
-          })
           .translate({ x: this.swipeOffset })
           .opacity(this.isSwipingActive ? (1 - Math.min(0.3, Math.abs(this.swipeOffset) / 300)) : 1)
           .animation({
@@ -300,6 +296,13 @@ export struct Playing4Landscape {
     }.layoutWeight(1)
     .alignContent(Alignment.BottomEnd)
     .aspectRatio(1)
+    .scale({ x: this.isPlaying ? 1 : 0.8, y: this.isPlaying ? 1 : 0.8 })
+    .animation({
+      duration: 300,
+      curve: curves.springMotion(0, 0.65),
+      // iterations: 3,
+      playMode: PlayMode.Normal
+    })
 
     // .layoutWeight(1)
   }
@@ -588,12 +591,14 @@ export struct Playing4Landscape {
 
               Column() {
                 this.ProgressBar(true, 0, true)
-              }.padding({ left: 20, right: 20 })
+              }
+              .padding({ left: 20, right: 20 })
               .width('100%')
 
               Column() {
-                this.PlayerControls()
+                this.playControl()
               }
+              .padding({ left: 20, right: 20 })
               .width('100%')
             }.width('50%').height('100%')
 
@@ -639,9 +644,7 @@ export struct Playing4Landscape {
             })
           }
         }
-
       }
-
 
     }.width('100%').height('100%').justifyContent(FlexAlign.Center)
 
@@ -658,7 +661,7 @@ export struct Playing4Landscape {
 
                 TextClock()
                   .format('HH:mm:ss')
-                  .fontFeature("ss01")
+                  .fontFeature("\"ss01\" off")
                   .fontSize(this.FontSize4Theme3)
                   .fontFamily('yxs' + this.Font4Theme3)
                   .width('100%')
@@ -813,8 +816,8 @@ export struct Playing4Landscape {
                       .fontFamily('yxs0')
                     Slider({
                       value: $$this.FontSize4Theme3,
-                      max: 200,
-                      min:50,
+                      max: 150,
+                      min: 50,
                       step: 1,
                       style: SliderStyle.InSet
                     })
@@ -855,17 +858,16 @@ export struct Playing4Landscape {
 
               }
               .scale({ x: !this.themeSetting ? 1 : 0.7, y: !this.themeSetting ? 1 : 0.7 })
-
               .width('100%')
               .height('100%')
               .backgroundColor(Color.Transparent)
-              .justifyContent(FlexAlign.Center)
+              .justifyContent(FlexAlign.SpaceBetween)
               // 歌曲控制，灵动岛（仿制）
               Column(){
-                Row({ space: 3 }) {
+                Row({ space: this.showSongCtrl4Theme3 ? 8:4 }) {
                   Image(cover(this.song?.album?.cover ?? "", 512))
                     .aspectRatio(1)
-                    .width(this.showSongCtrl4Theme3? 48+24:24)
+                    .width(this.showSongCtrl4Theme3 ? 48+26:26)
                     .clip(true)
                     .shadow({
                       radius: 0,
@@ -873,12 +875,13 @@ export struct Playing4Landscape {
                       offsetX: 0,
                       offsetY: 2
                     })
-                    .borderRadius(6)
+                    .borderRadius(this.showSongCtrl4Theme3 ? 8:4)
                   //歌手，歌名，歌词，进度
                   Column(){
                     Text(this.song?.name+ (this.showSongCtrl4Theme3?`-${this.song?.artists ? this.song.artists.map(artist => artist.name).join(" / ") : "未知艺术家"}`:''))
                       .height(26)
                       .textOverflow({overflow:TextOverflow.MARQUEE})
+
                     if (this.showSongCtrl4Theme3){
                       Text(this.OneSentence)
                         .fontSize(14)
@@ -902,7 +905,6 @@ export struct Playing4Landscape {
                           .width('10%')
 
                         // Blank()
-
 
                         Slider({
                           value: this.currentTime,
@@ -968,143 +970,13 @@ export struct Playing4Landscape {
                       }.height(24)
                     }
 
-
                   }.layoutWeight(1)
                   .alignItems(this.showSongCtrl4Theme3?HorizontalAlign.Start:HorizontalAlign.Center)
 
                 }
                 //控制按钮
                 if (this.showSongCtrl4Theme3) {
-                  Row({ space: 16 }) {
-
-                    // 上一首按钮
-                    Button({ type: ButtonType.Circle }) {
-                      Image($r('app.media.ic_prev'))
-                        .width(30)
-                        .height(30)
-                        .fillColor($r('sys.color.font'))
-                      // .fillColor(Color.White)
-
-                    }
-                    .backgroundColor(Color.Transparent)
-                    .width(36)
-                    .height(36)
-
-                    // .backgroundBlurStyle(BlurStyle.Thin)
-                    // .backgroundColor('rgba(200, 200, 200, 0.1)')
-                    // .shadow(ShadowStyle.OUTER_DEFAULT_XS)
-                    .onClick(() => {
-                      this.songPrev()
-                      clearInterval(this.Timer4Theme3ctrl)
-                      this.Timer4Theme3ctrl = setInterval(()=>{
-                        this.getUIContext().animateTo({
-                          duration: 300,
-                          curve: curves.springMotion(0, 0.65),
-                          // delay: 500,
-                          // iterations: -1, // 设置-1表示动画无限循环
-                          playMode: PlayMode.Alternate,
-                          expectedFrameRateRange: {
-                            min: 10,
-                            max: 120,
-                            expected: 60,
-                          }
-                        }, () => {
-                          this.showSongCtrl4Theme3 = false
-
-                        })
-                      },5000)
-                    })
-
-                    // 播放/暂停按钮
-                    Button({ type: ButtonType.Circle }) {
-                      if (this.isPlaying) {
-                        Image($r('app.media.ic_pause'))
-                          .width(30)
-                          .height(30)
-                          .fillColor($r('sys.color.font'))
-
-
-                      } else {
-                        Image($r('app.media.ic_play'))
-                          .width(16)
-                          .height(16)
-                          .fillColor($r('sys.color.font'))
-
-                          .margin({ left: 2 })
-                      }
-                    }
-                    .width(36)
-                    .height(36)
-                    .alignSelf(ItemAlign.Center)
-                    // .backgroundBlurStyle(BlurStyle.Thin)
-                    // .backgroundColor('rgba(179, 179, 179, 0.10)')
-                    .backgroundColor(Color.Transparent)
-                    // .shadow(ShadowStyle.OUTER_DEFAULT_XS)
-                    .onClick(() => {
-                      // this.isPlaying = !this.isPlaying
-                      if (!this.isPlaying) {
-                        this.songPlay()
-                      } else {
-                        this.songPause();
-                      }
-                      clearInterval(this.Timer4Theme3ctrl)
-                      this.Timer4Theme3ctrl = setInterval(()=>{
-                        this.getUIContext().animateTo({
-                          duration: 300,
-                          curve: curves.springMotion(0, 0.65),
-                          // delay: 500,
-                          // iterations: -1, // 设置-1表示动画无限循环
-                          playMode: PlayMode.Alternate,
-                          expectedFrameRateRange: {
-                            min: 10,
-                            max: 120,
-                            expected: 60,
-                          }
-                        }, () => {
-                          this.showSongCtrl4Theme3 = false
-
-                        })
-                      },5000)
-                    })
-
-                    // 下一首按钮
-                    Button({ type: ButtonType.Circle }) {
-                      Image($r('app.media.ic_next'))
-                        .width(30)
-                        .height(30)
-                        .fillColor($r('sys.color.font'))
-
-                    }
-                    .width(36)
-                    .height(36)
-                    // .backgroundBlurStyle(BlurStyle.Thin)
-                    // .backgroundColor('rgba(200, 200, 200, 0.1)')
-                    .backgroundColor(Color.Transparent)
-                    // .shadow(ShadowStyle.OUTER_DEFAULT_XS)
-                    .onClick(() => {
-                      this.songNext()
-                      clearInterval(this.Timer4Theme3ctrl)
-                      this.Timer4Theme3ctrl = setInterval(()=>{
-                        this.getUIContext().animateTo({
-                          duration: 300,
-                          curve: curves.springMotion(0, 0.65),
-                          // delay: 500,
-                          // iterations: -1, // 设置-1表示动画无限循环
-                          playMode: PlayMode.Alternate,
-                          expectedFrameRateRange: {
-                            min: 10,
-                            max: 120,
-                            expected: 60,
-                          }
-                        }, () => {
-                          this.showSongCtrl4Theme3 = false
-
-                        })
-                      },5000)
-                    })
-                  }.alignItems(VerticalAlign.Center)
-                  .justifyContent(FlexAlign.Center)
-                  .width('100%')
+                  this.playControlWithHeart()
                 }
               }
               // .height(this.showSongCtrl4Theme3? 48:24)
@@ -1114,8 +986,8 @@ export struct Playing4Landscape {
               // .backgroundColor($r('sys.color.ohos_id_color_background_transparent'))
               .backgroundColor('rgba(200, 200, 200, 0.1)')
               .backdropBlur(20)
-              .padding({left:14,right:14,top:this.showSongCtrl4Theme3? 4:2,bottom:this.showSongCtrl4Theme3? 4:2})
-              .borderRadius(13)
+              .padding(this.showSongCtrl4Theme3 ? 8:4)
+              .borderRadius(this.showSongCtrl4Theme3 ? 16:8)
               .onClick(()=>{
                 this.getUIContext().animateTo({
                   duration: 300,
@@ -1336,7 +1208,6 @@ export struct Playing4Landscape {
         this.ThemeChoose = ChooseTheme
 
       })
-
       .width('100%')
       .height('100%')
       .itemSpace(this.themeSetting ? 16 : 0)
@@ -1347,7 +1218,6 @@ export struct Playing4Landscape {
       .onChange((index: number) => {
         this.ThemeChoose = index
       })
-
       .gesture(
         PinchGesture({ fingers: 2 }) // 双指捏合手势，用于缩放操作
           .onActionStart((event: GestureEvent) => {
@@ -1369,11 +1239,8 @@ export struct Playing4Landscape {
 
               })
             }
-
-
           })
       )
-
       .onClick(() => {
         if (this.showSongCtrl4Theme3) {
           //如果是主题三，则清除定时器，关闭弹窗
