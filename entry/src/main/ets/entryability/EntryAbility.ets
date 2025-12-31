@@ -19,6 +19,7 @@ import { PreferencesCache } from '../util/PreferenceCache';
 import ResourceManager from '../util/ResourceManager';
 import { SourceAdapter } from '../adapter';
 import { ExceptionInfo } from '@pura/harmony-utils/src/main/ets/entity/ExceptionInfo';
+import { sensor } from '@kit.SensorServiceKit';
 
 const TAG = 'EntryAbility'
 export default class EntryAbility extends UIAbility {
@@ -117,6 +118,7 @@ export default class EntryAbility extends UIAbility {
     PreferencesCache.setUserPreference('Lyic_desktop','0')
     FormUtils.updateCardPlayStatus(false);
     avPlayerManager.destroy()
+    sensor.off(sensor.SensorId.BAROMETER);
     LogUtil.info(`[${TAG}]`, `avPlayer&avSession has been destroyed: ${avPlayerManager.avPlayer?.state}`);
   }
 
