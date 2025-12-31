@@ -1214,7 +1214,8 @@ export struct Playing4Landscape {
       .loop(false)
       .nextMargin(this.themeSetting ? 80 : 0)
       .prevMargin(this.themeSetting ? 80 : 0)
-      .indicator(this.themeSetting)
+      .indicator(this.themeSetting? new DotIndicator().selectedColor('#ffffff') :false)
+
       .onChange((index: number) => {
         this.ThemeChoose = index
       })
