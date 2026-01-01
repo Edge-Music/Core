@@ -1231,7 +1231,7 @@ export struct Playing4Landscape {
         this.theme1()
         this.theme2()
         this.theme3()
-        this.theme4()
+        // this.theme4()
         // this.theme5()
 
       }
