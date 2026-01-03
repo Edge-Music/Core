@@ -65,9 +65,10 @@ export struct Playing4Landscape {
   @Local setting4Theme3: boolean = false
   @Local Font4Theme3: string = '0'
   @Local FontSize4Theme3: number = 100
-  @Local Timer4Theme3ctrl: number = 0
+  // @Local Timer4Theme3ctrl: number = 0
   @Local showSongCtrl4Theme3: boolean = false
-
+  //主题4配置
+  private  textTimerController: TextTimerController = new TextTimerController();
   //音频播放相关状态及控制
   // private playerManager = avPlayerManager;
 
@@ -927,24 +928,24 @@ export struct Playing4Landscape {
                             playMode: PlayMode.Normal
                           })
                           .onChange((value: number) => {
-                            clearInterval(this.Timer4Theme3ctrl)
-                            this.Timer4Theme3ctrl = setInterval(()=>{
-                              this.getUIContext().animateTo({
-                                duration: 300,
-                                curve: curves.springMotion(0, 0.65),
-                                // delay: 500,
-                                // iterations: -1, // 设置-1表示动画无限循环
-                                playMode: PlayMode.Alternate,
-                                expectedFrameRateRange: {
-                                  min: 10,
-                                  max: 120,
-                                  expected: 60,
-                                }
-                              }, () => {
-                                this.showSongCtrl4Theme3 = false
-
-                              })
-                            },5000)
+                            // clearInterval(this.Timer4Theme3ctrl)
+                            // this.Timer4Theme3ctrl = setInterval(()=>{
+                            //   this.getUIContext().animateTo({
+                            //     duration: 300,
+                            //     curve: curves.springMotion(0, 0.65),
+                            //     // delay: 500,
+                            //     // iterations: -1, // 设置-1表示动画无限循环
+                            //     playMode: PlayMode.Alternate,
+                            //     expectedFrameRateRange: {
+                            //       min: 10,
+                            //       max: 120,
+                            //       expected: 60,
+                            //     }
+                            //   }, () => {
+                            //     this.showSongCtrl4Theme3 = false
+                            //
+                            //   })
+                            // },5000)
                             this.getUIContext()?.animateTo({ duration: 100, curve: Curve.EaseOut }, () => {
                               this.currentTime = value;
                             })
@@ -1002,24 +1003,24 @@ export struct Playing4Landscape {
                   }
                 }, () => {
                   this.showSongCtrl4Theme3 = true
-                  clearInterval(this.Timer4Theme3ctrl)
-                  this.Timer4Theme3ctrl = setInterval(()=>{
-                    this.getUIContext().animateTo({
-                      duration: 300,
-                      curve: curves.springMotion(0, 0.65),
-                      // delay: 500,
-                      // iterations: -1, // 设置-1表示动画无限循环
-                      playMode: PlayMode.Alternate,
-                      expectedFrameRateRange: {
-                        min: 10,
-                        max: 120,
-                        expected: 60,
-                      }
-                    }, () => {
-                      this.showSongCtrl4Theme3 = false
-
-                    })
-                  },5000)
+                  // clearInterval(this.Timer4Theme3ctrl)
+                  // this.Timer4Theme3ctrl = setInterval(()=>{
+                  //   this.getUIContext().animateTo({
+                  //     duration: 300,
+                  //     curve: curves.springMotion(0, 0.65),
+                  //     // delay: 500,
+                  //     // iterations: -1, // 设置-1表示动画无限循环
+                  //     playMode: PlayMode.Alternate,
+                  //     expectedFrameRateRange: {
+                  //       min: 10,
+                  //       max: 120,
+                  //       expected: 60,
+                  //     }
+                  //   }, () => {
+                  //     this.showSongCtrl4Theme3 = false
+                  //
+                  //   })
+                  // },5000)
                 })
               })
             }.alignContent(Alignment.Top)
@@ -1073,10 +1074,19 @@ export struct Playing4Landscape {
   theme4() {
     Column() {
       if (this.themeSetting || this.ThemeChoose === 3) {
-        Column()
+        Stack(){
+          Column(){
+            TextTimer()
+              .format('HH:mm:ss')
+              // .fontFeature("\"ss01\" off")
+              .fontSize(this.FontSize4Theme3)
+              .fontFamily('yxs' + this.Font4Theme3)
+              .width('100%')
+              .layoutWeight(1)
+          }
           .width('100%')
           .height('100%')
-          .backgroundColor(Color.Green)
+          .backgroundColor(Color.Transparent)
           .aspectRatio(this.screenWidth / this.screenHeight)
           .transition(TransitionEffect.OPACITY.animation({
             duration: this.ThemeChoose - 1 === 3 || this.ThemeChoose + 1 === 3 ? 300 : 0,
@@ -1088,6 +1098,31 @@ export struct Playing4Landscape {
               z: 0
             })
           ))
+
+          if (this.themeSetting) {
+            Column() {
+              // Blank()
+            }.width('100%').height('100%').backgroundColor(Color.Transparent).onClick(() => {
+              this.getUIContext().animateTo({
+                duration: 300,
+                curve: curves.springMotion(0, 0.65),
+                // delay: 500,
+                // iterations: -1, // 设置-1表示动画无限循环
+                playMode: PlayMode.Alternate,
+                expectedFrameRateRange: {
+                  min: 10,
+                  max: 120,
+                  expected: 60,
+                }
+              }, () => {
+                this.themeSetting = !this.themeSetting
+                PreferencesCache.setUserPreference('Playing_HorizontalMode_index', '3')
+              })
+            })
+          }
+
+        }
+
 
       }
 
@@ -1214,7 +1249,8 @@ export struct Playing4Landscape {
       .loop(false)
       .nextMargin(this.themeSetting ? 80 : 0)
       .prevMargin(this.themeSetting ? 80 : 0)
-      .indicator(this.themeSetting)
+      .indicator(this.themeSetting? new DotIndicator().selectedColor('#ffffff') :false)
+
       .onChange((index: number) => {
         this.ThemeChoose = index
       })
@@ -1244,7 +1280,7 @@ export struct Playing4Landscape {
       .onClick(() => {
         if (this.showSongCtrl4Theme3) {
           //如果是主题三，则清除定时器，关闭弹窗
-          clearInterval(this.Timer4Theme3ctrl)
+          // clearInterval(this.Timer4Theme3ctrl)
           this.getUIContext().animateTo({
             duration: 300,
             curve: curves.springMotion(0, 0.65),
