@@ -32,6 +32,12 @@ import { Statistics } from '../view/Statistics'
 import { FooterPlaceholder } from '../component/FooterPlaceholder'
 // import { motion } from '@kit.MultimodalAwarenessKit'
 import { HandingCtrl } from '../component/holdingHandCtrl'
+import { sensor } from '@kit.SensorServiceKit'
+import { notificationManager } from '@kit.NotificationKit'
+import { hilog } from '@kit.PerformanceAnalysisKit'
+
+// import { sensor } from '@kit.SensorServiceKit'
+
 // import { motion } from '@kit.MultimodalAwarenessKit'
 
 // 缓存常用值以避免重复计算
@@ -161,6 +167,73 @@ struct Index {
 
   aboutToAppear(): void {
     this.pageStack.replacePath({ name: 'Index_page' })
+    let pressure_change_judge = PreferencesCache.getUserPreference('pressure_change', '0')
+    if(pressure_change_judge === '1'){
+      try {
+        // const TAG: string = '[PublishOperation]';
+        const DOMAIN_NUMBER: number = 0xFF00;
+        let context = this.getUIContext().getHostContext() as common.UIAbilityContext;
+        notificationManager.isNotificationEnabled().then((data: boolean) => {
+          hilog.info(DOMAIN_NUMBER, TAG, "isNotificationEnabled success, data: " + JSON.stringify(data));
+          if(!data){
+            notificationManager.requestEnableNotification(context).then(() => {
+              hilog.info(DOMAIN_NUMBER, TAG, `[ANS] requestEnableNotification success`);
+            }).catch((err: BusinessError) => {
+              if(1600004 == err.code){
+                hilog.error(DOMAIN_NUMBER, TAG, `[ANS] requestEnableNotification refused, code is ${err.code}, message is ${err.message}`);
+              } else {
+                hilog.error(DOMAIN_NUMBER, TAG, `[ANS] requestEnableNotification failed, code is ${err.code}, message is ${err.message}`);
+              }
+            });
+          }
+        }).catch((err: BusinessError) => {
+          hilog.error(DOMAIN_NUMBER, TAG, `isNotificationEnabled fail, code is ${err.code}, message is ${err.message}`);
+        });
+
+        sensor.on(sensor.SensorId.BAROMETER, (data: sensor.BarometerResponse) => {
+          //过去气压获取
+          let prevAtmospheric_pressure : number = AppStorage.get('Atmospheric_pressure') ?? data.pressure
+          //过去差值获取
+          let Atmospheric_pressure_change_prev:number = AppStorage.get('Atmospheric_pressure_change')??0
+          // 计算累积差值
+          let Atmospheric_pressure_change:number = prevAtmospheric_pressure - data.pressure + Atmospheric_pressure_change_prev
+          if (Atmospheric_pressure_change>=50||Atmospheric_pressure_change<=-50){
+            console.info('jizhishi_debug Succeeded in invoking on. Atmospheric_pressure_change: ' + Atmospheric_pressure_change);
+            Atmospheric_pressure_change = 0
+
+            let notificationRequest: notificationManager.NotificationRequest = {
+              id: 114514,
+              notificationSlotType:notificationManager.SlotType.SERVICE_INFORMATION,
+              content: {
+                notificationContentType: notificationManager.ContentType.NOTIFICATION_CONTENT_BASIC_TEXT, // 普通文本类型通知
+                normal: {
+                  title: '气压变化超50百帕',
+                  text: '当前气压:'+data.pressure.toFixed(3)+'百帕',
+                  // additionalText: 'test_additionalText',
+                }
+              }
+            };
+            notificationManager.publish(notificationRequest, (err: BusinessError) => {
+              if (err) {
+                hilog.error(DOMAIN_NUMBER, TAG, `Failed to publish notification. Code is ${err.code}, message is ${err.message}`);
+                return;
+              }
+              hilog.info(DOMAIN_NUMBER, TAG, 'Succeeded in publishing notification.');
+            });
+          }
+
+          AppStorage.setOrCreate('Atmospheric_pressure_change',Atmospheric_pressure_change)
+          AppStorage.setOrCreate('Atmospheric_pressure',data.pressure)
+          console.info('jizhishi_debug Succeeded in invoking on. Atmospheric pressure: ' + data.pressure);
+        }, { interval: 100000000 });
+        // setTimeout(() => {
+        //   sensor.off(sensor.SensorId.BAROMETER);
+        // }, 500);
+      } catch (error) {
+        let e: BusinessError = error as BusinessError;
+        console.error(`jizhishi_debug Failed to invoke on. Code: ${e.code}, message: ${e.message}`);
+      }
+    }
   }
 
   build() {
@@ -732,43 +805,9 @@ struct Index_page {
     .onWillShow(()=> {
         console.info(TAG, 'onPageShow')
         PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
-      // let callback:Callback<motion.HoldingHandStatus> = (data:motion.HoldingHandStatus) => {
-      //   console.info('callback succeeded' + data);
-      //   this.getUIContext().animateTo({
-      //     duration: 200,
-      //     curve: Curve.Friction,
-      //     // delay: 500,
-      //     // iterations: -1, // 设置-1表示动画无限循环
-      //     playMode: PlayMode.Alternate,
-      //     expectedFrameRateRange: {
-      //       min: 10,
-      //       max: 120,
-      //       expected: 60,
-      //     }
-      //   }, () => {
-      //     this.hand = data // 1左 2 右
-      //   })
-      //   clearInterval(this.hand_timer)
-      //
-      //   this.hand_timer = setInterval(()=>{
-      //     this.getUIContext().animateTo({
-      //       duration: 200,
-      //       curve: Curve.Friction,
-      //       // delay: 500,
-      //       // iterations: -1, // 设置-1表示动画无限循环
-      //       playMode: PlayMode.Alternate,
-      //       expectedFrameRateRange: {
-      //         min: 10,
-      //         max: 120,
-      //         expected: 60,
-      //       }
-      //     }, () => {
-      //       this.hand = 0
-      //     })
-      //   },5000)
-      //
-      //
-      // };
+      //气压变化提醒功能。需要设备支持，进入首页后自动开启
+
+
       try {
         if (canIUse("SystemCapability.MultimodalAwareness.Motion")) {
             import('../util/HoldHand').then((nv)=>{
@@ -788,6 +827,7 @@ struct Index_page {
       })
     .onWillHide(()=>{
       console.info(TAG, 'onPageHide')
+
       clearInterval(this.hand_timer)
       try {
         if (canIUse("SystemCapability.MultimodalAwareness.Motion")) {
