@@ -659,18 +659,40 @@ export struct Playing4Landscape {
           Column() {
             Stack() {
               Column() {
+                if (this.Font4Theme3==='-1') {
+                  TextClock()
+                    .format('HH:mm:ss')
+                    .fontFeature("\"ss01\" off")
+                    .fontSize(this.FontSize4Theme3)
+                    // .fontFamily('yxs' + this.Font4Theme3)
+                    .width('100%')
+                    .layoutWeight(1)
+                }else {
+                  TextClock()
+                    .format('HH:mm:ss')
+                    .fontFeature("\"ss01\" off")
+                    .fontSize(this.FontSize4Theme3)
+                    .fontFamily('yxs' + this.Font4Theme3)
+                    .width('100%')
+                    .layoutWeight(1)
+                }
 
-                TextClock()
-                  .format('HH:mm:ss')
-                  .fontFeature("\"ss01\" off")
-                  .fontSize(this.FontSize4Theme3)
-                  .fontFamily('yxs' + this.Font4Theme3)
-                  .width('100%')
-                  .layoutWeight(1)
 
                 if (this.setting4Theme3) {
                   List({ space: 16 }) {
-
+                    ListItem() {
+                      Column() {
+                        Text('10:08')
+                      }.borderWidth('yxs-1' === ('yxs' + this.Font4Theme3) ? 2 : 0)
+                      .height('100%')
+                      .aspectRatio(1)
+                      .borderRadius(20)
+                      .justifyContent(FlexAlign.Center)
+                      .onClick(() => {
+                        this.Font4Theme3 = '-1'
+                        PreferencesCache.setUserPreference('Font4Theme3', this.Font4Theme3)
+                      })
+                    }
                     ListItem() {
                       Column() {
                         Text('10:08')
@@ -1003,24 +1025,6 @@ export struct Playing4Landscape {
                   }
                 }, () => {
                   this.showSongCtrl4Theme3 = true
-                  // clearInterval(this.Timer4Theme3ctrl)
-                  // this.Timer4Theme3ctrl = setInterval(()=>{
-                  //   this.getUIContext().animateTo({
-                  //     duration: 300,
-                  //     curve: curves.springMotion(0, 0.65),
-                  //     // delay: 500,
-                  //     // iterations: -1, // 设置-1表示动画无限循环
-                  //     playMode: PlayMode.Alternate,
-                  //     expectedFrameRateRange: {
-                  //       min: 10,
-                  //       max: 120,
-                  //       expected: 60,
-                  //     }
-                  //   }, () => {
-                  //     this.showSongCtrl4Theme3 = false
-                  //
-                  //   })
-                  // },5000)
                 })
               })
             }.alignContent(Alignment.Top)

@@ -31,6 +31,7 @@ import { effectKit } from '@kit.ArkGraphics2D'
 import { BusinessError, deviceInfo, emitter } from '@kit.BasicServicesKit'
 import { Event } from '@kit.ArkTS'
 import { Playing4Landscape } from '../component/Playing4Landscape'
+import { ColorExtractor } from '../util/ColorExtractor'
 
 type ShowLyricsStatus = -1 | 0 | 1 | 2
 
@@ -192,13 +193,17 @@ struct Playing {
    * 使用提取的颜色更新 UV 背景效果
    * 通过 emitter 发送颜色更新事件，MyButtonModifier 内部监听并更新
    */
-  private updateUVBackgroundColors(): void {
+  private updateUVBackgroundColors(colors:ResourceColor[] = []): void {
     // 仅在 API 20+ 且启用了 UV 背景且事件 ID 已初始化时更新
     if (deviceInfo.sdkApiVersion > 19 && this.UV_background && this.uvColorUpdateEventId > 0) {
       LogUtil.info(TAG, `Emitting UV background color update: ${this.Color_main}, ${this.Color_sum}`)
-
+      let colorArray: Array<ResourceColor> = new Array
+      if (colors.length>0) {
+        colorArray= colors
+      }else{
+        colorArray= [this.Color_main, this.Color_sum, $r('app.color.card_background')]
+      }
       // 构建颜色数组
-      const colorArray: Array<ResourceColor> = [this.Color_main, this.Color_sum, $r('app.color.card_background')]
 
       // 构建事件数据
       const eventData: emitter.EventData = {
@@ -265,65 +270,74 @@ struct Playing {
 
       // 通过属性创建PixelMap
       imageSource.createPixelMap(options).then((pixelMap: PixelMap) => {
-        effectKit.createColorPicker(pixelMap, (err, colorPicker) => {
-          const color = colorPicker.getMainColorSync();
-          console.info('get main color =', '{red:', color.red, 'green:', color.green, 'blue:', color.blue, 'alpha:',
-            color.alpha, '}'); // 立即输出主色值
-          // 获取视觉占比最大值的颜色
-          const b = color.blue
-          const g = color.green
-          const r = color.red
-          const a = color.alpha
-          let rightColor =
-            `#${a.toString(16)}${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16)
-              .padStart(2, '0')}`
-          this.Color_main = rightColor
-          console.info('十六进制数', rightColor)
-          const LargestColor = colorPicker.getLargestProportionColor();
-          console.info('get largest proportion color =' + '{red:', LargestColor.red, 'green:', LargestColor.green,
-            'blue:', LargestColor.blue, 'alpha:', LargestColor.alpha, '}');
-          // 获取像素占比最大值的颜色
-          const topColors = colorPicker.getTopProportionColors(2);
-          for (let index = 0; index < topColors.length; index++) {
-            if (topColors[index]) {
-              console.info('get top proportion colors: index ' + index + ', color ' + '{red:', topColors[index]?.red,
-                'green:', topColors[index]?.green, 'blue:', topColors[index]?.blue, 'alpha:',
-                topColors[index]?.alpha, '}');
-            }
-          }
-          // 获取平均色
-          const averageColor = colorPicker.getAverageColor();
-          console.info('get average color =' + '{red:', averageColor.red, 'green:', averageColor.green, 'blue:',
-            averageColor.blue, 'alpha:', averageColor.alpha, '}');
-          const b1 = averageColor.blue
-          const g1 = averageColor.green
-          const r1 = averageColor.red
-          const a1 = averageColor.alpha
-          let rightColor1 =
-            `#${a1.toString(16)}${r1.toString(16).padStart(2, '0')}${g1.toString(16).padStart(2, '0')}${b1.toString(16)
-              .padStart(2, '0')}`
-          this.Color_sum =rightColor1
-          // 获取饱和度最高的颜色
-          const highestSatColor = colorPicker.getHighestSaturationColor();
-          console.info('get highest SatColor color =', '{red:', highestSatColor.red, 'green:', highestSatColor.green,
-            'blue:', highestSatColor.blue, 'alpha:', highestSatColor.alpha, '}');
-          const b2 = highestSatColor.blue
-          const g2 = highestSatColor.green
-          const r2 = highestSatColor.red
-          const a2 = highestSatColor.alpha
-          let rightColor2 =
-            `#${a2.toString(16)}${r2.toString(16).padStart(2, '0')}${g2.toString(16).padStart(2, '0')}${b2.toString(16)
-              .padStart(2, '0')}`
-          const isNeutral = colorPicker.isBlackOrWhiteOrGrayColor(0xFFFF00FF);
-          console.info('isBlackOrWhiteOrGrayColor', isNeutral)
-
-          LogUtil.info(TAG, `Extracted colors: Color_main=${this.Color_main}, Color_sum=${this.Color_sum}`)
-
-          // 使用提取的颜色更新 UV 背景效果
-          this.updateUVBackgroundColors()
-          this.netok = true
-
+        ColorExtractor.extractColors(pixelMap).then((data)=>{
+          // let a = data.length
+          let colors :ResourceColor[] = new Array
+            data.forEach((value)=>{
+              colors.push(value.hex)
+            })
+          colors.push($r('app.color.card_background'))
+          this.updateUVBackgroundColors(colors)
         })
+        // effectKit.createColorPicker(pixelMap, (err, colorPicker) => {
+        //   const color = colorPicker.getMainColorSync();
+        //   console.info('get main color =', '{red:', color.red, 'green:', color.green, 'blue:', color.blue, 'alpha:',
+        //     color.alpha, '}'); // 立即输出主色值
+        //   // 获取视觉占比最大值的颜色
+        //   const b = color.blue
+        //   const g = color.green
+        //   const r = color.red
+        //   const a = color.alpha
+        //   let rightColor =
+        //     `#${a.toString(16)}${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16)
+        //       .padStart(2, '0')}`
+        //   this.Color_main = rightColor
+        //   console.info('十六进制数', rightColor)
+        //   const LargestColor = colorPicker.getLargestProportionColor();
+        //   console.info('get largest proportion color =' + '{red:', LargestColor.red, 'green:', LargestColor.green,
+        //     'blue:', LargestColor.blue, 'alpha:', LargestColor.alpha, '}');
+        //   // 获取像素占比最大值的颜色
+        //   const topColors = colorPicker.getTopProportionColors(2);
+        //   for (let index = 0; index < topColors.length; index++) {
+        //     if (topColors[index]) {
+        //       console.info('get top proportion colors: index ' + index + ', color ' + '{red:', topColors[index]?.red,
+        //         'green:', topColors[index]?.green, 'blue:', topColors[index]?.blue, 'alpha:',
+        //         topColors[index]?.alpha, '}');
+        //     }
+        //   }
+        //   // 获取平均色
+        //   const averageColor = colorPicker.getAverageColor();
+        //   console.info('get average color =' + '{red:', averageColor.red, 'green:', averageColor.green, 'blue:',
+        //     averageColor.blue, 'alpha:', averageColor.alpha, '}');
+        //   const b1 = averageColor.blue
+        //   const g1 = averageColor.green
+        //   const r1 = averageColor.red
+        //   const a1 = averageColor.alpha
+        //   let rightColor1 =
+        //     `#${a1.toString(16)}${r1.toString(16).padStart(2, '0')}${g1.toString(16).padStart(2, '0')}${b1.toString(16)
+        //       .padStart(2, '0')}`
+        //   this.Color_sum =rightColor1
+        //   // 获取饱和度最高的颜色
+        //   const highestSatColor = colorPicker.getHighestSaturationColor();
+        //   console.info('get highest SatColor color =', '{red:', highestSatColor.red, 'green:', highestSatColor.green,
+        //     'blue:', highestSatColor.blue, 'alpha:', highestSatColor.alpha, '}');
+        //   const b2 = highestSatColor.blue
+        //   const g2 = highestSatColor.green
+        //   const r2 = highestSatColor.red
+        //   const a2 = highestSatColor.alpha
+        //   let rightColor2 =
+        //     `#${a2.toString(16)}${r2.toString(16).padStart(2, '0')}${g2.toString(16).padStart(2, '0')}${b2.toString(16)
+        //       .padStart(2, '0')}`
+        //   const isNeutral = colorPicker.isBlackOrWhiteOrGrayColor(0xFFFF00FF);
+        //   console.info('isBlackOrWhiteOrGrayColor', isNeutral)
+        //
+        //   LogUtil.info(TAG, `Extracted colors: Color_main=${this.Color_main}, Color_sum=${this.Color_sum}`)
+        //
+        //   // 使用提取的颜色更新 UV 背景效果
+        //   this.updateUVBackgroundColors()
+        //   this.netok = true
+        //
+        // })
         // this.image = pixelMap;
       });
     }
