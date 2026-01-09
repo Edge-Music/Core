@@ -395,9 +395,13 @@ export struct MiniPlaybackControl {
           if (this.swipeOffset > this.SWIPE_THRESHOLD) {
             // 向右滑动超过阈值，切换到上一首
             this.handleSongChange('prev');
+            this.swipeOffset = 0;
+
           } else if (this.swipeOffset < -this.SWIPE_THRESHOLD) {
             // 向左滑动超过阈值，切换到下一首
             this.handleSongChange('next');
+            this.swipeOffset = 0;
+
           } else {
             // 未达到阈值，回弹
             this.uiContext?.animateTo({

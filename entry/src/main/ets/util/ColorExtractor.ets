@@ -25,7 +25,7 @@ export class ColorExtractor {
    * @param maxColors 最大提取颜色数量（建议 5-10）
    * @returns 提取的颜色数组
    */
-  static async extractColors(pixelMap: image.PixelMap, maxColors: number = 5): Promise<ExtractedColor[]> {
+  static async extractColors(pixelMap: image.PixelMap, maxColors: number = 3): Promise<ExtractedColor[]> {
     const colors: ExtractedColor[] = [];
 
     try {
@@ -109,8 +109,16 @@ export class ColorExtractor {
       colors.forEach(color => {
         color.percentage = (color.count / totalCount) * 100;
       });
+      const HighestColor = colorPicker.getHighestSaturationColor();
+      const HighestHex = ColorExtractor.colorToHex(averageColor);
+      let colors2 = colors.slice(0, maxColors)
+      colors2.push({
+        hex: HighestHex,
+        count: 30,
+        percentage: 10
+      });
+      return colors2;
 
-      return colors.slice(0, maxColors);
     } catch (err) {
       // 如果 ColorPicker 失败，返回空数组
       return [];
