@@ -231,7 +231,6 @@ export struct SongInfo {
           this.rightSlot()
         }
       }
-      .shadow(ShadowStyle.OUTER_DEFAULT_XS)
       .width(StyleConstants.FULL_WIDTH)
       .height(68)
       .padding({ left: 12, right: 12 })
