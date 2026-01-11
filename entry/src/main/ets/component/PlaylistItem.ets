@@ -103,7 +103,7 @@ export struct PlaylistItem {
       .borderRadius(10)
       .backgroundColor(this.getBackgroundColor())
       .backgroundBlurStyle(this.isHovered || this.isPressed ? BlurStyle.COMPONENT_THICK : BlurStyle.NONE)
-      .shadow(ShadowStyle.OUTER_DEFAULT_XS)
+      // .shadow(ShadowStyle.OUTER_DEFAULT_XS)
       .onClick(() => {
         if (this.onPlaylistSelected) {
           this.onPlaylistSelected(this.playlist);

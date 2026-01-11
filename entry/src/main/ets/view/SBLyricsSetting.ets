@@ -104,6 +104,26 @@ export struct SBLyricsSetting{
               Column({ space: 12 }) {
 
                 Row() {
+                  Text('展示方式')
+                    .fontSize(16)
+                    .fontColor($r('app.color.text_title'))
+                    .fontWeight(FontWeight.Medium)
+                  Blank()
+                    .layoutWeight(1)
+                  SegmentButton({
+                    options: this.linesOptions,
+                    selectedIndexes: this.linesIndex,
+                    onItemClicked:(data:number)=>{
+                      this.settingData.lines = data
+                    }
+                  })
+                    .width(120)
+                    .margin({right:6})
+                }
+                .height(26)
+                .width(StyleConstants.FULL_WIDTH)
+
+                Row() {
                   Text('对齐方式')
                     .fontSize(16)
                     .fontColor($r('app.color.text_title'))

@@ -250,7 +250,7 @@ class WindowUtil {
       let displayW = display.getDefaultDisplaySync().width;
       let displayH = display.getDefaultDisplaySync().height;
       const showWidth = settingData.width*displayW-uiContext.vp2px(8)
-      const showHeight = uiContext.vp2px(settingData.fontSize+8)
+      const showHeight = uiContext.vp2px(settingData.lines === 0 ? settingData.fontSize+8 : settingData.fontSize*2+16)
       this.lyricsFloatWindow.resize(showWidth, showHeight);
       const offsetX_1 = settingData.x*displayW + uiContext.vp2px(4)
       const offsetX_2 = settingData.x*displayW - showWidth - uiContext.vp2px(4)
