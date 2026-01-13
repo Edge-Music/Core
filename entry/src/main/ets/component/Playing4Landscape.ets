@@ -137,7 +137,7 @@ export struct Playing4Landscape {
       }
 
 
-    this.Font4Theme3 = PreferencesCache.getUserPreference('Font4Theme3', '0')
+    this.Font4Theme3 = PreferencesCache.getUserPreference('Font4Theme3', '-1')
     this.FontSize4Theme3 = Number(PreferencesCache.getUserPreference('FontSize4Theme3', '100'))
 
   }
