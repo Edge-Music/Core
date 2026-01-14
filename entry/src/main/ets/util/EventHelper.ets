@@ -1,4 +1,4 @@
-import { EmitterUtil, LogUtil, ToastUtil } from '@pura/harmony-utils';
+import { EmitterUtil, LogUtil, ToastUtil, WantUtil } from '@pura/harmony-utils';
 import { Song, SongV2 } from '../type/Adapter';
 import { avSession } from '@kit.AVSessionKit';
 import { SongCacheItem, SongCacheManager } from './SongCacheManager';
@@ -15,6 +15,7 @@ import { SongDownloadManager } from './SongDownloadManager';
 import { image } from '@kit.ImageKit';
 import { playRecordManager } from './PlayRecordManager';
 import { AppStorageV2 } from '@kit.ArkUI';
+import { common } from '@kit.AbilityKit';
 
 const TAG = 'EventHelper'
 
@@ -90,6 +91,43 @@ async function checkCacheFileExists(cache: SongCacheItem, key: string) {
   return false;
 }
 
+/**
+ * 处理特殊 URL（browser: 或 text: 前缀）
+ * @param url 歌曲 URL
+ * @returns 如果是特殊 URL 则返回 true，否则返回 false
+ */
+const handleSpecialUrl = async (url: string): Promise<boolean> => {
+  if (!url) {
+    return false;
+  }
+
+  // 检查 browser: 前缀
+  if (url.startsWith('browser:')) {
+    const targetUrl = url.substring('browser:'.length);
+    LogUtil.info(TAG, `Detected browser URL: ${targetUrl}`);
+
+    try {
+      WantUtil.toWebBrowser(targetUrl)
+      LogUtil.info(TAG, `Opened browser with URL: ${targetUrl}`);
+    } catch (error) {
+      LogUtil.error(TAG, `Failed to open browser: ${JSON.stringify(error)}`);
+      ToastUtil.showShort("无法打开浏览器");
+    }
+
+    return true; // 是特殊 URL，阻止后续播放逻辑
+  }
+
+  // 检查 text: 前缀
+  if (url.startsWith('text:')) {
+    const message = url.substring('text:'.length);
+    LogUtil.info(TAG, `Detected text URL: ${message}`);
+    ToastUtil.showShort(message);
+    return true; // 是特殊 URL，阻止后续播放逻辑
+  }
+
+  return false; // 不是特殊 URL
+};
+
 const handleSongDownload = async (song: Song) => {
   // 判断是否可以下载
   const privilege = song.privilege;
@@ -102,27 +140,6 @@ const handleSongDownload = async (song: Song) => {
   song = await SourceAdapter.getSongDetail(song);
 
   AppStorage.setOrCreate("current_playing_song", song)
-  // // 从song转换至SongV2
-  // SongItem.id = song.id;
-  // SongItem.name = song.name;
-  // SongItem.artists =song.artists;
-  // SongItem.album = song.album;
-  // SongItem.duration = song.duration;
-  // SongItem.privilege =song.privilege;
-  // if (song.tns) {
-  //   SongItem.tns = song.tns;
-  // }
-  // if (song.meta) {
-  //   SongItem.meta =song.meta;
-  //
-  // }
-  // if (song.source) {
-  //   SongItem.source =song.source;
-  // }
-  // if (song.sourceID) {
-  //   SongItem.sourceID =song.sourceID;
-  // }
-  PreferencesCache.lastSong(song)
 
   // 下载歌曲
   const url = song.meta?.url;
@@ -130,6 +147,16 @@ const handleSongDownload = async (song: Song) => {
     ToastUtil.showShort("音乐资源不存在");
     return;
   }
+
+  // 检查是否是特殊 URL (browser: 或 text: 前缀)
+  const isSpecialUrl = await handleSpecialUrl(url);
+  if (isSpecialUrl) {
+    LogUtil.info(TAG, `Special URL handled, skipping download`);
+    return; // 是特殊 URL，不继续下载
+  }
+
+  // 记录上一次播放的歌曲（修复：确保所有播放路径都会记录）
+  PreferencesCache.lastSong(song);
 
   let fileName = url.split("/").pop() ?? `${util.generateRandomUUID()}`
   const index = fileName.indexOf("?")
