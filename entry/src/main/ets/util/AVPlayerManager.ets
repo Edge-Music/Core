@@ -366,7 +366,7 @@ class AVPlayerManager {
     return this.avSession;
   }
 
-  private setupAudioInterrupt(player: media.AVPlayer) {
+  private async setupAudioInterrupt(player: media.AVPlayer) {
     // 设置焦点模式为共享模式
     player.audioInterruptMode = audio.InterruptMode.SHARE_MODE;
 
@@ -393,6 +393,8 @@ class AVPlayerManager {
           break;
       }
     })
+
+
 
     // 设置音频打断监听
     player.on('audioInterrupt', async (interruptEvent: audio.InterruptEvent) => {

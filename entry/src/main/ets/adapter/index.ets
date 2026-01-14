@@ -1,5 +1,5 @@
 import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "@ohos/axios"
-import { LogUtil } from "@pura/harmony-utils";
+import { AppUtil, LogUtil } from "@pura/harmony-utils";
 import { Album, Artist, Bitrate, ID, Playlist, SearchResult, Song, SourceConfig, User } from "../type/Adapter"
 import { PreferencesCache } from "../util/PreferenceCache";
 import { ResponseCacheUtil } from "../util/ResponseCacheUtil";
@@ -88,18 +88,43 @@ const responseInterceptors: ResponseInterceptors = {
 };
 
 const createRequest = (source: SourceConfig) => {
+  let finalBaseURL: string = source.url;
+  let defaultParams: Record<string, string> = {};
+
+  if (source.url.indexOf('?') !== -1) {
+    const parts: string[] = source.url.split('?');
+    finalBaseURL = parts[0]; // 获取基础路径
+
+    const queryString: string = parts[1];
+    if (queryString) {
+      const pairs: string[] = queryString.split('&');
+      for (let i = 0; i < pairs.length; i++) {
+        const pair: string = pairs[i];
+        const kv: string[] = pair.split('=');
+        if (kv.length >= 2) {
+          const key: string = kv[0];
+          const value: string = kv[1];
+          if (key.length > 0) {
+            defaultParams[key] = value;
+          }
+        }
+      }
+    }
+  }
   const request = axios.create({
-    baseURL: source.url,
+    baseURL: finalBaseURL,
     timeout: 30000,
+    params: defaultParams,
     headers: {
       'Content-Type': 'application/json',
-      'Token': source.auth?.token
+      'Token': source.auth?.token || '',
+      'Client': `EdgeMusic-${AppUtil.getVersionCode()}`
     },
     adapter: createCacheAdapter()
   });
-  // 添加通用拦截器
+
   request.interceptors.response.use(responseInterceptors.handleResponse, responseInterceptors.handleError);
-  return request
+  return request;
 }
 
 interface LikeResponse {

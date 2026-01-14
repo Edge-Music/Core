@@ -301,7 +301,7 @@ export struct PlayList {
 
   handlePlaylistPlayAll(song: Song) {
     PushPathHelper.loading("Playing", async () => {
-      PlaylistManager.loadPlaylist(this.songs?.filter(song => song.privilege.playable) || [], song);
+      PlaylistManager.loadPlaylist(this.songs?.filter(song => song.privilege?.playable && !song.id.toString().startsWith("promo_")) || [], song);
     })
   }
 
