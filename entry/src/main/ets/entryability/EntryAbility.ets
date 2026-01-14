@@ -20,6 +20,7 @@ import ResourceManager from '../util/ResourceManager';
 import { SourceAdapter } from '../adapter';
 import { ExceptionInfo } from '@pura/harmony-utils/src/main/ets/entity/ExceptionInfo';
 import { sensor } from '@kit.SensorServiceKit';
+import json from '@ohos.util.json';
 
 const TAG = 'EntryAbility'
 export default class EntryAbility extends UIAbility {
@@ -150,11 +151,19 @@ export default class EntryAbility extends UIAbility {
   }
 
   onNewWant(want: Want, launchParam: AbilityConstant.LaunchParam): void {
-    if (want?.parameters?.params) {
-      let params: Record<string, Object> = JSON.parse(want.parameters.params as string);
-      let type = params.type as string;
-      EventHelper.postFormJumpPage(type)
-      LogUtil.info(`[${TAG}]`, 'targetPage: '+ type);
+    console.log('jizhishi0114'+JSON.stringify(want))
+    if (want?.parameters?.formID) {
+      if (want?.parameters?.params) {
+        let params: Record<string, Object> = JSON.parse(want.parameters.params as string);
+        let type = params.type as string;
+        EventHelper.postFormJumpPage(type)
+        LogUtil.info(`[${TAG}]`, 'targetPage: '+ type);
+      }
+    }else {
+      if (want?.parameters?.["ohos.aafwk.param.callerBundleName"]==='com.ohos.sceneboard') {
+        EventHelper.postFormJumpPage('Playing')
+
+      }
     }
   }
 }

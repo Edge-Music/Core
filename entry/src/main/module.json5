@@ -49,16 +49,16 @@
       {
         "name" : "ohos.permission.DETECT_GESTURE"
       }
-//      {
-//        "name": "ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY",
-//        "reason": "$string:reason_read_write_download_directory",
-//        "usedScene": {
-//          "abilities": [
-//            "EntryAbility"
-//          ],
-//          "when": "always"
-//        }
-//      }
+      //      {
+      //        "name": "ohos.permission.READ_WRITE_DOWNLOAD_DIRECTORY",
+      //        "reason": "$string:reason_read_write_download_directory",
+      //        "usedScene": {
+      //          "abilities": [
+      //            "EntryAbility"
+      //          ],
+      //          "when": "always"
+      //        }
+      //      }
     ],
     "abilities": [
       {

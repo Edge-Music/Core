@@ -25,7 +25,7 @@ import { IS_2IN1_UI } from '../For_2in1_UI/FOR2IN1'
 import { Aggregation } from '../view/Aggregation'
 import { LogUtil, ToastUtil, WantUtil } from '@pura/harmony-utils'
 import { BusinessError } from '@kit.BasicServicesKit'
-import { common } from '@kit.AbilityKit'
+import { common, wantAgent, WantAgent } from '@kit.AbilityKit'
 import { HeaderComponent } from '../component/HeaderComponent'
 import { HeaderPlaceholder } from '../component/HeaderPlaceholder'
 import { Statistics } from '../view/Statistics'
@@ -35,7 +35,7 @@ import { HandingCtrl } from '../component/holdingHandCtrl'
 import { sensor } from '@kit.SensorServiceKit'
 import { notificationManager } from '@kit.NotificationKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
-
+import commonEventManager from '@ohos.commonEventManager';
 // import { sensor } from '@kit.SensorServiceKit'
 
 // import { motion } from '@kit.MultimodalAwarenessKit'
@@ -233,9 +233,41 @@ struct Index {
         let e: BusinessError = error as BusinessError;
         console.error(`jizhishi_debug Failed to invoke on. Code: ${e.code}, message: ${e.message}`);
       }
-    }
-  }
+      let publishCallback = (err: BusinessError): void => {
+        if (err) {
+          console.error(`publish failed, code is ${err.code}, message is ${err.message}`);
+        } else {
+          console.info("publish success");
+        }
+      }
 
+    }
+    const TAG: string = '[PublishOperation]';
+    const DOMAIN_NUMBER: number = 0xFF00;
+    let context = this.getUIContext().getHostContext() as common.UIAbilityContext;
+    notificationManager.isNotificationEnabled().then((data: boolean) => {
+      hilog.info(DOMAIN_NUMBER, TAG, "isNotificationEnabled success, data: " + JSON.stringify(data));
+      if(!data){
+        notificationManager.requestEnableNotification(context).then(() => {
+          hilog.info(DOMAIN_NUMBER, TAG, `[ANS] requestEnableNotification success`);
+        }).catch(() => {
+          // if(1600004 == err.code){
+          //   hilog.error(DOMAIN_NUMBER, TAG, `[ANS] requestEnableNotification refused, code is ${err.code}, message is ${err.message}`);
+          // } else {
+          //   hilog.error(DOMAIN_NUMBER, TAG, `[ANS] requestEnableNotification failed, code is ${err.code}, message is ${err.message}`);
+          // }
+        });
+      }
+    }).catch(() => {
+      // hilog.error(DOMAIN_NUMBER, TAG, `isNotificationEnabled fail, code is ${err.code}, message is ${err.message}`);
+    });
+  }
+  // aboutToDisappear(): void {
+  //
+  // }
+  onPageHide(): void {
+
+  }
   build() {
     Navigation(this.pageStack) {
       // empty
@@ -408,8 +440,10 @@ struct Index_page {
     ToastUtil.showShort($r('app.string.privacy_policy_required_message'));
     // 退出应用
     setTimeout(() => {
-      let context = getContext(this) as common.UIAbilityContext;
-      context.terminateSelf();
+      let context = this.getUIContext().getHostContext()as common.UIAbilityContext;
+      context.terminateSelf().catch(() => {
+        console.error('关闭应用失败')
+      });
     }, 500);
   }
 
@@ -423,25 +457,6 @@ struct Index_page {
 
   }
 
-  // onPageShow(): void {
-  //   console.info(TAG, 'onPageShow')
-  //   PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
-  //   PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
-  //   PipManager.getInstance().startPip();
-  // }
-
-  // onPageHide(): void {
-  //
-  // }
-
-  // aboutToDisappear() {
-  //   this.breakpointSystem.unregister()
-  //   PipManager.getInstance().unregisterPipStateChangeListener(); // 解注册画中画生命周期及状态回调
-  //   // 清理弹窗控制器
-  //   if (this.privacyDialogController) {
-  //     this.privacyDialogController = null;
-  //   }
-  // }
 
   @Builder
   Title() {
@@ -458,7 +473,6 @@ struct Index_page {
           .fontColor($r('app.color.text_title'))
           .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
           .fontSize($r('app.float.title_font_size'))
-
         Row({space:4}) {
           MenuIcon({
             icon: $r('app.media.ic_search'),

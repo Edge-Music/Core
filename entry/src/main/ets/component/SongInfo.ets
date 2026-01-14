@@ -22,6 +22,7 @@ export struct SongInfo {
   onTap?: (song: Song) => void;
   deleteSong?: (song: Song) => void;
   @Prop active: boolean = false;
+  @Prop touch:boolean =false
   @Prop disabled: boolean = false;
   @Prop index: number = 0;
   @Prop isShowMenu: boolean
@@ -121,115 +122,223 @@ export struct SongInfo {
   build() {
     Column() {
       Row({ space: 8 }) {
-        if (this.showIndex) {
-          // 序号区域 - 扁平简约设计
-          Text((this.index + 1).toString())
-            .width(28)
-            .maxFontSize(15)
-            .minFontSize(10)
-            .maxLines(1)
-            .fontColor(this.getTextColor($r('app.color.text_secondary')))
-            .fontWeight(FontWeight.Medium)
-            .textAlign(TextAlign.Center)
-        }
-
-        Image(this.cover)
-          .aspectRatio(1)
-          .borderRadius(8)
-          .height(48)
-          .shadow(ShadowStyle.OUTER_DEFAULT_XS)
-
-        // 歌曲信息区域
-        Column({ space: 6 }) {
-
-          Row({ space: 2 }) {
-
-            // 歌曲名称（包含别名）
-            Text() {
-              Span(this.song?.name || '未知歌曲')
-                .fontSize(16)
-                .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-                .fontColor(this.getTextColor($r('app.color.text_title')))
-
-              if (this.song && this.song.tns && this.song.tns.length > 0) {
-                Span(` (${this.song.tns.join('/')})`)
-                  .fontSize(16)
-                  .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-                  .fontColor(this.getTextColor($r('app.color.text_secondary')))
-              }
-            }
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-          }
-
-          // 艺术家信息和下载状态
-          Row({ space: 2 }) {
-
-            // 下载状态标签
-            Image($r('app.media.ic_downloaded'))
-              .width(12)
-              .aspectRatio(1)
-              .visibility(this.isDownloaded ? Visibility.Visible : Visibility.None)
-
-            // 下载状态标签
-            Image($r('app.media.ic_cached'))
-              .width(12)
-              .aspectRatio(1)
-              .visibility(!this.isDownloaded && this.isCached ? Visibility.Visible : Visibility.None)
-
-            if (this.song && this.song.artists?.length > 0) {
-              Text(this.song.artists.map(artist => artist.name).join(' / '))
-                .fontSize(14)
-                .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
+        Stack(){
+          // if (this.touch){
+          //   Particle({
+          //     particles: [
+          //       {
+          //         emitter: {
+          //           particle: {
+          //             type: ParticleType.POINT, //粒子类型
+          //             config: {
+          //               radius: 10//圆点半径
+          //             },
+          //             count: 500, //粒子总数
+          //             lifetime: 5000, //粒子生命周期，单位ms
+          //             lifetimeRange: 100//粒子生命周期取值范围，单位ms
+          //           },
+          //           emitRate: 10, //每秒发射粒子数
+          //           // position: [0, 0],
+          //           shape: ParticleEmitterShape.RECTANGLE//发射器形状
+          //         },
+          //         color: {
+          //           range: [Color.Red, Color.Yellow], //初始颜色范围
+          //           distributionType: DistributionType.GAUSSIAN, // 初始颜色随机值分布
+          //           updater: {
+          //             type: ParticleUpdater.CURVE, //变化方式为曲线变化
+          //             config: [
+          //               {
+          //                 from: Color.White, //变化起始值
+          //                 to: Color.Pink, //变化终点值
+          //                 startMillis: 0, //开始时间
+          //                 endMillis: 100, //结束时间
+          //                 curve: Curve.EaseIn//变化曲线
+          //               },
+          //               {
+          //                 from: Color.Pink,
+          //                 to: Color.Orange,
+          //                 startMillis: 3000,
+          //                 endMillis: 5000,
+          //                 curve: Curve.EaseIn
+          //               },
+          //               {
+          //                 from: Color.Orange,
+          //                 to: Color.Pink,
+          //                 startMillis: 5000,
+          //                 endMillis: 8000,
+          //                 curve: Curve.EaseIn
+          //               },
+          //             ]
+          //           }
+          //         },
+          //         opacity: {
+          //           range: [0.0, 1.0], //粒子透明度的初始值从【0.0到1.0】随机产生
+          //           updater: {
+          //             type: ParticleUpdater.CURVE,
+          //             config: [
+          //               {
+          //                 from: 0.0,
+          //                 to: 1.0,
+          //                 startMillis: 0,
+          //                 endMillis: 200,
+          //                 curve: Curve.EaseIn
+          //               },
+          //               {
+          //                 from: 1.0,
+          //                 to: 0.0,
+          //                 startMillis: 5000,
+          //                 endMillis: 10000,
+          //                 curve: Curve.EaseIn
+          //               }
+          //             ]
+          //           }
+          //         },
+          //         scale: {
+          //           range: [0.0, 0.0],
+          //           updater: {
+          //             type: ParticleUpdater.CURVE,
+          //             config: [
+          //               {
+          //                 from: 0.0,
+          //                 to: 0.5,
+          //                 startMillis: 0,
+          //                 endMillis: 3000,
+          //                 curve: Curve.EaseIn
+          //               }
+          //             ]
+          //           }
+          //         },
+          //         acceleration: {
+          //           //加速度的配置，从大小和方向两个维度变化，speed表示加速度大小，angle表示加速度方向
+          //           speed: {
+          //             range: [3, 9],
+          //             updater: {
+          //               type: ParticleUpdater.RANDOM, //Speed的变化方式是随机变化
+          //               config: [1, 20]
+          //             }
+          //           },
+          //           angle: {
+          //             range: [90, 90]
+          //           }
+          //         }
+          //
+          //       }
+          //     ]
+          //   }).width('100%').height('100%')
+          // }
+          Row({ space: 8 }){
+            if (this.showIndex) {
+              // 序号区域 - 扁平简约设计
+              Text((this.index + 1).toString())
+                .width(28)
+                .maxFontSize(15)
+                .minFontSize(10)
+                .maxLines(1)
                 .fontColor(this.getTextColor($r('app.color.text_secondary')))
+                .fontWeight(FontWeight.Medium)
+                .textAlign(TextAlign.Center)
+            }
+
+            Image(this.cover)
+              .aspectRatio(1)
+              .borderRadius(8)
+              .height(48)
+              .shadow(ShadowStyle.OUTER_DEFAULT_XS)
+
+            // 歌曲信息区域
+            Column({ space: 6 }) {
+
+              Row({ space: 2 }) {
+
+                // 歌曲名称（包含别名）
+                Text() {
+                  Span(this.song?.name || '未知歌曲')
+                    .fontSize(16)
+                    .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
+                    .fontColor(this.getTextColor($r('app.color.text_title')))
+
+                  if (this.song && this.song.tns && this.song.tns.length > 0) {
+                    Span(` (${this.song.tns.join('/')})`)
+                      .fontSize(16)
+                      .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
+                      .fontColor(this.getTextColor($r('app.color.text_secondary')))
+                  }
+                }
                 .maxLines(1)
                 .textOverflow({ overflow: TextOverflow.Ellipsis })
-                .layoutWeight(1)
-            } else {
-              Text('未知艺术家')
-                .fontSize(14)
-                .fontWeight(StyleConstants.FONT_WEIGHT_FOUR)
-                .fontColor(this.getTextColor($r('app.color.text_secondary')))
-                .layoutWeight(1)
+              }
+
+              // 艺术家信息和下载状态
+              Row({ space: 2 }) {
+
+                // 下载状态标签
+                Image($r('app.media.ic_downloaded'))
+                  .width(12)
+                  .aspectRatio(1)
+                  .visibility(this.isDownloaded ? Visibility.Visible : Visibility.None)
+
+                // 下载状态标签
+                Image($r('app.media.ic_cached'))
+                  .width(12)
+                  .aspectRatio(1)
+                  .visibility(!this.isDownloaded && this.isCached ? Visibility.Visible : Visibility.None)
+
+                if (this.song && this.song.artists?.length > 0) {
+                  Text(this.song.artists.map(artist => artist.name).join(' / '))
+                    .fontSize(14)
+                    .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
+                    .fontColor(this.getTextColor($r('app.color.text_secondary')))
+                    .maxLines(1)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis })
+                    .layoutWeight(1)
+                } else {
+                  Text('未知艺术家')
+                    .fontSize(14)
+                    .fontWeight(StyleConstants.FONT_WEIGHT_FOUR)
+                    .fontColor(this.getTextColor($r('app.color.text_secondary')))
+                    .layoutWeight(1)
+                }
+              }
+              .width('100%')
+              .alignItems(VerticalAlign.Center)
+            }
+            .alignItems(HorizontalAlign.Start)
+            .layoutWeight(1)
+            .gesture(
+              LongPressGesture({ repeat: false, duration: 500 })
+                .onAction(() => {
+                  this.copySongInfo();
+                })
+            )
+
+            if(this.isShowMenu){
+              Button({ type: ButtonType.Circle }) {
+                Image($r('app.media.ic_more'))
+                  .width(20)
+                  .height(20)
+                  .fillColor($r('app.color.icon_normal'))
+                  .opacity(0.9)
+              }
+              .width(48)
+              .height(48)
+              .bindMenu(this.generateSongMenu(this.song))
+              .onClick(() => {
+                VibrationControl.handlePresetVibration()
+              })
+              .clickEffect({ level: ClickEffectLevel.LIGHT })
+              .stateStyles({
+                pressed: this.pressedMenuStyles,
+                normal: this.normalMenuStyles
+              })
+            }
+
+            // 右侧插槽 - 简约处理
+            if (this.rightSlot) {
+              this.rightSlot()
             }
           }
-          .width('100%')
-          .alignItems(VerticalAlign.Center)
-        }
-        .alignItems(HorizontalAlign.Start)
-        .layoutWeight(1)
-        .gesture(
-          LongPressGesture({ repeat: false, duration: 500 })
-            .onAction(() => {
-              this.copySongInfo();
-            })
-        )
-
-        if(this.isShowMenu){
-          Button({ type: ButtonType.Circle }) {
-            Image($r('app.media.ic_more'))
-              .width(20)
-              .height(20)
-              .fillColor($r('app.color.icon_normal'))
-              .opacity(0.9)
-          }
-          .width(48)
-          .height(48)
-          .bindMenu(this.generateSongMenu(this.song))
-          .onClick(() => {
-            VibrationControl.handlePresetVibration()
-          })
-          .clickEffect({ level: ClickEffectLevel.LIGHT })
-          .stateStyles({
-            pressed: this.pressedMenuStyles,
-            normal: this.normalMenuStyles
-          })
         }
 
-        // 右侧插槽 - 简约处理
-        if (this.rightSlot) {
-          this.rightSlot()
-        }
       }
       .width(StyleConstants.FULL_WIDTH)
       .height(68)
