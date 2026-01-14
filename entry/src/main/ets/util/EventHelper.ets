@@ -155,9 +155,6 @@ const handleSongDownload = async (song: Song) => {
     return; // 是特殊 URL，不继续下载
   }
 
-  // 记录上一次播放的歌曲（修复：确保所有播放路径都会记录）
-  PreferencesCache.lastSong(song);
-
   let fileName = url.split("/").pop() ?? `${util.generateRandomUUID()}`
   const index = fileName.indexOf("?")
   if (index > 0) {
@@ -179,6 +176,9 @@ const handleSongDownload = async (song: Song) => {
     ToastUtil.showShort("音乐资源大小未知，本次播放将无法跳转进度");
     size = -1;
   }
+
+  // 记录上一次播放的歌曲
+  PreferencesCache.lastSong(song);
 
   // 等待文件创建
   await new Promise<void>((resolve) => {
