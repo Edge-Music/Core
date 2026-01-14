@@ -30,6 +30,8 @@ import { image } from '@kit.ImageKit'
 import { effectKit } from '@kit.ArkGraphics2D'
 import { BusinessError, deviceInfo, emitter } from '@kit.BasicServicesKit'
 import { Event } from '@kit.ArkTS'
+import { Playing4Landscape } from '../component/Playing4Landscape'
+import { ColorExtractor } from '../util/ColorExtractor'
 
 type ShowLyricsStatus = -1 | 0 | 1 | 2
 
@@ -51,7 +53,6 @@ struct Playing {
   @StorageProp('current_line_lyrics') currentLineLyrics: LyricsLine | undefined = AppStorage.get<LyricsLine>('current_line_lyrics')
   @Watch('song_change') @StorageLink("current_playing_song") song: Song | null = null
   @StorageLink('Lyic_desktop') Lyic_desktop: string = PreferencesCache.getUserPreference('Lyic_desktop','0')
-  @StorageProp('double_tap_switch_songs') isOnDoubleTap: string = PreferencesCache.getUserPreference('double_tap_switch_songs','0')
   @StorageProp('flip_mute') isOnFlipMute: string = PreferencesCache.getUserPreference('flip_mute','0')
   @StorageLink('aggregation_playlist') aggregationPlaylist: Playlist[] = PreferencesCache.getPlaylistCache('aggregation_playlist')
   @StorageProp('test_index') currentLyric: string = ''
@@ -63,6 +64,7 @@ struct Playing {
   @StorageProp('current_width_breakpoint') widthBreakpoint: WidthBreakpoint = WidthBreakpoint.WIDTH_SM
   @StorageProp('current_height_breakpoint') heightBreakpoint: HeightBreakpoint = HeightBreakpoint.HEIGHT_SM
   @StorageLink('current_playing_playlist') playlist: Array<Song> = [];
+  @StorageProp('malv')malv:number = 0
   @StorageProp('playing_title_show_lyrics') showTitleLyrics: string = PreferencesCache.getUserPreference('playing_title_show_lyrics','0')
   @Watch('sys_ColorMode_dark_change')@StorageLink('sys_ColorMode_dark')sys_ColorMode_dark:boolean =false
   @Consume('NavPathStack') pageStack: NavPathStack
@@ -119,7 +121,6 @@ struct Playing {
   @State netok:boolean =false
   //TAB,swiper控制
   private controller: TabsController = new TabsController()
-  private swiperController: SwiperController = new SwiperController()
   private windowStage = AppUtil.getWindowStage()
   // private panOption: PanGestureOptions = new PanGestureOptions({ direction: PanDirection.Left | PanDirection.Right });
   private resetTimer() {
@@ -192,13 +193,17 @@ struct Playing {
    * 使用提取的颜色更新 UV 背景效果
    * 通过 emitter 发送颜色更新事件，MyButtonModifier 内部监听并更新
    */
-  private updateUVBackgroundColors(): void {
+  private updateUVBackgroundColors(colors:ResourceColor[] = []): void {
     // 仅在 API 20+ 且启用了 UV 背景且事件 ID 已初始化时更新
     if (deviceInfo.sdkApiVersion > 19 && this.UV_background && this.uvColorUpdateEventId > 0) {
       LogUtil.info(TAG, `Emitting UV background color update: ${this.Color_main}, ${this.Color_sum}`)
-
+      let colorArray: Array<ResourceColor> = new Array
+      if (colors.length>0) {
+        colorArray= colors
+      }else{
+        colorArray= [this.Color_main, this.Color_sum, $r('app.color.card_background')]
+      }
       // 构建颜色数组
-      const colorArray: Array<ResourceColor> = [this.Color_main, this.Color_sum, $r('app.color.card_background')]
 
       // 构建事件数据
       const eventData: emitter.EventData = {
@@ -265,65 +270,74 @@ struct Playing {
 
       // 通过属性创建PixelMap
       imageSource.createPixelMap(options).then((pixelMap: PixelMap) => {
-        effectKit.createColorPicker(pixelMap, (err, colorPicker) => {
-          const color = colorPicker.getMainColorSync();
-          console.info('get main color =', '{red:', color.red, 'green:', color.green, 'blue:', color.blue, 'alpha:',
-            color.alpha, '}'); // 立即输出主色值
-          // 获取视觉占比最大值的颜色
-          const b = color.blue
-          const g = color.green
-          const r = color.red
-          const a = color.alpha
-          let rightColor =
-            `#${a.toString(16)}${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16)
-              .padStart(2, '0')}`
-          this.Color_main = rightColor
-          console.info('十六进制数', rightColor)
-          const LargestColor = colorPicker.getLargestProportionColor();
-          console.info('get largest proportion color =' + '{red:', LargestColor.red, 'green:', LargestColor.green,
-            'blue:', LargestColor.blue, 'alpha:', LargestColor.alpha, '}');
-          // 获取像素占比最大值的颜色
-          const topColors = colorPicker.getTopProportionColors(2);
-          for (let index = 0; index < topColors.length; index++) {
-            if (topColors[index]) {
-              console.info('get top proportion colors: index ' + index + ', color ' + '{red:', topColors[index]?.red,
-                'green:', topColors[index]?.green, 'blue:', topColors[index]?.blue, 'alpha:',
-                topColors[index]?.alpha, '}');
-            }
-          }
-          // 获取平均色
-          const averageColor = colorPicker.getAverageColor();
-          console.info('get average color =' + '{red:', averageColor.red, 'green:', averageColor.green, 'blue:',
-            averageColor.blue, 'alpha:', averageColor.alpha, '}');
-          const b1 = averageColor.blue
-          const g1 = averageColor.green
-          const r1 = averageColor.red
-          const a1 = averageColor.alpha
-          let rightColor1 =
-            `#${a1.toString(16)}${r1.toString(16).padStart(2, '0')}${g1.toString(16).padStart(2, '0')}${b1.toString(16)
-              .padStart(2, '0')}`
-          this.Color_sum =rightColor1
-          // 获取饱和度最高的颜色
-          const highestSatColor = colorPicker.getHighestSaturationColor();
-          console.info('get highest SatColor color =', '{red:', highestSatColor.red, 'green:', highestSatColor.green,
-            'blue:', highestSatColor.blue, 'alpha:', highestSatColor.alpha, '}');
-          const b2 = highestSatColor.blue
-          const g2 = highestSatColor.green
-          const r2 = highestSatColor.red
-          const a2 = highestSatColor.alpha
-          let rightColor2 =
-            `#${a2.toString(16)}${r2.toString(16).padStart(2, '0')}${g2.toString(16).padStart(2, '0')}${b2.toString(16)
-              .padStart(2, '0')}`
-          const isNeutral = colorPicker.isBlackOrWhiteOrGrayColor(0xFFFF00FF);
-          console.info('isBlackOrWhiteOrGrayColor', isNeutral)
-
-          LogUtil.info(TAG, `Extracted colors: Color_main=${this.Color_main}, Color_sum=${this.Color_sum}`)
-
-          // 使用提取的颜色更新 UV 背景效果
-          this.updateUVBackgroundColors()
-          this.netok = true
-
+        ColorExtractor.extractColors(pixelMap).then((data)=>{
+          // let a = data.length
+          let colors :ResourceColor[] = new Array
+            data.forEach((value)=>{
+              colors.push(value.hex)
+            })
+          colors.push($r('app.color.card_background'))
+          this.updateUVBackgroundColors(colors)
         })
+        // effectKit.createColorPicker(pixelMap, (err, colorPicker) => {
+        //   const color = colorPicker.getMainColorSync();
+        //   console.info('get main color =', '{red:', color.red, 'green:', color.green, 'blue:', color.blue, 'alpha:',
+        //     color.alpha, '}'); // 立即输出主色值
+        //   // 获取视觉占比最大值的颜色
+        //   const b = color.blue
+        //   const g = color.green
+        //   const r = color.red
+        //   const a = color.alpha
+        //   let rightColor =
+        //     `#${a.toString(16)}${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16)
+        //       .padStart(2, '0')}`
+        //   this.Color_main = rightColor
+        //   console.info('十六进制数', rightColor)
+        //   const LargestColor = colorPicker.getLargestProportionColor();
+        //   console.info('get largest proportion color =' + '{red:', LargestColor.red, 'green:', LargestColor.green,
+        //     'blue:', LargestColor.blue, 'alpha:', LargestColor.alpha, '}');
+        //   // 获取像素占比最大值的颜色
+        //   const topColors = colorPicker.getTopProportionColors(2);
+        //   for (let index = 0; index < topColors.length; index++) {
+        //     if (topColors[index]) {
+        //       console.info('get top proportion colors: index ' + index + ', color ' + '{red:', topColors[index]?.red,
+        //         'green:', topColors[index]?.green, 'blue:', topColors[index]?.blue, 'alpha:',
+        //         topColors[index]?.alpha, '}');
+        //     }
+        //   }
+        //   // 获取平均色
+        //   const averageColor = colorPicker.getAverageColor();
+        //   console.info('get average color =' + '{red:', averageColor.red, 'green:', averageColor.green, 'blue:',
+        //     averageColor.blue, 'alpha:', averageColor.alpha, '}');
+        //   const b1 = averageColor.blue
+        //   const g1 = averageColor.green
+        //   const r1 = averageColor.red
+        //   const a1 = averageColor.alpha
+        //   let rightColor1 =
+        //     `#${a1.toString(16)}${r1.toString(16).padStart(2, '0')}${g1.toString(16).padStart(2, '0')}${b1.toString(16)
+        //       .padStart(2, '0')}`
+        //   this.Color_sum =rightColor1
+        //   // 获取饱和度最高的颜色
+        //   const highestSatColor = colorPicker.getHighestSaturationColor();
+        //   console.info('get highest SatColor color =', '{red:', highestSatColor.red, 'green:', highestSatColor.green,
+        //     'blue:', highestSatColor.blue, 'alpha:', highestSatColor.alpha, '}');
+        //   const b2 = highestSatColor.blue
+        //   const g2 = highestSatColor.green
+        //   const r2 = highestSatColor.red
+        //   const a2 = highestSatColor.alpha
+        //   let rightColor2 =
+        //     `#${a2.toString(16)}${r2.toString(16).padStart(2, '0')}${g2.toString(16).padStart(2, '0')}${b2.toString(16)
+        //       .padStart(2, '0')}`
+        //   const isNeutral = colorPicker.isBlackOrWhiteOrGrayColor(0xFFFF00FF);
+        //   console.info('isBlackOrWhiteOrGrayColor', isNeutral)
+        //
+        //   LogUtil.info(TAG, `Extracted colors: Color_main=${this.Color_main}, Color_sum=${this.Color_sum}`)
+        //
+        //   // 使用提取的颜色更新 UV 背景效果
+        //   this.updateUVBackgroundColors()
+        //   this.netok = true
+        //
+        // })
         // this.image = pixelMap;
       });
     }
@@ -331,44 +345,153 @@ struct Playing {
   @Builder
   progress_Volume(){
     Column(){
-      Slider({
-        value:  Number(PreferencesCache.getUserPreference('Volume','100')),
-        style: SliderStyle.InSet,
-        direction: Axis.Vertical,
-        reverse: true // 竖向的Slider默认是上端是min值，下端是max值，因此想要从下往上滑动，需要设置reverse为true
-      })
-        .onTouch((event) => {
-          if (event.type === TouchType.Down) {
-            this.isVolumeBarExpanded = true
-          } else if (event.type === TouchType.Up) {
-            this.isVolumeBarExpanded = false
-          }
+      Stack(){
+
+        if (this.isVolumeBarExpanded){
+          Column(){
+            Particle({
+              particles: [
+                {
+                  emitter: {
+                    particle: {
+                      type: ParticleType.POINT, //粒子类型
+                      config: {
+                        radius: 10//圆点半径
+                      },
+                      count: 500, //粒子总数
+                      lifetime: 5000, //粒子生命周期，单位ms
+                      lifetimeRange: 100//粒子生命周期取值范围，单位ms
+                    },
+                    emitRate: 10, //每秒发射粒子数
+                    // position: [0, 0],
+                    shape: ParticleEmitterShape.RECTANGLE//发射器形状
+                  },
+                  color: {
+                    range: [Color.Red, Color.Yellow], //初始颜色范围
+                    distributionType: DistributionType.GAUSSIAN, // 初始颜色随机值分布
+                    updater: {
+                      type: ParticleUpdater.CURVE, //变化方式为曲线变化
+                      config: [
+                        {
+                          from: Color.White, //变化起始值
+                          to: Color.Pink, //变化终点值
+                          startMillis: 0, //开始时间
+                          endMillis: 100, //结束时间
+                          curve: Curve.EaseIn//变化曲线
+                        },
+                        {
+                          from: Color.Pink,
+                          to: Color.Orange,
+                          startMillis: 3000,
+                          endMillis: 5000,
+                          curve: Curve.EaseIn
+                        },
+                        {
+                          from: Color.Orange,
+                          to: Color.Pink,
+                          startMillis: 5000,
+                          endMillis: 8000,
+                          curve: Curve.EaseIn
+                        },
+                      ]
+                    }
+                  },
+                  opacity: {
+                    range: [0.0, 1.0], //粒子透明度的初始值从【0.0到1.0】随机产生
+                    updater: {
+                      type: ParticleUpdater.CURVE,
+                      config: [
+                        {
+                          from: 0.0,
+                          to: 1.0,
+                          startMillis: 0,
+                          endMillis: 200,
+                          curve: Curve.EaseIn
+                        },
+                        {
+                          from: 1.0,
+                          to: 0.0,
+                          startMillis: 5000,
+                          endMillis: 10000,
+                          curve: Curve.EaseIn
+                        }
+                      ]
+                    }
+                  },
+                  scale: {
+                    range: [0.0, 0.0],
+                    updater: {
+                      type: ParticleUpdater.CURVE,
+                      config: [
+                        {
+                          from: 0.0,
+                          to: 0.5,
+                          startMillis: 0,
+                          endMillis: 3000,
+                          curve: Curve.EaseIn
+                        }
+                      ]
+                    }
+                  },
+                  acceleration: {
+                    //加速度的配置，从大小和方向两个维度变化，speed表示加速度大小，angle表示加速度方向
+                    speed: {
+                      range: [3, 9],
+                      updater: {
+                        type: ParticleUpdater.RANDOM, //Speed的变化方式是随机变化
+                        config: [1, 20]
+                      }
+                    },
+                    angle: {
+                      range: [90, 90]
+                    }
+                  }
+
+                }
+              ]
+            }).width(34).layoutWeight(1)
+          }.padding({bottom:22,top:10})
+        }
+        Slider({
+          value:  Number(PreferencesCache.getUserPreference('Volume','100')),
+          style: SliderStyle.InSet,
+          direction: Axis.Vertical,
+          reverse: true // 竖向的Slider默认是上端是min值，下端是max值，因此想要从下往上滑动，需要设置reverse为true
         })
-        .onAppear(()=>{
-          this.rotateAngle = Number(PreferencesCache.getUserPreference('Volume','100'))
-        })
-        .trackThickness(this.isVolumeBarExpanded ? 36 : 46)
-        .selectedColor(Color.Orange)
-        .trackColor('rgba(255, 255, 255, 0.3)')
-        .blockColor(Color.Orange)
-        .onChange((value: number, mode: SliderChangeMode) => {
-          this.resetTimer()
-          avPlayerManager.avPlayer?.setVolume(value/100)
-          PreferencesCache.setUserPreference('Volume', value.toString())
-          console.info('value:' + value + 'mode:' + mode.toString())
-          this.uiContext?.animateTo({
-            duration: AnimationConstants.DURATION_FAST,
-            curve: AnimationConstants.CURVE_DECELERATE
-          }, () => {
-            this.rotateAngle = value
+          .onTouch((event) => {
+            if (event.type === TouchType.Down) {
+              this.isVolumeBarExpanded = true
+            } else if (event.type === TouchType.Up) {
+              this.isVolumeBarExpanded = false
+            }
           })
-        })
-        .animation({
-          duration: AnimationConstants.DURATION_FAST,
-          curve: AnimationConstants.CURVE_DECELERATE,
-          iterations: 1,
-          playMode: PlayMode.Normal
-        })
+          .onAppear(()=>{
+            this.rotateAngle = Number(PreferencesCache.getUserPreference('Volume','100'))
+          })
+          .trackThickness(this.isVolumeBarExpanded ? 36 : 46)
+          .selectedColor(Color.Orange)
+          .trackColor('rgba(255, 255, 255, 0.3)')
+          .blockColor(Color.Orange)
+          .onChange((value: number, mode: SliderChangeMode) => {
+            this.resetTimer()
+            avPlayerManager.avPlayer?.setVolume(value/100)
+            PreferencesCache.setUserPreference('Volume', value.toString())
+            console.info('value:' + value + 'mode:' + mode.toString())
+            this.uiContext?.animateTo({
+              duration: AnimationConstants.DURATION_FAST,
+              curve: AnimationConstants.CURVE_DECELERATE
+            }, () => {
+              this.rotateAngle = value
+            })
+          })
+          .animation({
+            duration: AnimationConstants.DURATION_FAST,
+            curve: AnimationConstants.CURVE_DECELERATE,
+            iterations: 1,
+            playMode: PlayMode.Normal
+          })
+      }
+
 
       if(this.rotateAngle === 0){
         SymbolGlyph($r('sys.symbol.speaker_slash'))
@@ -630,361 +753,41 @@ struct Playing {
   // 功能：手机横屏播放器
   //——————————————————————————
   Playing_HorizontalMode() {
-    Swiper(this.swiperController){
-      Row() {
-        //封面图
-        Column() {
-          Stack(){
-            Image(cover(this.song?.album?.cover ?? "", 512))
-              .geometryTransition("picture", { follow: false })
-              .transition(TransitionEffect.OPACITY)
-              .aspectRatio(1)
-              .clip(true)
-              .onClick(()=>{this.swiperController.showNext()})
-              .shadow({
-                radius: 0,
-                color: 'rgba(0, 0, 0, 0.15)',
-                offsetX: 0,
-                offsetY: 2
-              })
-              .borderRadius(this.img_playing_ctrl==='1'?0:24)
-              .gesture(
-                PanGesture({ direction: PanDirection.Horizontal })
-                  .onActionStart(() => {
-                    this.isSwipingActive = true;
-                  })
-                  .onActionUpdate((event) => {
-                    // 更新滑动偏移量
-                    this.swipeOffset = event.offsetX;
-
-                    // 确定滑动方向
-                    if (event.offsetX > 10 &&this.img_playing_ctrl==='1') {
-                      this.swipeDirection = 'right'; // 向右滑动，上一首
-                    } else if (event.offsetX < -10) {
-                      this.swipeDirection = 'left'; // 向左滑动，下一首
-                    } else {
-                      this.swipeDirection = '';
-                    }
-                  })
-                  .onActionEnd(() => {
-                    // 根据最终偏移量决定是切换歌曲还是回弹
-                    if (this.swipeOffset > this.SWIPE_THRESHOLD &&this.img_playing_ctrl==='1') {
-                      // 向右滑动超过阈值，切换到上一首
-                      this.handleSongChange('prev');
-                    }   else if (this.swipeOffset < -this.SWIPE_THRESHOLD &&this.img_playing_ctrl==='0') {
-                      this.swiperController.showNext()
-                    }else if (this.swipeOffset < -this.SWIPE_THRESHOLD&&this.img_playing_ctrl==='1') {
-                      // 向左滑动超过阈值，切换到下一首
-                      this.handleSongChange('next');
-                    } else {
-                      // 未达到阈值，回弹
-                      this.uiContext?.animateTo({
-                        duration: 250,
-                        curve: Curve.EaseOut,
-                        delay: 0,
-                        onFinish: () => {
-                          this.isSwipingActive = false;
-                          this.swipeDirection = '';
-                        }
-                      }, () => {
-                        this.swipeOffset = 0;
-                      });
-                    }
-                  })
-              )
-              .borderImage({
-                source: {
-                  angle: 90,
-                  direction: GradientDirection.Left,
-                  colors: [[0xAEE1E1, 0.0], [0xD3E0DC, 0.3], [0xFCD1D1, 1.0]]
-                },
-                slice: { top: this.img_playing_ctrl==='1'?10:0, bottom: this.img_playing_ctrl==='1'?10:0, left: this.img_playing_ctrl==='1'?10:0, right: this.img_playing_ctrl==='1'?10:0 },
-                width: { top:this.img_playing_ctrl==='1'? "10px":"0px", bottom: this.img_playing_ctrl==='1'? "10px":"0px", left: this.img_playing_ctrl==='1'? "10px":"0px", right: this.img_playing_ctrl==='1'? "10px":"0px" },
-                repeat: RepeatMode.Stretch,
-                fill: false
-              })
-              .clickEffect({ level: ClickEffectLevel.LIGHT })
-
-            Row(){
-              Column(){
-                Text((this.song?.name || "未知歌曲"))
-                  .fontSize(this.getFontSize(this.song?.name ?? "", 16, 16))// .fontWeight(FontWeight.Bold)
-                  .maxLines(1)
-                  .textOverflow({ overflow: TextOverflow.MARQUEE })
-                  .blendMode(BlendMode.DIFFERENCE, BlendApplyType.OFFSCREEN)
-                  .fontColor(`#ff${this.imageColorHex}`)
-                  .fontWeight(StyleConstants.FONT_WEIGHT_FIVE)
-                  .height(24) // 固定高度确保布局稳定
-
-                Text(this.song?.artists ? this.song.artists.map(artist => artist.name).join(" / ") : "未知艺术家")
-                  .maxLines(1)
-                  .fontSize(14)
-                  .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-                  .fontColor(`#ff${this.imageColorHex}`)
-                  .textOverflow({ overflow: TextOverflow.MARQUEE })
-                  .blendMode(BlendMode.DIFFERENCE, BlendApplyType.OFFSCREEN)
-                  .onClick(() => {
-                    if (this.song?.artists && this.song.artists.length > 0) {
-                      this.sheetType = "artist";
-                      this.showPlaylist = true;
-                    }
-                  })
-
-              }
-              .width('60%')
-              .alignItems(HorizontalAlign.Start)
-
-              Row(){
-                TextClock()
-                  .format('HH:mm:ss')
-                  .fontColor(`#ff${this.imageColorHex}`)
-                  .blendMode(BlendMode.DIFFERENCE, BlendApplyType.OFFSCREEN)
-              }
-            }
-            .width(StyleConstants.FULL_WIDTH)
-            .justifyContent(FlexAlign.SpaceBetween)
-            .alignItems(VerticalAlign.Bottom)
-            .padding(12)
-          }
-          .alignContent(Alignment.BottomEnd)
-          .aspectRatio(1)
-          .width('90%')
-
+    Column(){
+      Playing4Landscape({
+        song:this.song,
+        isPlaying:this.isPlaying,
+        bottomRect:this.bottomRect,
+        paramCurrentTime:this.currentTime,
+        OneSentence:this.currentLyric,
+        playControl: () => {
+          this.PlayerControls()
+        },
+        playControlWithHeart: () => {
+          this.PlayerControlsWithHeart()
+        },
+        songPlay:()=>{
+          avPlayerManager.play()
+        },
+        songPause:()=>{
+          avPlayerManager.pause()
+        },
+        songNext:()=>{
+          this.handleSongChange('next')
+        },
+        songPrev:()=>{
+          this.handleSongChange('prev')
         }
-        .width('45%')
-        .height('100%')
-        .padding({
-          left: (this.rightCutoutRectWidth > 0 ? this.rightCutoutRectWidth : this.leftCutoutRectWidth*2),
-          top: 12,
-          bottom: 12
-        })
-        .justifyContent(FlexAlign.Center)
-        .alignItems(HorizontalAlign.Center)
-
-        Column() {
-          LyricsView({
-            mode_judge: false
-          })
-            .width('95%')
-            .height(StyleConstants.FULL_HEIGHT)
-
-          // Column(){
-          //   this.PlayerControls(this.Pura_X === '1' ? false : true)
-          // }
-          // .width('100%')
-          // .layoutWeight(1)
-          //
-          // Blank()
-          //
-          // Column(){
-          //   this.ProgressBar(true, 0, false)
-          // }
-          // .width('100%')
-          // .layoutWeight(0.6)
-
-        }
-        .padding({
-          left: 18,
-          right: this.leftCutoutRectWidth > 0 ? 18 : this.rightCutoutRectWidth*2
-        })
-        .width('55%')
-      }
-      .alignItems(VerticalAlign.Center)
-      .justifyContent(FlexAlign.SpaceBetween)
-      .onAppear(()=>{
-        PreferencesCache.setUserPreference('Playing_HorizontalMode_index','0')
       })
-      .animation({ duration: 500, curve: Curve.FastOutSlowIn })
 
-      Row() {
-        //封面图
-        Column() {
-          Stack(){
-            Image(cover(this.song?.album?.cover ?? "", 512))
-              .height('100%')
-              .aspectRatio(1)
-              .borderRadius(this.img_playing_ctrl==='1' ? 0 : 24)
-              .borderImage({
-                source: {
-                  angle: 90,
-                  direction: GradientDirection.Left,
-                  colors: [[0xAEE1E1, 0.0], [0xD3E0DC, 0.3], [0xFCD1D1, 1.0]]
-                },
-                slice: { top: this.img_playing_ctrl==='1'?10:0, bottom: this.img_playing_ctrl==='1'?10:0, left: this.img_playing_ctrl==='1'?10:0, right: this.img_playing_ctrl==='1'?10:0 },
-                width: { top:this.img_playing_ctrl==='1'? "10px":"0px", bottom: this.img_playing_ctrl==='1'? "10px":"0px", left: this.img_playing_ctrl==='1'? "10px":"0px", right: this.img_playing_ctrl==='1'? "10px":"0px" },
-                repeat: RepeatMode.Stretch,
-                fill: false
-              })
-              .onAppear(async ()=>{
-                try {
-                  let netFile = this.song?.album?.cover + "?param=64y64" ?? "";
-                  let httpRequest = http.createHttp()
-                  let data = await httpRequest.request(netFile);
-                  let imageDealData = await ImageUtils.getImageDealDataByArr(data.result as ArrayBuffer);//imageDealData.imageColorHex.length
-                  this.imageColorHex=imageDealData.imageColorHex
-                } catch (e) {
-                  hilog.error(0x0000, 'TestTag', 'Failed error.code is %{public}d,error.message is %{public}s', e.code,
-                    e.message);
-                }
-              })
-              .gesture(
-                PanGesture({ direction: PanDirection.Horizontal })
-                  .onActionStart(() => {
-                    this.isSwipingActive = true;
-                  })
-                  .onActionUpdate((event) => {
-                    // 更新滑动偏移量
-                    this.swipeOffset = event.offsetX;
-
-                    // 确定滑动方向
-                    if (event.offsetX > 10 &&this.img_playing_ctrl==='1') {
-                      this.swipeDirection = 'right'; // 向右滑动，上一首
-                    } else if (event.offsetX < -10) {
-                      this.swipeDirection = 'left'; // 向左滑动，下一首
-                    } else {
-                      this.swipeDirection = '';
-                    }
-                  })
-                  .onActionEnd(() => {
-                    // 根据最终偏移量决定是切换歌曲还是回弹
-                    if (this.swipeOffset > this.SWIPE_THRESHOLD &&this.img_playing_ctrl==='1') {
-                      // 向右滑动超过阈值，切换到上一首
-                      this.handleSongChange('prev');
-                    }                else  if (this.swipeOffset > this.SWIPE_THRESHOLD &&this.img_playing_ctrl==='0') {
-                      // 向右滑动超过阈值，切换到上一首
-                      this.swiperController.showPrevious()
-                    }  else if (this.swipeOffset < -this.SWIPE_THRESHOLD&&this.img_playing_ctrl==='1') {
-                      // 向左滑动超过阈值，切换到下一首
-                      this.handleSongChange('next');
-                    } else {
-                      // 未达到阈值，回弹
-                      this.uiContext?.animateTo({
-                        duration: 250,
-                        curve: Curve.EaseOut,
-                        delay: 0,
-                        onFinish: () => {
-                          this.isSwipingActive = false;
-                          this.swipeDirection = '';
-                        }
-                      }, () => {
-                        this.swipeOffset = 0;
-                      });
-                    }
-                  })
-              )
-              .onClick(()=>{
-                this.swiperController.showPrevious()
-              })
-              .clickEffect({ level: ClickEffectLevel.LIGHT })
-
-
-            Row(){
-              Text(this.song?.artists ? this.song.artists.map(artist => artist.name).join(" / ") : "未知艺术家")
-                .maxLines(1)
-                .fontSize(14)
-                .width('60%')
-                .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-                .fontColor(`#ff${this.imageColorHex}`)
-                .textOverflow({ overflow: TextOverflow.MARQUEE })
-                .blendMode(BlendMode.DIFFERENCE, BlendApplyType.OFFSCREEN)
-                .onClick(() => {
-                  if (this.song?.artists && this.song.artists.length > 0) {
-                    this.sheetType = "artist";
-                    this.showPlaylist = true;
-                  }
-                })
-
-              Row(){
-                TextClock()
-                  .format('HH:mm')
-                  .fontColor(`#ff${this.imageColorHex}`)
-                  .blendMode(BlendMode.DIFFERENCE, BlendApplyType.OFFSCREEN)
-              }
-            }
-            .width(StyleConstants.FULL_WIDTH)
-            .justifyContent(FlexAlign.SpaceBetween)
-            .padding(12)
-          }
-          .layoutWeight(1)
-          .aspectRatio(1)
-          .alignContent(Alignment.BottomEnd)
-
-          Text((this.song?.name || "未知歌曲"))
-            .fontSize(this.getFontSize(this.song?.name ?? "", 16, 16))// .fontWeight(FontWeight.Bold)
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.MARQUEE })
-            .fontColor(Color.White)
-            .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-            .height(24) // 固定高度确保布局稳定
-            .margin({ top: 5 })
-
-          Column(){
-            this.ProgressBar(true, 0, true)
-          }
-          .width('120%')
-
-          Column(){
-            this.PlayerControls(this.Pura_X === '1' ? false : true)
-          }
-          .width('120%')
-        }
-        .padding({
-          left: (this.rightCutoutRectWidth > 0 ? this.rightCutoutRectWidth : this.leftCutoutRectWidth*2),
-          top: 12,
-          bottom: 12,
-          right: 12
-        })
-        .width('40%')
-        .height('100%')
-        .justifyContent(FlexAlign.SpaceBetween)
-        .alignItems(HorizontalAlign.Center)
-
-        Column() {
-          LyricsView({
-            mode_judge: false
-          }).width('100%').layoutWeight(1)
-        }
-        .padding({
-          left: 18,
-          right: this.leftCutoutRectWidth > 0 ? 18 : this.rightCutoutRectWidth*2
-        })
-        .width('60%')
-      }
-      .alignItems(VerticalAlign.Top)
-      .justifyContent(FlexAlign.SpaceBetween)
-      .animation({ duration: 500, curve: Curve.FastOutSlowIn })
     }
-    .loop(false)
     .onAppear(() => {
-      this.img_playing_ctrl=  PreferencesCache.getUserPreference('img_playing_ctrl','0')
-    })
-    .animation({
-      duration: 300,
-      curve: Curve.Friction,
-      iterations: 1,
-      playMode: PlayMode.Normal
-    })
-    .effectMode(EdgeEffect.None)
-    .curve(Curve.Smooth)
-    .onChange((index:number)=>{
-      if (index===1) {
-        PreferencesCache.setUserPreference('Playing_HorizontalMode_index','1')
-      }else {
-        PreferencesCache.setUserPreference('Playing_HorizontalMode_index','0')
-      }
-    })
-    .indicator(false)
-    .onAppear(() => {
-      if (PreferencesCache.getUserPreference('Playing_HorizontalMode_index') === '1') {
-        this.swiperController.changeIndex(1)
-      }else{
-        this.swiperController.changeIndex(0)
-      }
       screen_on(this.getUIContext().getHostContext() as Context, true)
     })
     .onDisAppear(() => {
       screen_on(this.getUIContext().getHostContext() as Context, false)
     })
+
   }
 
   async aboutToAppear() {
@@ -1051,7 +854,7 @@ struct Playing {
     WindowUtil.setWindowScreenOn(this.windowStage, true)
 
     LogUtil.info(`${TAG}`, `this.isOnFlipMute: ${this.isOnFlipMute}`)
-    if(this.isOnDoubleTap === '1' || this.isOnFlipMute === '1'){
+    if(this.isOnFlipMute === '1'){
       SensorUtil.onAccelerometer()
     }
   }
@@ -1059,7 +862,7 @@ struct Playing {
   aboutToDisappear() {
     WindowUtil.setSystemBarEnabled(this.windowStage, true)
     WindowUtil.setWindowScreenOn(this.windowStage, false)
-    if(this.isOnDoubleTap === '1' || this.isOnFlipMute === '1'){
+    if(this.isOnFlipMute === '1'){
       SensorUtil.offAccelerometer()
     }
     if (this.updateTimer !== -1) {
@@ -1255,7 +1058,6 @@ struct Playing {
       .height(this.smallButtonSize)
       .backgroundColor(Color.Transparent)
       .scale({ x: this.isShuffleButtonPressed ? 1.3 : 1.0, y: this.isShuffleButtonPressed ? 1.3 : 1.0 })
-      // .rotate({ angle: this.isShuffleButtonPressed ? 0 : 0 })
       .animation({
         duration: 300,
         curve: Curve.EaseOut,
@@ -1381,6 +1183,7 @@ struct Playing {
       .onClick(() => {
         ClickUtil.debounce(async () => {
           this.uiContext?.animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
+
             const nextSong = PlaylistManager.playNext()
             if (nextSong) {
               PlaylistManager.playSong(nextSong)
@@ -1424,6 +1227,197 @@ struct Playing {
     .justifyContent(FlexAlign.SpaceBetween) // Space between all buttons
     .alignItems(VerticalAlign.Center)
     .height(70) // Fixed height
+  }
+
+  @Builder
+  PlayerControlsWithHeart(judge: boolean = true) {
+    Row() {
+      // Shuffle/repeat button (Left)
+      if(judge){ Button({ type: ButtonType.Circle }) {
+        Image(this.getPlayModeResource(this.playMode))
+          .width(22)
+          .height(22)
+          .fillColor(Color.White)
+          .animation({
+            duration: 300,
+            curve: Curve.EaseOut,
+            iterations: 1,
+            playMode: PlayMode.Normal
+          })
+      }
+      .width(this.smallButtonSize)
+      .height(this.smallButtonSize)
+      .backgroundColor(Color.Transparent)
+      .scale({ x: this.isShuffleButtonPressed ? 1.3 : 1.0, y: this.isShuffleButtonPressed ? 1.3 : 1.0 })
+      .animation({
+        duration: 300,
+        curve: Curve.EaseOut,
+        iterations: 1,
+        playMode: PlayMode.Normal
+      })
+      .onClick(() => {
+        this.uiContext?.animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
+          this.isShuffleButtonPressed = true
+          PlaylistManager.switchPlayMode();
+          setTimeout(() => {
+            this.isShuffleButtonPressed = false
+          }, 300)
+        })
+      })}
+
+
+
+      // Previous button
+      Button({ type: ButtonType.Circle }) {
+        Image($r('app.media.ic_prev'))
+          .width(22)
+          .height(22)
+          .fillColor(Color.White)
+      }
+      .width(this.smallButtonSize)
+      .height(this.smallButtonSize)
+      .backgroundColor(Color.Transparent)
+      .scale({ x: this.isPrevButtonPressed ? 0.85 : 1.0, y: this.isPrevButtonPressed ? 0.85 : 1.0 })
+      .opacity(this.isPrevButtonPressed ? 0.8 : 1.0)
+      .animation({
+        duration: 150,
+        curve: Curve.EaseIn,
+        iterations: 1,
+        playMode: PlayMode.Normal
+      })
+      .onTouch((event) => {
+        if (event.type === TouchType.Down) {
+          this.isPrevButtonPressed = true
+        } else if (event.type === TouchType.Up) {
+          this.isPrevButtonPressed = false
+        }
+      })
+      .onClick(() => {
+        ClickUtil.debounce(async () => {
+          this.uiContext?.animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
+            const prevSong = PlaylistManager.playPrevious()
+            if (prevSong) {
+              PlaylistManager.playSong(prevSong)
+            }
+          })
+        }, 500, "playPrev")
+      })
+
+      // Play/pause button (center)
+      Button({ type: ButtonType.Circle }) {
+        Image(this.isPlaying ? $r('app.media.ic_pause') : $r('app.media.ic_play'))
+          .width(22)
+          .height(22)
+          .fillColor(Color.White)
+          .margin({
+            left: this.isPlaying ? 0 : 4
+          })
+      }
+      .backgroundColor(Color.Transparent)
+      .width(this.smallButtonSize)
+      .height(this.smallButtonSize)
+      .scale({ x: this.isPlayButtonPressed ? 0.9 : 1.0, y: this.isPlayButtonPressed ? 0.9 : 1.0 })
+      .animation({
+        duration: 200,
+        tempo: 1.0,
+        curve: Curve.EaseInOut,
+        iterations: 1,
+        playMode: PlayMode.Normal,
+      })
+      .onTouch((event) => {
+        if (event.type === TouchType.Down) {
+          this.isPlayButtonPressed = true
+        } else if (event.type === TouchType.Up) {
+          this.isPlayButtonPressed = false
+        }
+      })
+      .onClick(() => {
+        this.isPlaying = !this.isPlaying
+        if (this.isPlaying) {
+          avPlayerManager.play()
+        } else {
+          avPlayerManager.pause()
+        }
+      })
+
+      // Next button
+      Button({ type: ButtonType.Circle }) {
+        Image($r('app.media.ic_next'))
+          .width(22)
+          .height(22)
+          .fillColor(Color.White)
+      }
+      .width(this.smallButtonSize)
+      .height(this.smallButtonSize)
+      .backgroundColor(Color.Transparent)
+      .scale({ x: this.isNextButtonPressed ? 0.85 : 1.0, y: this.isNextButtonPressed ? 0.85 : 1.0 })
+      .opacity(this.isNextButtonPressed ? 0.8 : 1.0)
+      .animation({
+        duration: 150,
+        curve: Curve.EaseIn,
+        iterations: 1,
+        playMode: PlayMode.Normal
+      })
+      .onTouch((event) => {
+        if (event.type === TouchType.Down) {
+          this.isNextButtonPressed = true
+        } else if (event.type === TouchType.Up) {
+          this.isNextButtonPressed = false
+        }
+      })
+      .onClick(() => {
+        ClickUtil.debounce(async () => {
+          this.uiContext?.animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
+
+            const nextSong = PlaylistManager.playNext()
+            if (nextSong) {
+              PlaylistManager.playSong(nextSong)
+            }
+          })
+        }, 500, "playNext")
+      })
+      // Playlist button (Right)
+      Button({ type: ButtonType.Circle }) {
+        Image(this.isFavorite ? $r('app.media.ic_heart_fill') : $r('app.media.ic_heart'))
+          .width(22)
+          .height(22)
+          .fillColor(this.isFavorite ? '#FF4081' : Color.White)
+          .animation({
+            duration: 300,
+            curve: Curve.EaseOut,
+            iterations: 1,
+            playMode: PlayMode.Normal
+          })
+      }
+      .width(this.smallButtonSize)
+      .height(this.smallButtonSize)
+      .backgroundColor(Color.Transparent)
+      .scale({ x: this.isHeartButtonPressed ? 1.3 : 1.0, y: this.isHeartButtonPressed ? 1.3 : 1.0 })
+      .animation({
+        duration: 300,
+        curve: Curve.EaseOut,
+        iterations: 1,
+        playMode: PlayMode.Normal
+      })
+      .onClick(() => {
+        this.isHeartButtonPressed = true
+        this.uiContext?.animateTo({ duration: 400, curve: Curve.EaseOut }, () => {
+          if (this.song) {
+            SourceAdapter.likeSong(this.song, !this.isFavorite)
+          }
+          EventHelper.postFavoriteToggle("")
+
+          // 重置按钮状态
+          setTimeout(() => {
+            this.isHeartButtonPressed = false
+          }, 400)
+        })
+      })
+    }
+    .width(StyleConstants.FULL_WIDTH)
+    .padding({ top: 16 })
+    .justifyContent(FlexAlign.SpaceBetween) // Space between all buttons
+    .alignItems(VerticalAlign.Center)
   }
 
   // 下载歌曲
@@ -2177,10 +2171,7 @@ struct Playing {
     NavDestination() {
       FolderStack() {
         // 背景
-
-            this.BlurBackground(this.is_backblur)
-
-
+        this.BlurBackground(this.is_backblur)
 
         Column() {
 

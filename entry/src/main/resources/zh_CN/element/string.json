@@ -477,10 +477,6 @@
       "value": "开启侧边栏UI"
     },
     {
-      "name": "double_tap_switch_songs",
-      "value": "双敲后壳切歌（实验性）"
-    },
-    {
       "name": "aggregation",
       "value": "聚合"
     },

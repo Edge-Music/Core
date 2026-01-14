@@ -4,6 +4,10 @@ import ResourceManager from "../util/ResourceManager";
 import { PipManager } from '../util/PipManager';
 import { deviceInfo } from "@kit.BasicServicesKit";
 import { ItemRestriction, SegmentButton, SegmentButtonOptions, SegmentButtonTextItem } from "@kit.ArkUI";
+import { notificationManager } from "@kit.NotificationKit";
+import { common } from "@kit.AbilityKit";
+import { hilog } from "@kit.PerformanceAnalysisKit";
+import { sensor } from "@kit.SensorServiceKit";
 
 @Component
   //'0'关。'1'开。!!!!(开关颜色日后调)
@@ -19,7 +23,8 @@ export struct Personalized_settings_Component {
     buttons: [{ text: '原词' }, { text: '翻译' }, { text: '罗马音' }] as ItemRestriction<SegmentButtonTextItem>,
     backgroundBlurStyle: BlurStyle.BACKGROUND_REGULAR,
     selectedBackgroundColor: $r('app.color.title_emphasis_color'),
-    fontSize: 12
+    fontSize: 12,
+    selectedFontSize: 12
   })
 
   aboutToAppear(): void {
@@ -68,10 +73,79 @@ export struct Personalized_settings_Component {
   private onSwitchChangeHandler(isOn: boolean) {
     if (isOn) {
       this.text_ctrl ='1'
+      if (this.setUserPreference_name ==='pressure_change') {
+        try {
+          const TAG: string = '[PublishOperation]';
+          const DOMAIN_NUMBER: number = 0xFF00;
+          let context = this.getUIContext().getHostContext() as common.UIAbilityContext;
+          notificationManager.isNotificationEnabled().then((data: boolean) => {
+            hilog.info(DOMAIN_NUMBER, TAG, "isNotificationEnabled success, data: " + JSON.stringify(data));
+            if(!data){
+              notificationManager.requestEnableNotification(context).then(() => {
+                hilog.info(DOMAIN_NUMBER, TAG, `[ANS] requestEnableNotification success`);
+              }).catch(() => {
+                // if(1600004 == err.code){
+                //   hilog.error(DOMAIN_NUMBER, TAG, `[ANS] requestEnableNotification refused, code is ${err.code}, message is ${err.message}`);
+                // } else {
+                //   hilog.error(DOMAIN_NUMBER, TAG, `[ANS] requestEnableNotification failed, code is ${err.code}, message is ${err.message}`);
+                // }
+              });
+            }
+          }).catch(() => {
+            // hilog.error(DOMAIN_NUMBER, TAG, `isNotificationEnabled fail, code is ${err.code}, message is ${err.message}`);
+          });
+
+          sensor.on(sensor.SensorId.BAROMETER, (data: sensor.BarometerResponse) => {
+            //过去气压获取
+            let prevAtmospheric_pressure : number = AppStorage.get('Atmospheric_pressure') ?? data.pressure
+            //过去差值获取
+            let Atmospheric_pressure_change_prev:number = AppStorage.get('Atmospheric_pressure_change')??0
+            // 计算累积差值
+            let Atmospheric_pressure_change:number = prevAtmospheric_pressure - data.pressure + Atmospheric_pressure_change_prev
+            if (Atmospheric_pressure_change>=50||Atmospheric_pressure_change<=-50){
+              console.info('jizhishi_debug Succeeded in invoking on. Atmospheric_pressure_change: ' + Atmospheric_pressure_change);
+              Atmospheric_pressure_change = 0
+
+              let notificationRequest: notificationManager.NotificationRequest = {
+                id: 114514,
+                notificationSlotType:notificationManager.SlotType.SERVICE_INFORMATION,
+                content: {
+                  notificationContentType: notificationManager.ContentType.NOTIFICATION_CONTENT_BASIC_TEXT, // 普通文本类型通知
+                  normal: {
+                    title: '气压变化超50百帕',
+                    text: '当前气压:'+data.pressure.toFixed(3)+'百帕',
+                    // additionalText: 'test_additionalText',
+                  }
+                }
+              };
+              notificationManager.publish(notificationRequest, () => {
+                // if (err) {
+                //   hilog.error(DOMAIN_NUMBER, TAG, `Failed to publish notification. Code is ${err.code}, message is ${err.message}`);
+                //   return;
+                // }
+                // hilog.info(DOMAIN_NUMBER, TAG, 'Succeeded in publishing notification.');
+              });
+            }
+
+            AppStorage.setOrCreate('Atmospheric_pressure_change',Atmospheric_pressure_change)
+            AppStorage.setOrCreate('Atmospheric_pressure',data.pressure)
+            console.info('jizhishi_debug Succeeded in invoking on. Atmospheric pressure: ' + data.pressure);
+          }, { interval: 100000000 });
+          // setTimeout(() => {
+          //   sensor.off(sensor.SensorId.BAROMETER);
+          // }, 500);
+        } catch (error) {
+          // let e: BusinessError = error as BusinessError;
+          // console.error(`jizhishi_debug Failed to invoke on. Code: ${e.code}, message: ${e.message}`);
+        }
+      }
       PreferencesCache.setUserPreference(this.setUserPreference_name, this.text_ctrl)
     }else {
       this.text_ctrl ='0'
-      PreferencesCache.setUserPreference(this.setUserPreference_name, this.text_ctrl)
+      if (this.setUserPreference_name ==='pressure_change'){
+        sensor.off(sensor.SensorId.BAROMETER);
+      }
+        PreferencesCache.setUserPreference(this.setUserPreference_name, this.text_ctrl)
     }
 
     AppStorage.setOrCreate(this.setUserPreference_name, this.text_ctrl)
@@ -135,7 +209,6 @@ export struct Personalized_settings{
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.swipe_cover_switch_songs')), setUserPreference_name:'img_playing_ctrl'})}
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.simultaneous_playback')), setUserPreference_name:'playing_mix'})}
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.enable_sidebar_ui')), setUserPreference_name:'zhishi_UI'})}
-          ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.double_tap_switch_songs')), setUserPreference_name:'double_tap_switch_songs'})}
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.flip_mute')), setUserPreference_name:'flip_mute'})}
           // ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.Lyic_desktop')), setUserPreference_name:'Lyic_desktop'})}
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.setting_fade_in_fade_out')), setUserPreference_name:'fade_in_out'})}
@@ -145,6 +218,12 @@ export struct Personalized_settings{
           if (deviceInfo.sdkApiVersion>19){
             ListItem(){ Personalized_settings_Component({text_name: '开启流光背景', setUserPreference_name:'UV_background'})}
           }
+          ListItem(){
+            Column(){
+              Personalized_settings_Component({text_name: '气压剧烈变化提醒', setUserPreference_name:'pressure_change'})
+              // Text('需设备支持,开启后返回首页后才会开启，测试功能，建议进入设置打开横幅功能')
+            }
+            }
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.pip_lyrics_type')), setUserPreference_name:'pip_lyrics_type', componentType: 1})}
 
           ListItem(){ Column().height(16+this.bottomRect/2)}

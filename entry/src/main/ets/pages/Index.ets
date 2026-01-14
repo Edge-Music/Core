@@ -25,11 +25,20 @@ import { IS_2IN1_UI } from '../For_2in1_UI/FOR2IN1'
 import { Aggregation } from '../view/Aggregation'
 import { LogUtil, ToastUtil, WantUtil } from '@pura/harmony-utils'
 import { BusinessError } from '@kit.BasicServicesKit'
-import { common } from '@kit.AbilityKit'
+import { common, wantAgent, WantAgent } from '@kit.AbilityKit'
 import { HeaderComponent } from '../component/HeaderComponent'
 import { HeaderPlaceholder } from '../component/HeaderPlaceholder'
 import { Statistics } from '../view/Statistics'
 import { FooterPlaceholder } from '../component/FooterPlaceholder'
+// import { motion } from '@kit.MultimodalAwarenessKit'
+import { HandingCtrl } from '../component/holdingHandCtrl'
+import { sensor } from '@kit.SensorServiceKit'
+import { notificationManager } from '@kit.NotificationKit'
+import { hilog } from '@kit.PerformanceAnalysisKit'
+import commonEventManager from '@ohos.commonEventManager';
+// import { sensor } from '@kit.SensorServiceKit'
+
+// import { motion } from '@kit.MultimodalAwarenessKit'
 
 // 缓存常用值以避免重复计算
 const COLUMNS_TEMPLATE_LG = '1fr 1fr 1fr 1fr' // 宽屏4列（1×4布局）
@@ -158,8 +167,107 @@ struct Index {
 
   aboutToAppear(): void {
     this.pageStack.replacePath({ name: 'Index_page' })
-  }
+    let pressure_change_judge = PreferencesCache.getUserPreference('pressure_change', '0')
+    if(pressure_change_judge === '1'){
+      try {
+        // const TAG: string = '[PublishOperation]';
+        const DOMAIN_NUMBER: number = 0xFF00;
+        let context = this.getUIContext().getHostContext() as common.UIAbilityContext;
+        notificationManager.isNotificationEnabled().then((data: boolean) => {
+          hilog.info(DOMAIN_NUMBER, TAG, "isNotificationEnabled success, data: " + JSON.stringify(data));
+          if(!data){
+            notificationManager.requestEnableNotification(context).then(() => {
+              hilog.info(DOMAIN_NUMBER, TAG, `[ANS] requestEnableNotification success`);
+            }).catch((err: BusinessError) => {
+              if(1600004 == err.code){
+                hilog.error(DOMAIN_NUMBER, TAG, `[ANS] requestEnableNotification refused, code is ${err.code}, message is ${err.message}`);
+              } else {
+                hilog.error(DOMAIN_NUMBER, TAG, `[ANS] requestEnableNotification failed, code is ${err.code}, message is ${err.message}`);
+              }
+            });
+          }
+        }).catch((err: BusinessError) => {
+          hilog.error(DOMAIN_NUMBER, TAG, `isNotificationEnabled fail, code is ${err.code}, message is ${err.message}`);
+        });
 
+        sensor.on(sensor.SensorId.BAROMETER, (data: sensor.BarometerResponse) => {
+          //过去气压获取
+          let prevAtmospheric_pressure : number = AppStorage.get('Atmospheric_pressure') ?? data.pressure
+          //过去差值获取
+          let Atmospheric_pressure_change_prev:number = AppStorage.get('Atmospheric_pressure_change')??0
+          // 计算累积差值
+          let Atmospheric_pressure_change:number = prevAtmospheric_pressure - data.pressure + Atmospheric_pressure_change_prev
+          if (Atmospheric_pressure_change>=50||Atmospheric_pressure_change<=-50){
+            console.info('jizhishi_debug Succeeded in invoking on. Atmospheric_pressure_change: ' + Atmospheric_pressure_change);
+            Atmospheric_pressure_change = 0
+
+            let notificationRequest: notificationManager.NotificationRequest = {
+              id: 114514,
+              notificationSlotType:notificationManager.SlotType.SERVICE_INFORMATION,
+              content: {
+                notificationContentType: notificationManager.ContentType.NOTIFICATION_CONTENT_BASIC_TEXT, // 普通文本类型通知
+                normal: {
+                  title: '气压变化超50百帕',
+                  text: '当前气压:'+data.pressure.toFixed(3)+'百帕',
+                  // additionalText: 'test_additionalText',
+                }
+              }
+            };
+            notificationManager.publish(notificationRequest, (err: BusinessError) => {
+              if (err) {
+                hilog.error(DOMAIN_NUMBER, TAG, `Failed to publish notification. Code is ${err.code}, message is ${err.message}`);
+                return;
+              }
+              hilog.info(DOMAIN_NUMBER, TAG, 'Succeeded in publishing notification.');
+            });
+          }
+
+          AppStorage.setOrCreate('Atmospheric_pressure_change',Atmospheric_pressure_change)
+          AppStorage.setOrCreate('Atmospheric_pressure',data.pressure)
+          console.info('jizhishi_debug Succeeded in invoking on. Atmospheric pressure: ' + data.pressure);
+        }, { interval: 100000000 });
+        // setTimeout(() => {
+        //   sensor.off(sensor.SensorId.BAROMETER);
+        // }, 500);
+      } catch (error) {
+        let e: BusinessError = error as BusinessError;
+        console.error(`jizhishi_debug Failed to invoke on. Code: ${e.code}, message: ${e.message}`);
+      }
+      let publishCallback = (err: BusinessError): void => {
+        if (err) {
+          console.error(`publish failed, code is ${err.code}, message is ${err.message}`);
+        } else {
+          console.info("publish success");
+        }
+      }
+
+    }
+    const TAG: string = '[PublishOperation]';
+    const DOMAIN_NUMBER: number = 0xFF00;
+    let context = this.getUIContext().getHostContext() as common.UIAbilityContext;
+    notificationManager.isNotificationEnabled().then((data: boolean) => {
+      hilog.info(DOMAIN_NUMBER, TAG, "isNotificationEnabled success, data: " + JSON.stringify(data));
+      if(!data){
+        notificationManager.requestEnableNotification(context).then(() => {
+          hilog.info(DOMAIN_NUMBER, TAG, `[ANS] requestEnableNotification success`);
+        }).catch(() => {
+          // if(1600004 == err.code){
+          //   hilog.error(DOMAIN_NUMBER, TAG, `[ANS] requestEnableNotification refused, code is ${err.code}, message is ${err.message}`);
+          // } else {
+          //   hilog.error(DOMAIN_NUMBER, TAG, `[ANS] requestEnableNotification failed, code is ${err.code}, message is ${err.message}`);
+          // }
+        });
+      }
+    }).catch(() => {
+      // hilog.error(DOMAIN_NUMBER, TAG, `isNotificationEnabled fail, code is ${err.code}, message is ${err.message}`);
+    });
+  }
+  // aboutToDisappear(): void {
+  //
+  // }
+  onPageHide(): void {
+
+  }
   build() {
     Navigation(this.pageStack) {
       // empty
@@ -251,7 +359,9 @@ struct Index_page {
     },
     componentTag: TAG
   }).linkController(this.scroller)
-
+  // 诗人握持定时器及类型判断
+  @StorageProp('hand') hand:number = 0
+  @StorageProp('hand_timer')  hand_timer:number = 0
   // 隐私协议弹窗控制器
   private privacyDialogController: CustomDialogController | null = new CustomDialogController({
     builder: PrivacyPolicyDialog({
@@ -274,49 +384,49 @@ struct Index_page {
     }
   })
 
-  async aboutToAppear() {
-    avPlayerManager.setAudioSession()
-
-    this.zhishi_UI = PreferencesCache.getUserPreference('zhishi_UI', '0')
-    if (this.zhishi_UI === '1') {
-      this.limit = 20
-    }
-
-    // avPlayerManager.avPlayer?.setVolume(Number(PreferencesCache.getUserPreference('Volume','100'))/100)
-    if (PreferencesCache.getUserPreference('Lyic_desktop', '0') === '1') {
-      PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
-      PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
-    }
-    // 检查用户是否已同意隐私协议
-    if (PreferencesCache.getUserPreference(this.policyVersion, '0') === '0') {
-      // 延迟显示弹窗，确保UI已完全加载
-      setTimeout(() => {
-        if (this.privacyDialogController) {
-          this.privacyDialogController.open();
-        }
-      }, 500);
-    }
-
-    // 注册断点系统
-    this.breakpointSystem.register(this.getUIContext())
-    HorizontalMode(this.getUIContext().getHostContext() as Context, this.HorizontalMode_ctrl === '1')
-    AppStorage.setOrCreate("pageStack", this.pageStack)
-    let productSeries: string = deviceInfo.productSeries
-    let deviceType: string = deviceInfo.deviceType
-    if (deviceType != 'phone' && productSeries != 'VDE') {
-      AppStorage.setOrCreate<boolean>('isWideScreen', true)
-    } else {
-      AppStorage.setOrCreate<boolean>('isWideScreen', false)
-
-    }
-    AppStorage.setOrCreate("devicetype", deviceType)
-    PreferencesCache.setUserPreference('devicetype', deviceType)
-    if (productSeries == 'VDE') {
-      PreferencesCache.setUserPreference('is_Pura_X', '1')
-    } else {
-      PreferencesCache.setUserPreference('is_Pura_X', '0')
-    }
-  }
+  // async aboutToAppear() {
+  //   avPlayerManager.setAudioSession()
+  //
+  //   this.zhishi_UI = PreferencesCache.getUserPreference('zhishi_UI', '0')
+  //   if (this.zhishi_UI === '1') {
+  //     this.limit = 20
+  //   }
+  //
+  //   // avPlayerManager.avPlayer?.setVolume(Number(PreferencesCache.getUserPreference('Volume','100'))/100)
+  //   if (PreferencesCache.getUserPreference('Lyic_desktop', '0') === '1') {
+  //     PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
+  //     PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
+  //   }
+  //   // 检查用户是否已同意隐私协议
+  //   if (PreferencesCache.getUserPreference(this.policyVersion, '0') === '0') {
+  //     // 延迟显示弹窗，确保UI已完全加载
+  //     setTimeout(() => {
+  //       if (this.privacyDialogController) {
+  //         this.privacyDialogController.open();
+  //       }
+  //     }, 500);
+  //   }
+  //
+  //   // 注册断点系统
+  //   this.breakpointSystem.register(this.getUIContext())
+  //   HorizontalMode(this.getUIContext().getHostContext() as Context, this.HorizontalMode_ctrl === '1')
+  //   AppStorage.setOrCreate("pageStack", this.pageStack)
+  //   let productSeries: string = deviceInfo.productSeries
+  //   let deviceType: string = deviceInfo.deviceType
+  //   if (deviceType != 'phone' && productSeries != 'VDE') {
+  //     AppStorage.setOrCreate<boolean>('isWideScreen', true)
+  //   } else {
+  //     AppStorage.setOrCreate<boolean>('isWideScreen', false)
+  //
+  //   }
+  //   AppStorage.setOrCreate("devicetype", deviceType)
+  //   PreferencesCache.setUserPreference('devicetype', deviceType)
+  //   if (productSeries == 'VDE') {
+  //     PreferencesCache.setUserPreference('is_Pura_X', '1')
+  //   } else {
+  //     PreferencesCache.setUserPreference('is_Pura_X', '0')
+  //   }
+  // }
 
   // 处理用户同意隐私协议
   private onPrivacyAgree() {
@@ -330,8 +440,10 @@ struct Index_page {
     ToastUtil.showShort($r('app.string.privacy_policy_required_message'));
     // 退出应用
     setTimeout(() => {
-      let context = getContext(this) as common.UIAbilityContext;
-      context.terminateSelf();
+      let context = this.getUIContext().getHostContext()as common.UIAbilityContext;
+      context.terminateSelf().catch(() => {
+        console.error('关闭应用失败')
+      });
     }, 500);
   }
 
@@ -345,26 +457,6 @@ struct Index_page {
 
   }
 
-  onPageShow(): void {
-    console.info(TAG, 'onPageShow')
-    PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
-    PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
-    PipManager.getInstance().startPip();
-  }
-
-  onPageHide(): void {
-    console.info(TAG, 'onPageHide')
-    PipManager.getInstance().setAutoStart(false);
-  }
-
-  aboutToDisappear() {
-    this.breakpointSystem.unregister()
-    PipManager.getInstance().unregisterPipStateChangeListener(); // 解注册画中画生命周期及状态回调
-    // 清理弹窗控制器
-    if (this.privacyDialogController) {
-      this.privacyDialogController = null;
-    }
-  }
 
   @Builder
   Title() {
@@ -381,7 +473,6 @@ struct Index_page {
           .fontColor($r('app.color.text_title'))
           .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
           .fontSize($r('app.float.title_font_size'))
-
         Row({space:4}) {
           MenuIcon({
             icon: $r('app.media.ic_search'),
@@ -531,6 +622,7 @@ struct Index_page {
     .justifyContent(FlexAlign.SpaceBetween)
   }
 
+
   build() {
     NavDestination() {
       if (this.zhishi_UI === '1') {
@@ -540,93 +632,121 @@ struct Index_page {
         })
       } else {
         Stack({ alignContent: Alignment.Bottom }) {
+          Stack({ alignContent: this.hand === 1 ? Alignment.Start:Alignment.End }){
+            Column() {
+              List({ scroller: this.scroller }) {
+                HeaderPlaceholder()
 
-          Column() {
-            List({ scroller: this.scroller }) {
-              HeaderPlaceholder()
-
-              ListItem() {
-                HeaderAnimation({ scrollController: this.scrollController, isShowLoadingProgress: true })
-              }
-
-              if (this.adapters.length > 0) {
                 ListItem() {
-                  this.MenuGrid()
+                  HeaderAnimation({ scrollController: this.scrollController, isShowLoadingProgress: true })
                 }
 
-                // 专属于你模块
-                ListItem() {
-                  this.ForYouSection()
-                }
-                .visibility(this.loading || this.playlists.filter(playlist =>
-                playlist.id && playlist.id.toString().startsWith('key_')
-                ).length > 0 ? Visibility.Visible : Visibility.None)
-
-                ListItem() {
-                  this.RecommendedSongs()
-                }
-                .visibility(this.loading || this.recommendPlaylist.length > 0 ? Visibility.Visible : Visibility.None)
-
-                ListItem() {
-                  this.RecommendedPlaylists()
-                }
-                .visibility(this.loading || this.recommendSongs.length > 0 ? Visibility.Visible : Visibility.None)
-
-                ListItem() {
-                  this.RecommendedArtists()
-                }
-                .visibility(this.loading || this.recommendArtists.length > 0 ? Visibility.Visible : Visibility.None)
-
-                ListItem() {
-                  this.TopLists()
-                }
-                .visibility(this.loading || this.topList.length > 0 ? Visibility.Visible : Visibility.None)
-
-                ListItem() {
-                  Row() {
-                    Column() {
-                      Text($r('app.string.no_recommendations'))
-                        .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-                        .fontColor($r('app.color.text_hint'))
-                        .fontSize(16)
-                    }
-                    .width(StyleConstants.FULL_WIDTH)
-                    .height(StyleConstants.FULL_HEIGHT)
-                    .justifyContent(FlexAlign.Center)
+                if (this.adapters.length > 0) {
+                  ListItem() {
+                    this.MenuGrid()
                   }
-                  .height(this.getBlankHeight())
-                }
-                .visibility(this.hasRecommendation() ? Visibility.Visible : Visibility.None)
 
-              } else {
-                ListItem() {
-                  this.EmptyDataSource()
+                  // 专属于你模块
+                  ListItem() {
+                    this.ForYouSection()
+                  }
+                  .visibility(this.loading || this.playlists.filter(playlist =>
+                  playlist.id && playlist.id.toString().startsWith('key_')
+                  ).length > 0 ? Visibility.Visible : Visibility.None)
+
+                  ListItem() {
+                    this.RecommendedSongs()
+                  }
+                  .visibility(this.loading || this.recommendPlaylist.length > 0 ? Visibility.Visible : Visibility.None)
+
+                  ListItem() {
+                    this.RecommendedPlaylists()
+                  }
+                  .visibility(this.loading || this.recommendSongs.length > 0 ? Visibility.Visible : Visibility.None)
+
+                  ListItem() {
+                    this.RecommendedArtists()
+                  }
+                  .visibility(this.loading || this.recommendArtists.length > 0 ? Visibility.Visible : Visibility.None)
+
+                  ListItem() {
+                    this.TopLists()
+                  }
+                  .visibility(this.loading || this.topList.length > 0 ? Visibility.Visible : Visibility.None)
+
+                  ListItem() {
+                    Row() {
+                      Column() {
+                        Text($r('app.string.no_recommendations'))
+                          .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
+                          .fontColor($r('app.color.text_hint'))
+                          .fontSize(16)
+                      }
+                      .width(StyleConstants.FULL_WIDTH)
+                      .height(StyleConstants.FULL_HEIGHT)
+                      .justifyContent(FlexAlign.Center)
+                    }
+                    .height(this.getBlankHeight())
+                  }
+                  .visibility(this.hasRecommendation() ? Visibility.Visible : Visibility.None)
+
+                } else {
+                  ListItem() {
+                    this.EmptyDataSource()
+                  }
                 }
+
+                FooterPlaceholder()
               }
-
-              FooterPlaceholder()
+              .width(StyleConstants.FULL_WIDTH)
+              .height(StyleConstants.FULL_HEIGHT)
+              .layoutWeight(1)
+              .backToTop(true)
+              .scrollBar(BarState.Off)
+              .edgeEffect(EdgeEffect.Spring)
+              .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
+              .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
+              .onDidScroll(() => {
+                this.scrollOffsetY = this.scroller.currentOffset().yOffset
+              })
+              .onTouch((event) => {
+                switch (event.type) {
+                  case TouchType.Down:
+                    this.startScrollOffsetY = this.scroller.currentOffset().yOffset
+                }
+              })
             }
             .width(StyleConstants.FULL_WIDTH)
             .height(StyleConstants.FULL_HEIGHT)
-            .layoutWeight(1)
-            .backToTop(true)
-            .scrollBar(BarState.Off)
-            .edgeEffect(EdgeEffect.Spring)
-            .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
-            .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
-            .onDidScroll(() => {
-              this.scrollOffsetY = this.scroller.currentOffset().yOffset
-            })
-            .onTouch((event) => {
-              switch (event.type) {
-                case TouchType.Down:
-                  this.startScrollOffsetY = this.scroller.currentOffset().yOffset
-              }
-            })
+            .zIndex(0)
+            if (this.hand===1||this.hand===2){
+              Column(){
+                HandingCtrl({on_Click:()=>{
+                  //点击操作触发重置消失定时器
+                  clearInterval(this.hand_timer)
+                  console.log('jizhishidebug_clear')
+                  this.hand_timer = setInterval(()=>{
+                    this.getUIContext().animateTo({
+                      duration: 200,
+                      curve: Curve.Friction,
+                      // delay: 500,
+                      // iterations: -1, // 设置-1表示动画无限循环
+                      playMode: PlayMode.Alternate,
+                      expectedFrameRateRange: {
+                        min: 10,
+                        max: 120,
+                        expected: 60,
+                      }
+                    }, () => {
+                      this.hand = 0
+                    })
+                  },5000)
+                }})
+
+              }.margin(36)
+            }
+
           }
-          .width(StyleConstants.FULL_WIDTH)
-          .height(StyleConstants.FULL_HEIGHT)
-          .zIndex(0)
 
           MiniPlaybackControl({
             scrollOffsetY: this.scrollOffsetY,
@@ -653,6 +773,100 @@ struct Index_page {
     .hideTitleBar(true)
     .hideBackButton(true)
     .backgroundColor($r('app.color.page_background'))
+    .onWillAppear(()=>{
+      avPlayerManager.setAudioSession()
+
+      this.zhishi_UI = PreferencesCache.getUserPreference('zhishi_UI', '0')
+      if (this.zhishi_UI === '1') {
+        this.limit = 20
+      }
+
+      // avPlayerManager.avPlayer?.setVolume(Number(PreferencesCache.getUserPreference('Volume','100'))/100)
+      if (PreferencesCache.getUserPreference('Lyic_desktop', '0') === '1') {
+        PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
+        PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
+      }
+      // 检查用户是否已同意隐私协议
+      if (PreferencesCache.getUserPreference(this.policyVersion, '0') === '0') {
+        // 延迟显示弹窗，确保UI已完全加载
+        setTimeout(() => {
+          if (this.privacyDialogController) {
+            this.privacyDialogController.open();
+          }
+        }, 500);
+      }
+
+      // 注册断点系统
+      this.breakpointSystem.register(this.getUIContext())
+      HorizontalMode(this.getUIContext().getHostContext() as Context, this.HorizontalMode_ctrl === '1')
+      AppStorage.setOrCreate("pageStack", this.pageStack)
+      let productSeries: string = deviceInfo.productSeries
+      let deviceType: string = deviceInfo.deviceType
+      if (deviceType != 'phone' && productSeries != 'VDE') {
+        AppStorage.setOrCreate<boolean>('isWideScreen', true)
+      } else {
+        AppStorage.setOrCreate<boolean>('isWideScreen', false)
+
+      }
+      AppStorage.setOrCreate("devicetype", deviceType)
+      PreferencesCache.setUserPreference('devicetype', deviceType)
+      if (productSeries == 'VDE') {
+        PreferencesCache.setUserPreference('is_Pura_X', '1')
+      } else {
+        PreferencesCache.setUserPreference('is_Pura_X', '0')
+      }
+    })
+    .onWillShow(()=> {
+        console.info(TAG, 'onPageShow')
+        PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
+      //气压变化提醒功能。需要设备支持，进入首页后自动开启
+
+
+      try {
+        if (canIUse("SystemCapability.MultimodalAwareness.Motion")) {
+            import('../util/HoldHand').then((nv)=>{
+              nv.startHoldingHand(this.getUIContext())
+            })
+          // motion.on('holdingHandChanged', callback);
+        } else {
+          // Fallback for unsupported SystemCapability
+        }
+        console.info("jizhishi 11 on succeeded");
+      } catch (err) {
+        let error = err as BusinessError;
+        console.error("Failed on and err code is " + error.code);
+      }
+        // PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
+        // PipManager.getInstance().startPip();
+      })
+    .onWillHide(()=>{
+      console.info(TAG, 'onPageHide')
+
+      clearInterval(this.hand_timer)
+      try {
+        if (canIUse("SystemCapability.MultimodalAwareness.Motion")) {
+          // motion.off('holdingHandChanged');
+          import('../util/HoldHand').then((nv)=>{
+            nv.stopHoldingHand()
+          })
+        } else {
+
+        }
+        console.info("off succeeded");
+      } catch (err) {
+        let error = err as BusinessError;
+        console.error("Failed off and err code is " + error.code);
+      }
+      // PipManager.getInstance().setAutoStart(false);
+    })
+    .onWillDisappear(()=>{
+      this.breakpointSystem.unregister()
+      PipManager.getInstance().unregisterPipStateChangeListener(); // 解注册画中画生命周期及状态回调
+      // 清理弹窗控制器
+      if (this.privacyDialogController) {
+        this.privacyDialogController = null;
+      }
+    })
     .onBackPressed(() => {
       if (this.page_judge !== 'index') {
         this.page_judge = 'index'

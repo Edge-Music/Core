@@ -2,6 +2,7 @@ import { BusinessError } from "@kit.BasicServicesKit";
 import { common } from "@kit.AbilityKit";
 import { resourceManager } from "@kit.LocalizationKit";
 import { LogUtil } from "@pura/harmony-utils";
+import { image } from "@kit.ImageKit";
 
 const TAG = 'ResourceManager'
 class ResourceManager {
@@ -50,6 +51,18 @@ class ResourceManager {
       });
     } catch (error) {
       LogUtil.error(`[${TAG}]`, `getConfiguration failed, error code: ${(error as BusinessError).code}, message: ${(error as BusinessError).message}.`)
+    }
+  }
+
+  getRawfilePixelMapSync(path: string): image.PixelMap {
+    try {
+      const BUFFER = ResourceManager.context.resourceManager.getRawFileContentSync(path);
+      const IMAGE_SOURCE: image.ImageSource = image.createImageSource(BUFFER.buffer as ArrayBuffer);
+      LogUtil.debug(TAG, `Get rawfile pixelMap path '${path}' successfully`);
+      return IMAGE_SOURCE.createPixelMapSync();
+    } catch (e) {
+      LogUtil.error(TAG, `Get rawfile pixelMap path '${path}' failed, error: ${e}`);
+      throw e as Error;
     }
   }
 

@@ -49,6 +49,7 @@ export struct PlayList {
   @StorageProp('bottomRect') bottomRect: number = 0;
   @StorageProp('topRect') topRect: number = 0;
   @StorageProp('winHeight') winHeight: number = 0;
+  @State touch:number = -1
   // 搜索相关状态
   @State searchKeywords: string = ''
   @State filteredSongs: Song[] = []
@@ -146,6 +147,7 @@ export struct PlayList {
                   song: song,
                   cover: cover(song?.album?.cover ?? "", 512),
                   index: index,
+                  touch:this.touch === index,
                   active: this.song?.id === song.id,
                   highlight: this.billingIndex === index,
                   onTap: (song: Song) => {
@@ -167,6 +169,13 @@ export struct PlayList {
                   isShowMenu: true
                 })
               }
+              .onTouch((event)=>{
+                this.touch = index
+                console.log('jizhishidebug_t'+this.touch)
+                if(event.type ===TouchType.Up||event.type ===TouchType.Cancel){
+                  this.touch = -1
+                }
+              })
               .transition(
                 TransitionEffect.opacity(0)
                   .combine(TransitionEffect.translate({ x: '-200vp' }))

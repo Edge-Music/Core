@@ -1,7 +1,7 @@
 import { media } from '@kit.MediaKit';
 import { avSession } from '@kit.AVSessionKit';
 import { audio } from '@kit.AudioKit';
-import { common } from '@kit.AbilityKit';
+import { common, WantAgent, wantAgent } from '@kit.AbilityKit';
 import { fileIo as fs, ReadOptions } from '@kit.CoreFileKit';
 import { PlaylistManager } from './PlaylistManager';
 import { ClickUtil, LogUtil } from '@pura/harmony-utils';
@@ -13,6 +13,9 @@ import LyricsManager from './LyricsManager';
 import { JSON } from '@kit.ArkTS';
 import { window } from '@kit.ArkUI';
 import WindowUtil from './WindowUtil';
+import { commonEventManager,BusinessError } from '@kit.BasicServicesKit';
+import { hilog } from '@kit.PerformanceAnalysisKit';
+import { notificationManager } from '@kit.NotificationKit';
 
 const TAG = 'AVPlayerManager'
 // 定义回调函数的类型
@@ -285,7 +288,7 @@ class AVPlayerManager {
     });
 
     this.avSession.on('pause', () => {
-      this.pause();
+      this.pauseWithoutFadeOut();
     });
 
     this.avSession.on('stop', () => {
@@ -381,7 +384,7 @@ class AVPlayerManager {
       switch (info.changeReason) {
         case audio.AudioStreamDeviceChangeReason.REASON_OLD_DEVICE_UNAVAILABLE:
           // 设备不可用(如蓝牙断开)，需要暂停播放
-          await this.pause()
+          await this.pauseWithoutFadeOut()
           break;
 
         case audio.AudioStreamDeviceChangeReason.REASON_NEW_DEVICE_AVAILABLE:
@@ -405,7 +408,7 @@ class AVPlayerManager {
           case audio.InterruptHint.INTERRUPT_HINT_PAUSE:
             // 系统强制暂停（临时失去焦点）
             const tempState = this.isPlayingBeforeInterrupt
-            await this.pause();
+            await this.pauseWithoutFadeOut();
             this.isPlayingBeforeInterrupt = tempState;
             break;
 
@@ -419,7 +422,7 @@ class AVPlayerManager {
           case audio.InterruptHint.INTERRUPT_HINT_STOP:
             // 系统强制停止（永久失去焦点）
             this.isPlayingBeforeInterrupt = false;
-            await this.pause();
+            await this.pauseWithoutFadeOut();
             break;
 
           case audio.InterruptHint.INTERRUPT_HINT_DUCK:
@@ -437,7 +440,7 @@ class AVPlayerManager {
         // 非强制打断
         switch (interruptEvent.hintType) {
           case audio.InterruptHint.INTERRUPT_HINT_PAUSE:
-            await this.pause();
+            await this.pauseWithoutFadeOut();
             break;
           case audio.InterruptHint.INTERRUPT_HINT_RESUME:
             if (this.isPlayingBeforeInterrupt) {
@@ -652,6 +655,7 @@ class AVPlayerManager {
   async play() {
     try {
       this.setAudioSession()
+       AppStorage.setOrCreate('playing_judge',true)
       const player = await this.getAVPlayerInstance();
       await this.initAppVolume()
       const fadeInOutEnabled = PreferencesCache.getUserPreference('fade_in_out', '0');
@@ -668,6 +672,172 @@ class AVPlayerManager {
       if (PreferencesCache.statusBarLyricsSetting().open) {
         WindowUtil.createLyricsFloatWindow()
       }
+      let playing_mix: string =  PreferencesCache.getUserPreference('playing_mix','0')
+      // const player = await this.getAVPlayerInstance();
+      let playing_judge:boolean = player.state === 'playing'
+
+      if (playing_mix==='1') {
+        let audioManager = audio.getAudioManager();
+        let audioStreamManager = audioManager.getStreamManager();
+        try {
+          audioStreamManager.on('audioRendererChange', (changeInfoArray) => {
+            changeInfoArray.forEach((value)=>{
+              console.log('jizhishi0113'+JSON.stringify(value))
+            })
+
+            // 检查变化后的音频流数量
+            // AppStorage.setOrCreate('playing_judge',false)
+            if (changeInfoArray.length > 1&&AppStorage.get<boolean>('playing_judge')) {
+
+              {
+                let AppBundleName:string = 'zone.yby.seamusic' //TODO::这里包名记得与APP包名一致
+                let EventChangePlay:string = 'EdgeMusic_Playing' //公共事件名称
+                let wantAgentObj: WantAgent; // 用于保存创建成功的WantAgent对象，后续使用其完成触发的动作。
+                // 通过WantAgentInfo的operationType设置动作类型
+                let wantAgentInfo: wantAgent.WantAgentInfo = {
+                  wants: [
+                    {
+                      // deviceId: '',
+                      bundleName: AppBundleName, // 需要替换为对应的bundleName。
+                      abilityName: 'EntryAbility', // 需要替换为对应的abilityName。
+                      action: EventChangePlay,
+                      parameters: {
+                        "type":'Playing'
+                      }
+                    }
+                  ],
+                  actionType: wantAgent.OperationType.SEND_COMMON_EVENT,
+                  requestCode: 0,
+                  actionFlags: [wantAgent.WantAgentFlags.CONSTANT_FLAG]
+                };
+
+                wantAgent.getWantAgent(wantAgentInfo, (err: BusinessError, data: WantAgent) => {
+                  if (err) {
+                    hilog.error(0xFF00, TAG,
+                      `Failed to get want agent. Code is ${err.code}, message is ${err.message}`);
+                    return;
+                  }
+                  hilog.info(0xFF00, TAG, 'Succeeded in getting want agent.');
+                  wantAgentObj = data;
+                    let notificationRequest: notificationManager.NotificationRequest = {
+                      id: 11451419,
+                      groupName:'jizhishi',
+                      updateOnly:true,
+                      // notificationSlotType:notificationManager.SlotType.CONTENT_INFORMATION,
+                      content: {
+
+                        notificationContentType: notificationManager.ContentType.NOTIFICATION_CONTENT_BASIC_TEXT, // 普通文本类型通知
+                        normal: {
+                          title: "正在运行播放任务",
+                          text: "点击通知，在下方按钮下暂停音乐",
+                          // additionalText: "test_additionalText"
+                        }
+                      }
+                    ,
+                      actionButtons: [
+                        {
+                          title: '暂停',
+                          wantAgent: wantAgentObj
+                        }
+                      ]
+                    };
+                    notificationManager.publish(notificationRequest, (err: BusinessError) => {
+                      if (err) {
+                        hilog.error(0x0001, TAG, `Failed to publish notification. Code is ${err.code}, message is ${err.message}`);
+                        let notificationRequest: notificationManager.NotificationRequest = {
+                          id: 11451419,
+                          // groupName:'jizhishi',
+                          notificationSlotType:notificationManager.SlotType.SERVICE_INFORMATION,
+                          content: {
+
+                            notificationContentType: notificationManager.ContentType.NOTIFICATION_CONTENT_BASIC_TEXT, // 普通文本类型通知
+                            normal: {
+                              title: "正在运行播放任务",
+                              text: "点击通知，在下方按钮下暂停音乐",
+                              // additionalText: "test_additionalText"
+                            }
+                          }
+                        ,
+                          actionButtons: [
+                            {
+                              title: '暂停',
+                              wantAgent: wantAgentObj
+                            }
+                          ]
+                        };
+                        notificationManager.publish(notificationRequest, (err: BusinessError) => {
+                          if (err) {
+                            hilog.error(0x0001, TAG, `Failed to publish notification. Code is ${err.code}, message is ${err.message}`);
+                            return;
+                          }
+                          hilog.info(0x0001, TAG, 'Succeeded in publishing notification.');
+                        });
+                        // return;
+                      }
+                      hilog.info(0x0001, TAG, 'Succeeded in publishing notification.');
+                    });
+
+
+                  // ...
+                });
+                //事件订阅部分
+                let subscriberCustom: commonEventManager.CommonEventSubscriber | null = null;
+                let subscribeInfoCustom: commonEventManager.CommonEventSubscribeInfo = {
+                  events: [EventChangePlay], // 订阅的自定义事件名称
+                  publisherBundleName:AppBundleName //限制包名为本应用
+                  // 可选安全限制（二选一）：
+                  // publisherPermissions: ["permission.APPROVE_ORDER"], // 限制发布者权限
+                  // publisherBundleName: "com.example.sender" // 限制发布者包名
+                };
+
+                commonEventManager.createSubscriber(subscribeInfoCustom,
+                  (err: BusinessError, data: commonEventManager.CommonEventSubscriber) => {
+                    if (err) {
+                      hilog.error(0xFF00, TAG,
+                        `Failed to create subscriber. Code is ${err.code}, message is ${err.message}`);
+                      return;
+                    }
+                    hilog.info(0xFF00, TAG, 'Succeeded in creating subscriber.');
+                    subscriberCustom = data;
+                    if (subscriberCustom !== null) {
+
+                      commonEventManager.subscribe(subscriberCustom,
+                        (err: BusinessError, data: commonEventManager.CommonEventData) => {
+                          if (err) {
+                            hilog.error(0xFF00, TAG,
+                              `Failed to subscribe common event. Code is ${err.code}, message is ${err.message}`);
+                            return;
+                          }
+                          hilog.info(0xFF00, TAG, `Succeeded in subscribing, data is ${JSON.stringify(data)}`);
+                          AppStorage.setOrCreate('playing_judge',false)
+                          avPlayerManager.avPlayer?.pause().catch(()=>{
+                            avPlayerManager.avPlayer?.pause()
+                          })
+                          //暂停后关闭监听
+                          if (subscriberCustom !== null) {
+                            commonEventManager.unsubscribe(subscriberCustom, (err: BusinessError) => {
+                              if (err) {
+                                hilog.error(0xFF00, TAG,
+                                  `Failed to unsubscribe. code is ${err.code}, message is ${err.message}`);
+                              } else {
+                                hilog.info(0xFF00, TAG, `Succeeded in unsubscribing.`);
+                                subscriberCustom = null;
+                              }
+                            })
+                          }
+
+                        })
+                    } else {
+                      hilog.error(0xFF00, TAG, `Need create subscriber`);
+                    }
+                  })
+              }
+            }
+          });
+        } catch (error) {
+          // TODO: Implement error handling.
+        }
+      }
     } catch (error) {
       this.triggerError(error);
     }
@@ -675,6 +845,7 @@ class AVPlayerManager {
 
   async pause() {
     try {
+      AppStorage.setOrCreate('playing_judge',false)
       const player = await this.getAVPlayerInstance();
       if(player.state === 'playing'){
         const fadeInOutEnabled = PreferencesCache.getUserPreference('fade_in_out', '0');
@@ -687,6 +858,27 @@ class AVPlayerManager {
           this.triggerPause();
           EventHelper.postSongState('PAUSE');
         }
+        WindowUtil.destroyLyricsFloatWindow()
+        this.audioSessionManager.deactivateAudioSession().then(() => {
+          console.info('Succeeded in doing deactivateAudioSession.');
+        }).catch((err: BusinessError) => {
+          console.error(`Failed to deactivateAudioSession. Code: ${err.code}, message: ${err.message}`);
+        });
+      }
+    } catch (error) {
+      this.triggerError(error);
+    }
+  }
+
+  async pauseWithoutFadeOut() {
+    try {
+      const player = await this.getAVPlayerInstance();
+      if(player.state === 'playing'){
+        await player.pause();
+        AppStorage.setOrCreate<boolean>("playing_judge", false);
+        this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PAUSE);
+        this.triggerPause();
+        EventHelper.postSongState('PAUSE');
         WindowUtil.destroyLyricsFloatWindow()
       }
     } catch (error) {
@@ -706,6 +898,7 @@ class AVPlayerManager {
         this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_IDLE);
         this.triggerStop();
       }
+
     } catch (error) {
       this.triggerError(error);
     }
@@ -734,10 +927,12 @@ class AVPlayerManager {
   async setAudioSession() {
     // let isMixWithOthers = await AppStorage.get(StorageConstants.MIX_WITH_OTHERS) as boolean
     let playing_mix: string =  PreferencesCache.getUserPreference('playing_mix','0')
+
     const strategy: audio.AudioSessionStrategy = {
       concurrencyMode:playing_mix==='1'? audio.AudioConcurrencyMode.CONCURRENCY_MIX_WITH_OTHERS:audio.AudioConcurrencyMode.CONCURRENCY_DEFAULT
     }
     await this.audioSessionManager.activateAudioSession(strategy)
+
 
   }
 

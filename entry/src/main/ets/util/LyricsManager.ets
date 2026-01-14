@@ -327,6 +327,9 @@ class LyricsManager {
         AppStorage.setOrCreate<string>('test_index',
           this.parsedLyrics[this.currentIndex].transliteration ?? this.parsedLyrics[this.currentIndex].translation ?? this.parsedLyrics[this.currentIndex].text)
         break
+      default:
+        AppStorage.setOrCreate<string>('test_index', this.parsedLyrics[this.currentIndex].text)
+        break
     }
   }
 }
