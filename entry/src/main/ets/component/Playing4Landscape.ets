@@ -558,7 +558,13 @@ export struct Playing4Landscape {
       }
 
 
-    }.width('100%').height('100%').justifyContent(FlexAlign.Center).backgroundColor(Color.Transparent)
+    }
+    .width('100%')
+    .height('100%')
+    .justifyContent(FlexAlign.Center)
+    .backgroundColor(Color.Transparent)
+    .border(this.themeSetting ? { width: 1, color: Color.White, style: BorderStyle.Dashed } : { width: 0 })
+    .scale(this.themeSetting ? { x: 0.8, y: 0.8 } : { x: 1, y: 1})
 
   }
 
@@ -647,7 +653,12 @@ export struct Playing4Landscape {
         }
       }
 
-    }.width('100%').height('100%').justifyContent(FlexAlign.Center)
+    }
+    .width('100%')
+    .height('100%')
+    .justifyContent(FlexAlign.Center)
+    .border(this.themeSetting ? { width: 1, color: Color.White, style: BorderStyle.Dashed } : { width: 0 })
+    .scale(this.themeSetting ? { x: 0.8, y: 0.8 } : { x: 1, y: 1 })
 
   }
 
@@ -1071,7 +1082,12 @@ export struct Playing4Landscape {
       }
 
 
-    }.width('100%').height('100%').justifyContent(FlexAlign.Center)
+    }
+    .width('100%')
+    .height('100%')
+    .justifyContent(FlexAlign.Center)
+    .border(this.themeSetting ? { width: 1, color: Color.White, style: BorderStyle.Dashed } : { width: 0 })
+    .scale(this.themeSetting ? { x: 0.8, y: 0.8 } : { x: 1, y: 1 })
   }
 
   @Builder
@@ -1254,7 +1270,6 @@ export struct Playing4Landscape {
       .nextMargin(this.themeSetting ? 80 : 0)
       .prevMargin(this.themeSetting ? 80 : 0)
       .indicator(this.themeSetting? new DotIndicator().selectedColor('#ffffff') :false)
-
       .onChange((index: number) => {
         this.ThemeChoose = index
       })
@@ -1356,7 +1371,6 @@ export struct Playing4Landscape {
             })
           }
         }
-
 
       })
       .backgroundColor(Color.Transparent)
