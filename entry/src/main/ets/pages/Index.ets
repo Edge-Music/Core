@@ -14,7 +14,6 @@ import { Segment } from '../component/Segment'
 import { PlayList } from '../view/Playlist'
 import { MiniPlaybackControl } from '../component/MiniPlaybackControl'
 import { MultiSearch } from '../view/MultiSearch'
-import { HorizontalMode } from '../util/HorizontalCheck'
 import { Download } from '../view/Download'
 import { ScrollController } from '../util/ScrollController'
 import { HeaderAnimation } from '../component/HeaderAnimation'
@@ -346,7 +345,6 @@ struct Index_page {
   @StorageProp('topRect') topRect: number = 0
   @StorageProp('winHeight') winHeight: number = 0
   @StorageProp('windowStatus') windowStatus: string = 'FULL_SCREEN'
-  @State HorizontalMode_ctrl: string = PreferencesCache.getUserPreference('HorizontalMode_ctrl', '1')
   //2in1 UI控制
   @StorageProp('zhishi_UI') zhishi_UI: string = PreferencesCache.getUserPreference('zhishi_UI', '0')
   private policyVersion: string = 'privacy_policy_2025'
@@ -798,7 +796,6 @@ struct Index_page {
 
       // 注册断点系统
       this.breakpointSystem.register(this.getUIContext())
-      HorizontalMode(this.getUIContext().getHostContext() as Context, this.HorizontalMode_ctrl === '1')
       AppStorage.setOrCreate("pageStack", this.pageStack)
       let productSeries: string = deviceInfo.productSeries
       let deviceType: string = deviceInfo.deviceType

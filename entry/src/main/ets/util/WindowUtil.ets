@@ -300,6 +300,14 @@ class WindowUtil {
     return resultWindow as window.Window
   }
 
+  setScreenOrientation(window: window.Window, orientation: window.Orientation) {
+    window.setPreferredOrientation(orientation).then(() => {
+      LogUtil.info(`[${TAG}]`, 'setWindowOrientation: ' + orientation + ' Succeeded.')
+    }).catch((err: BusinessError) => {
+      LogUtil.info(`[${TAG}]`, 'setWindowOrientation: ' + orientation + ' Failed. Cause: ' + JSON.stringify(err))
+    })
+  }
+
 }
 
 export default new WindowUtil()
