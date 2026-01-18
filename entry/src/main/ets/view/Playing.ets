@@ -18,11 +18,11 @@ import { SongDownloadManager } from '../util/SongDownloadManager'
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { http } from '@kit.NetworkKit';
 import ImageUtils from '../util/ImageUtils';
-import { curves } from '@kit.ArkUI'
+import { curves, window } from '@kit.ArkUI'
 import { PipManager } from '../util/PipManager'
 import WindowUtil from '../util/WindowUtil'
 import SensorUtil from '../util/SensorUtil'
-import { DialogHelper } from '@pura/harmony-dialog'
+import { DialogHelper, Orientation } from '@pura/harmony-dialog'
 import { resourceManager } from '@kit.LocalizationKit'
 import { LyricsLine } from '../util/LyricsManager'
 import { PushPathHelper } from '../util/PushPathHelper'
@@ -117,11 +117,14 @@ struct Playing {
   private readonly SWIPE_THRESHOLD: number = 80; // 触发切换的阈值
   private timerId: number = -1
   private updateTimer: number = -1
-  @State P_X:number =0
-  @State netok:boolean =false
+  @State P_X: number =0
+  @State netok: boolean = false
+  @State landscapeMode: boolean = false
+
   //TAB,swiper控制
   private controller: TabsController = new TabsController()
   private windowStage = AppUtil.getWindowStage()
+  private windowClass = AppUtil.getMainWindow()
   // private panOption: PanGestureOptions = new PanGestureOptions({ direction: PanDirection.Left | PanDirection.Right });
   private resetTimer() {
     if (this.timerId !== -1) {
@@ -1526,6 +1529,20 @@ struct Playing {
             onAction: (): void => {}
           })
         }
+      },
+      {
+        value: $r('app.string.landscape_mode'),
+        action: () => {
+          this.uiContext?.animateTo({
+            duration: 300,
+            curve: Curve.EaseOut,
+            onFinish: () => {
+              this.landscapeMode = true
+            }
+          }, () => {
+            WindowUtil.setScreenOrientation(this.windowClass, window.Orientation.AUTO_ROTATION_LANDSCAPE)
+          })
+        }
       }
     ]
   }
@@ -2385,6 +2402,14 @@ struct Playing {
         this.showPlaylist = false;
         this.sheetType = "playlist";
       }
+    })
+    .onBackPressed(() => {
+      if(this.landscapeMode) {
+        WindowUtil.setScreenOrientation(this.windowClass, window.Orientation.AUTO_ROTATION_RESTRICTED)
+        this.landscapeMode = false
+        return true
+      }
+      return false
     })
   }
 

@@ -1,5 +1,4 @@
 import { PreferencesCache } from "../util/PreferenceCache";
-import {HorizontalMode}from '../util/HorizontalCheck'
 import ResourceManager from "../util/ResourceManager";
 import { PipManager } from '../util/PipManager';
 import { deviceInfo } from "@kit.BasicServicesKit";
@@ -165,46 +164,11 @@ export struct Personalized_settings{
   @Consume('NavPathStack') pageStack: NavPathStack;
   @State HorizontalMode_ctrl:string =  PreferencesCache.getUserPreference('HorizontalMode_ctrl','1')
   @StorageProp('bottomRect') bottomRect: number = 0
-  @Builder
-  HorizontalMode_Ctrl(){
-    Column(){
-      Row(){
-        Text($r('app.string.system_rotary_switch'))
-          .fontSize(16)
-          .fontWeight(FontWeight.Medium)
-          .fontColor($r('app.color.text_primary'))
-        Blank()
-          .layoutWeight(1)
-        Toggle({ type: ToggleType.Switch, isOn: this.HorizontalMode_ctrl==='1'?true:false})
-          .selectedColor($r('app.color.title_emphasis_color'))
-          .onChange((isOn: boolean) => {
-            if (isOn) {
-              this.HorizontalMode_ctrl ='1'
-              HorizontalMode(this.getUIContext().getHostContext() as Context, this.HorizontalMode_ctrl==='1')
-              PreferencesCache.setUserPreference('HorizontalMode_ctrl', this.HorizontalMode_ctrl)
-            }else {
-              this.HorizontalMode_ctrl ='0'
-              HorizontalMode(this.getUIContext().getHostContext() as Context, this.HorizontalMode_ctrl==='1')
-              PreferencesCache.setUserPreference('HorizontalMode_ctrl', this.HorizontalMode_ctrl)
-            }
-
-          })
-      }
-      .width('100%')
-      .justifyContent(FlexAlign.SpaceBetween)
-
-    }
-    .padding(16)
-    .backgroundColor($r('app.color.setting_item_background'))
-    .borderRadius(12)
-    .alignItems(HorizontalAlign.Start)
-  }
 
   build() {
     NavDestination(){
       Column(){
         List({ space: 8, initialIndex: 0 }){
-          ListItem(){this.HorizontalMode_Ctrl()}
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.mini_music_control_bottom')), setUserPreference_name:'miniplaying_bottom_judge'})}
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.swipe_cover_switch_songs')), setUserPreference_name:'img_playing_ctrl'})}
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.simultaneous_playback')), setUserPreference_name:'playing_mix'})}

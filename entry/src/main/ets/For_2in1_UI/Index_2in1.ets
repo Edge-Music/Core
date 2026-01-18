@@ -8,7 +8,6 @@ import { PreferencesCache } from '../util/PreferenceCache'
 import { Artist, Playlist, Song, SourceConfig } from '../type/Adapter'
 import { SourceAdapter } from '../adapter'
 import { Segment } from '../component/Segment'
-import { HorizontalMode } from '../util/HorizontalCheck'
 import { ScrollController } from '../util/ScrollController'
 import { HeaderAnimation } from '../component/HeaderAnimation'
 import { deviceInfo } from '@kit.BasicServicesKit'
@@ -42,7 +41,6 @@ export struct Index_page {
   @StorageProp('topRect') topRect: number = 0
   @StorageProp('winHeight') winHeight: number = 0
   @StorageProp('windowStatus') windowStatus: string = 'FULL_SCREEN'
-  @State HorizontalMode_ctrl: string = PreferencesCache.getUserPreference('HorizontalMode_ctrl', '1')
   @State scrollController: ScrollController = new ScrollController({
     onIndexChange: (index) => {
       this.onMenuIconClick(index)
@@ -114,7 +112,6 @@ export struct Index_page {
 
     // 注册断点系统
     this.breakpointSystem.register(this.getUIContext())
-    HorizontalMode(this.getUIContext().getHostContext() as Context,this.HorizontalMode_ctrl === '1')
     AppStorage.setOrCreate("pageStack", this.pageStack)
     let productSeries:string=deviceInfo.productSeries
     let devicetype:string =deviceInfo.deviceType

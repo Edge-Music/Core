@@ -719,6 +719,14 @@
     {
       "name": "download_short",
       "value": "DLs"
+    },
+    {
+      "name": "landscape_mode",
+      "value": "Landscape Mode"
+    },
+    {
+      "name": "pip_lyrics_type",
+      "value": "PIP Lyrics Type"
     }
   ]
 }

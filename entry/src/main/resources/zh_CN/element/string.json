@@ -723,6 +723,10 @@
     {
       "name": "pip_lyrics_type",
       "value": "画中画歌词类型"
+    },
+    {
+      "name": "landscape_mode",
+      "value": "横屏模式"
     }
   ]
 }
