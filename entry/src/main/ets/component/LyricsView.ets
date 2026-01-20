@@ -119,7 +119,13 @@ export struct LyricsView {
 
   // 切换翻译显示状态
   private toggleTranslation() {
-    this.uiContext?.animateTo({ duration: 300, curve: Curve.EaseInOut }, () => {
+    this.uiContext?.animateTo({
+      duration: 500,
+      curve: Curve.EaseInOut,
+      onFinish: () => {
+        this.startManualScrollTimer()
+      }
+    }, () => {
       this.showTranslation = !this.showTranslation
       this.scrollToLyric(this.currentLyricsIndex)
       PreferencesCache.showTranslationLyric(this.showTranslation)
@@ -192,12 +198,14 @@ export struct LyricsView {
           Image($r('app.media.ic_translate'))
             .width(24)
             .height(24)
-            .fillColor(this.showTranslation ? Color.White : 'rgba(255, 255, 255, 0.9)')
+            .fillColor(this.showTranslation ? Color.White : 'rgba(255, 255, 255, 0.5)')
         }
         .width(52)
         .height(52)
-        .backgroundColor(this.showTranslation ? 'rgba(255, 255, 255, 0.25)' : 'rgba(255, 255, 255, 0.12)')
-        .shadow(ShadowStyle.OUTER_DEFAULT_MD)
+        .visibility(this.isManualScroll ? Visibility.Visible : Visibility.None)
+        .backgroundColor('transparent')
+        .shadow(ShadowStyle.OUTER_DEFAULT_XS)
+        .backgroundBlurStyle(BlurStyle.COMPONENT_ULTRA_THIN)
         .margin({ bottom: 24, right: 24 })
         .position({ x: '100%', y: '100%' })
         .translate({ x: -76, y: -76 })
