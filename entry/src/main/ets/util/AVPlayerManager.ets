@@ -765,13 +765,16 @@ class AVPlayerManager {
                             }
                           ]
                         };
-                        notificationManager.publish(notificationRequest, (err: BusinessError) => {
-                          if (err) {
-                            hilog.error(0x0001, TAG, `Failed to publish notification. Code is ${err.code}, message is ${err.message}`);
-                            return;
-                          }
-                          hilog.info(0x0001, TAG, 'Succeeded in publishing notification.');
-                        });
+                        if(err.code === 1600007){
+                          notificationManager.publish(notificationRequest, (err: BusinessError) => {
+                            if (err) {
+                              hilog.error(0x0001, TAG, `Failed to publish notification. Code is ${err.code}, message is ${err.message}`);
+                              return;
+                            }
+                            hilog.info(0x0001, TAG, 'Succeeded in publishing notification.');
+                          });
+                        }
+
                         // return;
                       }
                       hilog.info(0x0001, TAG, 'Succeeded in publishing notification.');
