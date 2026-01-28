@@ -294,7 +294,7 @@ export struct Playing4Landscape {
       .width('100%')
       .justifyContent(FlexAlign.SpaceBetween)
       .padding(12)
-    }.layoutWeight(1)
+    }
     .alignContent(Alignment.BottomEnd)
     .aspectRatio(1)
     .scale({ x: this.isPlaying ? 1 : 0.8, y: this.isPlaying ? 1 : 0.8 })
@@ -508,7 +508,7 @@ export struct Playing4Landscape {
                     this.songPause();
                   }
                 })
-              }.width('50%').padding(20)
+              }.width('50%').padding(15)
 
               Column() {
                 //TODO::迁移V2 这里放歌词
@@ -1385,7 +1385,7 @@ export struct Playing4Landscape {
       if (this.showTitleBar && !this.themeSetting &&!this.setting4Theme3) {
         this.titleBar()
       }
-    }.alignContent(Alignment.Top).expandSafeArea()
+    }.alignContent(Alignment.Top)
 
   }
 }
