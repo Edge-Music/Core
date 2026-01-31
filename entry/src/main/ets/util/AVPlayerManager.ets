@@ -680,15 +680,25 @@ class AVPlayerManager {
         let audioManager = audio.getAudioManager();
         let audioStreamManager = audioManager.getStreamManager();
         try {
+
           audioStreamManager.on('audioRendererChange', (changeInfoArray) => {
+            let judge = 0
             changeInfoArray.forEach((value)=>{
-              console.log('jizhishi0113'+JSON.stringify(value))
+              console.log('JIZHISHIDEBUG0127_value'+JSON.stringify(value))
+
+              if(              audioStreamManager.isStreamActive(value.rendererInfo.usage)){
+                judge = judge + 1
+                 let asd = audioStreamManager.isStreamActive(value.rendererInfo.usage)
+                console.log('JIZHISHIDEBUG0127_judge' + judge + JSON.stringify(asd) + value.rendererInfo.usage)
+                let asd3 = audioStreamManager.isStreamActive(5)
+                console.log('JIZHISHIDEBUG0127_judge 5 is' + judge + JSON.stringify(asd3))
+              }
+
             })
 
             // 检查变化后的音频流数量
             // AppStorage.setOrCreate('playing_judge',false)
-            if (changeInfoArray.length > 1&&AppStorage.get<boolean>('playing_judge')) {
-
+            if (changeInfoArray.length > 1&&AppStorage.get<boolean>('playing_judge')&&judge>1) {
               {
                 let AppBundleName:string = 'zone.yby.seamusic' //TODO::这里包名记得与APP包名一致
                 let EventChangePlay:string = 'EdgeMusic_Playing' //公共事件名称
@@ -901,6 +911,7 @@ class AVPlayerManager {
         this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_IDLE);
         this.triggerStop();
       }
+      AppStorage.setOrCreate('playing_judge',false)
 
     } catch (error) {
       this.triggerError(error);
@@ -922,13 +933,14 @@ class AVPlayerManager {
         this.avSession = null;
       }
       this.clearCallbacks();
+      AppStorage.setOrCreate('playing_judge',false)
     } catch (error) {
       this.triggerError(error);
     }
   }
 
   async setAudioSession() {
-    // let isMixWithOthers = await AppStorage.get(StorageConstants.MIX_WITH_OTHERS) as boolean
+    // let isMixWithOthers = await AppStorage.get(StorageConstants.Q) as boolean
     let playing_mix: string =  PreferencesCache.getUserPreference('playing_mix','0')
 
     const strategy: audio.AudioSessionStrategy = {

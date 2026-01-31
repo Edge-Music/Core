@@ -235,6 +235,10 @@
     {
       "name": "music_pink",
       "value": "#FFF472B6"
+    },
+    {
+      "name": "font4new_year",
+      "value": "#D4AF37"
     }
   ]
 }

@@ -35,6 +35,7 @@ export struct PlayList {
   @Watch('onBreakpointChange') @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
   @State private songsDataSource: SongsDataSource = new SongsDataSource()
   private scroller: Scroller = new Scroller();
+  private panOption: PanGestureOptions = new PanGestureOptions({ direction: PanDirection.Up | PanDirection.Down });
   @State isLoading: boolean = false;
   // 点击跳转后的闪烁效果索引
   @State billingIndex: number = -1
@@ -60,7 +61,13 @@ export struct PlayList {
     },
     componentTag: TAG
   }).linkController(this.scroller)
-
+  @State isSearch:boolean = false
+  private textArr: String[] = ["新春快乐！ (✧ω✧)",
+    "恭喜发财！ (*≧▽≦*)",
+    "万事如意！ (＾▽＾)",
+    "心想事成！ (๑•̀ㅂ•́)و✧",
+    "笑口常开！ (￣▽￣)ノ",
+    "马到成功！ ヽ(ﾟ∀ﾟ)ﾒ(ﾟ∀ﾟ)ﾉ"]
   @Builder
   Title() {
     TitleHeader({
@@ -647,19 +654,62 @@ export struct PlayList {
           })
 
           // 搜索框
-          Search({ value: this.searchKeywords, placeholder: $r('app.string.search_songs') })
-            .searchButton(ResourceManager.getStringValueSync($r('app.string.search')))
-            .onSubmit((value: string) => {
-              this.searchKeywords = value
-              this.filterSongs()
+          Stack(){
+            Search({ value: this.searchKeywords, placeholder: ''})// $r('app.string.search_songs')
+              .placeholderColor(Color.Red)
+
+              .searchButton(ResourceManager.getStringValueSync($r('app.string.search')))
+              .onSubmit((value: string) => {
+                this.searchKeywords = value
+                this.filterSongs()
+              })
+              .onChange((value: string) => {
+                this.searchKeywords = value
+                this.isSearch= true;
+                if (value === '') {
+                  this.isSearch = false;
+                }
+              })
+              .margin(0)
+              .backgroundBlurStyle(BlurStyle.Regular)
+              .shadow(ShadowStyle.OUTER_DEFAULT_SM)
+              .layoutWeight(1)
+              .id('search')
+            Swiper(){
+              ForEach(this.textArr, (item: string) => {
+                Column(){
+                  Text(item.toString())
+                    .backgroundColor('#00000000')
+                    .maxLines(1)
+                    // .textAlign(TextAlign.Center)
+                    .fontSize(12)
+                    .fontWeight(2)
+                    .width('100%')
+                    .fontColor($r('app.color.font4new_year'))
+                }.layoutWeight(1).alignItems(HorizontalAlign.Center).justifyContent(FlexAlign.Center)
+
+              }, (item: string) => item)
+            }
+            .gesture(
+              PanGesture(this.panOption)
+            )
+            .onClick(()=>{
+              focusControl.requestFocus('search');
             })
-            .onChange((value: string) => {
-              this.searchKeywords = value
-            })
-            .margin(0)
-            .backgroundBlurStyle(BlurStyle.Regular)
-            .shadow(ShadowStyle.OUTER_DEFAULT_SM)
-            .layoutWeight(1)
+            .padding({left:32,right:32})
+            .cachedCount(2)
+            .index(0)
+            .autoPlay(true)
+            .interval(4000)
+            .loop(true)
+            .duration(1000)
+            .itemSpace(0)
+            .curve(Curve.Linear)
+            .indicator(false)
+            .vertical(true)
+            .visibility(this.isSearch ? Visibility.Hidden : Visibility.Visible).layoutWeight(1)
+          }.layoutWeight(1).align(Alignment.Center)
+
 
           // 更多选项按钮
           Row() {
