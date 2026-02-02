@@ -727,6 +727,10 @@
     {
       "name": "pip_lyrics_type",
       "value": "画中画歌词类型"
+    },
+    {
+      "name": "sub_window_show_type",
+      "value": "多功能按钮展示方式"
     }
   ]
 }

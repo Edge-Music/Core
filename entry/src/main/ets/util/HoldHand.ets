@@ -35,7 +35,7 @@ export function startHoldingHand(context:UIContext){
           expected: 60,
         }
       }, () => {
-        AppStorage.setOrCreate('hand',0)
+        // AppStorage.setOrCreate('hand', 0)
       })
     },5000)
     AppStorage.setOrCreate('hand_timer',hand_timer)

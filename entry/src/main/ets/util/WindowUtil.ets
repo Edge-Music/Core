@@ -5,14 +5,18 @@ import { EventHelper } from './EventHelper';
 import { LogUtil, ToastUtil } from '@pura/harmony-utils';
 import { PreferencesCache } from './PreferenceCache';
 import { resourceManager } from '@kit.LocalizationKit';
+import { Setting } from '../view/Setting';
+import { StyleConstants } from '../constants/StyleConstants';
 
 const TAG = 'WindowUtil'
 class WindowUtil {
 
   private lyricsFloatWindow: window.Window | undefined = undefined
+  private windowStage: window.WindowStage | undefined = undefined
 
   loadContent(windowStage: window.WindowStage, page: string | undefined | null) {
     if(!windowStage) return
+    AppStorage.setOrCreate('windowStage', windowStage)
 
     windowStage.loadContent('pages/Index', (err) => {
       if (err.code) {
@@ -41,10 +45,13 @@ class WindowUtil {
           if (page){
             this.setPageJump(page)
           }
+          this.createMultiFuncSubWindow(windowStage)
         } catch (exception) {
           LogUtil.error(`[${TAG}]`, `Failed to set the visibility of window decor. Cause code: ${exception.code}, message: ${exception.message}`);
         }
       });
+    }).catch((err: BusinessError) => {
+      LogUtil.error(`[${TAG}]`, `Failed to get main window. Cause code: ${err.code}, message: ${err.message}`);
     })
 
   }
@@ -104,6 +111,7 @@ class WindowUtil {
     // 获取避让高度，存入AppStorage
     AppStorage.setOrCreate('topRect', uiContext.px2vp(windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM).topRect.height));
     AppStorage.setOrCreate('bottomRect', uiContext.px2vp(windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR).bottomRect.height));
+    LogUtil.info(`[${TAG}]`, ` ----------------- bottomRect: ${uiContext.px2vp(windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR).bottomRect.height)}`);
     // 刘海屏避让区
     AppStorage.setOrCreate('leftCutoutRectHeight', uiContext.px2vp(windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_CUTOUT).leftRect.height))
     AppStorage.setOrCreate('leftCutoutRectWidth', uiContext.px2vp(windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_CUTOUT).leftRect.width))
@@ -305,6 +313,64 @@ class WindowUtil {
       LogUtil.info(`[${TAG}]`, 'setWindowOrientation: ' + orientation + ' Succeeded.')
     }).catch((err: BusinessError) => {
       LogUtil.info(`[${TAG}]`, 'setWindowOrientation: ' + orientation + ' Failed. Cause: ' + JSON.stringify(err))
+    })
+  }
+
+  createMultiFuncSubWindow(windowStage: window.WindowStage) {
+    let subWindow: window.Window | null
+    try {
+      subWindow = window.findWindow('MultiFuncSubWindow')
+      if(subWindow) return
+    } catch (error) {
+      const sub_show_type = parseInt(PreferencesCache.getUserPreference('sub_window_show_type', '2'))
+      if(sub_show_type === 3) return
+      let settingData = PreferencesCache.multiFuncSubWindow(windowStage, 0)
+      const mainWindow = windowStage.getMainWindowSync()
+      windowStage.createSubWindow('MultiFuncSubWindow', (err, windowClass) => {
+        if(err.code > 0) {
+          LogUtil.error(`[${TAG}]`, `failed to create subWindow Cause: ${err.message}`)
+          return
+        }
+
+        try {
+          // 设置子窗口加载页
+          const uiContext = mainWindow.getUIContext()
+          windowClass.setUIContent('pages/MultiFuncSubWindow', () => {
+            windowClass.setWindowBackgroundColor('#00000000');
+          });
+          // 设置子窗口右下坐标
+          windowClass.moveWindowTo(settingData.x, settingData.y);
+          // 设置子窗口大小
+          windowClass.resize(uiContext.vp2px(StyleConstants.INIT_SUBWINDOW_SIZE), uiContext.vp2px(StyleConstants.INIT_SUBWINDOW_SIZE));
+          // 展示子窗口
+          windowClass.showWindow()
+          windowClass.setWindowFocusable(false)
+        } catch(err) {
+          LogUtil.error(`[${TAG}]`, `failed to create subWindow Cause:${err}`)
+        }
+      })
+    }
+
+  }
+
+  /**
+   * 聚焦到主窗口
+   * @param windowStage 窗口管理器
+   * @param windowName 子窗口名
+   */
+  changeFocus(windowStage: window.WindowStage, windowName: string) {
+    // 获取子窗口ID
+    let subWindowID: number = window.findWindow(windowName).getWindowProperties().id;
+    // 获取主窗口ID
+    let mainWindowID: number = windowStage.getMainWindowSync().getWindowProperties().id;
+    // 将焦点从子窗口转移到主窗口
+    window.shiftAppWindowFocus(subWindowID, mainWindowID);
+  }
+
+  destroyMultiFuncSubWindow(subWindow: window.Window | null): void {
+    if(!subWindow) return
+    subWindow.destroyWindow(() => {
+      LogUtil.info(`[${TAG}]`, 'Successfully destroyed the sub window.');
     })
   }
 

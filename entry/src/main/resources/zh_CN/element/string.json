@@ -727,6 +727,10 @@
     {
       "name": "landscape_mode",
       "value": "横屏模式"
+    },
+    {
+      "name": "sub_window_show_type",
+      "value": "多功能按钮展示方式"
     }
   ]
 }

@@ -131,4 +131,6 @@ export class StyleConstants {
    * The height of the Title component is 64.
    */
   static readonly TITLE_HEIGHT: number = 50;
+
+  static readonly INIT_SUBWINDOW_SIZE: number = 70;
 }
