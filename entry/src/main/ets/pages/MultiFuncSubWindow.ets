@@ -185,7 +185,7 @@ export struct MultiFuncSubWindow {
     LogUtil.info(`[${TAG}]`, `敲击了1下: ${pageStack.size()}`);
     if (pageStack.size() > 1) {
       pageStack.pop();
-      ToastUtil.showToast(`返回`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } })
+      ToastUtil.showToast(`返回`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/3 } })
       this.commonAction()
     }
   }
@@ -195,10 +195,10 @@ export struct MultiFuncSubWindow {
     this.isPlaying = !this.isPlaying
     if (this.isPlaying) {
       this.playerManager.play();
-      ToastUtil.showToast(`播放`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } })
+      ToastUtil.showToast(`播放`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/3 } })
     } else {
       this.playerManager.pause();
-      ToastUtil.showToast(`暂停`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } })
+      ToastUtil.showToast(`暂停`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/3 } })
     }
     this.commonAction()
   }
@@ -215,9 +215,9 @@ export struct MultiFuncSubWindow {
     }
     EventHelper.postFavoriteToggle("")
     if(this.isFavorite) {
-      ToastUtil.showToast(`取消收藏当前歌曲`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } })
+      ToastUtil.showToast(`取消收藏当前歌曲`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/3 } })
     } else {
-      ToastUtil.showToast(`收藏当前歌曲`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } })
+      ToastUtil.showToast(`收藏当前歌曲`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/3 } })
     }
     this.commonAction()
   }
@@ -227,7 +227,7 @@ export struct MultiFuncSubWindow {
     const prevSong = PlaylistManager.playPrevious();
     if (prevSong) {
       PlaylistManager.playSong(prevSong);
-      ToastUtil.showToast(`上一首`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } })
+      ToastUtil.showToast(`上一首`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/3 } })
       this.commonAction()
     }
     LogUtil.info(`[${TAG}]`, '向上运动了');
@@ -238,7 +238,7 @@ export struct MultiFuncSubWindow {
     const nextSong = PlaylistManager.playNext();
     if (nextSong) {
       PlaylistManager.playSong(nextSong);
-      ToastUtil.showToast(`下一首`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } })
+      ToastUtil.showToast(`下一首`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/3 } })
       this.commonAction()
     }
     LogUtil.info(`[${TAG}]`, '向下运动了');
@@ -270,19 +270,19 @@ export struct MultiFuncSubWindow {
   playModeChange() {
     switch (this.playMode) {
       case 0:
-        ToastUtil.showToast(`顺序播放`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } })
+        ToastUtil.showToast(`顺序播放`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/3 } })
         break
       case 1:
-        ToastUtil.showToast(`单曲循环`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } })
+        ToastUtil.showToast(`单曲循环`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/3 } })
         break
       case 2:
-        ToastUtil.showToast(`列表循环`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } })
+        ToastUtil.showToast(`列表循环`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/3 } })
         break
       case 3:
-        ToastUtil.showToast(`随机播放`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } })
+        ToastUtil.showToast(`随机播放`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/3 } })
         break
       default :
-        ToastUtil.showToast(`顺序播放`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/4 } })
+        ToastUtil.showToast(`顺序播放`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/3 } })
     }
   }
 }
