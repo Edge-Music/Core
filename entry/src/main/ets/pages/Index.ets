@@ -358,8 +358,8 @@ struct Index_page {
     componentTag: TAG
   }).linkController(this.scroller)
   // 诗人握持定时器及类型判断
-  @StorageProp('hand') hand:number = 0
-  @StorageProp('hand_timer')  hand_timer:number = 0
+  @StorageProp('hand') hand: number = 0
+  @StorageProp('hand_timer')  hand_timer: number = 0
   // 隐私协议弹窗控制器
   private privacyDialogController: CustomDialogController | null = new CustomDialogController({
     builder: PrivacyPolicyDialog({
@@ -717,32 +717,33 @@ struct Index_page {
             .width(StyleConstants.FULL_WIDTH)
             .height(StyleConstants.FULL_HEIGHT)
             .zIndex(0)
-            if (this.hand===1||this.hand===2){
-              Column(){
-                HandingCtrl({on_Click:()=>{
-                  //点击操作触发重置消失定时器
-                  clearInterval(this.hand_timer)
-                  console.log('jizhishidebug_clear')
-                  this.hand_timer = setInterval(()=>{
-                    this.getUIContext().animateTo({
-                      duration: 200,
-                      curve: Curve.Friction,
-                      // delay: 500,
-                      // iterations: -1, // 设置-1表示动画无限循环
-                      playMode: PlayMode.Alternate,
-                      expectedFrameRateRange: {
-                        min: 10,
-                        max: 120,
-                        expected: 60,
-                      }
-                    }, () => {
-                      this.hand = 0
-                    })
-                  },5000)
-                }})
 
-              }.margin(36)
-            }
+            // if (this.hand===1||this.hand===2){
+            //   Column(){
+            //     HandingCtrl({on_Click:()=>{
+            //       //点击操作触发重置消失定时器
+            //       clearInterval(this.hand_timer)
+            //       console.log('jizhishidebug_clear')
+            //       this.hand_timer = setInterval(()=>{
+            //         this.getUIContext().animateTo({
+            //           duration: 200,
+            //           curve: Curve.Friction,
+            //           // delay: 500,
+            //           // iterations: -1, // 设置-1表示动画无限循环
+            //           playMode: PlayMode.Alternate,
+            //           expectedFrameRateRange: {
+            //             min: 10,
+            //             max: 120,
+            //             expected: 60,
+            //           }
+            //         }, () => {
+            //           // this.hand = 0
+            //         })
+            //       },5000)
+            //     }})
+            //
+            //   }.margin(36)
+            // }
 
           }
 
@@ -844,7 +845,7 @@ struct Index_page {
         if (canIUse("SystemCapability.MultimodalAwareness.Motion")) {
           // motion.off('holdingHandChanged');
           import('../util/HoldHand').then((nv)=>{
-            nv.stopHoldingHand()
+            // nv.stopHoldingHand()
           })
         } else {
 

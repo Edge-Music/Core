@@ -67,6 +67,8 @@ export struct Playing4Landscape {
   @Local FontSize4Theme3: number = 100
   // @Local Timer4Theme3ctrl: number = 0
   @Local showSongCtrl4Theme3: boolean = false
+
+  @Local windowStage: window.WindowStage = AppStorage.get('windowStage') as window.WindowStage
   //主题4配置
   private  textTimerController: TextTimerController = new TextTimerController();
   //音频播放相关状态及控制
@@ -87,7 +89,7 @@ export struct Playing4Landscape {
     fontCollection.loadFontSync('yxs7', $rawfile('HarmonyClock_07.ttf'))
     fontCollection.loadFontSync('yxs8', $rawfile('HarmonyClock_08.ttf'))
     // 获取屏幕的宽高
-    window.getLastWindow(context.getHostContext())
+    this.windowStage.getMainWindow()
       .then((windowClass: window.Window) => {
         let windowProperties = windowClass.getWindowProperties();
         this.screenWidth = context.px2vp(windowProperties.windowRect.width);

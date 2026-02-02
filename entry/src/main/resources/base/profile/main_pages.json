@@ -1,6 +1,7 @@
 {
   "src": [
     "pages/Index",
-    "pages/FloatLyrics"
+    "pages/FloatLyrics",
+    "pages/MultiFuncSubWindow"
   ]
 }

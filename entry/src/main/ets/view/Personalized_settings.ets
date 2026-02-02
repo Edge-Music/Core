@@ -2,11 +2,13 @@ import { PreferencesCache } from "../util/PreferenceCache";
 import ResourceManager from "../util/ResourceManager";
 import { PipManager } from '../util/PipManager';
 import { deviceInfo } from "@kit.BasicServicesKit";
-import { ItemRestriction, SegmentButton, SegmentButtonOptions, SegmentButtonTextItem } from "@kit.ArkUI";
+import { ItemRestriction, SegmentButton, SegmentButtonOptions, SegmentButtonTextItem, window } from "@kit.ArkUI";
 import { notificationManager } from "@kit.NotificationKit";
 import { common } from "@kit.AbilityKit";
 import { hilog } from "@kit.PerformanceAnalysisKit";
 import { sensor } from "@kit.SensorServiceKit";
+import WindowUtil from "../util/WindowUtil";
+import { AppUtil } from "@pura/harmony-utils";
 
 @Component
   //'0'关。'1'开。!!!!(开关颜色日后调)
@@ -16,7 +18,9 @@ export struct Personalized_settings_Component {
   // 右侧组件类型：0-Toggle 1-Segment
   @State componentType: number = 0
   @State lyricTypeIndex: number[] = []
+  @State subWindowIndex: number[] = []
   private text_ctrl: string = PreferencesCache.getUserPreference(this.setUserPreference_name)
+  private windowStage: window.WindowStage = AppUtil.getWindowStage()
 
   @State lyricsTypeOptions: SegmentButtonOptions = SegmentButtonOptions.tab({
     buttons: [{ text: '原词' }, { text: '翻译' }, { text: '罗马音' }] as ItemRestriction<SegmentButtonTextItem>,
@@ -26,8 +30,17 @@ export struct Personalized_settings_Component {
     selectedFontSize: 12
   })
 
+  @State subWindowOptions: SegmentButtonOptions = SegmentButtonOptions.tab({
+    buttons: [{ text: '左手' }, { text: '适人' }, { text: '右手' }, { text: '关闭' }] as ItemRestriction<SegmentButtonTextItem>,
+    backgroundBlurStyle: BlurStyle.BACKGROUND_REGULAR,
+    selectedBackgroundColor: $r('app.color.title_emphasis_color'),
+    fontSize: 12,
+    selectedFontSize: 12
+  })
+
   aboutToAppear(): void {
-    this.lyricTypeIndex = [parseInt(PreferencesCache.getUserPreference(this.setUserPreference_name, '0'))]
+    this.lyricTypeIndex = [parseInt(PreferencesCache.getUserPreference('pip_lyrics_type', '0'))]
+    this.subWindowIndex = [parseInt(PreferencesCache.getUserPreference('sub_window_show_type', '2'))]
   }
 
   build() {
@@ -55,7 +68,26 @@ export struct Personalized_settings_Component {
             AppStorage.setOrCreate(this.setUserPreference_name, data)
           }
         })
-          .visibility(this.componentType === 1 ? Visibility.Visible : Visibility.None)
+          .visibility(this.componentType === 1 && this.setUserPreference_name == 'pip_lyrics_type' ? Visibility.Visible : Visibility.None)
+          .width(180)
+          .margin({right:6})
+
+        SegmentButton({
+          options: this.subWindowOptions,
+          selectedIndexes: this.subWindowIndex,
+          onItemClicked:(data: number)=>{
+            this.lyricTypeIndex = [data]
+            PreferencesCache.setUserPreference(this.setUserPreference_name, `${data}`)
+            AppStorage.setOrCreate(this.setUserPreference_name, data)
+            if(data === 3) {
+              const subWindow: window.Window = window.findWindow('MultiFuncSubWindow')
+              WindowUtil.destroyMultiFuncSubWindow(subWindow)
+            } else {
+              WindowUtil.createMultiFuncSubWindow(this.windowStage)
+            }
+          }
+        })
+          .visibility(this.componentType === 1 && this.setUserPreference_name == 'sub_window_show_type' ? Visibility.Visible : Visibility.None)
           .width(180)
           .margin({right:6})
       }
@@ -189,6 +221,7 @@ export struct Personalized_settings{
             }
             }
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.pip_lyrics_type')), setUserPreference_name:'pip_lyrics_type', componentType: 1})}
+          ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.sub_window_show_type')), setUserPreference_name:'sub_window_show_type', componentType: 1})}
 
           ListItem(){ Column().height(16+this.bottomRect/2)}
         }

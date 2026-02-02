@@ -314,7 +314,7 @@ class LyricsManager {
   }
 
   setPipLyrics() {
-    const lyricsType = parseInt(PreferencesCache.getUserPreference('pip_lyrics_type'))
+    const lyricsType = parseInt(PreferencesCache.getUserPreference('pip_lyrics_type', '0'))
     switch (lyricsType) {
       case 0:
         AppStorage.setOrCreate<string>('test_index', this.parsedLyrics[this.currentIndex].text)
