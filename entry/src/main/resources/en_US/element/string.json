@@ -727,6 +727,10 @@
     {
       "name": "pip_lyrics_type",
       "value": "PIP Lyrics Type"
+    },
+    {
+      "name": "sub_window_show_type",
+      "value": "Multi Btn Show Type"
     }
   ]
 }

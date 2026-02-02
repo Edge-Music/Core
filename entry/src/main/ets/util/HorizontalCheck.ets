@@ -25,7 +25,7 @@ export function isHorizontalMode(): boolean {
   if(deviceTypeInfo=='tablet'||deviceTypeInfo=='2in1') {
     isHorizontalMode = false;
   }
-  if(productSeries=='VDE'||productSeries=='LEM') {
+  if(productSeries=='VDE'||productSeries=='LEM'||productSeries=='emulator') {
     isHorizontalMode = true;
   }
   return isHorizontalMode;

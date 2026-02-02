@@ -126,7 +126,6 @@ export default class EntryAbility extends UIAbility {
   async onWindowStageCreate(windowStage: window.WindowStage): Promise<void> {
     LogUtil.info(`[${TAG}]`, 'Ability onWindowStageCreate');
     WindowUtil.loadContent(windowStage, this.page);
-
   }
 
   onWindowStageWillDestroy(windowStage: window.WindowStage){
@@ -143,6 +142,12 @@ export default class EntryAbility extends UIAbility {
   onForeground(): void {
     // Ability has brought to foreground
     LogUtil.info(`[${TAG}]`, 'Ability onForeground');
+    if (canIUse("SystemCapability.MultimodalAwareness.Motion")) {
+      // motion.off('holdingHandChanged');
+      import('../util/HoldHand').then((nv)=>{
+        nv.stopHoldingHand()
+      })
+    }
   }
 
   onBackground(): void {

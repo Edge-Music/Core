@@ -1,6 +1,7 @@
 import { Artist, ID, Playlist, Song, SourceConfig } from "../type/Adapter";
-import { LogUtil, PreferencesUtil, ToastUtil } from '@pura/harmony-utils';
-import { display } from "@kit.ArkUI";
+import { AppUtil, LogUtil, PreferencesUtil, ToastUtil } from '@pura/harmony-utils';
+import { display, window } from "@kit.ArkUI";
+import WindowUtil from "./WindowUtil";
 
 // 比特率类型
 export type BitrateType = 128000 | 192000 | 320000 | 350000 | 999000 | number;
@@ -25,6 +26,11 @@ export interface SBLyricsPre{
   fontColor: Color | ResourceColor,
   showShadow: boolean,
   cornerRadius: number
+}
+
+export interface SubWindowPosition {
+  x: number;
+  y: number;
 }
 
 export const qualityLevels: QualityLevel[] = [
@@ -589,7 +595,7 @@ export class PreferencesCache {
     if (value !== undefined) {
       PreferencesCache.setUserPreference('status_bar_lyrics_setting',JSON.stringify(value));
     }
-    let output  = PreferencesCache.getUserPreference('status_bar_lyrics_setting')
+    let output = PreferencesCache.getUserPreference('status_bar_lyrics_setting')
     if (!output){
       const data: SBLyricsPre = {
         open: false,
@@ -611,5 +617,49 @@ export class PreferencesCache {
       AppStorage.setOrCreate('status_bar_lyrics_setting', JSON.parse(output) as SBLyricsPre)
     }
     return JSON.parse(output) as SBLyricsPre
+  }
+
+  /**
+   * 多功能子窗口设置
+   */
+  static multiFuncSubWindow(windowStage: window.WindowStage, hand: number, value?: SubWindowPosition): SubWindowPosition {
+    if (value !== undefined) {
+      PreferencesCache.setUserPreference('multi_func_sub_window_setting',JSON.stringify(value));
+    }
+    const uiContext = windowStage.getMainWindowSync().getUIContext()
+    let output = PreferencesCache.getUserPreference('multi_func_sub_window_setting')
+    const winWidth = AppStorage.get('winWidthWithPx') as number
+    const winHeight = AppStorage.get('winHeightWithPx') as number
+    const bottomRect = AppStorage.get('bottomRect') as number
+    const bottom_judge = AppStorage.get('bottom_judge') as string
+    const sub_show_type = parseInt(PreferencesCache.getUserPreference('sub_window_show_type', '2'))
+    let subX: number = 0.66
+    switch (sub_show_type) {
+      case 0:
+        subX = 0.16
+        break
+      case 1:
+        subX = hand === 1 ? 0.16 : 0.66
+        break
+      case 2:
+        subX = 0.66
+        break
+      default :
+        subX = 0.66
+    }
+    let delta = bottom_judge == '0' ? uiContext.vp2px(14) : -uiContext.vp2px(14)
+    delta = bottomRect === 0 ? delta + uiContext.vp2px(15) : delta
+    if(!output) {
+    }
+
+    const data: SubWindowPosition = {
+      x: winWidth * subX,
+      y: winHeight * 0.25 < uiContext.vp2px(150) ? winHeight - uiContext.vp2px(155) + delta : winHeight * 0.75
+    }
+    PreferencesCache.setUserPreference('multi_func_sub_window_setting',JSON.stringify(data));
+    output = JSON.stringify(data)
+    AppStorage.setOrCreate('multi_func_sub_window_setting', data)
+
+    return JSON.parse(output) as SubWindowPosition
   }
 }
