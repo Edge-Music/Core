@@ -83,10 +83,11 @@ export struct Personalized_settings_Component {
               const subWindow: window.Window = window.findWindow('MultiFuncSubWindow')
               WindowUtil.destroyMultiFuncSubWindow(subWindow)
             } else {
-              WindowUtil.createMultiFuncSubWindow(this.windowStage)
-              const subWindow: window.Window = window.findWindow('MultiFuncSubWindow')
-              let settingData = PreferencesCache.multiFuncSubWindow(this.windowStage, 0)
-              subWindow.moveWindowTo(settingData.x, settingData.y);
+              WindowUtil.createMultiFuncSubWindow(this.windowStage).then(() => {
+                const subWindow: window.Window = window.findWindow('MultiFuncSubWindow')
+                let settingData = PreferencesCache.multiFuncSubWindow(this.windowStage, 0)
+                subWindow.moveWindowTo(settingData.x, settingData.y);
+              })
             }
           }
         })

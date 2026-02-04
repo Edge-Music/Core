@@ -120,7 +120,7 @@ struct Playing {
   @State P_X: number =0
   @State netok: boolean = false
   @State landscapeMode: boolean = false
-  @State subWindow: window.Window = window.findWindow('MultiFuncSubWindow')
+  @State subWindow: window.Window | undefined = undefined
 
   //TAB,swiper控制
   private controller: TabsController = new TabsController()
@@ -795,7 +795,12 @@ struct Playing {
   }
 
   async aboutToAppear() {
-    WindowUtil.destroyMultiFuncSubWindow(this.subWindow)
+    try {
+      this.subWindow = window.findWindow('MultiFuncSubWindow')
+      WindowUtil.destroyMultiFuncSubWindow(this.subWindow)
+    } catch (error) {
+      LogUtil.info(`${TAG}`, `无事发生: ${error}`)
+    }
     const player = await avPlayerManager.getAVPlayerInstance()
     this.Playing_Next = isHorizontalMode()
     // 初始化当前时间和持续时间
