@@ -31,7 +31,7 @@ export struct MultiFuncSubWindow {
 
   @StorageProp('winWidthWithPx') @Watch('onWinWidthChange') winWidthWithPx: number = 0
   @StorageProp('winHeightWithPx') @Watch('onWinWidthChange') winHeightWithPx: number = 0
-  @StorageProp('sub_window_show_type') @Watch('onWinWidthChange') subShowType: number = 0
+  @StorageProp('sub_window_show_type') @Watch('onHandChange') subShowType: number = parseInt(PreferencesCache.getUserPreference('sub_window_show_type', '2'))
   @StorageProp("current_playing_song") song: Song | null = null
   @StorageProp('winHeight') winHeight: number = 0
   @StorageProp('hand') @Watch('onHandChange')  hand: number = 0
@@ -291,8 +291,22 @@ export struct MultiFuncSubWindow {
   }
 
   onHandChange() {
-    let settingData = PreferencesCache.multiFuncSubWindow(this.windowStage, this.hand)
-    this.subWindow.moveWindowTo(settingData.x, settingData.y);
+    if(this.subShowType === 1) {
+      this.uiContext?.animateTo({
+        duration: 500,
+        onFinish: () => {
+          let settingData = PreferencesCache.multiFuncSubWindow(this.windowStage, this.hand)
+          this.subWindow.moveWindowTo(settingData.x, settingData.y);
+          this.btnOpacity = 1
+        }
+      }, () => {
+        this.btnOpacity = 0
+      })
+    } else {
+      let settingData = PreferencesCache.multiFuncSubWindow(this.windowStage, this.hand)
+      this.subWindow.moveWindowTo(settingData.x, settingData.y);
+      this.btnOpacity = 1
+    }
     this.commonAction()
   }
 
