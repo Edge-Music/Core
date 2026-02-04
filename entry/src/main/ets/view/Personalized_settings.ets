@@ -31,7 +31,7 @@ export struct Personalized_settings_Component {
   })
 
   @State subWindowOptions: SegmentButtonOptions = SegmentButtonOptions.tab({
-    buttons: [{ text: '左手' }, { text: '适人' }, { text: '右手' }, { text: '关闭' }] as ItemRestriction<SegmentButtonTextItem>,
+    buttons: [{ text: '左手' }, { text: '智感' }, { text: '右手' }, { text: '关闭' }] as ItemRestriction<SegmentButtonTextItem>,
     backgroundBlurStyle: BlurStyle.BACKGROUND_REGULAR,
     selectedBackgroundColor: $r('app.color.title_emphasis_color'),
     fontSize: 12,
