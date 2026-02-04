@@ -1,3 +1,4 @@
+import { LogUtil } from "@pura/harmony-utils";
 import { StyleConstants } from "../constants/StyleConstants"
 
 @Component
@@ -6,6 +7,10 @@ export struct HeaderPlaceholder {
   @StorageProp('decorHeight') decorHeight: number = 0
 
   @Prop offsetY: number = 0
+
+  aboutToAppear(): void {
+    LogUtil.info(`[HeaderPlaceholder]`, ` ----------------- DecorHeight: ${this.decorHeight}, ${this.topRect}`);
+  }
 
   build() {
     ListItem() {
