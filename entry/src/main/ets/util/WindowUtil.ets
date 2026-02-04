@@ -75,7 +75,7 @@ class WindowUtil {
       AppStorage.setOrCreate('winHeightWithPx', windowSize.height);
       if(canIUse('SystemCapability.Window.SessionManager')){
         let height = windowClass.getWindowDecorHeight();
-        AppStorage.setOrCreate('decorHeight', uiContext.px2vp(height));
+        AppStorage.setOrCreate('decorHeight', height);
       }
       LogUtil.info(`[${TAG}]`, `width: ${windowSize.width}, height: ${windowSize.height}, width/height: ${windowSize.width/windowSize.height} height/width: ${windowSize.height/windowSize.width}`);
       LogUtil.info(`[${TAG}]`, `width: ${uiContext.px2vp(windowSize.width)}, height: ${uiContext.px2vp(windowSize.height)}, width/height: ${uiContext.px2vp(windowSize.width)/uiContext.px2vp(windowSize.height)}`);
@@ -111,7 +111,6 @@ class WindowUtil {
     // 获取避让高度，存入AppStorage
     AppStorage.setOrCreate('topRect', uiContext.px2vp(windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM).topRect.height));
     AppStorage.setOrCreate('bottomRect', uiContext.px2vp(windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR).bottomRect.height));
-    LogUtil.info(`[${TAG}]`, ` ----------------- bottomRect: ${uiContext.px2vp(windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR).bottomRect.height)}`);
     // 刘海屏避让区
     AppStorage.setOrCreate('leftCutoutRectHeight', uiContext.px2vp(windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_CUTOUT).leftRect.height))
     AppStorage.setOrCreate('leftCutoutRectWidth', uiContext.px2vp(windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_CUTOUT).leftRect.width))
@@ -120,7 +119,7 @@ class WindowUtil {
     if(canIUse('SystemCapability.Window.SessionManager')){
       windowClass.setWindowDecorVisible(false);
       let height = windowClass.getWindowDecorHeight();
-      AppStorage.setOrCreate('decorHeight', uiContext.px2vp(height));
+      AppStorage.setOrCreate('decorHeight', height);
     }
 
     LogUtil.info(`[${TAG}]`, 'Succeeded in initting window properties.');
@@ -316,7 +315,7 @@ class WindowUtil {
     })
   }
 
-  createMultiFuncSubWindow(windowStage: window.WindowStage) {
+  async createMultiFuncSubWindow(windowStage: window.WindowStage): Promise<void> {
     let subWindow: window.Window | null
     try {
       subWindow = window.findWindow('MultiFuncSubWindow')
@@ -342,6 +341,7 @@ class WindowUtil {
           windowClass.moveWindowTo(settingData.x, settingData.y);
           // 设置子窗口大小
           windowClass.resize(uiContext.vp2px(StyleConstants.INIT_SUBWINDOW_SIZE), uiContext.vp2px(StyleConstants.INIT_SUBWINDOW_SIZE));
+          windowClass.setWindowShadowRadius(0)
           // 展示子窗口
           windowClass.showWindow()
           windowClass.setWindowFocusable(false)
