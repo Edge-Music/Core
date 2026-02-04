@@ -279,9 +279,9 @@ export struct SBLyricsSetting{
                     .fontWeight(FontWeight.Medium)
                   Blank()
                   Slider({
-                    value:this.settingData.cornerRadius,
+                    value: this.settingData.cornerRadius,
                     min: 0,
-                    max: 16,
+                    max: this.settingData.lines === 0 ? 16 : 32,
                     step: 1,
                     style: SliderStyle.InSet
                   })
