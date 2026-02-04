@@ -8,6 +8,9 @@ import { EventHelper } from "../util/EventHelper"
 import { PlaylistManager } from "../util/PlaylistManager"
 import { PreferencesCache } from "../util/PreferenceCache"
 import WindowUtil from "../util/WindowUtil"
+import { audio } from "@kit.AudioKit"
+import { BottomBuilderParams } from "@kit.UIDesignKit"
+import { ScrollController } from "../util/ScrollController"
 
 
 const TAG = 'MultiFuncSubWindow'
@@ -16,8 +19,8 @@ const TAG = 'MultiFuncSubWindow'
 @Component
 export struct MultiFuncSubWindow {
 
+  @State startX: number = 0
   @State startY: number = 0
-  @State totalDeltaY: number = 0
   @State offsetX: number = 0
   @State offsetY: number = 0
   @State btnOpacity: number = 0.5
@@ -83,99 +86,115 @@ export struct MultiFuncSubWindow {
         .backgroundColor('#66666666')
         .border({ width: 2, color: '#66aaaaaa', radius: 22.5 })
 
-      Image($r('app.media.circle'))
-        .width(30)
-        .height(30)
-        .fillColor(Color.White)
-        .translate({ x: this.offsetX, y: this.offsetY })
-        .draggable(false)
+      Row() {
+        Image($r('app.media.circle'))
+          .width(30)
+          .height(30)
+          .draggable(false)
+          .fillColor(Color.White)
+          .translate({ x: this.offsetX, y: this.offsetY })
+      }
+      .width(45)
+      .height(45)
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+      .clickEffect({ level: ClickEffectLevel.LIGHT, scale: 0.75 })
+      .gesture(
+        GestureGroup(GestureMode.Exclusive,
+          // 拖动手势
+          PanGesture()
+            .onActionStart((event: GestureEvent) => {
+              this.startX = event.offsetX // 记录拖动开始位置
+              this.startY = event.offsetY // 记录拖动开始位置
+            })
+            .onActionUpdate((event: GestureEvent) => {
+
+              const speedFactor = 0.05
+              let newX = this.offsetX + event.offsetX * speedFactor
+              let newY = this.offsetY + event.offsetY * speedFactor
+              // 计算当前拖动距离（基于缩放后的坐标）
+              const distance = Math.sqrt(newX * newX + newY * newY)
+              // 当距离超过10时进行比例缩放
+              if (distance > 20) {
+                const scale = 20 / distance
+                newX *= scale
+                newY *= scale
+              }
+              this.offsetX = newX
+              this.offsetY = newY
+            })
+            .onActionEnd((event: GestureEvent) => {
+              this.uiContext?.animateTo({ duration: 600, curve: curves.springCurve(1, 1, 100, 18) }, () => {
+                this.offsetX = 0
+                this.offsetY = 0
+              })
+
+              // 检测垂直拖动方向
+              let deltaY = this.startY - event.offsetY
+              if (Math.abs(deltaY) > 50) {
+                if (deltaY < 0) {
+                  this.handleSwipeDown()
+                } else {
+                  this.handleSwipeUp()
+                }
+              }
+
+              let deltaX = this.startX - event.offsetX
+              if (Math.abs(deltaX) > 30) {
+                if (deltaX < 0) {
+                  this.handleSwipeRight()
+                } else {
+                  this.handleSwipeLeft()
+                }
+              }
+
+              WindowUtil.changeFocus(this.windowStage, 'MultiFuncSubWindow')
+              this.commonAction()
+            }),
+
+          // 长按手势
+          LongPressGesture({ duration: 1000 })
+            .onAction((event: GestureEvent) => {
+              LogUtil.info(`[${TAG}]`, '长按了1秒');
+              this.handleLongTap()
+            })
+            .onActionEnd(() => {
+              WindowUtil.changeFocus(this.windowStage, 'MultiFuncSubWindow')
+              this.commonAction()
+            }),
+
+          // 三击手势
+          TapGesture({ count: 3 })
+            .onAction(() => {
+              this.handleTripleTap()
+              LogUtil.info(`[${TAG}]`, '敲击了3下');
+              WindowUtil.changeFocus(this.windowStage, 'MultiFuncSubWindow')
+            }),
+
+          // 双击手势
+          TapGesture({ count: 2 })
+            .onAction(() => {
+              this.handleDoubleTap()
+              LogUtil.info(`[${TAG}]`, '敲击了2下');
+              WindowUtil.changeFocus(this.windowStage, 'MultiFuncSubWindow')
+            }),
+          // 单击手势
+          TapGesture({ count: 1 })
+            .onAction((event: GestureEvent) => {
+              this.handleSingleTap()
+              WindowUtil.changeFocus(this.windowStage, 'MultiFuncSubWindow')
+            })
+        )
+      )
+      .onTouch((event: TouchEvent) => {
+        if(event.type === TouchType.Down) {
+          this.btnOpacity = 1
+        }
+      })
     }
     .height(70)
     .width(70)
     .opacity(this.btnOpacity)
-    .gesture(
-      GestureGroup(GestureMode.Exclusive,
-        // 拖动手势
-        PanGesture()
-          .onActionStart(() => {
-            this.startY = this.offsetY // 记录拖动开始位置
-            this.totalDeltaY = 0       // 初始化总拖动距离
-          })
-          .onActionUpdate((event: GestureEvent) => {
-
-            const speedFactor = 0.05
-            let newX = this.offsetX + event.offsetX * speedFactor
-            let newY = this.offsetY + event.offsetY * speedFactor
-            // 计算当前拖动距离（基于缩放后的坐标）
-            const distance = Math.sqrt(newX * newX + newY * newY)
-            // 当距离超过10时进行比例缩放
-            if (distance > 20) {
-              const scale = 20 / distance
-              newX *= scale
-              newY *= scale
-            }
-            this.offsetX = newX
-            this.offsetY = newY
-
-            // 累计垂直方向拖动距离
-            this.totalDeltaY += event.offsetY * speedFactor
-          })
-          .onActionEnd(() => {
-            this.uiContext?.animateTo({ duration: 600, curve: curves.springCurve(1, 1, 100, 18) }, () => {
-              this.offsetX = 0
-              this.offsetY = 0
-            })
-
-            // 检测垂直拖动方向
-            if (Math.abs(this.totalDeltaY) > 50) {
-              if (this.totalDeltaY > 0) {
-                this.handleSwipeDown()
-              } else {
-                this.handleSwipeUp()
-              }
-            }
-
-            WindowUtil.changeFocus(this.windowStage, 'MultiFuncSubWindow')
-            this.btnOpacity = 1
-          }),
-
-        // 长按手势
-        LongPressGesture({ duration: 1000 })
-          .onAction((event: GestureEvent) => {
-            LogUtil.info(`[${TAG}]`, '长按了1秒');
-            this.handleLongTap()
-          })
-          .onActionEnd(() => {
-            WindowUtil.changeFocus(this.windowStage, 'MultiFuncSubWindow')
-            this.btnOpacity = 1
-          }),
-
-        // 三击手势
-        TapGesture({ count: 3 })
-          .onAction(() => {
-            this.handleTripleTap()
-            LogUtil.info(`[${TAG}]`, '敲击了3下');
-            WindowUtil.changeFocus(this.windowStage, 'MultiFuncSubWindow')
-            this.btnOpacity = 1
-          }),
-
-          // 双击手势
-        TapGesture({ count: 2 })
-          .onAction(() => {
-            this.handleDoubleTap()
-            LogUtil.info(`[${TAG}]`, '敲击了2下');
-            WindowUtil.changeFocus(this.windowStage, 'MultiFuncSubWindow')
-            this.btnOpacity = 1
-          }),
-          // 单击手势
-        TapGesture({ count: 1 })
-          .onAction(() => {
-            this.handleSingleTap()
-            WindowUtil.changeFocus(this.windowStage, 'MultiFuncSubWindow')
-            this.btnOpacity = 1
-          })
-      )
-    )
 
   }
 
@@ -186,8 +205,8 @@ export struct MultiFuncSubWindow {
     if (pageStack.size() > 1) {
       pageStack.pop();
       ToastUtil.showToast(`返回`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/3 } })
-      this.commonAction()
     }
+    this.commonAction()
   }
 
   handleDoubleTap() {
@@ -206,10 +225,11 @@ export struct MultiFuncSubWindow {
   handleTripleTap() {
     PlaylistManager.switchPlayMode();
     VibrationControl.handlePresetVibration(3)
+    this.commonAction()
   }
 
   handleLongTap() {
-    VibrationControl.handlePresetVibration(4)
+    VibrationControl.handlePresetVibration(1)
     if (this.song) {
       SourceAdapter.likeSong(this.song, !this.isFavorite)
     }
@@ -219,7 +239,7 @@ export struct MultiFuncSubWindow {
     } else {
       ToastUtil.showToast(`收藏当前歌曲`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/3 } })
     }
-    this.commonAction()
+
   }
 
   handleSwipeUp() {
@@ -228,8 +248,8 @@ export struct MultiFuncSubWindow {
     if (prevSong) {
       PlaylistManager.playSong(prevSong);
       ToastUtil.showToast(`上一首`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/3 } })
-      this.commonAction()
     }
+    this.commonAction()
     LogUtil.info(`[${TAG}]`, '向上运动了');
   }
 
@@ -239,9 +259,29 @@ export struct MultiFuncSubWindow {
     if (nextSong) {
       PlaylistManager.playSong(nextSong);
       ToastUtil.showToast(`下一首`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/3 } })
-      this.commonAction()
     }
+    this.commonAction()
     LogUtil.info(`[${TAG}]`, '向下运动了');
+  }
+
+  handleSwipeLeft() {
+    VibrationControl.handlePresetVibration(1)
+    let volume: number = Number(PreferencesCache.getUserPreference('Volume','100'))
+    let result: number = Math.max(volume-10, 0)
+    avPlayerManager.avPlayer?.setVolume(result/100)
+    PreferencesCache.setUserPreference('Volume', result.toString())
+    ToastUtil.showToast(`当前音量：${result}`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/3 } })
+    LogUtil.info(`[${TAG}]`, `当前音量：${volume}，调整后音量：${result}`);
+  }
+
+  handleSwipeRight() {
+    VibrationControl.handlePresetVibration(1)
+    let volume: number = Number(PreferencesCache.getUserPreference('Volume','100'))
+    let result: number = Math.min(volume+10, 100)
+    avPlayerManager.avPlayer?.setVolume(result/100)
+    PreferencesCache.setUserPreference('Volume', result.toString())
+    ToastUtil.showToast(`当前音量：${result}`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/3 } })
+    LogUtil.info(`[${TAG}]`, `当前音量：${volume}，调整后音量：${result}`);
   }
 
   onWinWidthChange() {
@@ -257,14 +297,16 @@ export struct MultiFuncSubWindow {
   }
 
   commonAction() {
-    if(this.timerId != -1) {
-      clearTimeout(this.timerId)
+    // 如果存在未完成的定时器，先清除
+    if (this.timerId !== -1) {
+      clearTimeout(this.timerId);
     }
-    this.timerId = setTimeout(() => {
-      this.btnOpacity = 0.5
-      this.timerId = -1
-    }, 3000)
 
+    // 创建新定时器并记录ID
+    this.timerId = setTimeout(() => {
+      this.btnOpacity = 0.5;
+      this.timerId = -1; // 执行完毕后重置ID
+    }, 3000);
   }
 
   playModeChange() {

@@ -99,7 +99,7 @@ export struct FloatingLyrics {
       .enableScrollInteraction(false)
       .scrollBar(BarState.Off)
     }
-    .padding(4)
+    .padding({ top: 4, bottom: 4 })
     .backdropBlur(this.floatLyricStyle.transparency*100)
     .backgroundColor(`rgba(255, 255, 255, ${this.floatLyricStyle.transparency})`)
     .height(this.floatLyricStyle.lines === 0 ? this.floatLyricStyle.fontSize+8 : this.floatLyricStyle.fontSize*2+16)
