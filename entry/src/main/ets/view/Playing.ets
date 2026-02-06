@@ -1053,17 +1053,18 @@ struct Playing {
   PlayerControls(judge: boolean = true) {
     Row() {
       // Shuffle/repeat button (Left)
-      if(judge){ Button({ type: ButtonType.Circle }) {
-        Image(this.getPlayModeResource(this.playMode))
-          .width(22)
-          .height(22)
-          .fillColor(Color.White)
-          .animation({
-            duration: 300,
-            curve: Curve.EaseOut,
-            iterations: 1,
-            playMode: PlayMode.Normal
-          })
+      if(judge){
+        Button({ type: ButtonType.Circle }) {
+          Image(this.getPlayModeResource(this.playMode))
+            .width(22)
+            .height(22)
+            .fillColor(Color.White)
+            .animation({
+              duration: 300,
+              curve: Curve.EaseOut,
+              iterations: 1,
+              playMode: PlayMode.Normal
+            })
       }
       .width(this.smallButtonSize)
       .height(this.smallButtonSize)
@@ -1689,20 +1690,14 @@ struct Playing {
 
         Column(){
           Image(cover(this.song?.album?.cover ?? "", 512))
-            // .width(this.coverWidth.getValue(this.currentBreakpoint))
             .aspectRatio(1)
             .borderRadius(24)
-              // .geometryTransition("picture", { follow: false })
-            .transition(TransitionEffect.OPACITY)
-              // .geometryTransition('song-cover', { follow: true })
             .transition(TransitionEffect.OPACITY)
             .onClick(() => {
               if (!this.isWideScreen) {
                 this.controller.changeIndex(1)
               }
             }) //点击图片切换到歌词页面
-
-            .borderRadius(this.img_playing_ctrl==='1'?0:24)
             .gesture(
               PanGesture({ direction: PanDirection.Horizontal })
                 .onActionStart(() => {
@@ -1745,17 +1740,6 @@ struct Playing {
                   }
                 })
             )
-            .borderImage({
-              source: {
-                angle: 90,
-                direction: GradientDirection.Left,
-                colors: [[0xAEE1E1, 0.0], [0xD3E0DC, 0.3], [0xFCD1D1, 1.0]]
-              },
-              slice: { top: this.img_playing_ctrl==='1'?10:0, bottom: this.img_playing_ctrl==='1'?10:0, left: this.img_playing_ctrl==='1'?10:0, right: this.img_playing_ctrl==='1'?10:0 },
-              width: { top:this.img_playing_ctrl==='1'? "10px":"0px", bottom: this.img_playing_ctrl==='1'? "10px":"0px", left: this.img_playing_ctrl==='1'? "10px":"0px", right: this.img_playing_ctrl==='1'? "10px":"0px" },
-              repeat: RepeatMode.Stretch,
-              fill: false
-            })
         }
         .layoutWeight(1)
         .clickEffect({ level: ClickEffectLevel.LIGHT })
