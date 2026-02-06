@@ -730,7 +730,7 @@
     },
     {
       "name": "sub_window_show_type",
-      "value": "多功能按钮展示方式"
+      "value": "悬浮按钮展示"
     }
   ]
 }

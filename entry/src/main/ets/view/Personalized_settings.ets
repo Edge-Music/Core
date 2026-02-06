@@ -13,12 +13,15 @@ import { AppUtil } from "@pura/harmony-utils";
 @Component
   //'0'关。'1'开。!!!!(开关颜色日后调)
 export struct Personalized_settings_Component {
+  @State handlePopup: boolean = false
   @State text_name: string = '';
   @State setUserPreference_name: string = '';
   // 右侧组件类型：0-Toggle 1-Segment
   @State componentType: number = 0
   @State lyricTypeIndex: number[] = []
   @State subWindowIndex: number[] = []
+  @Prop showPopup: boolean = false
+  @Prop popupMessage: string = ''
   private text_ctrl: string = PreferencesCache.getUserPreference(this.setUserPreference_name)
   private windowStage: window.WindowStage = AppUtil.getWindowStage()
 
@@ -50,6 +53,23 @@ export struct Personalized_settings_Component {
           .fontSize(16)
           .fontWeight(FontWeight.Medium)
           .fontColor($r('app.color.text_primary'))
+
+        Text('󰄀')
+          .margin({ left: 2 })
+          .fontSize(16)
+          .fontColor($r('app.color.text_title'))
+          .onClick(() => {
+            this.handlePopup = true
+          })
+          .visibility(this.showPopup ? Visibility.Visible : Visibility.None)
+          .bindPopup($$this.handlePopup, {
+            message: this.popupMessage,
+            placement: Placement.Top,
+            onWillDismiss: () => {
+              this.handlePopup = false
+            }
+          })
+
         Blank()
           .layoutWeight(1)
         Toggle({ type: ToggleType.Switch, isOn: PreferencesCache.getUserPreference(this.setUserPreference_name)==='1'?true:false})
@@ -206,26 +226,69 @@ export struct Personalized_settings{
       Column(){
         List({ space: 8, initialIndex: 0 }){
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.mini_music_control_bottom')), setUserPreference_name:'miniplaying_bottom_judge'})}
-          ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.swipe_cover_switch_songs')), setUserPreference_name:'img_playing_ctrl'})}
+          ListItem(){
+            Personalized_settings_Component({
+              text_name: ResourceManager.getStringValueSync($r('app.string.swipe_cover_switch_songs')),
+              setUserPreference_name:'img_playing_ctrl',
+              showPopup: true,
+              popupMessage: '开启后可在播放界面左/右滑动封面切歌'
+            })
+          }
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.simultaneous_playback')), setUserPreference_name:'playing_mix'})}
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.enable_sidebar_ui')), setUserPreference_name:'zhishi_UI'})}
-          ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.flip_mute')), setUserPreference_name:'flip_mute'})}
+          ListItem(){
+            Personalized_settings_Component({
+              text_name: ResourceManager.getStringValueSync($r('app.string.flip_mute')),
+              setUserPreference_name:'flip_mute',
+              showPopup: true,
+              popupMessage: '开启后在播放界面反扣屏幕，可暂停播放，屏幕向上自动恢复播放'
+            })
+          }
           // ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.Lyic_desktop')), setUserPreference_name:'Lyic_desktop'})}
-          ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.setting_fade_in_fade_out')), setUserPreference_name:'fade_in_out'})}
+          ListItem(){
+            Personalized_settings_Component({
+              text_name: ResourceManager.getStringValueSync($r('app.string.setting_fade_in_fade_out')),
+              setUserPreference_name:'fade_in_out',
+              showPopup: true,
+              popupMessage: '切歌/暂停/播放时音量会渐强/渐弱'
+            })
+          }
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.slide_up_hide_title')), setUserPreference_name:'slide_up_hide_title'})}
-          ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.playing_title_show_lyrics')), setUserPreference_name:'playing_title_show_lyrics'})}
+          ListItem(){
+            Personalized_settings_Component({
+              text_name: ResourceManager.getStringValueSync($r('app.string.playing_title_show_lyrics')),
+              setUserPreference_name:'playing_title_show_lyrics',
+              showPopup: true,
+              popupMessage: '开启后播控界面顶部返回按钮被歌词展示替代，可点击顶部区域在展示原词/翻译/罗马音/关闭之间轮换'
+            })
+          }
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.enable_wave_lyrics')), setUserPreference_name:'enable_wave_lyrics'})}
           if (deviceInfo.sdkApiVersion>19){
             ListItem(){ Personalized_settings_Component({text_name: '开启流光背景', setUserPreference_name:'UV_background'})}
           }
           ListItem(){
-            Column(){
-              Personalized_settings_Component({text_name: '气压剧烈变化提醒', setUserPreference_name:'pressure_change'})
-              // Text('需设备支持,开启后返回首页后才会开启，测试功能，建议进入设置打开横幅功能')
-            }
-            }
+            Personalized_settings_Component({
+              text_name: '气压剧烈变化提醒',
+              setUserPreference_name:'pressure_change',
+              showPopup: true,
+              popupMessage: '需设备支持,开启后返回首页后才会开启，测试功能，建议进入设置打开横幅功能'
+            })
+          }
           ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.pip_lyrics_type')), setUserPreference_name:'pip_lyrics_type', componentType: 1})}
-          ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.sub_window_show_type')), setUserPreference_name:'sub_window_show_type', componentType: 1})}
+          ListItem(){
+            Personalized_settings_Component({
+              text_name: ResourceManager.getStringValueSync($r('app.string.sub_window_show_type')),
+              setUserPreference_name:'sub_window_show_type',
+              componentType: 1,
+              showPopup: true,
+              popupMessage: '按住上滑/下滑→松手：上一首/下一首\n' +
+                '按住左滑/右滑：音量+10/-10\n' +
+                '单击：返回上一页\n' +
+                '双击：暂停/播放\n' +
+                '三击：切换播放模式\n' +
+                '长按1s：红心/取消红心'
+            })
+          }
 
           ListItem(){ Column().height(16+this.bottomRect/2)}
         }
