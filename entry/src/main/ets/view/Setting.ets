@@ -21,6 +21,7 @@ import { FooterPlaceholder } from "../component/FooterPlaceholder";
 import { MiniPlaybackControl } from "../component/MiniPlaybackControl";
 import { HeaderComponent } from "../component/HeaderComponent";
 import { SBLyricsSetting } from "./SBLyricsSetting";
+import { EQ_Choose } from "../component/EQ";
 
 const TAG = 'Setting'
 
@@ -707,6 +708,8 @@ export struct Setting {
       this.Personalized_Settings()
     } else if (this.nowSheet === "SBLyricsSetting") {
       SBLyricsSetting()
+    }else if (this.nowSheet === "EQ_settings") {
+      EQ_Choose()
     }
   }
   build() {
@@ -816,7 +819,7 @@ export struct Setting {
     .height(StyleConstants.FULL_HEIGHT)
     .bindSheet($$this.isShow, this.sheet, {
       showClose: this.nowSheet !== "form",
-      height:this.Pura_X ? SheetSize.LARGE : SheetSize.FIT_CONTENT,
+      height: this.Pura_X ? SheetSize.LARGE : SheetSize.FIT_CONTENT,
       detents:this.Pura_X ? [SheetSize.LARGE] : [SheetSize.MEDIUM],
       preferType: this.currentBreakpoint === BreakpointConstants.BREAKPOINT_SM ? SheetType.BOTTOM : SheetType.CENTER,
     })
