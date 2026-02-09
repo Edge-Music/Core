@@ -65,13 +65,6 @@ export class PlaylistManager {
           EventHelper.postSongState("PLAY")
           await avPlayerManager.play()
           return
-        } else if (currentSong && currentSong.id === song.id && PlaylistManager.getPlayMode() === PlayMode.SINGLE) {
-          LogUtil.info("PlaylistManager ", "PlaySong ", "Single Loop Mode")
-          // 如果当前播放的歌曲和要播放的歌曲相同，且是单曲循环模式，则只需要Seek到0
-          await avPlayerManager.seek(0)
-          await avPlayerManager.play()
-          EventHelper.postSongState("PLAY")
-          return;
         }
         LogUtil.info("PlaylistManager ", "playSong ", "song ", JSON.stringify(song))
         AppStorage.setOrCreate("current_playing_song", song)

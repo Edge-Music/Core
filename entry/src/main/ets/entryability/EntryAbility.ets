@@ -120,7 +120,7 @@ export default class EntryAbility extends UIAbility {
     FormUtils.updateCardPlayStatus(false);
     avPlayerManager.destroy()
     sensor.off(sensor.SensorId.BAROMETER);
-    LogUtil.info(`[${TAG}]`, `avPlayer&avSession has been destroyed: ${avPlayerManager.avPlayer?.state}`);
+    LogUtil.info(`[${TAG}]`, `avPlayer&avSession has been destroyed: ${avPlayerManager.avPlayer?.getState()}`);
   }
 
   async onWindowStageCreate(windowStage: window.WindowStage): Promise<void> {

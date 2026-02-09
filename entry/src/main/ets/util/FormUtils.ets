@@ -14,6 +14,7 @@ import { rpc } from '@kit.IPCKit';
 import { CollectAction, PlayActionType } from '../widget/model/FormCardConstant';
 import { PlaylistManager } from './PlaylistManager';
 import { LyricsLine } from './LyricsManager';
+import { audio } from '@kit.AudioKit';
 
 const TAG = 'FormUtils';
 
@@ -150,7 +151,7 @@ class FormUtils {
 
   public async updateMusicControlSingle( formId: string) {
     const player = await avPlayerManager.getAVPlayerInstance()
-    let isPlay = player.state === 'playing'
+    let isPlay = player.getState() !== audio.AudioState.STATE_RUNNING
     let songItem: Song = AppStorage.get('current_playing_song') as Song;
     LogUtil.info(`updateMusicControlSingle isPlay:${isPlay}, songItem:${JSON.stringify(songItem)}`);
     let formData = new FormControlData();

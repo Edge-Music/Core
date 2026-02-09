@@ -9,6 +9,7 @@ import { PreferencesCache } from "../util/PreferenceCache";
 import { LyricsLine } from '../util/LyricsManager';
 import { BreakpointSystem } from './BreakpointSystem';
 import { curves } from '@kit.ArkUI';
+import { audio } from '@kit.AudioKit';
 
 @Component
 export struct MiniPlaybackControl {
@@ -48,10 +49,12 @@ export struct MiniPlaybackControl {
   aboutToAppear() {
     // 获取初始状态
     this.playerManager.getAVPlayerInstance().then(player => {
-      this.currentTimeMs = player.currentTime;
-      this.durationMs = player.duration;
+      this.currentTimeMs = player.getDurationMs();
+      player.setOnTimeUpdate((posMs: number) => {
+          this.currentTimeMs = posMs;
+      });
       this.uiContext = this.getUIContext();
-      this.isPlaying = player.state === 'playing';
+      this.isPlaying = player.getState() === audio.AudioState.STATE_RUNNING
     });
 
     // 添加事件监听
@@ -66,8 +69,7 @@ export struct MiniPlaybackControl {
     // 定时更新进度
     this.updateTimer = setInterval(async () => {
       const player = await this.playerManager.getAVPlayerInstance();
-      this.currentTimeMs = player.currentTime;
-      this.durationMs = player.duration;
+      this.durationMs = player.getDurationMs();
     }, 500);
   }
 

@@ -10,6 +10,7 @@ import { PreferencesCache } from './PreferenceCache';
 import { EventHelper } from './EventHelper';
 import { LogUtil } from '@pura/harmony-utils';
 import { media } from '@kit.MediaKit';
+import { audio } from '@kit.AudioKit';
 
 let song: Song
 let Is_PAD:boolean
@@ -100,18 +101,18 @@ export let nodeController: TextNodeController = new TextNodeController();
 // 自定义XComponentController
 class CustomXComponentController extends XComponentController {
   // 监听onSurfaceCreated，并将surfaceId设置给播放器
-  onSurfaceCreated(surfaceId: string) {
-    console.log(TAG, `onSurfaceCreated surfaceId: ${surfaceId}`);
-    let t_surfaceId: string = ''
-    avPlayerManager.getAVPlayerInstance().then((player) => {
-      t_surfaceId = player?.surfaceId as string
-    });
-    if (t_surfaceId === surfaceId) {
-      return;
-    }
-    // PipManager.getInstance().player.surfaceId = surfaceId;
-    // PipManager.getInstance().player.avPlayerFdSrc();
-  }
+  // onSurfaceCreated(surfaceId: string) {
+  //   console.log(TAG, `onSurfaceCreated surfaceId: ${surfaceId}`);
+  //   let t_surfaceId: string = ''
+  //   avPlayerManager.getAVPlayerInstance().then((player) => {
+  //     t_surfaceId = player?.surfaceId as string
+  //   });
+  //   if (t_surfaceId === surfaceId) {
+  //     return;
+  //   }
+  //   // PipManager.getInstance().player.surfaceId = surfaceId;
+  //   // PipManager.getInstance().player.avPlayerFdSrc();
+  // }
 
   onSurfaceDestroyed(surfaceId: string): void {
     console.log(TAG, `onSurfaceDestroyed surfaceId: ${surfaceId}`);
@@ -289,7 +290,7 @@ export class PipManager {
   // 步骤2：创建画中画控制器实例后，通过startPiP接口启动画中画
   startPip() {
     avPlayerManager.getAVPlayerInstance().then(player => {
-      this.isPlaying = player.state === 'playing';
+      this.isPlaying = player.getState() === audio.AudioState.STATE_RUNNING
     });
     this.pipController?.startPiP().then(() => {
       PreferencesCache.setUserPreference('Lyic_desktop','1')

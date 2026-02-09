@@ -16,6 +16,9 @@ import WindowUtil from './WindowUtil';
 import { commonEventManager,BusinessError } from '@kit.BasicServicesKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { notificationManager } from '@kit.NotificationKit';
+import { AudioRendererPlayer,
+  DecodeAudioProgress,
+  PcmDecoderTool, PcmStreamDecoder, PcmStreamInfo } from '@ospark/free-pcm';
 
 const TAG = 'AVPlayerManager'
 // 定义回调函数的类型
@@ -33,7 +36,36 @@ export interface PlayerCallbacks {
 }
 
 class AVPlayerManager {
-  avPlayer: media.AVPlayer | null = null;
+  // NOTE: AVPlayer has been replaced by Free-PCM pipeline (PcmDecoderTool + AudioRendererPlayer).
+  // This file intentionally does NOT import the Free-PCM library. In the target project,
+  // ensure the following symbols are available via imports:
+  // - PcmDecoderTool, AudioRendererPlayer, PcmStreamDecoder, PcmStreamInfo
+  avPlayer: AudioRendererPlayer | null = null;
+
+  private decoderTool: PcmDecoderTool = new PcmDecoderTool()
+  private currentDecoder: PcmStreamDecoder | null = null;
+  private currentStreamInfo: PcmStreamInfo | null = null;
+  private currentSource: string = '';
+  private prepared: boolean = false;
+
+  // Volume lifecycle:
+  // AudioRendererPlayer.setVolume() only works after AudioRenderer is created.
+  // We cache desired volume and apply it after play() creates the renderer.
+  private desiredVolume: number = 1.0;
+
+  // Playback completion:
+  // decoder.done indicates decode EOS, but playback may still be draining.
+  private decodeDone: boolean = false;
+  private completionTimer: number = -1;
+  private lastPositionMs: number = 0;
+  private lastPositionUpdateTs: number = 0;
+  private completionFired: boolean = false;
+
+  // Sequence guard for async callbacks.
+  private sourceSeq: number = 0;
+
+  // Ensure we don't double-bind renderer event listeners.
+  private rendererListenersBound: boolean = false;
   audioManager = audio?.getAudioManager()
   audioSessionManager: audio.AudioSessionManager = this.audioManager?.getSessionManager()
   private avSession: avSession.AVSession | null = null;
@@ -274,8 +306,29 @@ class AVPlayerManager {
 
   async initAppVolume() {
     const volume = Number(PreferencesCache.getUserPreference('Volume', '100'))
+    const v = Math.max(0, Math.min(1, volume / 100))
+    this.desiredVolume = v
+
+    // Best-effort apply if renderer already exists.
     const player = await this.getAVPlayerInstance();
-    player.setVolume(volume/100)
+    try {
+      await player.setVolume(v)
+      this.currentVolume = v
+    } catch (e) {
+      // Renderer not created yet; will apply after play() creates it.
+    }
+  }
+
+  private async applyDesiredVolumeIfReady() {
+    if (!this.avPlayer) {
+      return
+    }
+    try {
+      await this.avPlayer.setVolume(this.desiredVolume)
+      this.currentVolume = this.desiredVolume
+    } catch (e) {
+      // ignore
+    }
   }
 
   private setupMediaSessionListeners() {
@@ -296,11 +349,8 @@ class AVPlayerManager {
     });
 
     this.avSession.on('seek', (position: number) => {
-      if (this.avPlayer) {
-        this.avPlayer.seek(position);
-        this.updatePlaybackState(this.currentPlaybackState, position);
-        this.triggerSeek(position);
-      }
+      // Delegate to manager seek() so Free-PCM pipeline can handle it.
+      this.seek(position);
     });
 
     this.avSession.on('playNext', () => {
@@ -353,10 +403,11 @@ class AVPlayerManager {
 
     const playbackState: avSession.AVPlaybackState = {
       state: state === avSession.PlaybackState.PLAYBACK_STATE_PLAY ?
-      avSession.PlaybackState.PLAYBACK_STATE_PLAY :
-      avSession.PlaybackState.PLAYBACK_STATE_PAUSE,
+        avSession.PlaybackState.PLAYBACK_STATE_PLAY :
+        avSession.PlaybackState.PLAYBACK_STATE_PAUSE,
       position: {
-        elapsedTime: position ?? this.avPlayer?.currentTime ?? 0,
+        // Use internal buffer clock (ms) for playback position.
+        elapsedTime: position ?? this.avPlayer?.getCurrentPosition() ?? 0,
         updateTime: new Date().getTime()
       },
       speed: 1.0,
@@ -369,38 +420,41 @@ class AVPlayerManager {
     return this.avSession;
   }
 
-  private async setupAudioInterrupt(player: media.AVPlayer) {
-    // 设置焦点模式为共享模式
-    player.audioInterruptMode = audio.InterruptMode.SHARE_MODE;
+  private bindRendererListeners() {
+    if (this.rendererListenersBound) {
+      return;
+    }
+    if (!this.avPlayer) {
+      return;
+    }
+    const renderer = this.avPlayer.getRenderer();
+    if (!renderer) {
+      return;
+    }
 
-    // 设置音频类型
-    const audioRendererInfo: audio.AudioRendererInfo = {
-      usage: audio.StreamUsage.STREAM_USAGE_MUSIC,
-      rendererFlags: 0
-    };
-    player.audioRendererInfo = audioRendererInfo;
+    this.rendererListenersBound = true;
 
-    player.on('audioOutputDeviceChangeWithInfo', async (info: audio.AudioStreamDeviceChangeInfo) => {
-      switch (info.changeReason) {
-        case audio.AudioStreamDeviceChangeReason.REASON_OLD_DEVICE_UNAVAILABLE:
-          // 设备不可用(如蓝牙断开)，需要暂停播放
-          await this.pauseWithoutFadeOut()
-          break;
-
-        case audio.AudioStreamDeviceChangeReason.REASON_NEW_DEVICE_AVAILABLE:
-          // 新设备可用
-          break;
-
-        case audio.AudioStreamDeviceChangeReason.REASON_OVERRODE:
-          // 设备被切换
-          break;
-      }
-    })
+    // renderer.on('audioOutputDeviceChangeWithInfo', async (info: audio.AudioStreamDeviceChangeInfo) => {
+    //   switch (info.changeReason) {
+    //     case audio.AudioStreamDeviceChangeReason.REASON_OLD_DEVICE_UNAVAILABLE:
+    //       // 设备不可用(如蓝牙断开)，需要暂停播放
+    //       await this.pauseWithoutFadeOut()
+    //       break;
+    //
+    //     case audio.AudioStreamDeviceChangeReason.REASON_NEW_DEVICE_AVAILABLE:
+    //       // 新设备可用
+    //       break;
+    //
+    //     case audio.AudioStreamDeviceChangeReason.REASON_OVERRODE:
+    //       // 设备被切换
+    //       break;
+    //   }
+    // })
 
 
 
     // 设置音频打断监听
-    player.on('audioInterrupt', async (interruptEvent: audio.InterruptEvent) => {
+    renderer.on('audioInterrupt', async (interruptEvent: audio.InterruptEvent) => {
       this.triggerAudioInterrupt(interruptEvent);
       const continuePlaying = PreferencesCache.interruptingContinue()
       if (interruptEvent.forceType === audio.InterruptForceType.INTERRUPT_FORCE) {
@@ -460,154 +514,244 @@ class AVPlayerManager {
       return this.avPlayer;
     }
 
-    const player = await media.createAVPlayer();
-    this.setupAudioInterrupt(player);
-
-    player.on('stateChange', async (state: string) => {
-      this.triggerStateChange(state);
-
-      switch (state) {
-        case 'initialized':
-          LyricsManager.init()
-          player.prepare();
-          break;
-        case 'prepared':
-          this.currentPlaybackState = avSession.PlaybackState.PLAYBACK_STATE_PAUSE;
-          this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PAUSE);
-          const duration = player.duration;
-          this.triggerDurationChange(duration);
-          break;
-        case 'playing':
-          LyricsManager.start()
-          this.isPlayingBeforeInterrupt = true;
-          this.currentPlaybackState = avSession.PlaybackState.PLAYBACK_STATE_PLAY;
-          this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PLAY);
-          this.triggerPlay();
-          break;
-        case 'paused':
-          LyricsManager.reset()
-          this.isPlayingBeforeInterrupt = false;
-          this.currentPlaybackState = avSession.PlaybackState.PLAYBACK_STATE_PAUSE;
-          this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PAUSE);
-          this.triggerPause();
-          break;
-        case 'completed':
-          LyricsManager.reset()
-          const nextSong = PlaylistManager.playNext()
-          if (nextSong) {
-            const player = await this.getAVPlayerInstance();
-            player.seek(0)
-            PlaylistManager.playSong(nextSong)
-            return;
-          }
-          this.currentPlaybackState = avSession.PlaybackState.PLAYBACK_STATE_PAUSE;
-          this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PAUSE);
-          this.triggerCompleted();
-          break;
-        case 'stopped':
-          LyricsManager.reset()
-          this.isPlayingBeforeInterrupt = false;
-          player.reset();
-          this.currentPlaybackState = avSession.PlaybackState.PLAYBACK_STATE_IDLE;
-          this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_IDLE);
-          this.triggerStop();
-          break;
-        case 'released':
-          LyricsManager.reset()
-          this.isPlayingBeforeInterrupt = false;
-          this.currentPlaybackState = avSession.PlaybackState.PLAYBACK_STATE_RELEASED;
-          this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_RELEASED);
-          this.triggerPause();
-          this.triggerStop();
-          break;
-        default:
-          break;
-      }
-    });
-
-    // 监听缓冲进度
-    player.on('bufferingUpdate', (progress: number) => {
-      this.triggerBufferingUpdate(progress);
-    });
-
-    player.on('error', (error: Error) => {
-      LyricsManager.reset()
-      this.triggerError(error);
-    });
-
-    player.on('seekDone', (position) => {
-      this.updatePlaybackState(this.currentPlaybackState, position);
-    });
-
-    player
-
+    const player = new AudioRendererPlayer();
     this.avPlayer = player;
-    return this.avPlayer;
+    return player;
+  }
+
+  private parseBooleanPref(value: string): boolean {
+    const v = (value ?? '').trim().toLowerCase();
+    return v === '1' || v === 'true' || v === 'yes' || v === 'on';
+  }
+
+  private clampEqGainDb(g: number): number {
+    if (!Number.isFinite(g)) {
+      return 0;
+    }
+    if (g > 24) return 24;
+    if (g < -24) return -24;
+    return g;
+  }
+
+  private loadEqGainsDbFromPreference(): number[] {
+    const BAND_COUNT = 10;
+
+    // 获取原始字符串
+    const raw: string = PreferencesCache.getUserPreference(
+      'eq_gains_db',
+      '0,0,0,0,0,0,0,0,0,0'
+    );
+
+    // 直接按逗号分割
+    const parts = raw.split(',');
+
+    // 校验长度，不符合则直接返回全 0 数组
+    if (parts.length !== BAND_COUNT) {
+      return Array(BAND_COUNT).fill(0);
+    }
+
+    // 类型转换与数值限幅
+    return parts.map((p) => {
+      const val = Number(p);
+      return this.clampEqGainDb(isNaN(val) ? 0 : val);
+    });
+  }
+
+  private loadEqEnabledFromPreference(): boolean {
+    const raw = PreferencesCache.getUserPreference('eq_enabled', '1');
+    return this.parseBooleanPref(raw);
+  }
+
+  private async cleanupCurrentPipeline() {
+    // Stop playback first.
+    if (this.avPlayer) {
+      try {
+        await this.avPlayer.stop();
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    // Stop decoding.
+    if (this.currentDecoder) {
+      try {
+        this.currentDecoder.close();
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    this.currentDecoder = null;
+    this.currentStreamInfo = null;
+    this.prepared = false;
+    this.rendererListenersBound = false;
+
+    this.decodeDone = false;
+    this.completionFired = false;
+    this.lastPositionMs = 0;
+    this.lastPositionUpdateTs = 0;
+    if (this.completionTimer !== -1) {
+      clearInterval(this.completionTimer);
+      this.completionTimer = -1;
+    }
+  }
+
+  private async prepareSource(source: string, metadata?: avSession.AVMetadata) {
+    await this.getAVPlayerInstance();
+    await this.cleanupCurrentPipeline();
+
+    this.sourceSeq++;
+    const seq = this.sourceSeq;
+
+    this.currentSource = source;
+    this.triggerStateChange('initialized');
+
+    const eqEnabled = this.loadEqEnabledFromPreference();
+    const eqGainsDb = this.loadEqGainsDbFromPreference();
+
+    LogUtil.info("AVPlayerManager", "prepareSource", "eqEnabled: " + eqEnabled + ", eqGainsDb: " + eqGainsDb + ", source: " + source);
+
+    const decoder = this.decoderTool.createStreamDecoder(
+      source,
+      {
+        // ringBytes is optional (adaptive) by default.
+        eqEnabled,
+        eqGainsDb,
+        sampleFormat: 3
+      },
+      {
+        onProgress: (p: DecodeAudioProgress) => {
+          // Map decode progress to bufferingUpdate (0~100) best-effort.
+          if (p.progress >= 0) {
+            this.triggerBufferingUpdate(Math.round(p.progress * 100));
+          }
+        },
+        onError: (e: Error) => {
+          LogUtil.error(`[${TAG}]`, `Decoder error: ${e.message}`);
+          this.triggerError(e);
+        },
+      }
+    );
+
+    this.currentDecoder = decoder;
+    const info = await decoder.ready;
+    if (this.sourceSeq !== seq) {
+      return;
+    }
+    this.currentStreamInfo = info;
+    this.prepared = true;
+    this.decodeDone = false;
+    this.completionFired = false;
+
+    this.triggerDurationChange(info.durationMs);
+    this.triggerStateChange('prepared');
+
+    // Metadata + lyrics init (kept consistent with AVPlayer flow)
+    LyricsManager.init();
+    if (metadata && this.avSession) {
+      await this.avSession.setAVMetadata(metadata);
+    }
+
+    // Completion:
+    // decoder.done means decode EOS, but playback may still be draining renderer/ring.
+    // We only mark decodeDone here and let the playback-side watcher decide when to
+    // fire "completed".
+    decoder.done
+      .then(() => {
+        if (this.sourceSeq !== seq || this.currentDecoder !== decoder) {
+          return;
+        }
+        this.decodeDone = true;
+        this.startCompletionWatchdog();
+      })
+      .catch((e: Error) => {
+        if (this.sourceSeq !== seq || this.currentDecoder !== decoder) {
+          return;
+        }
+        this.triggerError(e);
+      });
+  }
+
+  private startCompletionWatchdog() {
+    if (this.completionTimer !== -1) {
+      return;
+    }
+
+    // Polling is used to avoid relying on renderer-specific completion events.
+    this.completionTimer = setInterval(async () => {
+      // 打印这些状态
+      LogUtil.info(`[${TAG}]`, `completionFired: ${this.completionFired} , decodeDone: ${this.decodeDone}, currentPlaybackState: ${this.currentPlaybackState}`)
+      if (this.completionFired) {
+        return;
+      }
+      if (!this.avPlayer) {
+        return;
+      }
+
+      // Don't auto-complete while user paused.
+      if (this.currentPlaybackState != avSession.PlaybackState.PLAYBACK_STATE_PLAY) {
+        return;
+      }
+
+      const dur = this.currentStreamInfo?.durationMs ?? 0;
+      const pos = this.avPlayer.getCurrentPosition();
+      const now = new Date().getTime();
+
+      LogUtil.info(`[${TAG}]`, `dur: ${dur} , pos: ${pos} , now: ${now} , lastPositionUpdateTs: ${this.lastPositionUpdateTs}`)
+
+      // If duration is known, completion is based on internal buffer clock.
+      if (dur > 0 && pos >= Math.max(0, dur - 50)) {
+        await this.handleCompletedInternal();
+        return;
+      }
+
+      // If duration unknown: assume complete when position stops advancing for a while.
+      if (this.lastPositionUpdateTs > 0 && (now - this.lastPositionUpdateTs) > 1000) {
+        const state = this.avPlayer.getState();
+        if (state !== audio.AudioState.STATE_RUNNING) {
+          await this.handleCompletedInternal();
+        }
+      }
+    }, 200);
+  }
+
+  private async handleCompletedInternal() {
+    LogUtil.info(`[${TAG}]`, `handleCompletedInternal`);
+    try {
+      // Prevent re-entry.
+      if (this.completionFired) {
+        return;
+      }
+      this.completionFired = true;
+
+      LyricsManager.reset()
+
+      const nextSong = PlaylistManager.playNext()
+      if (nextSong) {
+        await this.cleanupCurrentPipeline();
+        PlaylistManager.playSong(nextSong)
+        return;
+      }
+
+      this.currentPlaybackState = avSession.PlaybackState.PLAYBACK_STATE_PAUSE;
+      this.triggerStateChange('completed');
+      this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PAUSE);
+      this.triggerCompleted();
+    } catch (error) {
+      this.triggerError(error);
+    }
   }
 
   async playByPath(path: string, size?: number, pause?: boolean, metadata?: avSession.AVMetadata) {
     try {
-      const player = await this.getAVPlayerInstance();
-      await player.reset();
+      // Free-PCM pipeline currently supports:
+      // - local file path
+      // - http/https URL
+      // NOTE: The legacy AVPlayer dataSrc streaming mode is not used here.
+      await this.prepareSource(path, metadata);
 
-      const file = fs.openSync(path, fs.OpenMode.READ_ONLY);
-
-      if (size === undefined) {
-        player.fdSrc = {
-          fd: file.fd,
-          offset: 0,
-          length: (fs.statSync(path)).size
-        };
-      } else {
-        // 使用dataSrc流式播放
-        player.dataSrc = {
-          fileSize: size,
-          callback: (buffer: ArrayBuffer, length: number, pos?: number): number => {
-            if (buffer == undefined || length == undefined || pos == undefined) {
-              return -1;
-            }
-            try {
-              // 检查seek位置是否已下载
-              const stats = fs.statSync(path); // 获取最新文件大小
-              if (pos >= stats.size) {
-                // seek位置超出当前已下载大小
-                return 0; // 返回0让播放器等待
-              }
-
-              const readOptions: ReadOptions = {
-                offset: pos,
-                length: length,
-              };
-
-              // 同步读取文件数据
-              const readLength = fs.readSync(file.fd, buffer, readOptions);
-
-              if (readLength > 0) {
-                return readLength;
-              }
-
-              // 到达文件末尾但可能还在下载
-              if (pos < stats.size) {
-                return 0; // 还有数据,让播放器等待
-              }
-
-              return -1; // 真正的文件结束
-            } catch (error) {
-              return -2; // 不可恢复的错误
-            }
-          }
-        }
-      }
-
-      if (metadata && this.avSession) {
-        await this.avSession.setAVMetadata(metadata);
-      }
-      await player.prepare();
-      LogUtil.info(TAG, 'playByPath', `Prepared player with path: ${path}`);
       if (pause) {
-        // 如果传入pause参数为true，则暂停播放
-        LogUtil.info(TAG, 'playByPath', 'Pausing playback as per request');
-        await this.pause();
+        await this.pauseWithoutFadeOut();
       } else {
         await this.play();
       }
@@ -616,18 +760,14 @@ class AVPlayerManager {
     }
   }
 
-  async playByUrl(url: string, metadata?: avSession.AVMetadata) {
+  async playByUrl(url: string, size?: number, pause?: boolean, metadata?: avSession.AVMetadata) {
     try {
-      const player = await this.getAVPlayerInstance();
-      await player.reset();
-      player.url = url;
-
-      if (metadata && this.avSession) {
-        await this.avSession.setAVMetadata(metadata);
+      await this.prepareSource(url, metadata);
+      if (pause) {
+        await this.pauseWithoutFadeOut();
+      } else {
+        await this.play();
       }
-
-      await player.prepare();
-      await this.play();
     } catch (error) {
       this.triggerError(error);
     }
@@ -654,16 +794,45 @@ class AVPlayerManager {
 
   async play() {
     try {
-      this.setAudioSession()
-       AppStorage.setOrCreate('playing_judge',true)
+      await this.setAudioSession()
+      AppStorage.setOrCreate('playing_judge',true)
       const player = await this.getAVPlayerInstance();
-      await this.initAppVolume()
       const fadeInOutEnabled = PreferencesCache.getUserPreference('fade_in_out', '0');
       LogUtil.info("AVPlayerManager", "play", "Playing the song with fadeInOutEnabled: " + fadeInOutEnabled);
+
+      if (!this.prepared || !this.currentDecoder || !this.currentStreamInfo) {
+        LogUtil.warn(TAG, 'play', 'No prepared source/decoder, ignoring play()');
+        return;
+      }
+
       if (fadeInOutEnabled === '1') {
         await this.fadeIn();
       } else {
-        await player.play();
+        if (player.getState() === audio.AudioState.STATE_PAUSED) {
+          await player.resume();
+        } else {
+          await player.play(this.currentDecoder, this.currentStreamInfo);
+        }
+
+        this.bindRendererListeners();
+
+        // Track playback-side progress (internal buffer clock).
+        player.setOnTimeUpdate((posMs: number) => {
+          this.lastPositionMs = posMs;
+          this.lastPositionUpdateTs = new Date().getTime();
+        })
+
+        // Apply app volume AFTER renderer exists.
+        await this.initAppVolume()
+        await this.applyDesiredVolumeIfReady()
+
+        // If decode already reached EOS before we started, start watchdog.
+        this.startCompletionWatchdog()
+
+        LyricsManager.start()
+        this.isPlayingBeforeInterrupt = true;
+        this.currentPlaybackState = avSession.PlaybackState.PLAYBACK_STATE_PLAY;
+        this.triggerStateChange('playing');
         this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PLAY);
         AppStorage.setOrCreate<boolean>("playing_judge", true);
         this.triggerPlay();
@@ -674,7 +843,7 @@ class AVPlayerManager {
       }
       let playing_mix: string =  PreferencesCache.getUserPreference('playing_mix','0')
       // const player = await this.getAVPlayerInstance();
-      let playing_judge:boolean = player.state === 'playing'
+      let playing_judge:boolean = player.getState() === audio.AudioState.STATE_RUNNING
 
       if (playing_mix==='1') {
         let audioManager = audio.getAudioManager();
@@ -719,63 +888,63 @@ class AVPlayerManager {
                   }
                   hilog.info(0xFF00, TAG, 'Succeeded in getting want agent.');
                   wantAgentObj = data;
-                    let notificationRequest: notificationManager.NotificationRequest = {
-                      id: 11451419,
-                      groupName:'jizhishi',
-                      updateOnly:true,
-                      // notificationSlotType:notificationManager.SlotType.CONTENT_INFORMATION,
-                      content: {
+                  let notificationRequest: notificationManager.NotificationRequest = {
+                    id: 11451419,
+                    groupName:'jizhishi',
+                    updateOnly:true,
+                    // notificationSlotType:notificationManager.SlotType.CONTENT_INFORMATION,
+                    content: {
 
-                        notificationContentType: notificationManager.ContentType.NOTIFICATION_CONTENT_BASIC_TEXT, // 普通文本类型通知
-                        normal: {
-                          title: "正在运行播放任务",
-                          text: "点击通知，在下方按钮下暂停音乐",
-                          // additionalText: "test_additionalText"
-                        }
+                      notificationContentType: notificationManager.ContentType.NOTIFICATION_CONTENT_BASIC_TEXT, // 普通文本类型通知
+                      normal: {
+                        title: "正在运行播放任务",
+                        text: "点击通知，在下方按钮下暂停音乐",
+                        // additionalText: "test_additionalText"
                       }
-                    ,
-                      actionButtons: [
-                        {
-                          title: '暂停',
-                          wantAgent: wantAgentObj
-                        }
-                      ]
-                    };
-                    notificationManager.publish(notificationRequest, (err: BusinessError) => {
-                      if (err) {
-                        hilog.error(0x0001, TAG, `Failed to publish notification. Code is ${err.code}, message is ${err.message}`);
-                        let notificationRequest: notificationManager.NotificationRequest = {
-                          id: 11451419,
-                          // groupName:'jizhishi',
-                          notificationSlotType:notificationManager.SlotType.SERVICE_INFORMATION,
-                          content: {
+                    }
+                  ,
+                    actionButtons: [
+                      {
+                        title: '暂停',
+                        wantAgent: wantAgentObj
+                      }
+                    ]
+                  };
+                  notificationManager.publish(notificationRequest, (err: BusinessError) => {
+                    if (err) {
+                      hilog.error(0x0001, TAG, `Failed to publish notification. Code is ${err.code}, message is ${err.message}`);
+                      let notificationRequest: notificationManager.NotificationRequest = {
+                        id: 11451419,
+                        // groupName:'jizhishi',
+                        notificationSlotType:notificationManager.SlotType.SERVICE_INFORMATION,
+                        content: {
 
-                            notificationContentType: notificationManager.ContentType.NOTIFICATION_CONTENT_BASIC_TEXT, // 普通文本类型通知
-                            normal: {
-                              title: "正在运行播放任务",
-                              text: "点击通知，在下方按钮下暂停音乐",
-                              // additionalText: "test_additionalText"
-                            }
+                          notificationContentType: notificationManager.ContentType.NOTIFICATION_CONTENT_BASIC_TEXT, // 普通文本类型通知
+                          normal: {
+                            title: "正在运行播放任务",
+                            text: "点击通知，在下方按钮下暂停音乐",
+                            // additionalText: "test_additionalText"
                           }
-                        ,
-                          actionButtons: [
-                            {
-                              title: '暂停',
-                              wantAgent: wantAgentObj
-                            }
-                          ]
-                        };
-                        notificationManager.publish(notificationRequest, (err: BusinessError) => {
-                          if (err) {
-                            hilog.error(0x0001, TAG, `Failed to publish notification. Code is ${err.code}, message is ${err.message}`);
-                            return;
+                        }
+                      ,
+                        actionButtons: [
+                          {
+                            title: '暂停',
+                            wantAgent: wantAgentObj
                           }
-                          hilog.info(0x0001, TAG, 'Succeeded in publishing notification.');
-                        });
-                        // return;
-                      }
-                      hilog.info(0x0001, TAG, 'Succeeded in publishing notification.');
-                    });
+                        ]
+                      };
+                      notificationManager.publish(notificationRequest, (err: BusinessError) => {
+                        if (err) {
+                          hilog.error(0x0001, TAG, `Failed to publish notification. Code is ${err.code}, message is ${err.message}`);
+                          return;
+                        }
+                        hilog.info(0x0001, TAG, 'Succeeded in publishing notification.');
+                      });
+                      // return;
+                    }
+                    hilog.info(0x0001, TAG, 'Succeeded in publishing notification.');
+                  });
 
 
                   // ...
@@ -847,13 +1016,15 @@ class AVPlayerManager {
     try {
       AppStorage.setOrCreate('playing_judge',false)
       const player = await this.getAVPlayerInstance();
-      if(player.state === 'playing'){
+      if (player.getState() === audio.AudioState.STATE_RUNNING) {
         const fadeInOutEnabled = PreferencesCache.getUserPreference('fade_in_out', '0');
         if (fadeInOutEnabled === '1') {
           await this.fadeOut();
         } else {
           await player.pause();
           AppStorage.setOrCreate<boolean>("playing_judge", false);
+          this.currentPlaybackState = avSession.PlaybackState.PLAYBACK_STATE_PAUSE;
+          this.triggerStateChange('paused');
           this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PAUSE);
           this.triggerPause();
           EventHelper.postSongState('PAUSE');
@@ -873,9 +1044,11 @@ class AVPlayerManager {
   async pauseWithoutFadeOut() {
     try {
       const player = await this.getAVPlayerInstance();
-      if(player.state === 'playing'){
+      if (player.getState() === audio.AudioState.STATE_RUNNING) {
         await player.pause();
         AppStorage.setOrCreate<boolean>("playing_judge", false);
+        this.currentPlaybackState = avSession.PlaybackState.PLAYBACK_STATE_PAUSE;
+        this.triggerStateChange('paused');
         this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PAUSE);
         this.triggerPause();
         EventHelper.postSongState('PAUSE');
@@ -888,16 +1061,13 @@ class AVPlayerManager {
 
   async stop() {
     try {
-      const player = await this.getAVPlayerInstance();
-      // 如果状态不支持停止，则先暂停再停止
-      if (player.state === 'playing') {
-        await player.pause();
-      }
-      if (player.state !== 'idle' && player.state !== 'initialized'){
-        await player.stop();
-        this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_IDLE);
-        this.triggerStop();
-      }
+      await this.cleanupCurrentPipeline();
+      LyricsManager.reset()
+      this.isPlayingBeforeInterrupt = false;
+      this.currentPlaybackState = avSession.PlaybackState.PLAYBACK_STATE_IDLE;
+      this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_IDLE);
+      this.triggerStateChange('stopped');
+      this.triggerStop();
 
     } catch (error) {
       this.triggerError(error);
@@ -910,10 +1080,8 @@ class AVPlayerManager {
         clearInterval(this.fadeTimer);
         this.fadeTimer = -1;
       }
-      if (this.avPlayer) {
-        await this.avPlayer.release();
-        this.avPlayer = null;
-      }
+      await this.cleanupCurrentPipeline();
+      this.avPlayer = null;
       if (this.avSession) {
         await this.avSession.destroy();
         this.avSession = null;
@@ -939,7 +1107,11 @@ class AVPlayerManager {
   async seek(position: number) {
     try {
       const player = await this.getAVPlayerInstance();
-      player.seek(position);
+      if (!this.prepared) {
+        return;
+      }
+      await player.seekTo(position);
+      this.updatePlaybackState(this.currentPlaybackState, position);
       this.triggerSeek(position);
     } catch (error) {
       this.triggerError(error);
@@ -956,12 +1128,36 @@ class AVPlayerManager {
 
     const player = await this.getAVPlayerInstance();
 
-    // 设置初始音量为0
-    player.setVolume(0)
-    this.currentVolume = 0;
+    if (!this.prepared || !this.currentDecoder || !this.currentStreamInfo) {
+      return;
+    }
 
     // 开始播放
-    await player.play();
+    if (player.getState() === audio.AudioState.STATE_PAUSED) {
+      await player.resume();
+    } else {
+      await player.play(this.currentDecoder, this.currentStreamInfo);
+    }
+
+    // Track playback-side progress.
+    player.setOnTimeUpdate((posMs: number) => {
+      this.lastPositionMs = posMs;
+      this.lastPositionUpdateTs = new Date().getTime();
+    })
+
+    // Apply initial volume after renderer exists.
+    try {
+      await player.setVolume(0)
+      this.currentVolume = 0;
+    } catch (e) {
+      // ignore
+    }
+
+    this.bindRendererListeners();
+    LyricsManager.start()
+    this.isPlayingBeforeInterrupt = true;
+    this.currentPlaybackState = avSession.PlaybackState.PLAYBACK_STATE_PLAY;
+    this.triggerStateChange('playing');
     this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PLAY);
     AppStorage.setOrCreate<boolean>("playing_judge", true);
     this.triggerPlay();
@@ -971,6 +1167,7 @@ class AVPlayerManager {
     const stepIncrease = 1.0 / this.FADE_STEPS;
     const stepInterval = this.FADE_DURATION / this.FADE_STEPS;
     const maxVolume = Number(PreferencesCache.getUserPreference('Volume','100'))/100;
+    this.desiredVolume = Math.max(0, Math.min(1, maxVolume));
     let currentStep = 0;
 
     // 设置定时器逐步增加音量
@@ -979,7 +1176,11 @@ class AVPlayerManager {
         this.currentVolume += stepIncrease;
         const currentPlayer = await this.getAVPlayerInstance();
         LogUtil.debug(`[${TAG}]`, `currentVolume: ${this.currentVolume}`)
-        currentPlayer.setVolume(Math.min(maxVolume, this.currentVolume))
+        try {
+          await currentPlayer.setVolume(Math.min(maxVolume, this.currentVolume))
+        } catch (e) {
+          // ignore
+        }
         currentStep++;
       } else {
         // 淡入完成，清除定时器
@@ -989,7 +1190,11 @@ class AVPlayerManager {
         }
         this.currentVolume = maxVolume; // 确保最终音量为之前设置的
         const finalPlayer = await this.getAVPlayerInstance();
-        finalPlayer.setVolume(this.currentVolume)
+        try {
+          await finalPlayer.setVolume(this.currentVolume)
+        } catch (e) {
+          // ignore
+        }
       }
     }, stepInterval);
   }
@@ -1005,6 +1210,7 @@ class AVPlayerManager {
     const player = await this.getAVPlayerInstance();
     const maxVolume = Number(PreferencesCache.getUserPreference('Volume','100'))/100;
     this.currentVolume = maxVolume;
+    this.desiredVolume = Math.max(0, Math.min(1, maxVolume));
 
     // 计算每一步的音量减量
     const stepDecrease = maxVolume / this.FADE_STEPS;
@@ -1017,7 +1223,11 @@ class AVPlayerManager {
         this.currentVolume -= stepDecrease;
         const currentPlayer = await this.getAVPlayerInstance();
         LogUtil.debug(`[${TAG}]`, `currentVolume: ${this.currentVolume}`)
-        currentPlayer.setVolume(Math.max(0, this.currentVolume))
+        try {
+          await currentPlayer.setVolume(Math.max(0, this.currentVolume))
+        } catch (e) {
+          // ignore
+        }
         currentStep++;
       } else {
         // 淡出完成，暂停播放并清除定时器
@@ -1028,14 +1238,34 @@ class AVPlayerManager {
         const finalPlayer = await this.getAVPlayerInstance();
         await finalPlayer.pause();
         AppStorage.setOrCreate<boolean>("playing_judge", false);
+        this.currentPlaybackState = avSession.PlaybackState.PLAYBACK_STATE_PAUSE;
+        this.triggerStateChange('paused');
         this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PAUSE);
         this.triggerPause();
         EventHelper.postSongState('PAUSE');
         WindowUtil.destroyLyricsFloatWindow()
         this.currentVolume = maxVolume; // 重置音量
-        finalPlayer.setVolume(maxVolume);
+        try {
+          await finalPlayer.setVolume(maxVolume);
+        } catch (e) {
+          // ignore
+        }
       }
     }, stepInterval);
+  }
+
+  // 设置均衡器效果
+  setEqualizer(bands: number[]) {
+    if (this.currentDecoder) {
+      this.currentDecoder.setEqGains(bands);
+    }
+  }
+
+  // 开启/关闭
+  toggleEqualizer(enabled: boolean) {
+    if (this.currentDecoder) {
+      this.currentDecoder.setEqEnabled(enabled);
+    }
   }
 }
 

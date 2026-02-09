@@ -92,11 +92,11 @@ class LyricsManager {
 
   async setLyricsInterval(){
     const player = await avPlayerManager.getAVPlayerInstance()
-    this.currentTimeMs = player.currentTime
+    this.currentTimeMs = player.getCurrentPosition()
 
     if(this.lyricsTimer === -1){
       this.lyricsTimer = setInterval(() => {
-        this.currentTimeMs = player.currentTime
+        this.currentTimeMs = player.getCurrentPosition()
         this.updateCurrentLyric()
       }, 500)
       console.info(`歌词定时器[${this.lyricsTimer}]设置完成`)

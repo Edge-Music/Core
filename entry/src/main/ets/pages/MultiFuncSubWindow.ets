@@ -59,7 +59,7 @@ export struct MultiFuncSubWindow {
 
     // 获取初始状态
     this.playerManager.getAVPlayerInstance().then(player => {
-      this.isPlaying = player.state === 'playing';
+      this.isPlaying = player.getState() === audio.AudioState.STATE_RUNNING
     });
 
     // 添加事件监听

@@ -6,6 +6,7 @@ import WindowUtil from "../util/WindowUtil";
 import { common, Permissions } from "@kit.AbilityKit";
 import { reqPermissionsFromUser } from "../util/PermissionManager";
 import { avPlayerManager } from "../util/AVPlayerManager";
+import { audio } from "@kit.AudioKit";
 
 const TAG = 'SBLyricsSetting'
 @Component
@@ -49,7 +50,7 @@ export struct SBLyricsSetting{
   async aboutToDisappear(): Promise<void> {
     avPlayerManager.avPlayer
     const player = await avPlayerManager.getAVPlayerInstance();
-    if(player.state !== 'playing') {
+    if(player.getState() !== audio.AudioState.STATE_RUNNING) {
       WindowUtil.destroyLyricsFloatWindow()
     }
   }
