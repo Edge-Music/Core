@@ -19,6 +19,7 @@ import { notificationManager } from '@kit.NotificationKit';
 import { AudioRendererPlayer,
   DecodeAudioProgress,
   PcmDecoderTool, PcmStreamDecoder, PcmStreamInfo } from '@ospark/free-pcm';
+import map from '@hms.core.map.map';
 
 const TAG = 'AVPlayerManager'
 // 定义回调函数的类型
@@ -455,6 +456,8 @@ class AVPlayerManager {
 
     // 设置音频打断监听
     renderer.on('audioInterrupt', async (interruptEvent: audio.InterruptEvent) => {
+      // 打印
+      LogUtil.info('AVPlayerManager', 'audioInterrupt', JSON.stringify(interruptEvent))
       this.triggerAudioInterrupt(interruptEvent);
       const continuePlaying = PreferencesCache.interruptingContinue()
       if (interruptEvent.forceType === audio.InterruptForceType.INTERRUPT_FORCE) {
@@ -462,7 +465,7 @@ class AVPlayerManager {
           case audio.InterruptHint.INTERRUPT_HINT_PAUSE:
             // 系统强制暂停（临时失去焦点）
             const tempState = this.isPlayingBeforeInterrupt
-            await this.pauseWithoutFadeOut();
+            await this.stop();
             this.isPlayingBeforeInterrupt = tempState;
             break;
 
@@ -476,7 +479,7 @@ class AVPlayerManager {
           case audio.InterruptHint.INTERRUPT_HINT_STOP:
             // 系统强制停止（永久失去焦点）
             this.isPlayingBeforeInterrupt = false;
-            await this.pauseWithoutFadeOut();
+            await this.stop();
             break;
 
           case audio.InterruptHint.INTERRUPT_HINT_DUCK:
@@ -494,7 +497,7 @@ class AVPlayerManager {
         // 非强制打断
         switch (interruptEvent.hintType) {
           case audio.InterruptHint.INTERRUPT_HINT_PAUSE:
-            await this.pauseWithoutFadeOut();
+            await this.stop();
             break;
           case audio.InterruptHint.INTERRUPT_HINT_RESUME:
             if (this.isPlayingBeforeInterrupt) {
@@ -516,7 +519,84 @@ class AVPlayerManager {
 
     const player = new AudioRendererPlayer();
     this.avPlayer = player;
+
+
     return player;
+  }
+
+  mapAudioState(state:audio.AudioState) {
+    switch (state) {
+      case audio.AudioState.STATE_NEW:
+        return 'initialized';
+      case audio.AudioState.STATE_PREPARED:
+        return 'prepared';
+      case audio.AudioState.STATE_RUNNING:
+        return 'playing';
+        case audio.AudioState.STATE_PAUSED:
+        return 'paused';
+      case audio.AudioState.STATE_STOPPED:
+        return 'stopped';
+      case audio.AudioState.STATE_RELEASED:
+        return 'released';
+      default:
+        return 'unknown';
+    }
+  }
+
+  async setupAudioRenderer() {
+    const player = this.avPlayer?.getRenderer()
+    if (!player) return;
+
+    player.on('stateChange', async (state: audio.AudioState) => {
+
+      const stateStr = this.mapAudioState(state)
+
+      this.triggerStateChange(stateStr);
+
+      switch (stateStr) {
+        case 'initialized':
+          LyricsManager.init();
+          break;
+        case 'prepared':
+          this.currentPlaybackState = avSession.PlaybackState.PLAYBACK_STATE_PAUSE;
+          this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PAUSE);
+          const duration = this.avPlayer!.getDurationMs();
+          this.triggerDurationChange(duration);
+          break;
+        case 'playing':
+          LyricsManager.start();
+          this.isPlayingBeforeInterrupt = true;
+          this.currentPlaybackState = avSession.PlaybackState.PLAYBACK_STATE_PLAY;
+          this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PLAY);
+          this.triggerPlay();
+          break;
+        case 'paused':
+          LyricsManager.reset();
+          this.isPlayingBeforeInterrupt = false;
+          this.currentPlaybackState = avSession.PlaybackState.PLAYBACK_STATE_PAUSE;
+          this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PAUSE);
+          this.triggerPause();
+          break;
+        case 'stopped':
+          LyricsManager.reset();
+          this.isPlayingBeforeInterrupt = false;
+          player.stop()
+          this.currentPlaybackState = avSession.PlaybackState.PLAYBACK_STATE_IDLE;
+          this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_IDLE);
+          this.triggerStop();
+          break;
+        case 'released':
+          LyricsManager.reset();
+          this.isPlayingBeforeInterrupt = false;
+          this.currentPlaybackState = avSession.PlaybackState.PLAYBACK_STATE_RELEASED;
+          this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_RELEASED);
+          this.triggerPause();
+          this.triggerStop();
+          break;
+        default:
+          break;
+      }
+    });
   }
 
   private parseBooleanPref(value: string): boolean {
@@ -801,6 +881,8 @@ class AVPlayerManager {
       LogUtil.info("AVPlayerManager", "play", "Playing the song with fadeInOutEnabled: " + fadeInOutEnabled);
 
       if (!this.prepared || !this.currentDecoder || !this.currentStreamInfo) {
+        // 打印这些状态
+        LogUtil.info("AVPlayerManager", "play", "prepared: " + this.prepared + ", currentDecoder: " + this.currentDecoder + ", currentStreamInfo: " + this.currentStreamInfo);
         LogUtil.warn(TAG, 'play', 'No prepared source/decoder, ignoring play()');
         return;
       }
@@ -808,7 +890,8 @@ class AVPlayerManager {
       if (fadeInOutEnabled === '1') {
         await this.fadeIn();
       } else {
-        if (player.getState() === audio.AudioState.STATE_PAUSED) {
+        LogUtil.info("AVPlayerManager", "play", "Playing the song without fade in/out, State " + player.getState());
+        if (player.getState() === audio.AudioState.STATE_PAUSED || player.getState() === audio.AudioState.STATE_STOPPED) {
           await player.resume();
         } else {
           await player.play(this.currentDecoder, this.currentStreamInfo);
@@ -823,6 +906,8 @@ class AVPlayerManager {
         })
 
         // Apply app volume AFTER renderer exists.
+        await this.setupAudioInterrupt(this.avPlayer?.getRenderer()!)
+        await this.setupAudioRenderer()
         await this.initAppVolume()
         await this.applyDesiredVolumeIfReady()
 
@@ -1041,19 +1126,42 @@ class AVPlayerManager {
     }
   }
 
+  private async setupAudioInterrupt(player: audio.AudioRenderer) {
+    // 设置焦点模式为共享模式
+    player.setInterruptMode(audio.InterruptMode.SHARE_MODE);
+
+
+    player.on('outputDeviceChangeWithInfo', async (info: audio.AudioStreamDeviceChangeInfo) => {
+      switch (info.changeReason) {
+        case audio.AudioStreamDeviceChangeReason.REASON_OLD_DEVICE_UNAVAILABLE:
+          // 设备不可用(如蓝牙断开)，需要暂停播放
+          await this.stop()
+          break;
+
+        case audio.AudioStreamDeviceChangeReason.REASON_NEW_DEVICE_AVAILABLE:
+          // 新设备可用
+          break;
+
+        case audio.AudioStreamDeviceChangeReason.REASON_OVERRODE:
+          // 设备被切换
+          break;
+      }
+    })
+  }
+
   async pauseWithoutFadeOut() {
     try {
       const player = await this.getAVPlayerInstance();
-      if (player.getState() === audio.AudioState.STATE_RUNNING) {
-        await player.pause();
-        AppStorage.setOrCreate<boolean>("playing_judge", false);
-        this.currentPlaybackState = avSession.PlaybackState.PLAYBACK_STATE_PAUSE;
-        this.triggerStateChange('paused');
-        this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PAUSE);
-        this.triggerPause();
-        EventHelper.postSongState('PAUSE');
-        WindowUtil.destroyLyricsFloatWindow()
-      }
+        // 打印目前状态
+      LogUtil.info("AVPlayerManager", "pauseWithoutFadeOut", "Pausing the song, State " + player.getState());
+      await player.pause();
+      AppStorage.setOrCreate<boolean>("playing_judge", false);
+      this.currentPlaybackState = avSession.PlaybackState.PLAYBACK_STATE_PAUSE;
+      this.triggerStateChange('paused');
+      this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_PAUSE);
+      this.triggerPause();
+      EventHelper.postSongState('PAUSE');
+      WindowUtil.destroyLyricsFloatWindow()
     } catch (error) {
       this.triggerError(error);
     }
@@ -1061,14 +1169,14 @@ class AVPlayerManager {
 
   async stop() {
     try {
-      await this.cleanupCurrentPipeline();
+      // await this.cleanupCurrentPipeline();
       LyricsManager.reset()
       this.isPlayingBeforeInterrupt = false;
       this.currentPlaybackState = avSession.PlaybackState.PLAYBACK_STATE_IDLE;
       this.updatePlaybackState(avSession.PlaybackState.PLAYBACK_STATE_IDLE);
       this.triggerStateChange('stopped');
       this.triggerStop();
-
+      this.triggerPause()
     } catch (error) {
       this.triggerError(error);
     }
