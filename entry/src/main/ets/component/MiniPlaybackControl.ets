@@ -49,10 +49,7 @@ export struct MiniPlaybackControl {
   aboutToAppear() {
     // 获取初始状态
     this.playerManager.getAVPlayerInstance().then(player => {
-      this.currentTimeMs = player.getDurationMs();
-      player.setOnTimeUpdate((posMs: number) => {
-          this.currentTimeMs = posMs;
-      });
+      this.currentTimeMs = player.getCurrentPosition();
       this.uiContext = this.getUIContext();
       this.isPlaying = player.getState() === audio.AudioState.STATE_RUNNING
     });
@@ -70,6 +67,7 @@ export struct MiniPlaybackControl {
     this.updateTimer = setInterval(async () => {
       const player = await this.playerManager.getAVPlayerInstance();
       this.durationMs = player.getDurationMs();
+      this.currentTimeMs = player.getCurrentPosition();
     }, 500);
   }
 
