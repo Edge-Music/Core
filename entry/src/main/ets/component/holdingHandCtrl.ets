@@ -1,6 +1,7 @@
 import { ClickUtil } from "@pura/harmony-utils"
 import { avPlayerManager } from "../util/AVPlayerManager";
 import { PlaylistManager } from "../util/PlaylistManager"
+import { audio } from "@kit.AudioKit";
 
 @ComponentV2
 export  struct HandingCtrl{
@@ -10,7 +11,7 @@ export  struct HandingCtrl{
   aboutToAppear(): void {
 
     this.playerManager.getAVPlayerInstance().then(player => {
-      this.isPlaying = player.state === 'playing';
+      this.isPlaying = player.getState() === audio.AudioState.STATE_RUNNING;
     });
 
     // 添加事件监听

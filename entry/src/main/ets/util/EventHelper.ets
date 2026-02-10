@@ -6,8 +6,6 @@ import { fileIo as fs } from '@kit.CoreFileKit';
 import { avPlayerManager } from './AVPlayerManager';
 import { cover } from './AdapterHelper';
 import { util } from '@kit.ArkTS';
-import { DownloadManager } from './DownloadUtils';
-import { ContextHelper } from './ContextHelper';
 import { SourceAdapter } from '../adapter';
 import FormUtils from './FormUtils';
 import { PreferencesCache } from './PreferenceCache';
@@ -37,6 +35,7 @@ interface FilePriorityResult {
 async function getOptimalFilePath(song: Song): Promise<FilePriorityResult | null> {
   const songId = song.id.toString();
   const cacheKey = `${song.id}_${song.source?.id}`;
+  const expectedSize = song.meta?.size;
 
   // 检查缓存状态
   const hasCache = SongCacheManager.has(cacheKey);
@@ -51,7 +50,7 @@ async function getOptimalFilePath(song: Song): Promise<FilePriorityResult | null
   // 优先级判断
   if (hasCache && cache) {
     // 验证缓存文件是否真实存在
-    const cacheExists = await checkCacheFileExists(cache, cacheKey);
+    const cacheExists = await checkCacheFileExists(cache, cacheKey, expectedSize);
     if (cacheExists) {
       LogUtil.info(`[${TAG}]`, `Using cache file for song ${song.name}: ${cache.path}`);
       return {
@@ -63,30 +62,49 @@ async function getOptimalFilePath(song: Song): Promise<FilePriorityResult | null
   }
 
   if (hasDownload && downloadItem) {
-    LogUtil.info(`[${TAG}]`, `Using download file for song ${song.name}: ${downloadItem.path}`);
-    return {
-      filePath: downloadItem.path,
-      fileType: 'download',
-      song: downloadItem.song
-    };
+    // 兼容旧版本：仅当下载文件已完整时才使用本地文件。
+    const ok = await checkLocalFileReady(downloadItem.path, expectedSize);
+    if (ok) {
+      LogUtil.info(`[${TAG}]`, `Using download file for song ${song.name}: ${downloadItem.path}`);
+      return {
+        filePath: downloadItem.path,
+        fileType: 'download',
+        song: downloadItem.song
+      };
+    }
   }
 
   LogUtil.info(`[${TAG}]`, `No local file found for song ${song.name}, will need to download`);
   return null;
 }
 
-async function checkCacheFileExists(cache: SongCacheItem, key: string) {
+async function checkLocalFileReady(path: string, expectedBytes?: number): Promise<boolean> {
+  if (!path) {
+    return false;
+  }
+  try {
+    const stats = await fs.stat(path);
+    if (expectedBytes && expectedBytes > 0) {
+      return stats.size >= expectedBytes;
+    }
+    return stats.size > 0;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function checkCacheFileExists(cache: SongCacheItem, key: string, expectedBytes?: number) {
   if (!cache || !cache.path) {
     console.warn(`[${TAG}]`, `Cache for key ${key} does not exist or path is invalid.`);
     return false;
   }
-  const access = await fs.access(cache.path);
-  console.info(`[${TAG}]`, `Checking cache file exists for key ${key}, access result: ${access}`);
-  if (access) {
-    console.info(`[${TAG}]`, `Cache file for key ${key} exists at path: ${cache.path}`);
+  const ok = await checkLocalFileReady(cache.path, expectedBytes);
+  console.info(`[${TAG}]`, `Checking cache file for key ${key}: ok=${ok}, path=${cache.path}`);
+  if (ok) {
     return true;
   }
-  console.warn(`[${TAG}]`, `Cache file for key ${key} does not exist at path: ${cache.path}`);
+
+  // 文件不存在或不完整：清理缓存映射，避免下次优先使用半成品文件
   SongCacheManager.remove(key);
   return false;
 }
@@ -128,81 +146,10 @@ const handleSpecialUrl = async (url: string): Promise<boolean> => {
   return false; // 不是特殊 URL
 };
 
-const handleSongDownload = async (song: Song) => {
-  // 判断是否可以下载
-  const privilege = song.privilege;
-  const playable = privilege?.playable;
-  if (!playable) {
-    ToastUtil.showShort("当前歌曲无法播放，请尝试其他歌曲");
-    return;
-  }
-
-  song = await SourceAdapter.getSongDetail(song);
-
-  AppStorage.setOrCreate("current_playing_song", song)
-
-  // 下载歌曲
-  const url = song.meta?.url;
-  if (!url) {
-    ToastUtil.showShort("音乐资源不存在");
-    return;
-  }
-
-  // 检查是否是特殊 URL (browser: 或 text: 前缀)
-  const isSpecialUrl = await handleSpecialUrl(url);
-  if (isSpecialUrl) {
-    LogUtil.info(TAG, `Special URL handled, skipping download`);
-    return; // 是特殊 URL，不继续下载
-  }
-
-  let fileName = url.split("/").pop() ?? `${util.generateRandomUUID()}`
-  const index = fileName.indexOf("?")
-  if (index > 0) {
-    fileName = fileName.substring(0, index)
-  }
-
-  const filesDir = ContextHelper.getContext()?.filesDir;
-  fileName = `${filesDir}/${fileName}`;
-
-  await avPlayerManager.stop();
-
-  DownloadManager.downloadFile({
-    url,
-    fileName,
-  });
-
-  let size = song.meta?.size;
-  if (!size) {
-    ToastUtil.showShort("音乐资源大小未知，本次播放将无法跳转进度");
-    size = -1;
-  }
-
-  // 记录上一次播放的歌曲
-  PreferencesCache.lastSong(song);
-
-  // 等待文件创建
-  await new Promise<void>((resolve) => {
-    const checkFile = setInterval(async () => {
-      try {
-        const stats = await fs.stat(fileName);
-        const progress = (stats.size / size!) * 100;
-        if (progress >= 10) {
-          clearInterval(checkFile);
-          resolve();
-        }
-      } catch (err) {
-        // 文件还未创建,继续等待
-      }
-    }, 100);
-  });
-
-  // 创建缓存记录
-  const key = `${song.id}_${song.source?.id}`;
-  console.info(`[${TAG}]`, `Creating cache for song with key: ${key}, fileName: ${fileName}`);
-  SongCacheManager.set(key, fileName, song);
-
-  return fileName;
-}
+// NOTE:
+// We no longer create new cache/download items here.
+// - To avoid double bandwidth, we play by URL directly when there is no complete local file.
+// - We still READ old cached/download files for compatibility.
 
 const defaultLoveSongCallback = (_assetId: string) => {
   const currentSong = AppStorage.get<Song>("current_playing_song");
@@ -272,7 +219,14 @@ const playSong = async (song: Song, path: string, cached: boolean, pause: boolea
         LogUtil.error("EventHelper ", "playSong", `Failed to convert cover to PixelMap: ${error.message}`);
       }
     }
-    await avPlayerManager.playByPath(path, song.meta?.size, pause, meteData)
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      await avPlayerManager.playByUrl(path, song.meta?.size, pause, meteData)
+      if (pause) {
+        await avPlayerManager.pauseWithoutFadeOut()
+      }
+    } else {
+      await avPlayerManager.playByPath(path, song.meta?.size, pause, meteData)
+    }
     const session = avPlayerManager.getSession();
     if (session) {
       session.setAVPlaybackState({
@@ -306,12 +260,25 @@ const defaultPlaySongCallback = async (data: [Song, boolean]) => {
           `Failed to fetch latest song details: ${error.message}`);
       });
     } else {
-      // 没有本地文件，需要下载
-      LogUtil.info("EventHelper ", "defaultPlaySongCallback ", "No local file found, downloading...");
-      const filePath = await handleSongDownload(song);
-      if (filePath) {
-        await playSong(song, filePath, false, pause); // 如果下载成功，继续播放
+      // 没有完整本地文件：直接使用 URL 播放（避免 AVPlayer 时代的 dataSrc 边下边播造成的不兼容）
+      LogUtil.info("EventHelper ", "defaultPlaySongCallback ", "No complete local file, playing by URL...");
+
+      const detailed = await SourceAdapter.getSongDetail(song);
+      AppStorage.setOrCreate("current_playing_song", detailed);
+      PreferencesCache.lastSong(detailed);
+
+      const url = detailed.meta?.url;
+      if (!url) {
+        ToastUtil.showShort("音乐资源不存在");
+        return;
       }
+
+      const isSpecialUrl = await handleSpecialUrl(url);
+      if (isSpecialUrl) {
+        return;
+      }
+
+      await playSong(detailed, url, false, pause);
     }
   } catch (error) {
     LogUtil.error("EventHelper ", "defaultPlaySongCallback", error.message);

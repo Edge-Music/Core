@@ -1,4 +1,5 @@
 import { avPlayerManager } from "./AVPlayerManager";
+import { audio } from "@kit.AudioKit";
 
 const MAX_COUNT = 5;
 
@@ -60,11 +61,11 @@ class StrictTrendDetector {
 
   private async adjustVolume(desiredState: string): Promise<void> {
     const player = await avPlayerManager.getAVPlayerInstance()
-    if(player.state === 'playing' && desiredState === 'paused') {
+    if(player.getState() === audio.AudioState.STATE_RUNNING && desiredState === 'paused') {
       avPlayerManager.pause()
       this.flipState = 'down'
     }
-    if(player.state != 'playing' && desiredState === 'playing' && this.flipState === 'down') {
+    if(player.getState() === audio.AudioState.STATE_RUNNING && desiredState === 'playing' && this.flipState === 'down') {
       avPlayerManager.play()
       this.flipState = 'up'
     }

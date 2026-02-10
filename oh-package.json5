@@ -7,7 +7,8 @@
     "@ohos/axios": "^2.2.4",
     "@pura/harmony-dialog": "^1.1.3",
     "@pie/lazy-data": "^1.0.0",
-    "@ibestservices/ucharts": "^1.0.9"
+    "@ibestservices/ucharts": "^1.0.9",
+    "@ospark/free-pcm": "file:./libs/freepcm.har"
   },
   "devDependencies": {
     "@ohos/hypium": "1.0.19",

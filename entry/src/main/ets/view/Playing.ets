@@ -32,8 +32,84 @@ import { BusinessError, deviceInfo, emitter } from '@kit.BasicServicesKit'
 import { Event } from '@kit.ArkTS'
 import { Playing4Landscape } from '../component/Playing4Landscape'
 import { ColorExtractor } from '../util/ColorExtractor'
+import { audio } from '@kit.AudioKit'
 
 type ShowLyricsStatus = -1 | 0 | 1 | 2
+
+export enum EqPresetId {
+  Default = 'Default',
+  Pop = 'Pop',
+  Rock = 'Rock',
+  Jazz = 'Jazz',
+  Classical = 'Classical',
+  Dance = 'Dance',
+  Ballads = 'Ballads',
+  RnB = 'RnB',
+  Voice = 'Voice', // 新增：人声增强
+  Electronic = 'Electronic' // 新增：电子乐
+}
+
+export const EQ_PRESET_MAP: Record<EqPresetId, number[]> = {
+  // 标准：全平
+  [EqPresetId.Default]: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+
+  // 流行：小幅提升低音和高音，形成微 U 型，提升节奏感和清晰度
+  [EqPresetId.Pop]: [3, 2, 1, 0, -1, -1, 0, 1, 2, 3],
+
+  // 摇滚：强调低音冲击力和高音锐度，中频微调防止乐器混杂
+  [EqPresetId.Rock]: [5, 4, 3, 1, -1, -1, 1, 3, 4, 4],
+
+  // 爵士：强调温暖的低中频和乐器延伸
+  [EqPresetId.Jazz]: [3, 2, 1, 2, 1, 1, 2, 2, 3, 2],
+
+  // 古典：平衡感至上，微增低频烘托厅堂感，高频微增提升细节（拒绝过度削减）
+  [EqPresetId.Classical]: [3, 3, 2, 1, 0, 0, 1, 2, 2, 3],
+
+  // 舞曲：侧重极低频（子鼓）和高频瞬态
+  [EqPresetId.Dance]: [6, 5, 2, 0, 1, 2, 3, 2, 4, 5],
+
+  // 民谣：强调人声的厚度（250-500Hz）和吉他拨弦的清脆
+  [EqPresetId.Ballads]: [2, 1, 1, 2, 3, 2, 1, 2, 3, 3],
+
+  // RnB：深沉的低音和清亮的高音人声
+  [EqPresetId.RnB]: [5, 4, 2, 1, -2, -1, 1, 2, 4, 5],
+
+  // 人声增强（新增）：削减极低频噪影，突出 1k-4kHz 人声区
+  [EqPresetId.Voice]: [-2, -2, 0, 1, 2, 4, 4, 3, 1, 0],
+
+  // 电子（新增）：极强的两端延伸，适合氛围感和节拍
+  [EqPresetId.Electronic]: [6, 4, 0, -2, -2, 0, 2, 4, 6, 5]
+};
+
+export const EQ_PRESET_LABEL: Record<EqPresetId, string> = {
+  [EqPresetId.Default]: '标准 (Default)',
+  [EqPresetId.Pop]: '流行 (Pop)',
+  [EqPresetId.Rock]: '摇滚 (Rock)',
+  [EqPresetId.Jazz]: '爵士 (Jazz)',
+  [EqPresetId.Classical]: '古典 (Classical)',
+  [EqPresetId.Dance]: '舞曲 (Dance)',
+  [EqPresetId.Ballads]: '民谣 (Ballads)',
+  [EqPresetId.RnB]: 'R&B',
+  [EqPresetId.Voice]: '人声 (Voice)',
+  [EqPresetId.Electronic]: '电子 (Electronic)'
+};
+
+export const EQ_BAND_LABELS: string[] = ['31Hz', '62Hz', '125Hz', '250Hz', '500Hz', '1kHz', '2kHz', '4kHz', '8kHz', '16kHz'];
+
+export interface EqPreset {
+  id: EqPresetId;
+  label: string;
+  gainsDb: number[];
+}
+
+export const EQ_PRESET_LIST: EqPreset[] = Object.keys(EQ_PRESET_MAP).map((key) => {
+  const id = key as EqPresetId;
+  return {
+    id: id,
+    label: EQ_PRESET_LABEL[id],
+    gainsDb: EQ_PRESET_MAP[id]
+  } as EqPreset;
+});
 
 @Builder
 export function PlayingBuilder() {
@@ -102,7 +178,13 @@ struct Playing {
   @State selectedIndex: number = 0
   @State flipCoverLyric: boolean = PreferencesCache.flipCoverLyric()
   @State Pura_X: string = PreferencesCache.getUserPreference('is_Pura_X', '0')//pura_x尝试适配
-  @State sheetType: "playlist" | "timer" | "artist" = "playlist" // 用于控制底部弹出表单的类型，默认为播放列表
+  @State sheetType: "playlist" | "timer" | "artist" | "eq" = "playlist" // 用于控制底部弹出表单的类型，默认为播放列表
+
+  // --- EQ Sheet ---
+  @State eqEnabled: boolean = false
+  @State eqGainsDb: number[] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  @State eqPreset: string = 'Custom'
+  @State eqLoaded: boolean = false
   @State showLyricType: ShowLyricsStatus = parseInt(PreferencesCache.getUserPreference('playing_title_lyric_show_status', '0')) as ShowLyricsStatus
   @State Color_main: string = '#121234'
   @State Color_sum: string = '#114514'
@@ -804,8 +886,9 @@ struct Playing {
     const player = await avPlayerManager.getAVPlayerInstance()
     this.Playing_Next = isHorizontalMode()
     // 初始化当前时间和持续时间
-    this.currentTime = player.currentTime
-    this.isPlaying = player.state === 'playing'
+    this.currentTime = player.getCurrentPosition()
+    this.isPlaying = player.getState() === audio.AudioState.STATE_RUNNING
+
 
     this.isFavorite = this.song?.meta?.isFavorite || false
     this.uiContext = this.getUIContext();
@@ -816,7 +899,7 @@ struct Playing {
     // 播放位置更新计时器
     this.updateTimer = setInterval(() => {
       if (this.isPlaying && this.currentTime <= (this.song?.duration || 0)) {
-        this.currentTime = player.currentTime;
+        this.currentTime = player.getCurrentPosition()
       }
     }, 300)
     // 初始化监听
@@ -890,6 +973,88 @@ struct Playing {
     const mins = Math.floor(seconds / 60)
     const secs = Math.floor(seconds % 60)
     return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  private clampEqGainDb(g: number): number {
+    if (!Number.isFinite(g)) {
+      return 0;
+    }
+    if (g > 24) return 24;
+    if (g < -24) return -24;
+    return g;
+  }
+
+  private parseBooleanPref(value: string): boolean {
+    const v = (value ?? '').trim().toLowerCase();
+    return v === '1' || v === 'true' || v === 'yes' || v === 'on';
+  }
+
+  private loadEqGainsDbFromPreference(): number[] {
+    const BAND_COUNT = 10;
+
+    const raw: string = PreferencesCache.getUserPreference(
+      'eq_gains_db',
+      '0,0,0,0,0,0,0,0,0,0'
+    );
+
+    const parts = raw.split(',');
+    if (parts.length !== BAND_COUNT) {
+      return Array(BAND_COUNT).fill(0);
+    }
+
+    return parts.map((p) => {
+      const val = Number(p);
+      return this.clampEqGainDb(isNaN(val) ? 0 : val);
+    });
+  }
+
+  private saveEqPreferences(): void {
+    PreferencesCache.setUserPreference('eq_enabled', this.eqEnabled ? '1' : '0');
+    PreferencesCache.setUserPreference('eq_gains_db', this.eqGainsDb.join(','));
+    PreferencesCache.setUserPreference('eq_preset', this.eqPreset);
+  }
+
+  private applyEqToPlayer(): void {
+    // 使用 Array.from 确保脱离 ArkTS 的代理包装，转为普通 number 数组
+    const cleanGains = Array.from(this.eqGainsDb);
+    if (cleanGains.length === 10) {
+      avPlayerManager.toggleEqualizer(this.eqEnabled);
+      avPlayerManager.setEqualizer(cleanGains);
+    }
+  }
+
+  private syncEqFromPreference(): void {
+    this.eqEnabled = this.parseBooleanPref(PreferencesCache.getUserPreference('eq_enabled', '0'));
+    this.eqGainsDb = this.loadEqGainsDbFromPreference();
+    this.eqPreset = PreferencesCache.getUserPreference('eq_preset', 'Custom');
+    this.eqLoaded = true;
+  }
+
+  private openEqSheet(): void {
+    if (!this.eqLoaded) {
+      this.syncEqFromPreference();
+    }
+    this.sheetType = 'eq';
+    this.showPlaylist = true;
+  }
+
+  private setEqPreset(presetId: EqPresetId): void {
+    const gains = EQ_PRESET_MAP[presetId];
+    this.eqPreset = presetId;
+    this.eqGainsDb = gains.slice();
+    this.saveEqPreferences();
+    this.applyEqToPlayer();
+  }
+
+  private setEqBandGain(index: number, gainDb: number): void {
+    // 浅拷贝并更新
+    const next = [...this.eqGainsDb];
+    next[index] = this.clampEqGainDb(gainDb);
+    this.eqGainsDb = next;
+
+    this.eqPreset = 'Custom';
+    this.saveEqPreferences();
+    this.applyEqToPlayer();
   }
 
   getFontSize(text: string, baseSize = 18, maxLength = 36): number {
@@ -1465,6 +1630,14 @@ struct Playing {
         }
       },
       {
+        value: '均衡器',
+        action: () => {
+          this.uiContext?.animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
+            this.openEqSheet();
+          })
+        }
+      },
+      {
         value: $r('app.string.scheduled_shutdown'),
         action: () => {
           this.uiContext?.animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
@@ -1505,6 +1678,14 @@ struct Playing {
         action: () => {
           this.uiContext?.animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
             this.downloadSong()
+          })
+        }
+      },
+      {
+        value: '均衡器',
+        action: () => {
+          this.uiContext?.animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
+            this.openEqSheet();
           })
         }
       },
@@ -1852,7 +2033,151 @@ struct Playing {
       this.Timer()
     } else if (this.sheetType === "artist") {
       this.ArtistSheet()
+    } else if (this.sheetType === "eq") {
+      this.EqSheet()
     }
+  }
+
+  private getEqPresetLabel(): string {
+    const p = this.eqPreset;
+    // 直接尝试获取 label
+    const label = p ? EQ_PRESET_LABEL[p as EqPresetId] : null;
+
+    return label || '自定义 (Custom)';
+  }
+
+  private getEqMenuOptions(): MenuElement[] {
+    const options: MenuElement[] = EQ_PRESET_LIST.map((preset) => {
+      return {
+        value: preset.label,
+        action: () => {
+          this.setEqPreset(preset.id);
+        }
+      } as MenuElement;
+    });
+
+    return options;
+  }
+
+  @Builder
+  EqSheet() {
+    Column() {
+      // --- 顶部控制栏 ---
+      Row() {
+        Text('均衡器')
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.text_title'))
+
+        Blank()
+
+        // 重置按钮：缩小并移至顶部
+        Button('重置')
+          .fontSize(12)
+          .height(28)
+          .padding({ left: 10, right: 10 })
+          .backgroundColor($r('app.color.card_background'))
+          .fontColor($r('app.color.text_secondary'))
+          .margin({ right: 8 })
+          .onClick(() => {
+            this.setEqPreset(EqPresetId.Default);
+          })
+
+        // 预设选择：使用 bindMenu
+        Button(this.getEqPresetLabel())
+          .fontSize(12)
+          .height(28)
+          .padding({ left: 10, right: 10 })
+          .backgroundColor($r('app.color.card_background'))
+          .fontColor($r('app.color.accent_primary'))
+          .bindMenu(this.getEqMenuOptions())
+      }
+      .width('100%')
+      .padding({ left: 20, right: 20, top: 20, bottom: 10 })
+
+      // --- 开关选项 ---
+      Row() {
+        Text('启用状态')
+          .fontSize(14)
+          .fontColor($r('app.color.text_secondary'))
+        Blank()
+        Toggle({ type: ToggleType.Switch, isOn: this.eqEnabled })
+          .onChange((v: boolean) => {
+            this.eqEnabled = v;
+            this.saveEqPreferences();
+            this.applyEqToPlayer();
+          })
+          .selectedColor($r('app.color.accent_primary'))
+          .scale({ x: 0.8, y: 0.8 }) // 稍微缩小开关使其更精致
+      }
+      .width('100%')
+      .padding({ left: 20, right: 20, bottom: 20 })
+
+      // --- 调节区域 ---
+      Row() {
+        // 左侧刻度尺
+        Column() {
+          Text('+24').fontSize(9).fontColor($r('app.color.text_secondary'))
+          Blank()
+          Text('0').fontSize(9).fontColor($r('app.color.text_secondary'))
+          Blank()
+          Text('-24').fontSize(9).fontColor($r('app.color.text_secondary'))
+        }
+        .height(220) // 增加高度
+        .padding({ top: 35, bottom: 35 })
+        .width(25)
+
+        // 10段调节杆：使用 Flex 自动平铺宽度
+        Flex({ direction: FlexDirection.Row, justifyContent: FlexAlign.SpaceAround }) {
+          ForEach(EQ_BAND_LABELS, (label: string, index: number) => {
+            Column() {
+              // 数值显示
+              Text(`${this.eqGainsDb[index] > 0 ? '+' : ''}${this.eqGainsDb[index]}`)
+                .fontSize(9)
+                .fontColor(this.eqEnabled ? $r('app.color.accent_primary') : $r('app.color.text_secondary'))
+                .margin({ bottom: 4 })
+
+              Slider({
+                value: this.eqGainsDb[index],
+                min: -24,
+                max: 24,
+                step: 1,
+                style: SliderStyle.InSet,
+                direction: Axis.Vertical,
+                reverse: true
+              })
+                .layoutWeight(1)
+                .trackThickness(16) // 10根杆时 16-18 宽度视觉最舒适
+                .selectedColor($r('app.color.accent_primary'))
+                .trackColor($r('app.color.border_line'))
+                .enabled(this.eqEnabled) // 禁用时变灰不可调
+                .onChange((value: number) => {
+                  this.setEqBandGain(index, Math.round(value));
+                })
+
+              // 频率标签
+              Text(label)
+                .fontSize(9)
+                .fontColor($r('app.color.text_secondary'))
+                .margin({ top: 6 })
+            }
+            .layoutWeight(1)
+            .height(260)
+          }, (item: string, index: number) => `${item}-${index}`)
+        }
+        .layoutWeight(1)
+      }
+      .width('100%')
+      .padding({ left: 10, right: 15, bottom: 30 })
+    }
+    .width('100%')
+    .height('100%')
+    .backgroundColor($r('app.color.page_background'))
+    .borderRadius({ topLeft: 16, topRight: 16 })
+    .onAppear(() => {
+      this.syncEqFromPreference();
+      this.applyEqToPlayer();
+    })
   }
 
   @Builder
@@ -2190,7 +2515,7 @@ struct Playing {
             this.Title()
             // 宽屏布局 - 左右分栏
             if (this.winWidth >WidthBreakpoint.WIDTH_LG) {
-              
+
             }
             Row() {
               if (this.flipCoverLyric) {
@@ -2313,7 +2638,7 @@ struct Playing {
 
           this.updateTimer = setInterval(() => {
             if (this.isPlaying && this.currentTime <= (this.song?.duration || 0)) {
-              this.currentTime = player.currentTime;
+              this.currentTime = player.getCurrentPosition()
             }
           }, 300)
         }

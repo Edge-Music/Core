@@ -1,7 +1,6 @@
 import { BreakpointSystem } from '../component/BreakpointSystem'
 import { MenuButton } from '../component/MenuButton'
 import { StyleConstants } from '../constants/StyleConstants'
-import { AnimationConstants } from '../constants/AnimationConstants'
 import { HomePageMenu } from '../model/HomePageMenu'
 import { ComingSoon } from '../view/ComingSoon'
 import { HomePageMenuData } from '../viewmodel/HomePageMenuData'
@@ -17,24 +16,23 @@ import { MultiSearch } from '../view/MultiSearch'
 import { Download } from '../view/Download'
 import { ScrollController } from '../util/ScrollController'
 import { HeaderAnimation } from '../component/HeaderAnimation'
-import { deviceInfo } from '@kit.BasicServicesKit'
+import { BusinessError, deviceInfo } from '@kit.BasicServicesKit'
 import { PipManager } from '../util/PipManager'
 import { avPlayerManager } from '../util/AVPlayerManager'
 import { IS_2IN1_UI } from '../For_2in1_UI/FOR2IN1'
 import { Aggregation } from '../view/Aggregation'
 import { LogUtil, ToastUtil, WantUtil } from '@pura/harmony-utils'
-import { BusinessError } from '@kit.BasicServicesKit'
-import { common, wantAgent, WantAgent } from '@kit.AbilityKit'
+import { common } from '@kit.AbilityKit'
 import { HeaderComponent } from '../component/HeaderComponent'
 import { HeaderPlaceholder } from '../component/HeaderPlaceholder'
 import { Statistics } from '../view/Statistics'
 import { FooterPlaceholder } from '../component/FooterPlaceholder'
 // import { motion } from '@kit.MultimodalAwarenessKit'
-import { HandingCtrl } from '../component/holdingHandCtrl'
 import { sensor } from '@kit.SensorServiceKit'
 import { notificationManager } from '@kit.NotificationKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
-import commonEventManager from '@ohos.commonEventManager';
+import { audio } from '@kit.AudioKit'
+
 // import { sensor } from '@kit.SensorServiceKit'
 
 // import { motion } from '@kit.MultimodalAwarenessKit'
@@ -48,8 +46,10 @@ const TAG = 'Index'
 @CustomDialog
 struct PrivacyPolicyDialog {
   controller?: CustomDialogController;
-  onAgree: () => void = () => {};
-  onDisagree: () => void = () => {};
+  onAgree: () => void = () => {
+  };
+  onDisagree: () => void = () => {
+  };
 
   build() {
     Column({ space: 20 }) {
@@ -167,21 +167,23 @@ struct Index {
   aboutToAppear(): void {
     this.pageStack.replacePath({ name: 'Index_page' })
     let pressure_change_judge = PreferencesCache.getUserPreference('pressure_change', '0')
-    if(pressure_change_judge === '1'){
+    if (pressure_change_judge === '1') {
       try {
         // const TAG: string = '[PublishOperation]';
         const DOMAIN_NUMBER: number = 0xFF00;
         let context = this.getUIContext().getHostContext() as common.UIAbilityContext;
         notificationManager.isNotificationEnabled().then((data: boolean) => {
           hilog.info(DOMAIN_NUMBER, TAG, "isNotificationEnabled success, data: " + JSON.stringify(data));
-          if(!data){
+          if (!data) {
             notificationManager.requestEnableNotification(context).then(() => {
               hilog.info(DOMAIN_NUMBER, TAG, `[ANS] requestEnableNotification success`);
             }).catch((err: BusinessError) => {
-              if(1600004 == err.code){
-                hilog.error(DOMAIN_NUMBER, TAG, `[ANS] requestEnableNotification refused, code is ${err.code}, message is ${err.message}`);
+              if (1600004 == err.code) {
+                hilog.error(DOMAIN_NUMBER, TAG,
+                  `[ANS] requestEnableNotification refused, code is ${err.code}, message is ${err.message}`);
               } else {
-                hilog.error(DOMAIN_NUMBER, TAG, `[ANS] requestEnableNotification failed, code is ${err.code}, message is ${err.message}`);
+                hilog.error(DOMAIN_NUMBER, TAG,
+                  `[ANS] requestEnableNotification failed, code is ${err.code}, message is ${err.message}`);
               }
             });
           }
@@ -191,38 +193,41 @@ struct Index {
 
         sensor.on(sensor.SensorId.BAROMETER, (data: sensor.BarometerResponse) => {
           //过去气压获取
-          let prevAtmospheric_pressure : number = AppStorage.get('Atmospheric_pressure') ?? data.pressure
+          let prevAtmospheric_pressure: number = AppStorage.get('Atmospheric_pressure') ?? data.pressure
           //过去差值获取
-          let Atmospheric_pressure_change_prev:number = AppStorage.get('Atmospheric_pressure_change')??0
+          let Atmospheric_pressure_change_prev: number = AppStorage.get('Atmospheric_pressure_change') ?? 0
           // 计算累积差值
-          let Atmospheric_pressure_change:number = prevAtmospheric_pressure - data.pressure + Atmospheric_pressure_change_prev
-          if (Atmospheric_pressure_change>=50||Atmospheric_pressure_change<=-50){
-            console.info('jizhishi_debug Succeeded in invoking on. Atmospheric_pressure_change: ' + Atmospheric_pressure_change);
+          let Atmospheric_pressure_change: number =
+            prevAtmospheric_pressure - data.pressure + Atmospheric_pressure_change_prev
+          if (Atmospheric_pressure_change >= 50 || Atmospheric_pressure_change <= -50) {
+            console.info('jizhishi_debug Succeeded in invoking on. Atmospheric_pressure_change: ' +
+              Atmospheric_pressure_change);
             Atmospheric_pressure_change = 0
 
             let notificationRequest: notificationManager.NotificationRequest = {
               id: 114514,
-              notificationSlotType:notificationManager.SlotType.SERVICE_INFORMATION,
+              notificationSlotType: notificationManager.SlotType.SERVICE_INFORMATION,
               content: {
                 notificationContentType: notificationManager.ContentType.NOTIFICATION_CONTENT_BASIC_TEXT, // 普通文本类型通知
                 normal: {
                   title: '气压变化超50百帕',
-                  text: '当前气压:'+data.pressure.toFixed(3)+'百帕',
+                  text: '当前气压:' + data.pressure.toFixed(3) + '百帕',
                   // additionalText: 'test_additionalText',
                 }
               }
             };
             notificationManager.publish(notificationRequest, (err: BusinessError) => {
               if (err) {
-                hilog.error(DOMAIN_NUMBER, TAG, `Failed to publish notification. Code is ${err.code}, message is ${err.message}`);
+                hilog.error(DOMAIN_NUMBER, TAG,
+                  `Failed to publish notification. Code is ${err.code}, message is ${err.message}`);
                 return;
               }
               hilog.info(DOMAIN_NUMBER, TAG, 'Succeeded in publishing notification.');
             });
           }
 
-          AppStorage.setOrCreate('Atmospheric_pressure_change',Atmospheric_pressure_change)
-          AppStorage.setOrCreate('Atmospheric_pressure',data.pressure)
+          AppStorage.setOrCreate('Atmospheric_pressure_change', Atmospheric_pressure_change)
+          AppStorage.setOrCreate('Atmospheric_pressure', data.pressure)
           console.info('jizhishi_debug Succeeded in invoking on. Atmospheric pressure: ' + data.pressure);
         }, { interval: 100000000 });
         // setTimeout(() => {
@@ -246,7 +251,7 @@ struct Index {
     let context = this.getUIContext().getHostContext() as common.UIAbilityContext;
     notificationManager.isNotificationEnabled().then((data: boolean) => {
       hilog.info(DOMAIN_NUMBER, TAG, "isNotificationEnabled success, data: " + JSON.stringify(data));
-      if(!data){
+      if (!data) {
         notificationManager.requestEnableNotification(context).then(() => {
           hilog.info(DOMAIN_NUMBER, TAG, `[ANS] requestEnableNotification success`);
         }).catch(() => {
@@ -261,12 +266,14 @@ struct Index {
       // hilog.error(DOMAIN_NUMBER, TAG, `isNotificationEnabled fail, code is ${err.code}, message is ${err.message}`);
     });
   }
+
   // aboutToDisappear(): void {
   //
   // }
   onPageHide(): void {
 
   }
+
   build() {
     Navigation(this.pageStack) {
       // empty
@@ -275,23 +282,23 @@ struct Index {
       // 通过stopPropagation阻止事件冒泡
       let names = this.pageStack.getAllPathName();
       let pageName = names[names.length-1];
-      if (['Index_page','Playing'].includes(pageName)) {
-        if(event){
-          if(event.stopPropagation){
+      if (['Index_page', 'Playing'].includes(pageName)) {
+        if (event) {
+          if (event.stopPropagation) {
             event.stopPropagation();
           }
           if (event.type === KeyType.Up) {
             // this.buttonType = 'Down';
-            if(event.keyCode ===2050){
+            if (event.keyCode === 2050) {
               const player = await avPlayerManager.getAVPlayerInstance()
               // player.ge
-              if (            player.state ==='playing'
+              if (player.getState() === audio.AudioState.STATE_RUNNING
               ) {
                 player.pause().catch(() => {
                   // TODO: Implement error handling.
                 })
-              }else {
-                player.play().catch(() => {
+              } else {
+                player.resume().catch(() => {
                   // TODO: Implement error handling.
                 })
               }
@@ -307,7 +314,7 @@ struct Index {
           //   'KeyText:' + event.keyText;
         }
 
-      }else {
+      } else {
 
       }
     })
@@ -359,7 +366,7 @@ struct Index_page {
   }).linkController(this.scroller)
   // 诗人握持定时器及类型判断
   @StorageProp('hand') hand: number = 0
-  @StorageProp('hand_timer')  hand_timer: number = 0
+  @StorageProp('hand_timer') hand_timer: number = 0
   // 隐私协议弹窗控制器
   private privacyDialogController: CustomDialogController | null = new CustomDialogController({
     builder: PrivacyPolicyDialog({
@@ -376,7 +383,7 @@ struct Index_page {
     onWillDismiss: (dismissDialogAction: DismissDialogAction) => {
       // 阻止用户通过返回键或点击外部关闭弹窗
       if (dismissDialogAction.reason === DismissReason.PRESS_BACK ||
-          dismissDialogAction.reason === DismissReason.TOUCH_OUTSIDE) {
+        dismissDialogAction.reason === DismissReason.TOUCH_OUTSIDE) {
         dismissDialogAction.dismiss();
       }
     }
@@ -438,7 +445,7 @@ struct Index_page {
     ToastUtil.showShort($r('app.string.privacy_policy_required_message'));
     // 退出应用
     setTimeout(() => {
-      let context = this.getUIContext().getHostContext()as common.UIAbilityContext;
+      let context = this.getUIContext().getHostContext() as common.UIAbilityContext;
       context.terminateSelf().catch(() => {
         console.error('关闭应用失败')
       });
@@ -455,7 +462,6 @@ struct Index_page {
 
   }
 
-
   @Builder
   Title() {
 
@@ -471,7 +477,7 @@ struct Index_page {
           .fontColor($r('app.color.text_title'))
           .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
           .fontSize($r('app.float.title_font_size'))
-        Row({space:4}) {
+        Row({ space: 4 }) {
           MenuIcon({
             icon: $r('app.media.ic_search'),
             active: this.scrollController.currentIndex === 1
@@ -620,7 +626,6 @@ struct Index_page {
     .justifyContent(FlexAlign.SpaceBetween)
   }
 
-
   build() {
     NavDestination() {
       if (this.zhishi_UI === '1') {
@@ -630,7 +635,7 @@ struct Index_page {
         })
       } else {
         Stack({ alignContent: Alignment.Bottom }) {
-          Stack({ alignContent: this.hand === 1 ? Alignment.Start:Alignment.End }){
+          Stack({ alignContent: this.hand === 1 ? Alignment.Start : Alignment.End }) {
             Column() {
               List({ scroller: this.scroller }) {
                 HeaderPlaceholder()
@@ -772,7 +777,7 @@ struct Index_page {
     .hideTitleBar(true)
     .hideBackButton(true)
     .backgroundColor($r('app.color.page_background'))
-    .onWillAppear(()=>{
+    .onWillAppear(() => {
       avPlayerManager.setAudioSession()
 
       this.zhishi_UI = PreferencesCache.getUserPreference('zhishi_UI', '0')
@@ -814,17 +819,17 @@ struct Index_page {
         PreferencesCache.setUserPreference('is_Pura_X', '0')
       }
     })
-    .onWillShow(()=> {
-        console.info(TAG, 'onPageShow')
-        PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
+    .onWillShow(() => {
+      console.info(TAG, 'onPageShow')
+      PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
       //气压变化提醒功能。需要设备支持，进入首页后自动开启
 
 
       try {
         if (canIUse("SystemCapability.MultimodalAwareness.Motion")) {
-            import('../util/HoldHand').then((nv)=>{
-              nv.startHoldingHand(this.getUIContext())
-            })
+          import('../util/HoldHand').then((nv) => {
+            nv.startHoldingHand(this.getUIContext())
+          })
           // motion.on('holdingHandChanged', callback);
         } else {
           // Fallback for unsupported SystemCapability
@@ -834,17 +839,17 @@ struct Index_page {
         let error = err as BusinessError;
         console.error("Failed on and err code is " + error.code);
       }
-        // PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
-        // PipManager.getInstance().startPip();
-      })
-    .onWillHide(()=>{
+      // PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
+      // PipManager.getInstance().startPip();
+    })
+    .onWillHide(() => {
       console.info(TAG, 'onPageHide')
 
       clearInterval(this.hand_timer)
       try {
         if (canIUse("SystemCapability.MultimodalAwareness.Motion")) {
           // motion.off('holdingHandChanged');
-          import('../util/HoldHand').then((nv)=>{
+          import('../util/HoldHand').then((nv) => {
             // nv.stopHoldingHand()
           })
         } else {
@@ -857,7 +862,7 @@ struct Index_page {
       }
       // PipManager.getInstance().setAutoStart(false);
     })
-    .onWillDisappear(()=>{
+    .onWillDisappear(() => {
       this.breakpointSystem.unregister()
       PipManager.getInstance().unregisterPipStateChangeListener(); // 解注册画中画生命周期及状态回调
       // 清理弹窗控制器
