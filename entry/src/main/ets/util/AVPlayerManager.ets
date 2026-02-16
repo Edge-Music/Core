@@ -1132,10 +1132,11 @@ class AVPlayerManager {
 
 
     player.on('outputDeviceChangeWithInfo', async (info: audio.AudioStreamDeviceChangeInfo) => {
+      console.log('jizhishi0113'+JSON.stringify(info))
       switch (info.changeReason) {
         case audio.AudioStreamDeviceChangeReason.REASON_OLD_DEVICE_UNAVAILABLE:
           // 设备不可用(如蓝牙断开)，需要暂停播放
-          await this.stop()
+          await this.pause()
           break;
 
         case audio.AudioStreamDeviceChangeReason.REASON_NEW_DEVICE_AVAILABLE:
@@ -1374,6 +1375,64 @@ class AVPlayerManager {
     if (this.currentDecoder) {
       this.currentDecoder.setEqEnabled(enabled);
     }
+  }
+
+  // ========== 新增：左右耳独立控制 ==========
+
+  // 设置左右耳独立音量 (linear: 0.0 ~ 2.0)
+  setChannelVolumes(leftVolume: number, rightVolume: number): void {
+    if (this.avPlayer && typeof this.avPlayer.setChannelVolumes === 'function') {
+      try {
+        this.avPlayer.setChannelVolumes(leftVolume, rightVolume);
+      } catch (e) {
+        LogUtil.warn(TAG, `setChannelVolumes failed: ${e}`);
+      }
+    }
+  }
+
+  // 设置左右耳独立EQ曲线
+  setEqualizerLR(leftGains: number[], rightGains: number[]): void {
+    if (this.avPlayer && typeof this.avPlayer.setEqGainsLR === 'function') {
+      try {
+        this.avPlayer.setEqGainsLR(leftGains, rightGains);
+      } catch (e) {
+        LogUtil.warn(TAG, `setEqGainsLR failed: ${e}`);
+      }
+    }
+  }
+
+  // ========== 新增：DRC动态范围控制 ==========
+
+  // 设置DRC开关
+  setDrcEnabled(enabled: boolean): void {
+    if (this.currentDecoder && typeof this.currentDecoder.setDrcEnabled === 'function') {
+      try {
+        this.currentDecoder.setDrcEnabled(enabled);
+      } catch (e) {
+        LogUtil.warn(TAG, `setDrcEnabled failed: ${e}`);
+      }
+    }
+  }
+
+  // 设置DRC参数
+  setDrcParams(thresholdDb: number, ratio: number, attackMs: number, releaseMs: number, makeupDb: number): void {
+    if (this.currentDecoder && typeof this.currentDecoder.setDrcParams === 'function') {
+      try {
+        this.currentDecoder.setDrcParams(thresholdDb, ratio, attackMs, releaseMs, makeupDb);
+      } catch (e) {
+        LogUtil.warn(TAG, `setDrcParams failed: ${e}`);
+      }
+    }
+  }
+
+  // 获取当前解码器（供外部调用）
+  getCurrentDecoder(): PcmStreamDecoder | null {
+    return this.currentDecoder;
+  }
+
+  // 获取当前播放器（供外部调用）
+  getCurrentPlayer(): AudioRendererPlayer | null {
+    return this.avPlayer;
   }
 }
 
