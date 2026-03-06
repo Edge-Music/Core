@@ -33,6 +33,18 @@ export interface SubWindowPosition {
   y: number;
 }
 
+/**
+ * 弹簧动画参数
+ */
+export interface SpringAnimationParams {
+  velocity: number;
+  mass: number;
+  stiffness: number;
+  damping: number;
+  lineSpacing: number;  // 歌词行间距
+  dragDelay: number;    // 链式动画每行延迟时间(ms)
+}
+
 export const qualityLevels: QualityLevel[] = [
   { level: 'standard', description: $r('app.string.quality_standard'), bitrate: 128000 },
   { level: 'higher', description: $r('app.string.quality_higher'), bitrate: 192000 },
@@ -617,6 +629,32 @@ export class PreferencesCache {
       AppStorage.setOrCreate('status_bar_lyrics_setting', JSON.parse(output) as SBLyricsPre)
     }
     return JSON.parse(output) as SBLyricsPre
+  }
+
+  /**
+   * 弹簧动画参数设置
+   * @param value 弹簧参数（若不传值则获取当前设置）
+   * @returns 弹簧参数
+   */
+  static springAnimationParams(value?: SpringAnimationParams): SpringAnimationParams {
+    const defaultParams: SpringAnimationParams = { velocity: 0, mass: 0.3, stiffness: 200, damping: 15, lineSpacing: 24, dragDelay: 35 };
+    if (value !== undefined) {
+      PreferencesCache.setUserPreference('spring_animation_params', JSON.stringify(value));
+    }
+    const stored = PreferencesCache.getUserPreference('spring_animation_params');
+    if (stored) {
+      const parsed = JSON.parse(stored) as SpringAnimationParams;
+      // 合并默认值，确保所有字段都存在（兼容旧数据）
+      return {
+        velocity: parsed.velocity ?? defaultParams.velocity,
+        mass: parsed.mass ?? defaultParams.mass,
+        stiffness: parsed.stiffness ?? defaultParams.stiffness,
+        damping: parsed.damping ?? defaultParams.damping,
+        lineSpacing: parsed.lineSpacing ?? defaultParams.lineSpacing,
+        dragDelay: parsed.dragDelay ?? defaultParams.dragDelay
+      };
+    }
+    return defaultParams;
   }
 
   /**
