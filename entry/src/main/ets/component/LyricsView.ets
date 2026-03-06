@@ -40,6 +40,9 @@ export struct LyricsView {
   // 设置界面显示状态
   @State private showSpringSettings: boolean = false
 
+  // 缓存的动画曲线（避免每帧创建）
+  private cachedAnimationCurve: ICurve | null = null
+
   // 用于链式动画时延迟更新高亮状态
   @State private displayLyricsIndex: number = 0
 
@@ -67,6 +70,26 @@ export struct LyricsView {
     if (this.parsedLyrics.length > 0) {
       this.initPositions()
     }
+    // 初始化动画曲线缓存
+    this.updateCachedAnimationCurve()
+  }
+
+  // 获取缓存的动画曲线（性能优化：避免每帧创建新对象）
+  private getAnimationCurve(): ICurve {
+    if (!this.cachedAnimationCurve) {
+      this.updateCachedAnimationCurve()
+    }
+    return this.cachedAnimationCurve!
+  }
+
+  // 更新缓存的动画曲线
+  private updateCachedAnimationCurve() {
+    this.cachedAnimationCurve = curves.springCurve(
+      this.springParams.velocity ?? 0,
+      this.springParams.mass ?? 0.3,
+      this.springParams.stiffness ?? 200,
+      this.springParams.damping ?? 15
+    )
   }
 
   // 目标位置（高亮行的 Y 位置，基于屏幕高度百分比）
@@ -276,7 +299,7 @@ export struct LyricsView {
 
     // 链式更新每行的位置
     for (let i = minAnimIndex; i <= maxAnimIndex; i++) {
-      const delay = (i - minAnimIndex) * AnimationConstants.LYRIC_DRAG_DELAY_PER_ITEM
+      const delay = (i - minAnimIndex) * (this.springParams.dragDelay ?? 35)
       const dragOffset = (direction === 1 ? -1 : 1) * AnimationConstants.LYRIC_DRAG_OFFSET
 
       const timeoutId = setTimeout(() => {
@@ -438,10 +461,10 @@ export struct LyricsView {
       this.updateHighlightFromPosition()
 
       velocity *= friction
-      this.inertiaTimeoutId = setTimeout(step, 16) as number
+      this.inertiaTimeoutId = setTimeout(step, 8) as number
     }
 
-    this.inertiaTimeoutId = setTimeout(step, 16) as number
+    this.inertiaTimeoutId = setTimeout(step, 8) as number
   }
 
   build() {
@@ -470,12 +493,7 @@ export struct LyricsView {
             .width(StyleConstants.FULL_WIDTH)
             .position({ x: 0, y: this.getItemDisplayY(index) })
             .animation(this.isManualScroll ? { duration: 0 } : {
-              curve: curves.springCurve(
-                this.springParams.velocity,
-                this.springParams.mass,
-                this.springParams.stiffness,
-                this.springParams.damping
-              )
+              curve: this.getAnimationCurve()
             })
             .onClick(() => {
               this.handleLyricClick(item.time, index)
@@ -495,10 +513,10 @@ export struct LyricsView {
       if (this.mode_judge === true) {
         // 设置按钮
         Button({ type: ButtonType.Circle }) {
-          Image($r('app.media.ic_settings'))
+          Image($r('app.media.ic_gearshape'))
             .width(24)
             .height(24)
-            .fillColor('rgba(255, 255, 255, 0.8)')
+            .fillColor(Color.White)
         }
         .width(52)
         .height(52)
@@ -511,7 +529,11 @@ export struct LyricsView {
         .translate({ x: -76, y: this.hasTranslation || this.hasTransliteration ? -140 : -76 })
         .clickEffect({ level: ClickEffectLevel.LIGHT, scale: 0.92 })
         .hoverEffect(HoverEffect.Highlight)
-        .onClick(() => this.showSpringSettings = true)
+        .onClick(() => {
+          // 恢复自动滚动并预览动画效果
+          this.resumeAutoScrollWithPreview()
+          this.showSpringSettings = true
+        })
         .animation({
           duration: AnimationConstants.DURATION_FAST,
           curve: AnimationConstants.CURVE_DECELERATE
@@ -627,16 +649,27 @@ export struct LyricsView {
               this.isAutoScroll = false
             }
 
-            // 清除链式动画残留的拖拽偏移，并重新计算位置
-            this.itemExtraOffset = new Array(this.parsedLyrics.length).fill(0)
-            this.itemYPositions = this.calculateItemYPositions(this.displayLyricsIndex)
-            this.manualOffset = 0
+            // 重置位置到当前高亮行的正确位置（消除链式动画的中间状态）
+            // 先计算当前位置相对于目标的偏移，保存到 manualOffset
+            const targetCenterY = this.getTargetY()
+            const extraOffset = this.itemExtraOffset[0] ?? 0
 
-            this.isManualScroll = true
-            this.dragStartOffset = 0
+            // 当前的实际偏移 = (itemYPositions[displayLyricsIndex] - 目标中心位置) + manualOffset + extraOffset
+            const currentDisplayY = (this.itemYPositions[this.displayLyricsIndex] ?? targetCenterY)
+            const actualOffset = currentDisplayY - targetCenterY + this.manualOffset + extraOffset
+
+            // 重置位置和偏移
+            this.itemYPositions = this.calculateItemYPositions(this.displayLyricsIndex)
+            this.itemExtraOffset = new Array(this.parsedLyrics.length).fill(0)
+            this.manualOffset = actualOffset
+
+            // 保存当前的 manualOffset 作为拖动起点
+            this.dragStartOffset = this.manualOffset
             this.lastDragY = 0
             this.velocityY = 0
-            this.lastHighlightOffset = 0
+            this.lastHighlightOffset = this.manualOffset
+
+            this.isManualScroll = true
             this.clearInertiaAnimation()
             if (this.manualScrollTimeoutId !== -1) {
               clearTimeout(this.manualScrollTimeoutId)
@@ -707,6 +740,29 @@ export struct LyricsView {
     }, 7000) as number
   }
 
+  // 恢复自动滚动并预览链式动画
+  private resumeAutoScrollWithPreview() {
+    // 清除手动滚动定时器
+    if (this.manualScrollTimeoutId !== -1) {
+      clearTimeout(this.manualScrollTimeoutId)
+      this.manualScrollTimeoutId = -1
+    }
+
+    // 清除惯性动画
+    this.clearInertiaAnimation()
+
+    // 恢复自动滚动状态
+    this.isManualScroll = false
+
+    // 重置偏移
+    this.itemExtraOffset = new Array(this.parsedLyrics.length).fill(0)
+    this.manualOffset = 0
+
+    // 更新到当前播放位置（无动画）
+    this.displayLyricsIndex = this.currentLyricsIndex
+    this.itemYPositions = this.calculateItemYPositions(this.currentLyricsIndex)
+  }
+
   // 弹簧设置面板
   @Builder
   springSettingsSheet() {
@@ -741,11 +797,11 @@ export struct LyricsView {
               value: this.springParams.velocity,
               min: -20,
               max: 20,
-              step: 0.5
+              step: 0.5,
+              style: SliderStyle.InSet
             })
-              .blockColor($r('app.color.text_title'))
-              .trackColor($r('app.color.divider'))
-              .selectedColor($r('app.color.accent_primary'))
+              .selectedColor($r('app.color.title_emphasis_color'))
+              .trackThickness(16)
               .onChange((value: number) => {
                 this.springParams.velocity = value
                 this.saveSpringParams()
@@ -772,11 +828,11 @@ export struct LyricsView {
               value: this.springParams.mass,
               min: 0,
               max: 2,
-              step: 0.05
+              step: 0.05,
+              style: SliderStyle.InSet
             })
-              .blockColor($r('app.color.text_title'))
-              .trackColor($r('app.color.divider'))
-              .selectedColor($r('app.color.accent_primary'))
+              .selectedColor($r('app.color.title_emphasis_color'))
+              .trackThickness(16)
               .onChange((value: number) => {
                 this.springParams.mass = value
                 this.saveSpringParams()
@@ -803,11 +859,11 @@ export struct LyricsView {
               value: this.springParams.stiffness,
               min: 50,
               max: 400,
-              step: 10
+              step: 10,
+              style: SliderStyle.InSet
             })
-              .blockColor($r('app.color.text_title'))
-              .trackColor($r('app.color.divider'))
-              .selectedColor($r('app.color.accent_primary'))
+              .selectedColor($r('app.color.title_emphasis_color'))
+              .trackThickness(16)
               .onChange((value: number) => {
                 this.springParams.stiffness = value
                 this.saveSpringParams()
@@ -834,11 +890,11 @@ export struct LyricsView {
               value: this.springParams.damping,
               min: 5,
               max: 50,
-              step: 1
+              step: 1,
+              style: SliderStyle.InSet
             })
-              .blockColor($r('app.color.text_title'))
-              .trackColor($r('app.color.divider'))
-              .selectedColor($r('app.color.accent_primary'))
+              .selectedColor($r('app.color.title_emphasis_color'))
+              .trackThickness(16)
               .onChange((value: number) => {
                 this.springParams.damping = value
                 this.saveSpringParams()
@@ -865,16 +921,47 @@ export struct LyricsView {
               value: this.springParams.lineSpacing ?? 24,
               min: 8,
               max: 48,
-              step: 2
+              step: 2,
+              style: SliderStyle.InSet
             })
-              .blockColor($r('app.color.text_title'))
-              .trackColor($r('app.color.divider'))
-              .selectedColor($r('app.color.accent_primary'))
+              .selectedColor($r('app.color.title_emphasis_color'))
+              .trackThickness(16)
               .onChange((value: number) => {
                 this.springParams.lineSpacing = value
                 this.saveSpringParams()
                 // 实时更新歌词位置
                 this.itemYPositions = this.calculateItemYPositions(this.displayLyricsIndex)
+              })
+          }
+          .width('100%')
+          .margin({ bottom: 16 })
+
+          // 每行延迟
+          Column() {
+            Row() {
+              Text('每行延迟')
+                .fontSize(16)
+                .fontColor($r('app.color.text_primary'))
+              Blank()
+              Text((this.springParams.dragDelay ?? 35).toFixed(0) + 'ms')
+                .fontSize(16)
+                .fontColor($r('app.color.text_secondary'))
+            }
+            .width('100%')
+            .margin({ bottom: 8 })
+
+            Slider({
+              value: this.springParams.dragDelay ?? 35,
+              min: 0,
+              max: 100,
+              step: 5,
+              style: SliderStyle.InSet
+            })
+              .selectedColor($r('app.color.title_emphasis_color'))
+              .trackThickness(16)
+              .onChange((value: number) => {
+                this.springParams.dragDelay = value
+                this.saveSpringParams()
               })
           }
           .width('100%')
@@ -891,7 +978,7 @@ export struct LyricsView {
             .borderRadius(22)
             .margin({ top: 16 })
             .onClick(() => {
-              this.springParams = { velocity: 0, mass: 0.3, stiffness: 200, damping: 15, lineSpacing: 24 }
+              this.springParams = { velocity: 0, mass: 0.3, stiffness: 200, damping: 15, lineSpacing: 24, dragDelay: 35 }
               this.saveSpringParams()
             })
 
@@ -911,5 +998,7 @@ export struct LyricsView {
   // 保存弹簧参数
   private saveSpringParams() {
     PreferencesCache.springAnimationParams(this.springParams)
+    // 更新缓存的动画曲线
+    this.updateCachedAnimationCurve()
   }
 }

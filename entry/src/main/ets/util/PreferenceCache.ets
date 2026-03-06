@@ -42,6 +42,7 @@ export interface SpringAnimationParams {
   stiffness: number;
   damping: number;
   lineSpacing: number;  // 歌词行间距
+  dragDelay: number;    // 链式动画每行延迟时间(ms)
 }
 
 export const qualityLevels: QualityLevel[] = [
@@ -636,7 +637,7 @@ export class PreferencesCache {
    * @returns 弹簧参数
    */
   static springAnimationParams(value?: SpringAnimationParams): SpringAnimationParams {
-    const defaultParams: SpringAnimationParams = { velocity: 0, mass: 0.3, stiffness: 200, damping: 15, lineSpacing: 24 };
+    const defaultParams: SpringAnimationParams = { velocity: 0, mass: 0.3, stiffness: 200, damping: 15, lineSpacing: 24, dragDelay: 35 };
     if (value !== undefined) {
       PreferencesCache.setUserPreference('spring_animation_params', JSON.stringify(value));
     }
@@ -649,7 +650,8 @@ export class PreferencesCache {
         mass: parsed.mass ?? defaultParams.mass,
         stiffness: parsed.stiffness ?? defaultParams.stiffness,
         damping: parsed.damping ?? defaultParams.damping,
-        lineSpacing: parsed.lineSpacing ?? defaultParams.lineSpacing
+        lineSpacing: parsed.lineSpacing ?? defaultParams.lineSpacing,
+        dragDelay: parsed.dragDelay ?? defaultParams.dragDelay
       };
     }
     return defaultParams;
