@@ -40,6 +40,7 @@ export struct LyricItem {
         .textShadow(this.getStyle().textShadow)
         .opacity(this.getStyle().opacity)
         .textAlign(TextAlign.Center)
+        .padding({ left: 16, right: 16, top: 8, bottom: 8 })
         .transition(TransitionEffect.OPACITY
           .combine(TransitionEffect.scale({ x: 1.05, y: 1.05 }))
           .animation({
@@ -55,33 +56,24 @@ export struct LyricItem {
           .fontColor(this.getStyle().fontColor)
           .opacity(this.getStyle().opacity * 0.85)
           .textAlign(TextAlign.Center)
-          .transition(TransitionEffect.OPACITY
-            .animation({
-              duration: AnimationConstants.DURATION_NORMAL,
-              curve: AnimationConstants.CURVE_DECELERATE
-            }))
+          .padding({ left: 16, right: 16, top: 2 })
       }
 
       // 音译歌词 - 只在有音译时显示
       if (this.showTranslation && this.item.transliteration && this.item.transliteration.length > 0) {
         Text(this.item.transliteration)
-          .fontSize(16)
+          .fontSize(12)
           .fontWeight(FontWeight.Medium)
           .fontColor(this.getStyle().fontColor)
           .opacity(this.getStyle().opacity * 0.85)
           .textAlign(TextAlign.Center)
-          .transition(TransitionEffect.OPACITY
-            .animation({
-              duration: AnimationConstants.DURATION_NORMAL,
-              curve: AnimationConstants.CURVE_DECELERATE
-            }))
+          .padding({ left: 16, right: 16, top: 2 })
       }
     }
-    .padding({ left: 16, right: 16 })
-    .width('95%')
-    .scale({ 
-      x: this.index === this.currentLyricsIndex ? 1.1 : 1.0, 
-      y: this.index === this.currentLyricsIndex ? 1.1 : 1.0 
+    .width('90%')
+    .scale({
+      x: this.index === this.currentLyricsIndex ? 1.2 : 1.0,
+      y: this.index === this.currentLyricsIndex ? 1.2 : 1.0
     })
     .animation({
       duration: AnimationConstants.LYRIC_FONT_SIZE_DURATION,
@@ -101,10 +93,10 @@ export struct LyricItem {
 
   private createLyricStyle(isCurrent: boolean): LyricStyle {
     return new LyricStyle(
-      FontWeight.Medium,
+      isCurrent ? FontWeight.Bolder : FontWeight.Medium,
       isCurrent ? Color.White : 'rgba(255, 255, 255, 0.85)',
       isCurrent ? {
-        radius: 12,
+        radius: 10,
         color: 'rgba(255, 255, 255, 0.6)',
         offsetX: 0,
         offsetY: 0
