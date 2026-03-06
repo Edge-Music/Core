@@ -1,7 +1,7 @@
 import { StyleConstants } from "../constants/StyleConstants";
 import { AnimationConstants } from "../constants/AnimationConstants";
 import { avPlayerManager } from "../util/AVPlayerManager";
-import { PreferencesCache } from "../util/PreferenceCache";
+import { PreferencesCache, SpringAnimationParams } from "../util/PreferenceCache";
 import LyricsManager, { LyricsLine } from "../util/LyricsManager";
 import { VibrationControl } from "../util/DeviceController";
 import { EventHelper } from "../util/EventHelper";
@@ -11,8 +11,6 @@ import { curves } from '@kit.ArkUI';
 
 @Component
 export struct LyricsView {
-  // 目标位置（当前行应该显示的 Y 位置）
-  private readonly TARGET_Y: number = 200
   // 每行平均内容高度（不含间距）
   private readonly AVG_ITEM_HEIGHT: number = StyleConstants.LYRIC_HEIGHT_NO_TRANSLATION
 
@@ -35,8 +33,12 @@ export struct LyricsView {
   @State private isShow: boolean = false
   @State mode_judge: boolean = false
   @State private showTranslation: boolean = PreferencesCache.showTranslationLyric()
-  @State private isManualClick: boolean = false
   @State private prevLyricsIndex: number = -1
+
+  // 弹簧动画参数
+  @State private springParams: SpringAnimationParams = PreferencesCache.springAnimationParams()
+  // 设置界面显示状态
+  @State private showSpringSettings: boolean = false
 
   // 用于链式动画时延迟更新高亮状态
   @State private displayLyricsIndex: number = 0
@@ -67,6 +69,11 @@ export struct LyricsView {
     }
   }
 
+  // 目标位置（高亮行的 Y 位置，基于屏幕高度百分比）
+  private getTargetY(): number {
+    return this.winHeight * StyleConstants.LYRIC_HIGHLIGHT_POSITION_RATIO
+  }
+
   // 监听歌词数据变化
   onLyricsChange() {
     if (this.parsedLyrics.length > 0) {
@@ -92,10 +99,11 @@ export struct LyricsView {
   // 计算某行的中心 Y 位置（自然位置，不考虑高亮）
   // itemHeights 是实际内容高度，需要加上间距作为行间距
   private getItemCenterY(index: number): number {
+    const lineSpacing = this.springParams.lineSpacing ?? 24
     let y = 0
     for (let i = 0; i < index; i++) {
       // 每行占用高度 = 内容高度 + 行间距
-      y += (this.itemHeights[i] ?? this.AVG_ITEM_HEIGHT) + StyleConstants.LYRIC_LINE_SPACING
+      y += (this.itemHeights[i] ?? this.AVG_ITEM_HEIGHT) + lineSpacing
     }
     const currentHeight = this.itemHeights[index] ?? this.AVG_ITEM_HEIGHT
     return y + currentHeight / 2
@@ -119,7 +127,7 @@ export struct LyricsView {
       const itemCenterY = this.getItemCenterY(i)
       // 每行的位置 = TARGET_Y + 该行相对于高亮行的偏移
       // 使高亮行中心对齐 TARGET_Y，其他行按相对位置排列
-      positions[i] = this.TARGET_Y + (itemCenterY - highlightCenterY)
+      positions[i] = this.getTargetY() + (itemCenterY - highlightCenterY)
     }
     return positions
   }
@@ -133,10 +141,10 @@ export struct LyricsView {
 
     // 向下拉限制：第一行中心可以到达 TARGET_Y
     // itemYPositions[0] + offset = TARGET_Y => offset = TARGET_Y - firstY
-    const pullDownLimit = this.TARGET_Y - firstY
+    const pullDownLimit = this.getTargetY() - firstY
 
     // 向上推限制：最后一行中心可以到达 TARGET_Y
-    const pushUpLimit = this.TARGET_Y - lastY
+    const pushUpLimit = this.getTargetY() - lastY
 
     // pullDownLimit 通常 > pushUpLimit
     const lower = Math.min(pullDownLimit, pushUpLimit)
@@ -198,29 +206,32 @@ export struct LyricsView {
   // 监听歌词索引变化（来自播放器）
   onLyricIndexChange() {
     if (this.currentLyricsIndex !== -1 && !this.isManualScroll) {
-      if (this.isManualClick) {
+      // 只有自动切换到下一行时才使用动画，其他情况直接跳转
+      if (this.currentLyricsIndex === this.prevLyricsIndex + 1) {
+        this.triggerChainAnimation(this.currentLyricsIndex)
+      } else {
         this.displayLyricsIndex = this.currentLyricsIndex
         this.updatePositionsForIndex(this.currentLyricsIndex)
-        this.isManualClick = false
-      } else {
-        this.triggerChainAnimation(this.currentLyricsIndex)
       }
     }
     this.prevLyricsIndex = this.currentLyricsIndex
   }
 
-  // 直接更新位置（无链式动画）
+  // 直接更新位置（无链式动画，但有整体平滑移动）
   private updatePositionsForIndex(targetIndex: number) {
     if (targetIndex < 0) return
 
-    // 重置额外偏移和手动偏移
+    // 先清除可能正在运行的链式动画
+    this.clearAllAnimations()
+
+    // 重置额外偏移和手动偏移（确保无链式拖拽效果）
     this.itemExtraOffset = new Array(this.parsedLyrics.length).fill(0)
     this.manualOffset = 0
 
     // 更新高亮索引
     this.displayLyricsIndex = targetIndex
 
-    // 计算新的位置并更新
+    // 计算新的位置并更新（会有整体平滑移动动画）
     this.itemYPositions = this.calculateItemYPositions(targetIndex)
   }
 
@@ -239,10 +250,19 @@ export struct LyricsView {
     // 计算目标位置
     const targetPositions = this.calculateItemYPositions(currentIndex)
 
-    // 限制链式动画范围
+    // 以 prevLyricsIndex（之前的位置）为基准计算动画范围
+    // 限制范围在合理区间，避免大距离跳动
     const CHAIN_ANIMATION_RANGE = 20
     const minAnimIndex = Math.max(0, Math.min(this.prevLyricsIndex, currentIndex) - 5)
     const maxAnimIndex = Math.min(this.parsedLyrics.length - 1, Math.max(this.prevLyricsIndex, currentIndex) + CHAIN_ANIMATION_RANGE)
+
+    // 先设置所有行的目标位置（范围外的立即设置，范围内的做动画）
+    for (let i = 0; i < this.parsedLyrics.length; i++) {
+      // 范围外的行立即设置位置
+      if (i < minAnimIndex || i > maxAnimIndex) {
+        this.itemYPositions[i] = targetPositions[i]
+      }
+    }
 
     // 重置额外偏移
     this.itemExtraOffset = new Array(this.parsedLyrics.length).fill(0)
@@ -329,7 +349,7 @@ export struct LyricsView {
       const mid = Math.floor((left + right) / 2)
       const midY = (this.itemYPositions[mid] ?? 0) + this.manualOffset
 
-      if (midY < this.TARGET_Y) {
+      if (midY < this.getTargetY()) {
         left = mid + 1
       } else {
         right = mid
@@ -338,11 +358,11 @@ export struct LyricsView {
 
     // 检查 left 和 left-1 哪个更接近
     const leftY = (this.itemYPositions[left] ?? 0) + this.manualOffset
-    const leftDist = Math.abs(leftY - this.TARGET_Y)
+    const leftDist = Math.abs(leftY - this.getTargetY())
 
     if (left > 0) {
       const prevY = (this.itemYPositions[left - 1] ?? 0) + this.manualOffset
-      const prevDist = Math.abs(prevY - this.TARGET_Y)
+      const prevDist = Math.abs(prevY - this.getTargetY())
       if (prevDist < leftDist) {
         left = left - 1
       }
@@ -450,7 +470,12 @@ export struct LyricsView {
             .width(StyleConstants.FULL_WIDTH)
             .position({ x: 0, y: this.getItemDisplayY(index) })
             .animation(this.isManualScroll ? { duration: 0 } : {
-              curve: curves.springMotion(0.8, 0.9)
+              curve: curves.springCurve(
+                this.springParams.velocity,
+                this.springParams.mass,
+                this.springParams.stiffness,
+                this.springParams.damping
+              )
             })
             .onClick(() => {
               this.handleLyricClick(item.time, index)
@@ -466,13 +491,14 @@ export struct LyricsView {
         .clip(true)
       }
 
-      // 翻译按钮
-      if ((this.hasTranslation || this.hasTransliteration) && this.mode_judge === true) {
+      // 翻译按钮和设置按钮
+      if (this.mode_judge === true) {
+        // 设置按钮
         Button({ type: ButtonType.Circle }) {
-          Image($r('app.media.ic_translate'))
+          Image($r('app.media.ic_settings'))
             .width(24)
             .height(24)
-            .fillColor(this.showTranslation ? Color.White : 'rgba(255, 255, 255, 0.5)')
+            .fillColor('rgba(255, 255, 255, 0.8)')
         }
         .width(52)
         .height(52)
@@ -482,14 +508,40 @@ export struct LyricsView {
         .backgroundBlurStyle(BlurStyle.COMPONENT_ULTRA_THIN)
         .margin({ bottom: 24, right: 24 })
         .position({ x: '100%', y: '100%' })
-        .translate({ x: -76, y: -76 })
+        .translate({ x: -76, y: this.hasTranslation || this.hasTransliteration ? -140 : -76 })
         .clickEffect({ level: ClickEffectLevel.LIGHT, scale: 0.92 })
         .hoverEffect(HoverEffect.Highlight)
-        .onClick(() => this.toggleTranslation())
+        .onClick(() => this.showSpringSettings = true)
         .animation({
           duration: AnimationConstants.DURATION_FAST,
           curve: AnimationConstants.CURVE_DECELERATE
         })
+
+        // 翻译按钮（仅有翻译/音译时显示）
+        if (this.hasTranslation || this.hasTransliteration) {
+          Button({ type: ButtonType.Circle }) {
+            Image($r('app.media.ic_translate'))
+              .width(24)
+              .height(24)
+              .fillColor(this.showTranslation ? Color.White : 'rgba(255, 255, 255, 0.5)')
+          }
+          .width(52)
+          .height(52)
+          .visibility(this.isManualScroll || this.showTranslateBtn ? Visibility.Visible : Visibility.None)
+          .backgroundColor('transparent')
+          .shadow(ShadowStyle.OUTER_DEFAULT_XS)
+          .backgroundBlurStyle(BlurStyle.COMPONENT_ULTRA_THIN)
+          .margin({ bottom: 24, right: 24 })
+          .position({ x: '100%', y: '100%' })
+          .translate({ x: -76, y: -76 })
+          .clickEffect({ level: ClickEffectLevel.LIGHT, scale: 0.92 })
+          .hoverEffect(HoverEffect.Highlight)
+          .onClick(() => this.toggleTranslation())
+          .animation({
+            duration: AnimationConstants.DURATION_FAST,
+            curve: AnimationConstants.CURVE_DECELERATE
+          })
+        }
       }
 
       // 偏移显示
@@ -517,6 +569,11 @@ export struct LyricsView {
     }
     .width(StyleConstants.FULL_WIDTH)
     .height(StyleConstants.FULL_HEIGHT)
+    .bindSheet($$this.showSpringSettings, this.springSettingsSheet(), {
+      height: '50%',
+      dragBar: true,
+      backgroundColor: $r('app.color.dialog_background')
+    })
     .gesture(
       GestureGroup(GestureMode.Exclusive,
         // 三指手势 - 重置偏移或切换翻译
@@ -616,17 +673,21 @@ export struct LyricsView {
 
   // 歌词点击处理
   private handleLyricClick(time: number, index: number) {
-    this.isManualClick = true
     this.clearAllAnimations()
     this.clearInertiaAnimation()
-
     this.isManualScroll = false
+    this.isAutoScroll = false  // 重置自动滚动状态
+
+    this.prevLyricsIndex = this.displayLyricsIndex  // 保存当前位置用于动画方向
+
     this.displayLyricsIndex = index
     this.currentLyricsIndex = index
     AppStorage.setOrCreate('test_index', this.parsedLyrics[index].text)
     EventHelper.postPipLyric(this.parsedLyrics[index].text)
 
+    // 点击跳转：直接更新位置（无动画）
     this.updatePositionsForIndex(index)
+
     avPlayerManager.seek(time)
   }
 
@@ -641,8 +702,214 @@ export struct LyricsView {
       this.isManualScroll = false
       this.manualScrollTimeoutId = -1
       this.displayLyricsIndex = this.currentLyricsIndex
-      // 恢复前重新计算高度和位置
-      this.initPositions()
+      // 直接更新位置（无动画）
+      this.updatePositionsForIndex(this.currentLyricsIndex)
     }, 7000) as number
+  }
+
+  // 弹簧设置面板
+  @Builder
+  springSettingsSheet() {
+    Column() {
+      // 固定标题
+      Text('歌词设置')
+        .fontSize(20)
+        .fontWeight(FontWeight.Bold)
+        .fontColor($r('app.color.text_title'))
+        .width('100%')
+        .textAlign(TextAlign.Center)
+        .padding({ top: 12, bottom: 12 })
+
+      // 可滚动内容区域
+      Scroll() {
+        Column() {
+          // 初始速度
+          Column() {
+            Row() {
+              Text('初始速度')
+                .fontSize(16)
+                .fontColor($r('app.color.text_primary'))
+              Blank()
+              Text(this.springParams.velocity.toFixed(1))
+                .fontSize(16)
+                .fontColor($r('app.color.text_secondary'))
+            }
+            .width('100%')
+            .margin({ bottom: 8 })
+
+            Slider({
+              value: this.springParams.velocity,
+              min: -20,
+              max: 20,
+              step: 0.5
+            })
+              .blockColor($r('app.color.text_title'))
+              .trackColor($r('app.color.divider'))
+              .selectedColor($r('app.color.accent_primary'))
+              .onChange((value: number) => {
+                this.springParams.velocity = value
+                this.saveSpringParams()
+              })
+          }
+          .width('100%')
+          .margin({ bottom: 16 })
+
+          // 质量
+          Column() {
+            Row() {
+              Text('质量')
+                .fontSize(16)
+                .fontColor($r('app.color.text_primary'))
+              Blank()
+              Text(this.springParams.mass.toFixed(2))
+                .fontSize(16)
+                .fontColor($r('app.color.text_secondary'))
+            }
+            .width('100%')
+            .margin({ bottom: 8 })
+
+            Slider({
+              value: this.springParams.mass,
+              min: 0,
+              max: 2,
+              step: 0.05
+            })
+              .blockColor($r('app.color.text_title'))
+              .trackColor($r('app.color.divider'))
+              .selectedColor($r('app.color.accent_primary'))
+              .onChange((value: number) => {
+                this.springParams.mass = value
+                this.saveSpringParams()
+              })
+          }
+          .width('100%')
+          .margin({ bottom: 16 })
+
+          // 刚度
+          Column() {
+            Row() {
+              Text('刚度')
+                .fontSize(16)
+                .fontColor($r('app.color.text_primary'))
+              Blank()
+              Text(this.springParams.stiffness.toFixed(0))
+                .fontSize(16)
+                .fontColor($r('app.color.text_secondary'))
+            }
+            .width('100%')
+            .margin({ bottom: 8 })
+
+            Slider({
+              value: this.springParams.stiffness,
+              min: 50,
+              max: 400,
+              step: 10
+            })
+              .blockColor($r('app.color.text_title'))
+              .trackColor($r('app.color.divider'))
+              .selectedColor($r('app.color.accent_primary'))
+              .onChange((value: number) => {
+                this.springParams.stiffness = value
+                this.saveSpringParams()
+              })
+          }
+          .width('100%')
+          .margin({ bottom: 16 })
+
+          // 阻尼
+          Column() {
+            Row() {
+              Text('阻尼')
+                .fontSize(16)
+                .fontColor($r('app.color.text_primary'))
+              Blank()
+              Text(this.springParams.damping.toFixed(0))
+                .fontSize(16)
+                .fontColor($r('app.color.text_secondary'))
+            }
+            .width('100%')
+            .margin({ bottom: 8 })
+
+            Slider({
+              value: this.springParams.damping,
+              min: 5,
+              max: 50,
+              step: 1
+            })
+              .blockColor($r('app.color.text_title'))
+              .trackColor($r('app.color.divider'))
+              .selectedColor($r('app.color.accent_primary'))
+              .onChange((value: number) => {
+                this.springParams.damping = value
+                this.saveSpringParams()
+              })
+          }
+          .width('100%')
+          .margin({ bottom: 16 })
+
+          // 行间距
+          Column() {
+            Row() {
+              Text('行间距')
+                .fontSize(16)
+                .fontColor($r('app.color.text_primary'))
+              Blank()
+              Text((this.springParams.lineSpacing ?? 24).toFixed(0))
+                .fontSize(16)
+                .fontColor($r('app.color.text_secondary'))
+            }
+            .width('100%')
+            .margin({ bottom: 8 })
+
+            Slider({
+              value: this.springParams.lineSpacing ?? 24,
+              min: 8,
+              max: 48,
+              step: 2
+            })
+              .blockColor($r('app.color.text_title'))
+              .trackColor($r('app.color.divider'))
+              .selectedColor($r('app.color.accent_primary'))
+              .onChange((value: number) => {
+                this.springParams.lineSpacing = value
+                this.saveSpringParams()
+                // 实时更新歌词位置
+                this.itemYPositions = this.calculateItemYPositions(this.displayLyricsIndex)
+              })
+          }
+          .width('100%')
+          .margin({ bottom: 20 })
+
+          // 重置按钮
+          Button('恢复默认')
+            .width('80%')
+            .height(44)
+            .backgroundColor($r('app.color.button_background'))
+            .fontColor($r('app.color.text_title'))
+            .borderWidth(1)
+            .borderColor($r('app.color.border_line'))
+            .borderRadius(22)
+            .margin({ top: 16 })
+            .onClick(() => {
+              this.springParams = { velocity: 0, mass: 0.3, stiffness: 200, damping: 15, lineSpacing: 24 }
+              this.saveSpringParams()
+            })
+
+          Blank().height(80)
+        }
+        .width('100%')
+        .padding(16)
+        .alignItems(HorizontalAlign.Center)
+      }
+      .scrollBar(BarState.Auto)
+      .edgeEffect(EdgeEffect.Spring)
+    }
+    .width('100%')
+    .height('100%')
+  }
+
+  // 保存弹簧参数
+  private saveSpringParams() {
+    PreferencesCache.springAnimationParams(this.springParams)
   }
 }

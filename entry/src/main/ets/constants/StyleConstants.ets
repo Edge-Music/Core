@@ -147,4 +147,8 @@ export class StyleConstants {
    * 有翻译时的歌词行高度
    */
   static readonly LYRIC_HEIGHT_WITH_TRANSLATION: number = 90;
+  /**
+   * 歌词高亮行位置（相对于屏幕高度的比例）
+   */
+  static readonly LYRIC_HIGHLIGHT_POSITION_RATIO: number = 0.25;
 }
