@@ -50,4 +50,10 @@ export class AnimationConstants {
   // 位移动画配置
   static readonly TRANSLATE_DURATION = 300;
   static readonly TRANSLATE_CURVE = Curve.EaseOut;
+
+  // 歌词滚动拖拽动画
+  static readonly LYRIC_DRAG_DELAY_PER_ITEM: number = 35; // 每行延迟 35ms（流畅的链式效果）
+  static readonly LYRIC_DRAG_OFFSET: number = 15; // 拖拽偏移量 vp（增强视觉效果）
+  static readonly LYRIC_NORMAL_FONT_SIZE: number = 22; // 普通字体大小
+  static readonly LYRIC_FONT_SIZE_DURATION: number = 200; // 字体大小变化动画时长
 }

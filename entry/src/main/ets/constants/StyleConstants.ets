@@ -133,4 +133,22 @@ export class StyleConstants {
   static readonly TITLE_HEIGHT: number = 50;
 
   static readonly INIT_SUBWINDOW_SIZE: number = 70;
+
+  // ==================== 歌词相关常量 ====================
+  /**
+   * 歌词行间距
+   */
+  static readonly LYRIC_LINE_SPACING: number = 24;
+  /**
+   * 无翻译时的歌词行高度
+   */
+  static readonly LYRIC_HEIGHT_NO_TRANSLATION: number = 60;
+  /**
+   * 有翻译时的歌词行高度
+   */
+  static readonly LYRIC_HEIGHT_WITH_TRANSLATION: number = 90;
+  /**
+   * 歌词高亮行位置（相对于屏幕高度的比例）
+   */
+  static readonly LYRIC_HIGHLIGHT_POSITION_RATIO: number = 0.25;
 }
