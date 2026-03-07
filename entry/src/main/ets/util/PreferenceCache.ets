@@ -42,6 +42,7 @@ export interface SpringAnimationParams {
   stiffness: number;
   damping: number;
   lineSpacing: number;  // 歌词行间距
+  highlightLineSpacing: number;  // 高亮行与非高亮行之间的额外间距
   dragDelay: number;    // 链式动画每行延迟时间(ms)
 }
 
@@ -637,7 +638,7 @@ export class PreferencesCache {
    * @returns 弹簧参数
    */
   static springAnimationParams(value?: SpringAnimationParams): SpringAnimationParams {
-    const defaultParams: SpringAnimationParams = { velocity: 0, mass: 0.3, stiffness: 200, damping: 15, lineSpacing: 24, dragDelay: 35 };
+    const defaultParams: SpringAnimationParams = { velocity: 0, mass: 0.3, stiffness: 200, damping: 15, lineSpacing: 24, highlightLineSpacing: 8, dragDelay: 35 };
     if (value !== undefined) {
       PreferencesCache.setUserPreference('spring_animation_params', JSON.stringify(value));
     }
@@ -651,10 +652,63 @@ export class PreferencesCache {
         stiffness: parsed.stiffness ?? defaultParams.stiffness,
         damping: parsed.damping ?? defaultParams.damping,
         lineSpacing: parsed.lineSpacing ?? defaultParams.lineSpacing,
+        highlightLineSpacing: parsed.highlightLineSpacing ?? defaultParams.highlightLineSpacing,
         dragDelay: parsed.dragDelay ?? defaultParams.dragDelay
       };
     }
     return defaultParams;
+  }
+
+  /**
+   * 歌词字体大小设置
+   * @param value 字体大小（若不传值则获取当前设置）
+   * @returns 字体大小
+   */
+  static lyricFontSize(value?: number): number {
+    if (value !== undefined) {
+      PreferencesCache.setUserPreference('lyric_font_size', value.toString());
+    }
+    const stored = PreferencesCache.getUserPreference('lyric_font_size', '18');
+    return parseInt(stored, 10);
+  }
+
+  /**
+   * 歌词高亮放大比例
+   * @param value 放大比例（若不传值则获取当前设置）
+   * @returns 放大比例
+   */
+  static lyricHighlightScale(value?: number): number {
+    if (value !== undefined) {
+      PreferencesCache.setUserPreference('lyric_highlight_scale', value.toString());
+    }
+    const stored = PreferencesCache.getUserPreference('lyric_highlight_scale', '1.2');
+    return parseFloat(stored);
+  }
+
+  /**
+   * 翻译歌词字体大小
+   * @param value 字体大小（若不传值则获取当前设置）
+   * @returns 字体大小
+   */
+  static lyricTranslationFontSize(value?: number): number {
+    if (value !== undefined) {
+      PreferencesCache.setUserPreference('lyric_translation_font_size', value.toString());
+    }
+    const stored = PreferencesCache.getUserPreference('lyric_translation_font_size', '16');
+    return parseInt(stored, 10);
+  }
+
+  /**
+   * 罗马音字体大小
+   * @param value 字体大小（若不传值则获取当前设置）
+   * @returns 字体大小
+   */
+  static lyricTransliterationFontSize(value?: number): number {
+    if (value !== undefined) {
+      PreferencesCache.setUserPreference('lyric_transliteration_font_size', value.toString());
+    }
+    const stored = PreferencesCache.getUserPreference('lyric_transliteration_font_size', '12');
+    return parseInt(stored, 10);
   }
 
   /**
