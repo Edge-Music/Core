@@ -40,11 +40,28 @@ export struct LyricsView {
   // 设置界面显示状态
   @State private showSpringSettings: boolean = false
 
+  // 字体大小设置
+  @State private lyricFontSize: number = PreferencesCache.lyricFontSize()
+  @State private lyricHighlightScale: number = PreferencesCache.lyricHighlightScale()
+  @State private lyricTranslationFontSize: number = PreferencesCache.lyricTranslationFontSize()
+  @State private lyricTransliterationFontSize: number = PreferencesCache.lyricTransliterationFontSize()
+  // 字体大小节流更新
+  private fontSizeUpdateTimer: number = -1
+  private pendingFontSize: number = 18
+  private highlightScaleUpdateTimer: number = -1
+  private pendingHighlightScale: number = 1.2
+  private translationFontSizeUpdateTimer: number = -1
+  private pendingTranslationFontSize: number = 16
+  private transliterationFontSizeUpdateTimer: number = -1
+  private pendingTransliterationFontSize: number = 12
+
   // 缓存的动画曲线（避免每帧创建）
   private cachedAnimationCurve: ICurve | null = null
 
   // 用于链式动画时延迟更新高亮状态
   @State private displayLyricsIndex: number = 0
+  // 上一次的高亮行索引（用于判断高亮状态变化导致的高度变化）
+  private prevHighlightIndex: number = -1
 
   // 每行的实际高度（通过 onAreaChange 实时获取）
   @State private itemHeights: number[] = []
@@ -117,16 +134,38 @@ export struct LyricsView {
     if (this.translateBtnTimeoutId !== -1) {
       clearTimeout(this.translateBtnTimeoutId)
     }
+    // 清除字体大小更新定时器
+    if (this.fontSizeUpdateTimer !== -1) {
+      clearTimeout(this.fontSizeUpdateTimer)
+    }
+    if (this.highlightScaleUpdateTimer !== -1) {
+      clearTimeout(this.highlightScaleUpdateTimer)
+    }
+    if (this.translationFontSizeUpdateTimer !== -1) {
+      clearTimeout(this.translationFontSizeUpdateTimer)
+    }
+    if (this.transliterationFontSizeUpdateTimer !== -1) {
+      clearTimeout(this.transliterationFontSizeUpdateTimer)
+    }
   }
 
-  // 计算某行的中心 Y 位置（自然位置，不考虑高亮）
-  // itemHeights 是实际内容高度，需要加上间距作为行间距
-  private getItemCenterY(index: number): number {
+  // 计算某行的中心 Y 位置（考虑高亮行的额外间距）
+  // highlightIndex: 当前高亮行的索引
+  private getItemCenterY(index: number, highlightIndex: number): number {
     const lineSpacing = this.springParams.lineSpacing ?? 24
+    const highlightLineSpacing = this.springParams.highlightLineSpacing ?? 8
     let y = 0
     for (let i = 0; i < index; i++) {
       // 每行占用高度 = 内容高度 + 行间距
       y += (this.itemHeights[i] ?? this.AVG_ITEM_HEIGHT) + lineSpacing
+      // 如果下一行是高亮行，添加额外间距（高亮行上方的间距）
+      if (i + 1 === highlightIndex) {
+        y += highlightLineSpacing
+      }
+      // 如果当前行是高亮行，添加额外间距（高亮行下方的间距）
+      if (i === highlightIndex) {
+        y += highlightLineSpacing
+      }
     }
     const currentHeight = this.itemHeights[index] ?? this.AVG_ITEM_HEIGHT
     return y + currentHeight / 2
@@ -144,10 +183,10 @@ export struct LyricsView {
   // 计算目标行居中时，每行应该在的位置
   private calculateItemYPositions(targetIndex: number): number[] {
     const positions: number[] = []
-    const highlightCenterY = this.getItemCenterY(targetIndex)
+    const highlightCenterY = this.getItemCenterY(targetIndex, targetIndex)
 
     for (let i = 0; i < this.parsedLyrics.length; i++) {
-      const itemCenterY = this.getItemCenterY(i)
+      const itemCenterY = this.getItemCenterY(i, targetIndex)
       // 每行的位置 = TARGET_Y + 该行相对于高亮行的偏移
       // 使高亮行中心对齐 TARGET_Y，其他行按相对位置排列
       positions[i] = this.getTargetY() + (itemCenterY - highlightCenterY)
@@ -184,13 +223,8 @@ export struct LyricsView {
     this.itemExtraOffset = new Array(this.parsedLyrics.length).fill(0)
     this.itemYPositions = new Array(this.parsedLyrics.length).fill(0)
 
-    // 初始化高度数组：估算内容高度（不含间距）
-    this.itemHeights = this.parsedLyrics.map(item => {
-      const hasContent = this.showTranslation &&
-        ((item.translation && item.translation.trim().length > 0) ||
-          (item.transliteration && item.transliteration.length > 0))
-      return hasContent ? StyleConstants.LYRIC_HEIGHT_WITH_TRANSLATION : StyleConstants.LYRIC_HEIGHT_NO_TRANSLATION
-    })
+    // 初始化高度数组：使用默认估算值（实际高度由 onAreaChange 更新）
+    this.itemHeights = this.parsedLyrics.map(() => this.AVG_ITEM_HEIGHT)
 
     // 初始化位置数组，使用当前显示的高亮行
     this.itemYPositions = this.calculateItemYPositions(this.displayLyricsIndex)
@@ -207,7 +241,10 @@ export struct LyricsView {
     // 允许更小的差异触发更新（翻译切换时高度变化可能较小）
     if (Math.abs(oldHeight - height) > 0.5) {
       this.itemHeights = this.itemHeights.map((h, i) => i === index ? height : h)
-      // 高度变化后重新计算位置
+      // 高亮状态变化导致的高度变化（scale 变化），不影响其他行位置，跳过重新计算
+      if (index === this.displayLyricsIndex || index === this.prevHighlightIndex) {
+        return
+      }
       this.itemYPositions = this.calculateItemYPositions(this.displayLyricsIndex)
     }
   }
@@ -229,8 +266,20 @@ export struct LyricsView {
   // 监听歌词索引变化（来自播放器）
   onLyricIndexChange() {
     if (this.currentLyricsIndex !== -1 && !this.isManualScroll) {
-      // 只有自动切换到下一行时才使用动画，其他情况直接跳转
-      if (this.currentLyricsIndex === this.prevLyricsIndex + 1) {
+      // 记录之前的高亮行（用于判断 scale 变化导致的高度变化）
+      this.prevHighlightIndex = this.displayLyricsIndex
+
+      // 判断是否使用链式动画：只有自动切换到下一行时才使用动画
+      const isNextLine = this.currentLyricsIndex === this.displayLyricsIndex + 1
+      // 判断当前高亮行持续时间是否足够长（太短就不用动画，避免连续快速滚动导致间距变大）
+      const minDuration = 1000 // 最小持续时间阈值(ms)
+      const currentLineDuration = this.getLyricLineDuration(this.displayLyricsIndex)
+      const shouldUseAnimation = isNextLine && currentLineDuration >= minDuration
+
+      // 调试日志
+      console.log(`[LyricsView] onLyricIndexChange: currentIndex=${this.currentLyricsIndex}, displayIndex=${this.displayLyricsIndex}, isNextLine=${isNextLine}, duration=${currentLineDuration}ms, shouldUseAnimation=${shouldUseAnimation}`)
+
+      if (shouldUseAnimation) {
         this.triggerChainAnimation(this.currentLyricsIndex)
       } else {
         this.displayLyricsIndex = this.currentLyricsIndex
@@ -238,6 +287,17 @@ export struct LyricsView {
       }
     }
     this.prevLyricsIndex = this.currentLyricsIndex
+  }
+
+  // 获取某行歌词的持续时间（到下一行的时间差）
+  private getLyricLineDuration(index: number): number {
+    if (index < 0 || index >= this.parsedLyrics.length - 1) {
+      // 最后一行或无效索引，返回足够长的时间
+      return 10000
+    }
+    const currentLine = this.parsedLyrics[index]
+    const nextLine = this.parsedLyrics[index + 1]
+    return nextLine.time - currentLine.time
   }
 
   // 直接更新位置（无链式动画，但有整体平滑移动）
@@ -487,7 +547,11 @@ export struct LyricsView {
                 item: item,
                 index: index,
                 showTranslation: this.showTranslation,
-                currentLyricsIndex: this.displayLyricsIndex
+                currentLyricsIndex: this.displayLyricsIndex,
+                lyricFontSize: this.lyricFontSize,
+                highlightScale: this.lyricHighlightScale,
+                translationFontSize: this.lyricTranslationFontSize,
+                transliterationFontSize: this.lyricTransliterationFontSize
               })
             }
             .width(StyleConstants.FULL_WIDTH)
@@ -936,6 +1000,39 @@ export struct LyricsView {
           .width('100%')
           .margin({ bottom: 16 })
 
+          // 高亮行间距
+          Column() {
+            Row() {
+              Text('高亮行间距')
+                .fontSize(16)
+                .fontColor($r('app.color.text_primary'))
+              Blank()
+              Text((this.springParams.highlightLineSpacing ?? 8).toFixed(0))
+                .fontSize(16)
+                .fontColor($r('app.color.text_secondary'))
+            }
+            .width('100%')
+            .margin({ bottom: 8 })
+
+            Slider({
+              value: this.springParams.highlightLineSpacing ?? 8,
+              min: 0,
+              max: 48,
+              step: 2,
+              style: SliderStyle.InSet
+            })
+              .selectedColor($r('app.color.title_emphasis_color'))
+              .trackThickness(16)
+              .onChange((value: number) => {
+                this.springParams.highlightLineSpacing = value
+                this.saveSpringParams()
+                // 实时更新歌词位置
+                this.itemYPositions = this.calculateItemYPositions(this.displayLyricsIndex)
+              })
+          }
+          .width('100%')
+          .margin({ bottom: 16 })
+
           // 每行延迟
           Column() {
             Row() {
@@ -965,6 +1062,156 @@ export struct LyricsView {
               })
           }
           .width('100%')
+          .margin({ bottom: 16 })
+
+          // 歌词字体大小
+          Column() {
+            Row() {
+              Text('歌词字体大小')
+                .fontSize(16)
+                .fontColor($r('app.color.text_primary'))
+              Blank()
+              Text(this.lyricFontSize.toFixed(0))
+                .fontSize(16)
+                .fontColor($r('app.color.text_secondary'))
+            }
+            .width('100%')
+            .margin({ bottom: 8 })
+
+            Slider({
+              value: this.lyricFontSize,
+              min: 12,
+              max: 40,
+              step: 1,
+              style: SliderStyle.InSet
+            })
+              .selectedColor($r('app.color.title_emphasis_color'))
+              .trackThickness(16)
+              .onChange((value: number) => {
+                // 节流更新：100ms 内只更新一次
+                this.pendingFontSize = value
+                if (this.fontSizeUpdateTimer === -1) {
+                  this.fontSizeUpdateTimer = setTimeout(() => {
+                    this.lyricFontSize = this.pendingFontSize
+                    PreferencesCache.lyricFontSize(this.pendingFontSize)
+                    this.fontSizeUpdateTimer = -1
+                  }, 100) as number
+                }
+              })
+          }
+          .width('100%')
+          .margin({ bottom: 16 })
+
+          // 翻译字体大小
+          Column() {
+            Row() {
+              Text('翻译字体大小')
+                .fontSize(16)
+                .fontColor($r('app.color.text_primary'))
+              Blank()
+              Text(this.lyricTranslationFontSize.toFixed(0))
+                .fontSize(16)
+                .fontColor($r('app.color.text_secondary'))
+            }
+            .width('100%')
+            .margin({ bottom: 8 })
+
+            Slider({
+              value: this.lyricTranslationFontSize,
+              min: 10,
+              max: 22,
+              step: 1,
+              style: SliderStyle.InSet
+            })
+              .selectedColor($r('app.color.title_emphasis_color'))
+              .trackThickness(16)
+              .onChange((value: number) => {
+                this.pendingTranslationFontSize = value
+                if (this.translationFontSizeUpdateTimer === -1) {
+                  this.translationFontSizeUpdateTimer = setTimeout(() => {
+                    this.lyricTranslationFontSize = this.pendingTranslationFontSize
+                    PreferencesCache.lyricTranslationFontSize(this.pendingTranslationFontSize)
+                    this.translationFontSizeUpdateTimer = -1
+                  }, 100) as number
+                }
+              })
+          }
+          .width('100%')
+          .margin({ bottom: 16 })
+
+          // 罗马音字体大小
+          Column() {
+            Row() {
+              Text('罗马音字体大小')
+                .fontSize(16)
+                .fontColor($r('app.color.text_primary'))
+              Blank()
+              Text(this.lyricTransliterationFontSize.toFixed(0))
+                .fontSize(16)
+                .fontColor($r('app.color.text_secondary'))
+            }
+            .width('100%')
+            .margin({ bottom: 8 })
+
+            Slider({
+              value: this.lyricTransliterationFontSize,
+              min: 8,
+              max: 18,
+              step: 1,
+              style: SliderStyle.InSet
+            })
+              .selectedColor($r('app.color.title_emphasis_color'))
+              .trackThickness(16)
+              .onChange((value: number) => {
+                this.pendingTransliterationFontSize = value
+                if (this.transliterationFontSizeUpdateTimer === -1) {
+                  this.transliterationFontSizeUpdateTimer = setTimeout(() => {
+                    this.lyricTransliterationFontSize = this.pendingTransliterationFontSize
+                    PreferencesCache.lyricTransliterationFontSize(this.pendingTransliterationFontSize)
+                    this.transliterationFontSizeUpdateTimer = -1
+                  }, 100) as number
+                }
+              })
+          }
+          .width('100%')
+          .margin({ bottom: 16 })
+
+          // 高亮放大比例
+          Column() {
+            Row() {
+              Text('高亮放大比例')
+                .fontSize(16)
+                .fontColor($r('app.color.text_primary'))
+              Blank()
+              Text(this.lyricHighlightScale.toFixed(2) + 'x')
+                .fontSize(16)
+                .fontColor($r('app.color.text_secondary'))
+            }
+            .width('100%')
+            .margin({ bottom: 8 })
+
+            Slider({
+              value: this.lyricHighlightScale,
+              min: 1.0,
+              max: 1.1,
+              step: 0.01,
+              style: SliderStyle.InSet
+            })
+              .selectedColor($r('app.color.title_emphasis_color'))
+              .trackThickness(16)
+              .onChange((value: number) => {
+                // 节流更新：100ms 内只更新一次
+                this.pendingHighlightScale = value
+                if (this.highlightScaleUpdateTimer === -1) {
+                  this.highlightScaleUpdateTimer = setTimeout(() => {
+                    this.lyricHighlightScale = this.pendingHighlightScale
+                    PreferencesCache.lyricHighlightScale(this.pendingHighlightScale)
+                    this.highlightScaleUpdateTimer = -1
+                  }, 100) as number
+                }
+              })
+          }
+          .width('100%')
           .margin({ bottom: 20 })
 
           // 重置按钮
@@ -978,8 +1225,17 @@ export struct LyricsView {
             .borderRadius(22)
             .margin({ top: 16 })
             .onClick(() => {
-              this.springParams = { velocity: 0, mass: 0.3, stiffness: 200, damping: 15, lineSpacing: 24, dragDelay: 35 }
+              this.springParams = { velocity: 0, mass: 0.3, stiffness: 200, damping: 15, lineSpacing: 24, highlightLineSpacing: 0, dragDelay: 35 }
               this.saveSpringParams()
+              // 重置字体设置
+              this.lyricFontSize = 24
+              this.lyricHighlightScale = 1.05
+              this.lyricTranslationFontSize = 16
+              this.lyricTransliterationFontSize = 12
+              PreferencesCache.lyricFontSize(24)
+              PreferencesCache.lyricHighlightScale(1.05)
+              PreferencesCache.lyricTranslationFontSize(16)
+              PreferencesCache.lyricTransliterationFontSize(12)
             })
 
           Blank().height(80)
