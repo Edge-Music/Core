@@ -22,7 +22,7 @@ import { curves, window } from '@kit.ArkUI'
 import { PipManager } from '../util/PipManager'
 import WindowUtil from '../util/WindowUtil'
 import SensorUtil from '../util/SensorUtil'
-import { DialogHelper, Orientation } from '@pura/harmony-dialog'
+import { DialogAction, DialogHelper, Orientation } from '@pura/harmony-dialog'
 import { resourceManager } from '@kit.LocalizationKit'
 import { LyricsLine } from '../util/LyricsManager'
 import { PushPathHelper } from '../util/PushPathHelper'
@@ -111,6 +111,82 @@ export const EQ_PRESET_LIST: EqPreset[] = Object.keys(EQ_PRESET_MAP).map((key) =
   } as EqPreset;
 });
 
+// ========== DRC 动态范围压缩预设 ==========
+
+export enum DrcPresetId {
+  Default = 'Default',
+  Speech = 'Speech',
+  Vocal = 'Vocal',
+  Night = 'Night',
+  Mastering = 'Mastering',
+  Punch = 'Punch',
+  Broadcast = 'Broadcast',
+  Limiter = 'Limiter',
+  Crush = 'Crush'
+}
+
+export const DRC_PRESET_LABEL: Record<DrcPresetId, string> = {
+  [DrcPresetId.Default]: '通用标准 (Default)',
+  [DrcPresetId.Speech]: '人声对白 (Speech)',
+  [DrcPresetId.Vocal]: '流行歌唱 (Pop Vocal)',
+  [DrcPresetId.Night]: '深夜模式 (Night)',
+  [DrcPresetId.Mastering]: '母带柔化 (Mastering)',
+  [DrcPresetId.Punch]: '打击增强 (Punch)',
+  [DrcPresetId.Broadcast]: '广播电台 (Broadcast)',
+  [DrcPresetId.Limiter]: '安全限幅 (Limiter)',
+  [DrcPresetId.Crush]: '毁灭压缩 (Crush)'
+};
+
+export interface DrcParams {
+  threshold: number;
+  ratio: number;
+  attack: number;
+  release: number;
+  makeup: number;
+}
+
+export const DRC_PRESET_MAP: Record<DrcPresetId, DrcParams> = {
+  [DrcPresetId.Default]: { threshold: -12, ratio: 2.0, attack: 10, release: 100, makeup: 0 },
+  [DrcPresetId.Speech]: { threshold: -24, ratio: 4.0, attack: 5, release: 80, makeup: 6 },
+  [DrcPresetId.Vocal]: { threshold: -20, ratio: 3.0, attack: 20, release: 300, makeup: 3 },
+  [DrcPresetId.Night]: { threshold: -35, ratio: 10.0, attack: 5, release: 500, makeup: 12 },
+  [DrcPresetId.Mastering]: { threshold: -10, ratio: 1.5, attack: 30, release: 400, makeup: 1 },
+  [DrcPresetId.Punch]: { threshold: -18, ratio: 4.0, attack: 30, release: 50, makeup: 4 },
+  [DrcPresetId.Broadcast]: { threshold: -20, ratio: 6.0, attack: 15, release: 200, makeup: 6 },
+  [DrcPresetId.Limiter]: { threshold: -0.5, ratio: 20.0, attack: 0.1, release: 50, makeup: 0 },
+  [DrcPresetId.Crush]: { threshold: -40, ratio: 20.0, attack: 0.1, release: 30, makeup: 18 }
+};
+
+export interface DrcPreset {
+  id: DrcPresetId;
+  label: string;
+  params: DrcParams;
+}
+
+export const DRC_PRESET_LIST: DrcPreset[] = Object.keys(DRC_PRESET_MAP).map((key) => {
+  const id = key as DrcPresetId;
+  return {
+    id: id,
+    label: DRC_PRESET_LABEL[id],
+    params: DRC_PRESET_MAP[id]
+  } as DrcPreset;
+});
+
+// ========== 自定义预设接口 ==========
+
+export interface CustomEqPreset {
+  name: string;
+  gainsDb: number[];
+  isLeftRight: boolean; // 是否为左右独立模式
+  leftGainsDb?: number[];
+  rightGainsDb?: number[];
+}
+
+export interface CustomDrcPreset {
+  name: string;
+  params: DrcParams;
+}
+
 @Builder
 export function PlayingBuilder() {
   Playing()
@@ -185,6 +261,29 @@ struct Playing {
   @State eqGainsDb: number[] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
   @State eqPreset: string = 'Custom'
   @State eqLoaded: boolean = false
+  // 新增：左右耳独立EQ模式
+  @State isStereoEqMode: boolean = false
+  @State editRightChannel: boolean = false
+  @State eqGainsLeft: number[] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  @State eqGainsRight: number[] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  // 新增：左右耳独立音量
+  @State volLinearLeft: number = 1.0
+  @State volLinearRight: number = 1.0
+  // 新增：DRC设置
+  @State drcEnabled: boolean = false
+  @State drcThresholdDb: number = -12
+  @State drcRatio: number = 2.0
+  @State drcAttackMs: number = 10
+  @State drcReleaseMs: number = 100
+  @State drcMakeupDb: number = 0
+  @State drcPreset: string = 'Default'
+  // 新增：自定义预设
+  @State customEqPresets: CustomEqPreset[] = []
+  @State customDrcPresets: CustomDrcPreset[] = []
+  @State showSaveEqPresetDialog: boolean = false
+  @State showSaveDrcPresetDialog: boolean = false
+  @State eqTabIndex: number = 0 // EQ/DRC Tab索引
+  @State newPresetName: string = ''
   @State showLyricType: ShowLyricsStatus = parseInt(PreferencesCache.getUserPreference('playing_title_lyric_show_status', '0')) as ShowLyricsStatus
   @State Color_main: string = '#121234'
   @State Color_sum: string = '#114514'
@@ -1012,14 +1111,56 @@ struct Playing {
     PreferencesCache.setUserPreference('eq_enabled', this.eqEnabled ? '1' : '0');
     PreferencesCache.setUserPreference('eq_gains_db', this.eqGainsDb.join(','));
     PreferencesCache.setUserPreference('eq_preset', this.eqPreset);
+    // 新增：保存左右耳独立模式状态
+    PreferencesCache.setUserPreference('eq_stereo_mode', this.isStereoEqMode ? '1' : '0');
+    PreferencesCache.setUserPreference('eq_gains_left', this.eqGainsLeft.join(','));
+    PreferencesCache.setUserPreference('eq_gains_right', this.eqGainsRight.join(','));
+    // 新增：保存左右耳音量
+    PreferencesCache.setUserPreference('vol_left', this.volLinearLeft.toString());
+    PreferencesCache.setUserPreference('vol_right', this.volLinearRight.toString());
+    // 新增：保存DRC设置
+    PreferencesCache.setUserPreference('drc_enabled', this.drcEnabled ? '1' : '0');
+    PreferencesCache.setUserPreference('drc_threshold', this.drcThresholdDb.toString());
+    PreferencesCache.setUserPreference('drc_ratio', this.drcRatio.toString());
+    PreferencesCache.setUserPreference('drc_attack', this.drcAttackMs.toString());
+    PreferencesCache.setUserPreference('drc_release', this.drcReleaseMs.toString());
+    PreferencesCache.setUserPreference('drc_makeup', this.drcMakeupDb.toString());
+    PreferencesCache.setUserPreference('drc_preset', this.drcPreset);
   }
 
   private applyEqToPlayer(): void {
-    // 使用 Array.from 确保脱离 ArkTS 的代理包装，转为普通 number 数组
-    const cleanGains = Array.from(this.eqGainsDb);
-    if (cleanGains.length === 10) {
-      avPlayerManager.toggleEqualizer(this.eqEnabled);
-      avPlayerManager.setEqualizer(cleanGains);
+    avPlayerManager.toggleEqualizer(this.eqEnabled);
+
+    if (this.isStereoEqMode) {
+      // 左右耳独立模式
+      const leftGains = Array.from(this.eqGainsLeft);
+      const rightGains = Array.from(this.eqGainsRight);
+      if (leftGains.length === 10 && rightGains.length === 10) {
+        avPlayerManager.setEqualizerLR(leftGains, rightGains);
+      }
+    } else {
+      // 统一模式
+      const cleanGains = Array.from(this.eqGainsDb);
+      if (cleanGains.length === 10) {
+        avPlayerManager.setEqualizer(cleanGains);
+      }
+    }
+  }
+
+  private applyChannelVolumes(): void {
+    avPlayerManager.setChannelVolumes(this.volLinearLeft, this.volLinearRight);
+  }
+
+  private applyDrcToPlayer(): void {
+    avPlayerManager.setDrcEnabled(this.drcEnabled);
+    if (this.drcEnabled) {
+      avPlayerManager.setDrcParams(
+        this.drcThresholdDb,
+        this.drcRatio,
+        this.drcAttackMs,
+        this.drcReleaseMs,
+        this.drcMakeupDb
+      );
     }
   }
 
@@ -1027,7 +1168,118 @@ struct Playing {
     this.eqEnabled = this.parseBooleanPref(PreferencesCache.getUserPreference('eq_enabled', '0'));
     this.eqGainsDb = this.loadEqGainsDbFromPreference();
     this.eqPreset = PreferencesCache.getUserPreference('eq_preset', 'Custom');
+    // 新增：加载左右耳独立模式
+    this.isStereoEqMode = this.parseBooleanPref(PreferencesCache.getUserPreference('eq_stereo_mode', '0'));
+    this.eqGainsLeft = this.loadEqGainsLeftFromPreference();
+    this.eqGainsRight = this.loadEqGainsRightFromPreference();
+    // 新增：加载左右耳音量
+    this.volLinearLeft = parseFloat(PreferencesCache.getUserPreference('vol_left', '1.0'));
+    this.volLinearRight = parseFloat(PreferencesCache.getUserPreference('vol_right', '1.0'));
+    // 新增：加载DRC设置
+    this.drcEnabled = this.parseBooleanPref(PreferencesCache.getUserPreference('drc_enabled', '0'));
+    this.drcThresholdDb = parseFloat(PreferencesCache.getUserPreference('drc_threshold', '-12'));
+    this.drcRatio = parseFloat(PreferencesCache.getUserPreference('drc_ratio', '2.0'));
+    this.drcAttackMs = parseFloat(PreferencesCache.getUserPreference('drc_attack', '10'));
+    this.drcReleaseMs = parseFloat(PreferencesCache.getUserPreference('drc_release', '100'));
+    this.drcMakeupDb = parseFloat(PreferencesCache.getUserPreference('drc_makeup', '0'));
+    this.drcPreset = PreferencesCache.getUserPreference('drc_preset', 'Default');
+    // 加载自定义预设
+    this.loadCustomPresets();
     this.eqLoaded = true;
+  }
+
+  private loadEqGainsLeftFromPreference(): number[] {
+    const BAND_COUNT = 10;
+    const raw = PreferencesCache.getUserPreference('eq_gains_left', '0,0,0,0,0,0,0,0,0,0');
+    const parts = raw.split(',');
+    if (parts.length !== BAND_COUNT) {
+      return Array(BAND_COUNT).fill(0);
+    }
+    return parts.map((p) => this.clampEqGainDb(isNaN(Number(p)) ? 0 : Number(p)));
+  }
+
+  private loadEqGainsRightFromPreference(): number[] {
+    const BAND_COUNT = 10;
+    const raw = PreferencesCache.getUserPreference('eq_gains_right', '0,0,0,0,0,0,0,0,0,0');
+    const parts = raw.split(',');
+    if (parts.length !== BAND_COUNT) {
+      return Array(BAND_COUNT).fill(0);
+    }
+    return parts.map((p) => this.clampEqGainDb(isNaN(Number(p)) ? 0 : Number(p)));
+  }
+
+  private loadCustomPresets(): void {
+    // 加载自定义EQ预设
+    const eqPresetsRaw = PreferencesCache.getUserPreference('custom_eq_presets', '[]');
+    try {
+      this.customEqPresets = JSON.parse(eqPresetsRaw);
+    } catch (e) {
+      this.customEqPresets = [];
+    }
+    // 加载自定义DRC预设
+    const drcPresetsRaw = PreferencesCache.getUserPreference('custom_drc_presets', '[]');
+    try {
+      this.customDrcPresets = JSON.parse(drcPresetsRaw);
+    } catch (e) {
+      this.customDrcPresets = [];
+    }
+  }
+
+  private saveCustomEqPreset(name: string): void {
+    const preset: CustomEqPreset = {
+      name: name,
+      gainsDb: [...this.eqGainsDb],
+      isLeftRight: this.isStereoEqMode,
+      leftGainsDb: this.isStereoEqMode ? [...this.eqGainsLeft] : undefined,
+      rightGainsDb: this.isStereoEqMode ? [...this.eqGainsRight] : undefined
+    };
+    this.customEqPresets.push(preset);
+    PreferencesCache.setUserPreference('custom_eq_presets', JSON.stringify(this.customEqPresets));
+    ToastUtil.showShort(`预设 "${name}" 已保存`);
+  }
+
+  private saveCustomDrcPreset(name: string): void {
+    const preset: CustomDrcPreset = {
+      name: name,
+      params: {
+        threshold: this.drcThresholdDb,
+        ratio: this.drcRatio,
+        attack: this.drcAttackMs,
+        release: this.drcReleaseMs,
+        makeup: this.drcMakeupDb
+      }
+    };
+    this.customDrcPresets.push(preset);
+    PreferencesCache.setUserPreference('custom_drc_presets', JSON.stringify(this.customDrcPresets));
+    ToastUtil.showShort(`DRC预设 "${name}" 已保存`);
+  }
+
+  private loadCustomEqPreset(preset: CustomEqPreset): void {
+    this.isStereoEqMode = preset.isLeftRight;
+    if (preset.isLeftRight && preset.leftGainsDb && preset.rightGainsDb) {
+      this.eqGainsLeft = [...preset.leftGainsDb];
+      this.eqGainsRight = [...preset.rightGainsDb];
+      // 同时更新统一模式的数据（取平均值或左声道）
+      this.eqGainsDb = [...preset.leftGainsDb];
+    } else {
+      this.eqGainsDb = [...preset.gainsDb];
+      this.eqGainsLeft = [...preset.gainsDb];
+      this.eqGainsRight = [...preset.gainsDb];
+    }
+    this.eqPreset = preset.name;
+    this.saveEqPreferences();
+    this.applyEqToPlayer();
+  }
+
+  private loadCustomDrcPreset(preset: CustomDrcPreset): void {
+    this.drcThresholdDb = preset.params.threshold;
+    this.drcRatio = preset.params.ratio;
+    this.drcAttackMs = preset.params.attack;
+    this.drcReleaseMs = preset.params.release;
+    this.drcMakeupDb = preset.params.makeup;
+    this.drcPreset = preset.name;
+    this.saveEqPreferences();
+    this.applyDrcToPlayer();
   }
 
   private openEqSheet(): void {
@@ -1042,19 +1294,75 @@ struct Playing {
     const gains = EQ_PRESET_MAP[presetId];
     this.eqPreset = presetId;
     this.eqGainsDb = gains.slice();
+    // 同时更新左右声道的预设
+    this.eqGainsLeft = gains.slice();
+    this.eqGainsRight = gains.slice();
     this.saveEqPreferences();
     this.applyEqToPlayer();
   }
 
   private setEqBandGain(index: number, gainDb: number): void {
-    // 浅拷贝并更新
-    const next = [...this.eqGainsDb];
-    next[index] = this.clampEqGainDb(gainDb);
-    this.eqGainsDb = next;
+    const clampedGain = this.clampEqGainDb(gainDb);
+
+    if (this.isStereoEqMode) {
+      if (this.editRightChannel) {
+        const next = [...this.eqGainsRight];
+        next[index] = clampedGain;
+        this.eqGainsRight = next;
+      } else {
+        const next = [...this.eqGainsLeft];
+        next[index] = clampedGain;
+        this.eqGainsLeft = next;
+      }
+    } else {
+      const next = [...this.eqGainsDb];
+      next[index] = clampedGain;
+      this.eqGainsDb = next;
+    }
 
     this.eqPreset = 'Custom';
     this.saveEqPreferences();
     this.applyEqToPlayer();
+  }
+
+  // 获取当前编辑的增益值
+  private getCurrentEqGain(index: number): number {
+    if (this.isStereoEqMode) {
+      return this.editRightChannel ? this.eqGainsRight[index] : this.eqGainsLeft[index];
+    }
+    return this.eqGainsDb[index];
+  }
+
+  // 设置DRC预设
+  private setDrcPreset(presetId: DrcPresetId): void {
+    const params = DRC_PRESET_MAP[presetId];
+    this.drcThresholdDb = params.threshold;
+    this.drcRatio = params.ratio;
+    this.drcAttackMs = params.attack;
+    this.drcReleaseMs = params.release;
+    this.drcMakeupDb = params.makeup;
+    this.drcPreset = presetId;
+    this.saveEqPreferences();
+    this.applyDrcToPlayer();
+  }
+
+  // 调整左右耳音量
+  private adjustChannelVolume(side: 'left' | 'right', delta: number): void {
+    if (side === 'left') {
+      this.volLinearLeft = Math.max(0, Math.min(2, this.volLinearLeft + delta));
+    } else {
+      this.volLinearRight = Math.max(0, Math.min(2, this.volLinearRight + delta));
+    }
+    this.saveEqPreferences();
+    this.applyChannelVolumes();
+  }
+
+  // 重置左右耳音量
+  private resetChannelVolumes(): void {
+    this.volLinearLeft = 1.0;
+    this.volLinearRight = 1.0;
+    this.saveEqPreferences();
+    this.applyChannelVolumes();
   }
 
   getFontSize(text: string, baseSize = 18, maxLength = 36): number {
@@ -1630,7 +1938,7 @@ struct Playing {
         }
       },
       {
-        value: '均衡器',
+        value: '音频效果',
         action: () => {
           this.uiContext?.animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
             this.openEqSheet();
@@ -1682,7 +1990,7 @@ struct Playing {
         }
       },
       {
-        value: '均衡器',
+        value: '音频效果',
         action: () => {
           this.uiContext?.animateTo({ duration: 300, curve: Curve.EaseOut }, () => {
             this.openEqSheet();
@@ -2046,6 +2354,11 @@ struct Playing {
     return label || '自定义 (Custom)';
   }
 
+  private getDrcPresetLabel(): string {
+    const label = DRC_PRESET_LABEL[this.drcPreset as DrcPresetId];
+    return label || '自定义';
+  }
+
   private getEqMenuOptions(): MenuElement[] {
     const options: MenuElement[] = EQ_PRESET_LIST.map((preset) => {
       return {
@@ -2055,120 +2368,119 @@ struct Playing {
         }
       } as MenuElement;
     });
+    // 添加自定义预设
+    if (this.customEqPresets.length > 0) {
+      this.customEqPresets.forEach((preset) => {
+        options.push({
+          value: `${preset.name}（自定义）`,
+          action: () => {
+            this.loadCustomEqPreset(preset);
+          }
+        } as MenuElement);
+      });
+    }
+    return options;
+  }
 
+  private getDrcMenuOptions(): MenuElement[] {
+    const options: MenuElement[] = DRC_PRESET_LIST.map((preset) => {
+      return {
+        value: preset.label,
+        action: () => {
+          this.setDrcPreset(preset.id);
+        }
+      } as MenuElement;
+    });
+    // 添加自定义预设
+    if (this.customDrcPresets.length > 0) {
+      this.customDrcPresets.forEach((preset) => {
+        options.push({
+          value: `${preset.name}（自定义）`,
+          action: () => {
+            this.loadCustomDrcPreset(preset);
+          }
+        } as MenuElement);
+      });
+    }
     return options;
   }
 
   @Builder
   EqSheet() {
     Column() {
-      // --- 顶部控制栏 ---
+      // 标题栏
       Row() {
-        Text('均衡器')
+        Text('音频效果')
           .fontSize(18)
           .fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.text_title'))
-
-        Blank()
-
-        // 重置按钮：缩小并移至顶部
-        Button('重置')
-          .fontSize(12)
-          .height(28)
-          .padding({ left: 10, right: 10 })
-          .backgroundColor($r('app.color.card_background'))
-          .fontColor($r('app.color.text_secondary'))
-          .margin({ right: 8 })
-          .onClick(() => {
-            this.setEqPreset(EqPresetId.Default);
-          })
-
-        // 预设选择：使用 bindMenu
-        Button(this.getEqPresetLabel())
-          .fontSize(12)
-          .height(28)
-          .padding({ left: 10, right: 10 })
-          .backgroundColor($r('app.color.card_background'))
-          .fontColor($r('app.color.accent_primary'))
-          .bindMenu(this.getEqMenuOptions())
       }
       .width('100%')
-      .padding({ left: 20, right: 20, top: 20, bottom: 10 })
+      .justifyContent(FlexAlign.Center)
+      .padding({ top: 16, bottom: 8 })
 
-      // --- 开关选项 ---
-      Row() {
-        Text('启用状态')
-          .fontSize(14)
-          .fontColor($r('app.color.text_secondary'))
-        Blank()
-        Toggle({ type: ToggleType.Switch, isOn: this.eqEnabled })
-          .onChange((v: boolean) => {
-            this.eqEnabled = v;
-            this.saveEqPreferences();
-            this.applyEqToPlayer();
-          })
-          .selectedColor($r('app.color.accent_primary'))
-          .scale({ x: 0.8, y: 0.8 }) // 稍微缩小开关使其更精致
-      }
-      .width('100%')
-      .padding({ left: 20, right: 20, bottom: 20 })
-
-      // --- 调节区域 ---
-      Row() {
-        // 左侧刻度尺
-        Column() {
-          Text('+24').fontSize(9).fontColor($r('app.color.text_secondary'))
-          Blank()
-          Text('0').fontSize(9).fontColor($r('app.color.text_secondary'))
-          Blank()
-          Text('-24').fontSize(9).fontColor($r('app.color.text_secondary'))
-        }
-        .height(220) // 增加高度
-        .padding({ top: 35, bottom: 35 })
-        .width(25)
-
-        // 10段调节杆：使用 Flex 自动平铺宽度
-        Flex({ direction: FlexDirection.Row, justifyContent: FlexAlign.SpaceAround }) {
-          ForEach(EQ_BAND_LABELS, (label: string, index: number) => {
+      // Tabs 切换
+      Tabs({ barPosition: BarPosition.Start, index: this.eqTabIndex }) {
+        // EQ Tab
+        TabContent() {
+          Scroll() {
             Column() {
-              // 数值显示
-              Text(`${this.eqGainsDb[index] > 0 ? '+' : ''}${this.eqGainsDb[index]}`)
-                .fontSize(9)
-                .fontColor(this.eqEnabled ? $r('app.color.accent_primary') : $r('app.color.text_secondary'))
-                .margin({ bottom: 4 })
+              // EQ 设置
+              this.EqSection()
 
-              Slider({
-                value: this.eqGainsDb[index],
-                min: -24,
-                max: 24,
-                step: 1,
-                style: SliderStyle.InSet,
-                direction: Axis.Vertical,
-                reverse: true
-              })
-                .layoutWeight(1)
-                .trackThickness(16) // 10根杆时 16-18 宽度视觉最舒适
-                .selectedColor($r('app.color.accent_primary'))
-                .trackColor($r('app.color.border_line'))
-                .enabled(this.eqEnabled) // 禁用时变灰不可调
-                .onChange((value: number) => {
-                  this.setEqBandGain(index, Math.round(value));
-                })
-
-              // 频率标签
-              Text(label)
-                .fontSize(9)
-                .fontColor($r('app.color.text_secondary'))
-                .margin({ top: 6 })
+              // 底部安全区域
+              Blank().height(this.bottomRect)
             }
-            .layoutWeight(1)
-            .height(260)
-          }, (item: string, index: number) => `${item}-${index}`)
+            .width('100%')
+          }
+          .scrollBar(BarState.Auto)
+          .width('100%')
+          .height('100%')
         }
-        .layoutWeight(1)
+        .tabBar('均衡器')
+
+        // 声道音量 Tab
+        TabContent() {
+          Scroll() {
+            Column() {
+              // 声道音量控制
+              this.ChannelVolumeSection()
+
+              // 底部安全区域
+              Blank().height(this.bottomRect)
+            }
+            .width('100%')
+          }
+          .scrollBar(BarState.Auto)
+          .width('100%')
+          .height('100%')
+        }
+        .tabBar('声道音量')
+
+        // DRC Tab
+        TabContent() {
+          Scroll() {
+            Column() {
+              // DRC 设置
+              this.DrcSection()
+
+              // 底部安全区域
+              Blank().height(this.bottomRect)
+            }
+            .width('100%')
+          }
+          .scrollBar(BarState.Auto)
+          .width('100%')
+          .height('100%')
+        }
+        .tabBar('动态压缩')
       }
-      .width('100%')
-      .padding({ left: 10, right: 15, bottom: 30 })
+      .barMode(BarMode.Scrollable)
+      .barHeight(44)
+      .layoutWeight(1)
+      .onChange((index: number) => {
+        this.eqTabIndex = index;
+      })
     }
     .width('100%')
     .height('100%')
@@ -2177,7 +2489,539 @@ struct Playing {
     .onAppear(() => {
       this.syncEqFromPreference();
       this.applyEqToPlayer();
+      this.applyChannelVolumes();
+      this.applyDrcToPlayer();
     })
+  }
+
+  // 左右耳音量控制区域
+  @Builder
+  ChannelVolumeSection() {
+    Column() {
+      Row() {
+        Text('声道音量')
+          .fontSize(16)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.text_title'))
+
+        Blank()
+
+        Button('重置')
+          .fontSize(12)
+          .height(26)
+          .backgroundColor($r('app.color.card_background'))
+          .fontColor($r('app.color.text_secondary'))
+          .onClick(() => {
+            this.resetChannelVolumes();
+            ToastUtil.showShort('音量已重置');
+          })
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, top: 12, bottom: 8 })
+
+      Row({ space: 16 }) {
+        // 左声道
+        this.ChannelFader('左声道 (L)', 'left', '#007DFF')
+        // 右声道
+        this.ChannelFader('右声道 (R)', 'right', '#FF9500')
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Top)
+      .justifyContent(FlexAlign.SpaceEvenly)
+      .padding({ left: 16, right: 16, bottom: 8 })
+
+      // 音量平衡指示
+      Row() {
+        Text(`音量平衡: ${this.getBalanceText()}`)
+          .fontSize(11)
+          .fontColor($r('app.color.text_secondary'))
+      }
+      .width('100%')
+      .justifyContent(FlexAlign.Center)
+      .padding({ bottom: 8 })
+    }
+    .width('100%')
+  }
+
+  // 获取音量平衡文字描述
+  private getBalanceText(): string {
+    const diff = this.volLinearLeft - this.volLinearRight;
+    if (Math.abs(diff) < 0.05) {
+      return '居中';
+    } else if (diff > 0) {
+      return `偏左 ${Math.round(diff * 50)}%`;
+    } else {
+      return `偏右 ${Math.round(-diff * 50)}%`;
+    }
+  }
+
+  // 安全曲线：将线性值(0-1)转换为安全音量值
+  // 曲线特点：低音量平缓（避免过低），中间线性，高音量平缓（避免损伤）
+  private safeCurveToLinear(sliderValue: number): number {
+    // sliderValue: 0-200 (代表 0%-200%)
+    const normalized = sliderValue / 100; // 0-2
+
+    if (normalized <= 0.2) {
+      // 0-20%: 非常平缓，使用立方曲线
+      return Math.pow(normalized / 0.2, 3) * 0.1;
+    } else if (normalized <= 0.8) {
+      // 20%-80%: 线性区域
+      return 0.1 + (normalized - 0.2) * 1.0;
+    } else if (normalized <= 1.0) {
+      // 80%-100%: 平缓过渡
+      const t = (normalized - 0.8) / 0.2;
+      return 0.7 + Math.pow(t, 0.5) * 0.3;
+    } else {
+      // 100%-200%: 超大声区域，非常平缓
+      const t = (normalized - 1.0);
+      return 1.0 + Math.pow(t, 2) * 0.5; // 最大1.5而不是2.0
+    }
+  }
+
+  // 反向曲线：从实际音量值反推滑块位置
+  private linearToSafeCurve(actualVolume: number): number {
+    if (actualVolume <= 0.1) {
+      // 反推 0-20% 区域
+      return Math.pow(actualVolume / 0.1, 1/3) * 20;
+    } else if (actualVolume <= 0.7) {
+      // 反推 20%-80% 区域
+      return 20 + (actualVolume - 0.1) * 100;
+    } else if (actualVolume <= 1.0) {
+      // 反推 80%-100% 区域
+      const t = (actualVolume - 0.7) / 0.3;
+      return 80 + Math.pow(t, 2) * 20;
+    } else {
+      // 反推 100%-200% 区域
+      const t = (actualVolume - 1.0) / 0.5;
+      return 100 + Math.sqrt(t) * 100;
+    }
+  }
+
+  // 单个声道推子
+  @Builder
+  ChannelFader(label: string, side: 'left' | 'right', color: string) {
+    Column({ space: 8 }) {
+      // 百分比显示
+      Text(`${this.getDisplayPercent(side)}%`)
+        .fontSize(18)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(color)
+
+      // + 按钮（重置按钮风格）
+      Button('+')
+        .fontSize(14)
+        .height(28)
+        .backgroundColor($r('app.color.card_background'))
+        .fontColor(color)
+        .onClick(() => {
+          this.adjustChannelVolumeSafe(side, 1);
+        })
+
+      // 滑块
+      Slider({
+        value: this.linearToSafeCurve(side === 'left' ? this.volLinearLeft : this.volLinearRight),
+        min: 0,
+        max: 150,
+        style: SliderStyle.InSet,
+        direction: Axis.Vertical,
+        reverse: true
+      })
+        .height(140)
+        .trackThickness(20)
+        .trackColor($r('app.color.border_line'))
+        .selectedColor(color)
+        .onChange((v: number) => {
+          const actualVolume = this.safeCurveToLinear(v);
+          if (side === 'left') {
+            this.volLinearLeft = Math.round(actualVolume * 100) / 100;
+          } else {
+            this.volLinearRight = Math.round(actualVolume * 100) / 100;
+          }
+          this.saveEqPreferences();
+          this.applyChannelVolumes();
+        })
+
+      // - 按钮（重置按钮风格）
+      Button('−')
+        .fontSize(18)
+        .height(28)
+        .backgroundColor($r('app.color.card_background'))
+        .fontColor(color)
+        .onClick(() => {
+          this.adjustChannelVolumeSafe(side, -1);
+        })
+
+      Text(label)
+        .fontSize(11)
+        .fontColor($r('app.color.text_secondary'))
+    }
+    .layoutWeight(1)
+  }
+
+  // 获取显示百分比（基于实际音量）
+  private getDisplayPercent(side: 'left' | 'right'): number {
+    const vol = side === 'left' ? this.volLinearLeft : this.volLinearRight;
+    return Math.round(vol * 100);
+  }
+
+  // 安全调整音量（基于曲线）
+  private adjustChannelVolumeSafe(side: 'left' | 'right', direction: number): void {
+    const currentVol = side === 'left' ? this.volLinearLeft : this.volLinearRight;
+    // 根据当前音量决定步进大小（低音量小步进，高音量大步进）
+    let step: number;
+    if (currentVol <= 0.3) {
+      step = 0.02; // 低音量：精细调节
+    } else if (currentVol <= 0.7) {
+      step = 0.03; // 中等音量：正常调节
+    } else if (currentVol <= 1.0) {
+      step = 0.02; // 高音量：再次精细
+    } else {
+      step = 0.01; // 超大声：非常精细
+    }
+
+    const newVol = Math.max(0, Math.min(1.5, currentVol + step * direction));
+    if (side === 'left') {
+      this.volLinearLeft = Math.round(newVol * 100) / 100;
+    } else {
+      this.volLinearRight = Math.round(newVol * 100) / 100;
+    }
+    this.saveEqPreferences();
+    this.applyChannelVolumes();
+  }
+
+  // EQ 设置区域
+  @Builder
+  EqSection() {
+    Column() {
+      // 顶部控制栏
+      Row() {
+        Text('均衡器设置')
+          .fontSize(16)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.text_title'))
+
+        Blank()
+
+        // 保存预设按钮
+        Text('保存')
+          .fontSize(12)
+          .fontColor($r('app.color.accent_primary'))
+          .margin({ right: 12 })
+          .onClick(() => {
+            this.showSaveEqPresetDialog = true;
+            DialogHelper.showTextInputDialog({
+              title: '保存EQ预设',
+              text: '',
+              placeholder: '我的预设',
+              buttons: ['取消', '保存'],
+              onAction: (action: number, _dialogId: string, content: string) => {
+                if (action === DialogAction.SURE || action === 1) {
+                  if (content.trim()) {
+                    this.saveCustomEqPreset(content.trim());
+                  }
+                }
+              }
+            });
+          })
+
+        // 重置按钮
+        Button('重置')
+          .fontSize(12)
+          .height(26)
+          .backgroundColor($r('app.color.card_background'))
+          .fontColor($r('app.color.text_secondary'))
+          .margin({ right: 8 })
+          .onClick(() => {
+            this.setEqPreset(EqPresetId.Default);
+          })
+
+        // 预设选择
+        Button(this.getEqPresetLabel())
+          .fontSize(12)
+          .height(26)
+          .backgroundColor($r('app.color.card_background'))
+          .fontColor($r('app.color.accent_primary'))
+          .bindMenu(this.getEqMenuOptions())
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, top: 8, bottom: 8 })
+
+      // 开关和模式切换
+      Row() {
+        Text('启用状态')
+          .fontSize(14)
+          .fontColor($r('app.color.text_secondary'))
+
+        Blank()
+
+        // 统一/独立模式切换
+        Row() {
+          Text('统一')
+            .fontSize(11)
+            .fontColor(!this.isStereoEqMode ? Color.White : $r('app.color.text_secondary'))
+            .backgroundColor(!this.isStereoEqMode ? $r('app.color.accent_primary') : $r('app.color.card_background'))
+            .padding({ left: 10, right: 10, top: 4, bottom: 4 })
+            .borderRadius({ topLeft: 12, bottomLeft: 12 })
+            .onClick(() => {
+              this.isStereoEqMode = false;
+              this.saveEqPreferences();
+              this.applyEqToPlayer();
+            })
+
+          Text('独立')
+            .fontSize(11)
+            .fontColor(this.isStereoEqMode ? Color.White : $r('app.color.text_secondary'))
+            .backgroundColor(this.isStereoEqMode ? '#FF9500' : $r('app.color.card_background'))
+            .padding({ left: 10, right: 10, top: 4, bottom: 4 })
+            .borderRadius({ topRight: 12, bottomRight: 12 })
+            .onClick(() => {
+              this.isStereoEqMode = true;
+              this.saveEqPreferences();
+              this.applyEqToPlayer();
+            })
+        }
+        .margin({ right: 12 })
+
+        Toggle({ type: ToggleType.Switch, isOn: this.eqEnabled })
+          .onChange((v: boolean) => {
+            this.eqEnabled = v;
+            this.saveEqPreferences();
+            this.applyEqToPlayer();
+          })
+          .selectedColor($r('app.color.accent_primary'))
+          .scale({ x: 0.8, y: 0.8 })
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, bottom: 8 })
+
+      // 独立模式下的声道选择
+      if (this.isStereoEqMode) {
+        Row({ space: 8 }) {
+          Button('左 (L)')
+            .fontSize(11)
+            .height(26)
+            .backgroundColor(!this.editRightChannel ? $r('app.color.accent_primary') : $r('app.color.card_background'))
+            .fontColor(!this.editRightChannel ? Color.White : $r('app.color.text_secondary'))
+            .onClick(() => this.editRightChannel = false)
+
+          Button('右 (R)')
+            .fontSize(11)
+            .height(26)
+            .backgroundColor(this.editRightChannel ? '#FF9500' : $r('app.color.card_background'))
+            .fontColor(this.editRightChannel ? Color.White : $r('app.color.text_secondary'))
+            .onClick(() => this.editRightChannel = true)
+        }
+        .width('100%')
+        .justifyContent(FlexAlign.Center)
+        .padding({ bottom: 8 })
+      }
+
+      // EQ 调节区域
+      Row() {
+        // 左侧刻度尺
+        Column() {
+          Text('+24').fontSize(8).fontColor($r('app.color.text_secondary'))
+          Blank()
+          Text('0').fontSize(8).fontColor($r('app.color.text_secondary'))
+          Blank()
+          Text('-24').fontSize(8).fontColor($r('app.color.text_secondary'))
+        }
+        .height(160)
+        .padding({ top: 25, bottom: 25 })
+        .width(20)
+
+        // 10段调节杆
+        Flex({ direction: FlexDirection.Row, justifyContent: FlexAlign.SpaceAround }) {
+          ForEach(EQ_BAND_LABELS, (label: string, index: number) => {
+            Column() {
+              Text(`${this.getCurrentEqGain(index) > 0 ? '+' : ''}${this.getCurrentEqGain(index)}`)
+                .fontSize(8)
+                .fontColor(this.eqEnabled ?
+                  (this.isStereoEqMode ? (this.editRightChannel ? '#FF9500' : $r('app.color.accent_primary')) : $r('app.color.accent_primary'))
+                  : $r('app.color.text_secondary'))
+                .margin({ bottom: 2 })
+
+              Slider({
+                value: this.getCurrentEqGain(index),
+                min: -24,
+                max: 24,
+                step: 1,
+                style: SliderStyle.InSet,
+                direction: Axis.Vertical,
+                reverse: true
+              })
+                .layoutWeight(1)
+                .trackThickness(12)
+                .selectedColor(this.isStereoEqMode ? (this.editRightChannel ? '#FF9500' : $r('app.color.accent_primary')) : $r('app.color.accent_primary'))
+                .trackColor($r('app.color.border_line'))
+                .enabled(this.eqEnabled)
+                .onChange((value: number) => {
+                  this.setEqBandGain(index, Math.round(value));
+                })
+
+              Text(label.replace('Hz', '').replace('kHz', 'k'))
+                .fontSize(7)
+                .fontColor($r('app.color.text_secondary'))
+                .margin({ top: 4 })
+            }
+            .layoutWeight(1)
+            .height(180)
+          }, (item: string, index: number) => `${item}-${index}`)
+        }
+        .layoutWeight(1)
+      }
+      .width('100%')
+      .padding({ left: 8, right: 12 })
+    }
+    .width('100%')
+  }
+
+  // DRC 设置区域
+  @Builder
+  DrcSection() {
+    Column() {
+      // 顶部控制栏
+      Row() {
+        Text('动态范围压缩 (DRC)')
+          .fontSize(16)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.text_title'))
+
+        Blank()
+
+        // 保存预设按钮
+        Text('保存')
+          .fontSize(12)
+          .fontColor($r('app.color.accent_primary'))
+          .margin({ right: 12 })
+          .onClick(() => {
+            DialogHelper.showTextInputDialog({
+              title: '保存DRC预设',
+              text: '',
+              placeholder: '我的预设',
+              buttons: ['取消', '保存'],
+              onAction: (action: number, _dialogId: string, content: string) => {
+                if (action === DialogAction.SURE || action === 1) {
+                  if (content.trim()) {
+                    this.saveCustomDrcPreset(content.trim());
+                  }
+                }
+              }
+            });
+          })
+
+        Toggle({ type: ToggleType.Switch, isOn: this.drcEnabled })
+          .onChange((v: boolean) => {
+            this.drcEnabled = v;
+            this.saveEqPreferences();
+            this.applyDrcToPlayer();
+          })
+          .selectedColor($r('app.color.accent_primary'))
+          .scale({ x: 0.8, y: 0.8 })
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, top: 8, bottom: 8 })
+
+      // 预设选择
+      Row() {
+        Text('预设：')
+          .fontSize(13)
+          .fontColor($r('app.color.text_secondary'))
+
+        Button(this.getDrcPresetLabel())
+          .fontSize(12)
+          .height(26)
+          .backgroundColor($r('app.color.card_background'))
+          .fontColor($r('app.color.accent_primary'))
+          .bindMenu(this.getDrcMenuOptions())
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, bottom: 8 })
+
+      // 提示信息
+      Text('DRC可在嘈杂环境下提升小音量细节的同时，避免突发大音量损伤听力；日常使用也能保护耳朵。开启后可能略微增加耗电与发热。')
+        .fontSize(11)
+        .fontColor($r('app.color.text_hint'))
+        .width('100%')
+        .padding({ left: 16, right: 16, bottom: 8 })
+        .textAlign(TextAlign.Start)
+
+      // DRC 参数调节
+      Column({ space: 8 }) {
+        this.DrcSlider('阈值 (Threshold)', 'threshold', -60, 0, 'dB')
+        this.DrcSlider('比率 (Ratio)', 'ratio', 1, 20, ':1')
+        this.DrcSlider('启动时间 (Attack)', 'attack', 0.1, 200, 'ms')
+        this.DrcSlider('释放时间 (Release)', 'release', 5, 2000, 'ms')
+        this.DrcSlider('补偿增益 (Makeup)', 'makeup', -12, 24, 'dB')
+      }
+      .padding({ left: 16, right: 16, bottom: 8 })
+    }
+    .width('100%')
+  }
+
+  // DRC 滑块
+  @Builder
+  DrcSlider(label: string, key: string, min: number, max: number, unit: string) {
+    Column({ space: 4 }) {
+      Row() {
+        Text(label)
+          .fontSize(12)
+          .fontColor($r('app.color.text_secondary'))
+        Blank()
+        Text(`${this.getDrcVal(key)}${unit}`)
+          .fontSize(12)
+          .fontColor($r('app.color.accent_primary'))
+      }
+      .width('100%')
+
+      Slider({
+        value: this.getDrcVal(key),
+        min: min,
+        max: max,
+        style: SliderStyle.InSet
+      })
+        .trackThickness(8)
+        .selectedColor($r('app.color.accent_primary'))
+        .trackColor($r('app.color.border_line'))
+        .enabled(this.drcEnabled)
+        .onChange((v: number) => {
+          this.setDrcVal(key, v);
+          this.drcPreset = 'Custom';
+          this.saveEqPreferences();
+          this.applyDrcToPlayer();
+        })
+    }
+  }
+
+  private getDrcVal(key: string): number {
+    switch (key) {
+      case 'threshold': return this.drcThresholdDb;
+      case 'ratio': return this.drcRatio;
+      case 'attack': return this.drcAttackMs;
+      case 'release': return this.drcReleaseMs;
+      case 'makeup': return this.drcMakeupDb;
+      default: return 0;
+    }
+  }
+
+  private setDrcVal(key: string, v: number): void {
+    switch (key) {
+      case 'threshold':
+        this.drcThresholdDb = Math.round(v);
+        break;
+      case 'ratio':
+        this.drcRatio = Math.round(v * 2) / 2;
+        break;
+      case 'attack':
+        this.drcAttackMs = Math.round(v * 10) / 10;
+        break;
+      case 'release':
+        this.drcReleaseMs = Math.round(v);
+        break;
+      case 'makeup':
+        this.drcMakeupDb = Math.round(v);
+        break;
+    }
   }
 
   @Builder
