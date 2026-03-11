@@ -673,15 +673,15 @@ export class PreferencesCache {
   }
 
   /**
-   * 歌词高亮放大比例
-   * @param value 放大比例（若不传值则获取当前设置）
-   * @returns 放大比例
+   * 歌词非高亮行缩放比例
+   * @param value 缩放比例（若不传值则获取当前设置）
+   * @returns 缩放比例
    */
-  static lyricHighlightScale(value?: number): number {
+  static lyricNormalScale(value?: number): number {
     if (value !== undefined) {
-      PreferencesCache.setUserPreference('lyric_highlight_scale', value.toString());
+      PreferencesCache.setUserPreference('lyric_normal_scale', value.toString());
     }
-    const stored = PreferencesCache.getUserPreference('lyric_highlight_scale', '1.2');
+    const stored = PreferencesCache.getUserPreference('lyric_normal_scale', '0.95');
     return parseFloat(stored);
   }
 

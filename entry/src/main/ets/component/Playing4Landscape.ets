@@ -3,7 +3,7 @@ import { Song, SongV2 } from "../type/Adapter"
 import { cover } from "../util/AdapterHelper"
 import { AppStorageV2, curves, font, window } from "@kit.ArkUI"
 import { avPlayerManager } from "../util/AVPlayerManager"
-import { LyricsView } from "./LyricsView"
+import { LyricsView } from "./ChainLyricsViewWrapper"
 import { PreferencesCache } from "../util/PreferenceCache"
 import { text } from "@kit.ArkGraphics2D"
 
