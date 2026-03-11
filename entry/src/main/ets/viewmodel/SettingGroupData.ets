@@ -161,9 +161,5 @@ export const funcAndStyleSetting = [
   new SettingItem("button", $r('app.string.custom_settings'), undefined, undefined, () => {
     AppStorage.setOrCreate("setting_page_sheet_content", "Personalized_settings")
     AppStorage.setOrCreate("setting_page_sheet_show", true)
-  }),
-  new SettingItem("button", '状态栏歌词设置', undefined, undefined, () => {
-    AppStorage.setOrCreate("setting_page_sheet_content", "SBLyricsSetting")
-    AppStorage.setOrCreate("setting_page_sheet_show", true)
   })
 ]
