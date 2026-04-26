@@ -33,6 +33,19 @@ export interface SubWindowPosition {
   y: number;
 }
 
+/**
+ * 弹簧动画参数
+ */
+export interface SpringAnimationParams {
+  velocity: number;
+  mass: number;
+  stiffness: number;
+  damping: number;
+  lineSpacing: number;  // 歌词行间距
+  highlightLineSpacing: number;  // 高亮行与非高亮行之间的额外间距
+  dragDelay: number;    // 链式动画每行延迟时间(ms)
+}
+
 export const qualityLevels: QualityLevel[] = [
   { level: 'standard', description: $r('app.string.quality_standard'), bitrate: 128000 },
   { level: 'higher', description: $r('app.string.quality_higher'), bitrate: 192000 },
@@ -617,6 +630,85 @@ export class PreferencesCache {
       AppStorage.setOrCreate('status_bar_lyrics_setting', JSON.parse(output) as SBLyricsPre)
     }
     return JSON.parse(output) as SBLyricsPre
+  }
+
+  /**
+   * 弹簧动画参数设置
+   * @param value 弹簧参数（若不传值则获取当前设置）
+   * @returns 弹簧参数
+   */
+  static springAnimationParams(value?: SpringAnimationParams): SpringAnimationParams {
+    const defaultParams: SpringAnimationParams = { velocity: 0, mass: 0.3, stiffness: 200, damping: 15, lineSpacing: 24, highlightLineSpacing: 8, dragDelay: 35 };
+    if (value !== undefined) {
+      PreferencesCache.setUserPreference('spring_animation_params', JSON.stringify(value));
+    }
+    const stored = PreferencesCache.getUserPreference('spring_animation_params');
+    if (stored) {
+      const parsed = JSON.parse(stored) as SpringAnimationParams;
+      // 合并默认值，确保所有字段都存在（兼容旧数据）
+      return {
+        velocity: parsed.velocity ?? defaultParams.velocity,
+        mass: parsed.mass ?? defaultParams.mass,
+        stiffness: parsed.stiffness ?? defaultParams.stiffness,
+        damping: parsed.damping ?? defaultParams.damping,
+        lineSpacing: parsed.lineSpacing ?? defaultParams.lineSpacing,
+        highlightLineSpacing: parsed.highlightLineSpacing ?? defaultParams.highlightLineSpacing,
+        dragDelay: parsed.dragDelay ?? defaultParams.dragDelay
+      };
+    }
+    return defaultParams;
+  }
+
+  /**
+   * 歌词字体大小设置
+   * @param value 字体大小（若不传值则获取当前设置）
+   * @returns 字体大小
+   */
+  static lyricFontSize(value?: number): number {
+    if (value !== undefined) {
+      PreferencesCache.setUserPreference('lyric_font_size', value.toString());
+    }
+    const stored = PreferencesCache.getUserPreference('lyric_font_size', '18');
+    return parseInt(stored, 10);
+  }
+
+  /**
+   * 歌词非高亮行缩放比例
+   * @param value 缩放比例（若不传值则获取当前设置）
+   * @returns 缩放比例
+   */
+  static lyricNormalScale(value?: number): number {
+    if (value !== undefined) {
+      PreferencesCache.setUserPreference('lyric_normal_scale', value.toString());
+    }
+    const stored = PreferencesCache.getUserPreference('lyric_normal_scale', '0.95');
+    return parseFloat(stored);
+  }
+
+  /**
+   * 翻译歌词字体大小
+   * @param value 字体大小（若不传值则获取当前设置）
+   * @returns 字体大小
+   */
+  static lyricTranslationFontSize(value?: number): number {
+    if (value !== undefined) {
+      PreferencesCache.setUserPreference('lyric_translation_font_size', value.toString());
+    }
+    const stored = PreferencesCache.getUserPreference('lyric_translation_font_size', '16');
+    return parseInt(stored, 10);
+  }
+
+  /**
+   * 罗马音字体大小
+   * @param value 字体大小（若不传值则获取当前设置）
+   * @returns 字体大小
+   */
+  static lyricTransliterationFontSize(value?: number): number {
+    if (value !== undefined) {
+      PreferencesCache.setUserPreference('lyric_transliteration_font_size', value.toString());
+    }
+    const stored = PreferencesCache.getUserPreference('lyric_transliteration_font_size', '12');
+    return parseInt(stored, 10);
   }
 
   /**

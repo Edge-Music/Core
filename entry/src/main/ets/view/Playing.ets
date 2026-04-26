@@ -7,7 +7,7 @@ import { PlaylistManager } from '../util/PlaylistManager'
 import { EventHelper } from '../util/EventHelper'
 import { avPlayerManager } from '../util/AVPlayerManager'
 import { AppUtil, ClickUtil, LogUtil, ToastUtil } from '@pura/harmony-utils'
-import { LyricsView } from '../component/LyricsView'
+import { LyricsView } from "../component/ChainLyricsViewWrapper"
 import { PlaylistView } from '../component/PlaylistView'
 import { PreferencesCache } from '../util/PreferenceCache'
 import { SourceAdapter } from '../adapter'

@@ -262,7 +262,6 @@ export struct Personalized_settings{
               popupMessage: '开启后播控界面顶部返回按钮被歌词展示替代，可点击顶部区域在展示原词/翻译/罗马音/关闭之间轮换'
             })
           }
-          ListItem(){ Personalized_settings_Component({text_name: ResourceManager.getStringValueSync($r('app.string.enable_wave_lyrics')), setUserPreference_name:'enable_wave_lyrics'})}
           if (deviceInfo.sdkApiVersion>19){
             ListItem(){ Personalized_settings_Component({text_name: '开启流光背景', setUserPreference_name:'UV_background'})}
           }

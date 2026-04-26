@@ -1,7 +1,6 @@
 import { StyleConstants } from '../constants/StyleConstants';
 import { AnimationConstants } from '../constants/AnimationConstants';
 import { LyricsLine } from '../util/LyricsManager';
-import { PreferencesCache } from '../util/PreferenceCache';
 
 @Reusable
 @Component
@@ -10,30 +9,29 @@ export struct LyricItem {
   @Prop index: number
   @Prop showTranslation: boolean
   @Prop currentLyricsIndex: number
-  @Prop offsetY: number = 0 // 波浪动画偏移量
-  @StorageProp('enable_wave_lyrics') showWaveLyrics: string = PreferencesCache.getUserPreference('enable_wave_lyrics', '0')
+  /** 歌词字体大小 */
+  @Prop lyricFontSize: number = 18
+  /** 高亮放大比例 */
+  @Prop highlightScale: number = 1.1
+  /** 翻译字体大小 */
+  @Prop translationFontSize: number = 16
+  /** 罗马音字体大小 */
+  @Prop transliterationFontSize: number = 12
 
-  // 性能优化：缓存计算结果
-  private isCurrent: boolean = false
-  private cachedStyle: LyricStyle | null = null
-
-  // 获取当前样式（性能优化版本）
-  private getStyle(): LyricStyle {
-    this.updateCachedStyle()
-    return this.cachedStyle!
-  }
-
-  build(){
-    Column() {
-      // 现代化原文歌词 - 使用文字阴影替代背景，一次性应用所有样式
+  build() {
+    Column({ space: 4 }) {
+      // 原文歌词
       Text(this.item.text)
-        .fontSize(22)
-        .fontWeight(this.getStyle().fontWeight)
-        .fontColor(this.getStyle().fontColor)
-        .textShadow(this.getStyle().textShadow)
-        .opacity(this.getStyle().opacity)
-        .margin({ top: 6, bottom: this.showTranslation && this.item.translation ? 2 : 6 })
-        .padding({ left: 16, right: 16, top: 8, bottom: 8 })
+        .fontSize(this.index === this.currentLyricsIndex ? this.lyricFontSize * this.highlightScale : this.lyricFontSize)
+        .fontWeight(this.index === this.currentLyricsIndex ? FontWeight.Bolder : FontWeight.Medium)
+        .fontColor(this.index === this.currentLyricsIndex ? Color.White : 'rgba(255, 255, 255, 0.85)')
+        .textShadow(this.index === this.currentLyricsIndex ? {
+          radius: 12,
+          color: 'rgba(255, 255, 255, 0.6)',
+          offsetX: 0,
+          offsetY: 0
+        } : undefined)
+        .opacity(this.index === this.currentLyricsIndex ? 1 : 0.9)
         .textAlign(TextAlign.Center)
         .transition(TransitionEffect.OPACITY
           .combine(TransitionEffect.scale({ x: 1.05, y: 1.05 }))
@@ -42,80 +40,38 @@ export struct LyricItem {
             curve: AnimationConstants.CURVE_DECELERATE
           }))
 
-      // 现代化翻译歌词 - 增强字重
-      if (this.showTranslation && this.item.translation) {
+      // 翻译歌词 - 只在有翻译时显示
+      if (this.showTranslation && this.item.translation && this.item.translation.trim().length > 0) {
         Text(this.item.translation)
-          .fontSize(16)
+          .fontSize(this.translationFontSize)
           .fontWeight(FontWeight.Medium)
-          .fontColor(this.getStyle().fontColor)
-          .opacity(this.getStyle().opacity * 0.85)
-          .margin({ bottom: 2 })
-          .padding({ left: 16, right: 16, top: 2 })
+          .fontColor(this.index === this.currentLyricsIndex ? Color.White : 'rgba(255, 255, 255, 0.85)')
+          .opacity(this.index === this.currentLyricsIndex ? 0.85 : 0.75)
           .textAlign(TextAlign.Center)
+          .padding({ left: 16, right: 16, top: 2 })
       }
 
-      // 现代化音译歌词 - 增强字重
-      if (this.showTranslation && this.item.transliteration) {
+      // 罗马音歌词 - 只在有罗马音时显示
+      if (this.showTranslation && this.item.transliteration && this.item.transliteration.length > 0) {
         Text(this.item.transliteration)
-          .fontSize(16)
+          .fontSize(this.transliterationFontSize)
           .fontWeight(FontWeight.Medium)
-          .fontColor(this.getStyle().fontColor)
-          .opacity(this.getStyle().opacity * 0.85)
-          .margin({ bottom: 4 })
-          .padding({ left: 16, right: 16, top: 2 })
+          .fontColor(this.index === this.currentLyricsIndex ? Color.White : 'rgba(255, 255, 255, 0.85)')
+          .opacity(this.index === this.currentLyricsIndex ? 0.85 : 0.75)
           .textAlign(TextAlign.Center)
+          .padding({ left: 16, right: 16, top: 2 })
       }
     }
-    .width(StyleConstants.FULL_WIDTH)
-    .translate({ y: this.showWaveLyrics === '1' ? this.offsetY : 0 })
-    .animation({
-      duration: AnimationConstants.DURATION_NORMAL,
-      curve: AnimationConstants.CURVE_SPRING
+    .width('100%')
+    .padding({ left: 32, right: 32, top: 8, bottom: 8 })
+    .scale({
+      x: this.index === this.currentLyricsIndex ? this.highlightScale : 1.0,
+      y: this.index === this.currentLyricsIndex ? this.highlightScale : 1.0
     })
-  }
-
-  // 性能优化：更新缓存的样式对象
-  private updateCachedStyle() {
-    const newIsCurrent = this.index === this.currentLyricsIndex
-
-    // 只有当高亮状态改变时才重新计算样式
-    if (this.isCurrent !== newIsCurrent || this.cachedStyle === null) {
-      this.isCurrent = newIsCurrent
-      this.cachedStyle = this.createLyricStyle(this.isCurrent)
-    }
-  }
-
-  // 创建歌词样式对象 - 一次性计算所有样式属性
-  private createLyricStyle(isCurrent: boolean): LyricStyle {
-    return new LyricStyle(
-      isCurrent ? FontWeight.Bolder : FontWeight.Medium,
-      isCurrent ? Color.White : 'rgba(255, 255, 255, 0.85)', // 提高非高亮歌词亮度
-      isCurrent ? {
-        radius: 12,
-        color: 'rgba(255, 255, 255, 0.6)',
-        offsetX: 0,
-        offsetY: 0
-      } : {
-        radius: 0,
-        color: Color.Transparent,
-        offsetX: 0,
-        offsetY: 0
-      },
-      isCurrent ? 1 : 0.9, // 提高非高亮歌词透明度
-    )
-  }
-}
-
-class LyricStyle {
-  fontWeight: FontWeight;
-  fontColor: ResourceColor;
-  textShadow: ShadowOptions;
-  opacity: number;
-
-  constructor(fontWeight: FontWeight, fontColor: ResourceColor, textShadow: ShadowOptions, opacity: number) {
-    this.fontWeight = fontWeight;
-    this.fontColor = fontColor;
-    this.textShadow = textShadow;
-    this.opacity = opacity;
+    .animation({
+      duration: AnimationConstants.LYRIC_FONT_SIZE_DURATION,
+      curve: Curve.EaseOut
+    })
+    .renderGroup(true)
   }
 }
