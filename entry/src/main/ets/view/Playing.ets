@@ -3525,8 +3525,6 @@ struct Playing {
             this.sheetType = "playlist";
             this.showPlaylist = true;
           })
-        } else if (event.angle > 45 && event.angle < 135) {
-          this.pageStack.pop()
         }
       })
 
