@@ -20,6 +20,7 @@ import { AudioRendererPlayer,
   DecodeAudioProgress,
   PcmDecoderTool, PcmStreamDecoder, PcmStreamInfo } from '@ospark/free-pcm';
 import map from '@hms.core.map.map';
+import { deviceInfo } from '@kit.BasicServicesKit';
 
 const TAG = 'AVPlayerManager'
 // 定义回调函数的类型
@@ -297,6 +298,12 @@ class AVPlayerManager {
   private async initAVSession() {
     try {
       this.avSession = await avSession.createAVSession(this.context!, 'AudioPlayer', 'audio');
+      // 如果API版本大于等于API23
+      if(deviceInfo.sdkApiVersion >= 23) {
+        this.avSession.enableDesktopLyric(true).catch((error: Error) => {
+          this.triggerError(error)
+        });
+      }
       await this.avSession.activate();
       await this.updatePlaybackState(this.currentPlaybackState);
       this.setupMediaSessionListeners();
@@ -694,10 +701,8 @@ class AVPlayerManager {
     const decoder = this.decoderTool.createStreamDecoder(
       source,
       {
-        // ringBytes is optional (adaptive) by default.
         eqEnabled,
         eqGainsDb,
-        sampleFormat: 3
       },
       {
         onProgress: (p: DecodeAudioProgress) => {
