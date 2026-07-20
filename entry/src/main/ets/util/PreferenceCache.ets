@@ -663,7 +663,7 @@ export class PreferencesCache {
     if (value !== undefined) {
       PreferencesCache.setUserPreference('lyric_font_size', value.toString());
     }
-    const stored = PreferencesCache.getUserPreference('lyric_font_size', '18');
+    const stored = PreferencesCache.getUserPreference('lyric_font_size', '25');
     return parseInt(stored, 10);
   }
 

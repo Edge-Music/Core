@@ -541,6 +541,7 @@ export struct ImmersiveMy {
           Row().height(this.bottomRect + 16)
         }
         .width('100%')
+        .margin({ top: 20 })
       }
       .layoutWeight(1)
       .width('100%')

@@ -13,6 +13,7 @@ import { audio } from '@kit.AudioKit'
 import { window } from '@kit.ArkUI'
 import { ToastUtil } from '@pura/harmony-utils'
 import { AmbientBackground } from '../components/AmbientBackground'
+import { ProgressTrack } from '../components/ProgressTrack'
 import { LyricsView } from '../../component/ChainLyricsViewWrapper'
 import { V3Color, V3Theme } from '../theme/Tokens'
 
@@ -24,6 +25,7 @@ export struct ImmersiveLyrics {
   @StorageProp('v3_ambient_glow') glow: string = V3Color.ACCENT_GLOW
   @StorageProp('topRect') topRect: number = 0
   @StorageProp('bottomRect') bottomRect: number = 0
+  @StorageProp('winHeight') winHeight: number = 0
   @StorageProp('current_width_breakpoint') widthBp: WidthBreakpoint = WidthBreakpoint.WIDTH_SM
   @StorageProp('currentOrientation') orientation: string = 'portrait'
   @StorageProp('v3_theme_mode') mode: string = 'dark'
@@ -31,7 +33,6 @@ export struct ImmersiveLyrics {
   @State currentTimeMs: number = 0
   @State durationMs: number = 0
   @State isPlaying: boolean = false
-  @State trackWidth: number = 1
   // 窄屏进度条自动隐藏（视频播控式：交互显示，静置数秒后隐藏，歌词更沉浸）
   @State controlsVisible: boolean = true
 
@@ -161,22 +162,12 @@ export struct ImmersiveLyrics {
     return s
   }
 
-  private ratio(): number {
-    if (this.durationMs <= 0) {
-      return 0
+  private commitSeek(r: number): void {
+    const clamped: number = r < 0 ? 0 : (r > 1 ? 1 : r)
+    if (this.durationMs > 0) {
+      this.player.seek(Math.floor(clamped * this.durationMs))
+      this.currentTimeMs = Math.floor(clamped * this.durationMs)
     }
-    const r: number = this.currentTimeMs / this.durationMs
-    return r < 0 ? 0 : (r > 1 ? 1 : r)
-  }
-
-  private fmt(ms: number): string {
-    if (!ms || ms < 0) {
-      return '0:00'
-    }
-    const total: number = Math.floor(ms / 1000)
-    const m: number = Math.floor(total / 60)
-    const s: number = total % 60
-    return `${m}:${s < 10 ? '0' + s : s}`
   }
 
   private toggle(): void {
@@ -286,41 +277,17 @@ export struct ImmersiveLyrics {
 
   @Builder
   ProgressRow() {
-    Row({ space: 10 }) {
-      Text(this.fmt(this.currentTimeMs))
-        .fontSize(11)
-        .fontColor(V3Theme.tx3(this.mode))
-        .width(30)
-      Stack({ alignContent: Alignment.Start }) {
-        Row().width('100%').height(3).borderRadius(2).backgroundColor(V3Theme.track(this.mode))
-        Row()
-          .width(`${this.ratio() * 100}%`)
-          .height(3)
-          .borderRadius(2)
-          .linearGradient({ angle: 90, colors: [[V3Theme.accentGradStart(this.mode), 0.0], [V3Theme.accentGradEnd(this.mode), 1.0]] })
-        Row()
-          .width(10)
-          .height(10)
-          .borderRadius(5)
-          .backgroundColor(this.accent)
-          .shadow({ radius: 8, color: this.glow, offsetX: 0, offsetY: 0 })
-          .margin({ left: this.ratio() * this.trackWidth - 5 })
-      }
-      .layoutWeight(1)
-      .height(12)
-      .onAreaChange((_o: Area, n: Area) => {
-        this.trackWidth = n.width as number
-      })
-      .onClick((e: ClickEvent) => {
-        if (this.durationMs > 0) {
-          this.player.seek(Math.floor((e.x as number) / this.trackWidth * this.durationMs))
+    Row() {
+      ProgressTrack({
+        currentTimeMs: this.currentTimeMs,
+        durationMs: this.durationMs,
+        mode: this.mode,
+        accent: this.accent,
+        glow: this.glow,
+        onSeek: (r: number) => {
+          this.commitSeek(r)
         }
       })
-      Text(this.fmt(this.durationMs))
-        .fontSize(11)
-        .fontColor(V3Theme.tx3(this.mode))
-        .width(30)
-        .textAlign(TextAlign.End)
     }
     .width('100%')
     .padding({ left: 22, right: 22 })
@@ -345,8 +312,28 @@ export struct ImmersiveLyrics {
       }
       .margin({ top: 14 })
 
-      Column() {
+      Stack() {
         this.Lyrics()
+
+        // 进度条：静置数秒后收起（高度归零，歌词直接延伸到最底部，无避让更沉浸）
+        // 可见时底部避让系统手势条；隐藏时归零，歌词铺满到屏幕底缘
+        Stack() {
+          Column()
+            .width('100%')
+            .height('100%')
+            .linearGradientBlur(BlurStyle.COMPONENT_REGULAR,
+              { fractionStops: [[0.1, 0], [1, 1]], direction: GradientDirection.Bottom })
+
+          Column(){
+            this.ProgressRow()
+          }
+          .width('100%')
+          .height('100%')
+          .justifyContent(FlexAlign.Center)
+        }
+        .position({ x: 0, y: this.controlsVisible ? '90%' : '100%' })
+        .width('100%')
+        .height('10%')
       }
       .layoutWeight(1)
       .width('100%')
@@ -354,17 +341,6 @@ export struct ImmersiveLyrics {
       .onClick(() => {
         this.showControls()
       })
-
-      // 进度条：静置数秒后收起（高度归零，歌词直接延伸到最底部，无避让更沉浸）
-      // 可见时底部避让系统手势条；隐藏时归零，歌词铺满到屏幕底缘
-      Column() {
-        this.ProgressRow()
-      }
-      .width('100%')
-      .height(this.controlsVisible ? 22 : 0)
-      .opacity(this.controlsVisible ? 1 : 0)
-      .margin({ bottom: this.controlsVisible ? this.bottomRect + 24 : 0 })
-      .clip(true)
     }
     .width('100%')
     .height('100%')

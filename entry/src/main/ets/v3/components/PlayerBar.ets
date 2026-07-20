@@ -13,6 +13,7 @@ import { Playlist } from '../../type/Adapter'
 import { audio } from '@kit.AudioKit'
 import { ToastUtil } from '@pura/harmony-utils'
 import { V3Color, V3Radius, V3Space, V3Theme } from '../theme/Tokens'
+import { ProgressTrack } from './ProgressTrack'
 
 @Component
 export struct PlayerBar {
@@ -94,9 +95,6 @@ export struct PlayerBar {
   @State currentTimeMs: number = 0
   @State durationMs: number = 0
   @State isPlaying: boolean = false
-  @State trackWidth: number = 1
-  @State dragging: boolean = false
-  @State dragRatio: number = 0
   @State playScale: number = 1
 
   private timer: number = -1
@@ -115,9 +113,6 @@ export struct PlayerBar {
       this.isPlaying = false
     })
     this.timer = setInterval(async () => {
-      if (this.dragging) {
-        return
-      }
       const p = await this.player.getAVPlayerInstance()
       this.durationMs = p.getDurationMs()
       this.currentTimeMs = p.getCurrentPosition()
@@ -129,27 +124,6 @@ export struct PlayerBar {
       clearInterval(this.timer)
       this.timer = -1
     }
-  }
-
-  private ratio(): number {
-    if (this.dragging) {
-      return this.dragRatio
-    }
-    if (this.durationMs <= 0) {
-      return 0
-    }
-    const r: number = this.currentTimeMs / this.durationMs
-    return r < 0 ? 0 : (r > 1 ? 1 : r)
-  }
-
-  private fmt(ms: number): string {
-    if (!ms || ms < 0) {
-      return '0:00'
-    }
-    const total: number = Math.floor(ms / 1000)
-    const m: number = Math.floor(total / 60)
-    const s: number = total % 60
-    return `${m}:${s < 10 ? '0' + s : s}`
   }
 
   private commitSeek(r: number): void {
@@ -229,79 +203,18 @@ export struct PlayerBar {
     })
   }
 
-  @Builder
-  Progress() {
-    Row({ space: 10 }) {
-      Text(this.fmt(this.dragging ? this.dragRatio * this.durationMs : this.currentTimeMs))
-        .fontSize(11)
-        .fontColor(V3Theme.tx2(this.mode))
-        .width(30)
-
-      // 自定义轨道（可拖拽）
-      Stack({ alignContent: Alignment.Start }) {
-        // 底轨
-        Row()
-          .width('100%')
-          .height(4)
-          .borderRadius(2)
-          .backgroundColor(V3Theme.track(this.mode))
-        // 已播放（暖金渐变）
-        Row()
-          .width(`${this.ratio() * 100}%`)
-          .height(4)
-          .borderRadius(2)
-          .linearGradient({
-            angle: 90,
-            colors: [[V3Theme.accentGradStart(this.mode), 0.0], [V3Theme.accentGradEnd(this.mode), 1.0]]
-          })
-        // 拖拽滑块
-        Row()
-          .width(12)
-          .height(12)
-          .borderRadius(6)
-          .backgroundColor(this.accent)
-          .shadow({ radius: 10, color: this.glow, offsetX: 0, offsetY: 1 })
-          .margin({ left: this.ratio() * this.trackWidth - 6 })
-      }
-      .layoutWeight(1)
-      .height(14)
-      .onAreaChange((_o: Area, n: Area) => {
-        this.trackWidth = n.width as number
-      })
-      .onClick((e: ClickEvent) => {
-        this.commitSeek((e.x as number) / this.trackWidth)
-      })
-      .gesture(
-        PanGesture({ direction: PanDirection.Horizontal })
-          .onActionStart((e: GestureEvent) => {
-            this.dragging = true
-            this.dragRatio = this.ratio()
-          })
-          .onActionUpdate((e: GestureEvent) => {
-            const lx: number = e.fingerList[0].localX
-            let r: number = lx / this.trackWidth
-            r = r < 0 ? 0 : (r > 1 ? 1 : r)
-            this.dragRatio = r
-          })
-          .onActionEnd(() => {
-            this.commitSeek(this.dragRatio)
-            this.dragging = false
-          })
-      )
-
-      Text(this.fmt(this.durationMs))
-        .fontSize(11)
-        .fontColor(V3Theme.tx3(this.mode))
-        .width(30)
-        .textAlign(TextAlign.End)
-    }
-    .width('100%')
-    .alignItems(VerticalAlign.Center)
-  }
-
   build() {
     Column() {
-      this.Progress()
+      ProgressTrack({
+        currentTimeMs: this.currentTimeMs,
+        durationMs: this.durationMs,
+        mode: this.mode,
+        accent: this.accent,
+        glow: this.glow,
+        onSeek: (r: number) => {
+          this.commitSeek(r)
+        }
+      })
 
       // 控制区（手机与宽屏一致：模式/上一首/播放/下一首/列表/更多）
       Row({ space: this.variant === 'wide' ? 28 : 18 }) {
