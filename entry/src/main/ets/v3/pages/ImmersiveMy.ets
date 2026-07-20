@@ -106,11 +106,6 @@ export struct ImmersiveMy {
     }
   }
 
-  private openSettings(): void {
-    this.close()
-    this.pageStack.pushPath({ name: 'ImmersiveSettings' }, { animated: true })
-  }
-
   private openDataSource(): void {
     this.close()
     this.pageStack.pushPath({ name: 'ImmersiveSourceManager' }, { animated: true })
@@ -508,20 +503,6 @@ export struct ImmersiveMy {
   @Builder
   PhoneLayout() {
     Column() {
-      // 顶部：设置（去掉 drag 横条）
-      Row() {
-        Blank()
-        SymbolGlyph($r('sys.symbol.gearshape'))
-          .fontSize(20)
-          .fontColor([V3Theme.tx2(this.mode)])
-          .onClick(() => {
-            this.openSettings()
-          })
-      }
-      .width('100%')
-      .padding({ right: 6 })
-      .margin({ top: 14, bottom: 6 })
-
       Scroll() {
         Column({ space: 15 }) {
           this.CurrentSourceCard()
@@ -654,19 +635,6 @@ export struct ImmersiveMy {
 
       // 设置 + 关闭
       Row({ space: 12 }) {
-        Stack() {
-          SymbolGlyph($r('sys.symbol.gearshape'))
-            .fontSize(18)
-            .fontColor([V3Theme.tx1(this.mode)])
-        }
-        .width(38)
-        .height(38)
-        .borderRadius(19)
-        .backgroundColor(V3Theme.glass2(this.mode))
-        .border({ width: 1, color: V3Theme.glassBorder(this.mode) })
-        .onClick(() => {
-          this.openSettings()
-        })
 
         Stack() {
           SymbolGlyph($r('sys.symbol.xmark'))

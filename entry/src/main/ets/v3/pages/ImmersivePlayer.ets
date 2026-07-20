@@ -624,132 +624,136 @@ export struct ImmersivePlayer {
 
   @Builder
   WideSidebar() {
-    Column({ space: 18 }) {
-      // 搜索入口
-      Row({ space: 10 }) {
-        SymbolGlyph($r('sys.symbol.magnifyingglass'))
-          .fontSize(18)
-          .fontColor([V3Theme.tx3(this.mode)])
-        Text('搜索歌曲、歌单、歌手')
-          .fontSize(14)
-          .fontColor(V3Theme.tx3(this.mode))
-          .layoutWeight(1)
-      }
-      .width('100%')
-      .height(44)
-      .padding({ left: 14, right: 14 })
-      .borderRadius(22)
-      .backgroundColor(V3Theme.glass2(this.mode))
-      .border({ width: 1, color: V3Theme.glassBorder(this.mode) })
-      .onClick(() => {
-        this.pageStack.pushPath({ name: 'ImmersiveSearch' }, { animated: true })
-      })
-
-      Text('推荐模式')
-        .fontSize(12)
-        .fontColor(V3Theme.tx3(this.mode))
-        .width('100%')
-      this.ModeSwitcher()
-
-      // 榜单 / 我的歌单 页签
-      Row({ space: 8 }) {
-        this.SideTab('chart', '榜单')
-        this.SideTab('playlist', '我的歌单')
-      }
-      .width('100%')
-      .padding(4)
-      .borderRadius(13)
-      .backgroundColor(V3Theme.glass1(this.mode))
-      .border({ width: 1, color: V3Theme.glassBorder(this.mode) })
-      .margin({ top: 2 })
-
-      // 数据源过滤（仅「我的歌单」且多源时显示）
-      if (this.sideTab === 'playlist' && this.sources.length > 1) {
-        Scroll() {
-          Row({ space: 8 }) {
-            this.SrcChip('', '全部')
-            ForEach(this.sources, (s: SourceConfig) => {
-              this.SrcChip(s.url, s.name)
-            }, (s: SourceConfig) => s.url)
-          }
-        }
-        .scrollable(ScrollDirection.Horizontal)
-        .scrollBar(BarState.Off)
-        .width('100%')
-      }
-
-      // 内容滚动区：榜单 或 我的歌单
-      Scroll() {
-        Column({ space: 10 }) {
-          if (this.sideTab === 'chart') {
-            if (this.chartDisplay().length > 0) {
-              ForEach(this.chartDisplay(), (pl: Playlist) => {
-                this.ChartItem(pl)
-              }, (pl: Playlist, i: number) => `c-${i}-${pl.id ?? pl.name}`)
-            } else {
-              Text('暂无榜单，添加数据源后自动加载')
-                .fontSize(12)
-                .fontColor(V3Theme.tx3(this.mode))
-                .width('100%')
-                .padding({ top: 16, bottom: 16 })
-            }
-          } else {
-            if (this.filteredPlaylists().length > 0) {
-              ForEach(this.filteredPlaylists(), (pl: Playlist) => {
-                this.SidePlaylistItem(pl)
-              }, (pl: Playlist, i: number) => `p-${i}-${pl.id ?? pl.name}`)
-            } else {
-              Text('暂无歌单，登录数据源后自动加载')
-                .fontSize(12)
-                .fontColor(V3Theme.tx3(this.mode))
-                .width('100%')
-                .padding({ top: 16, bottom: 16 })
-            }
-          }
-        }
-        .width('100%')
-      }
-      .layoutWeight(1)
-      .width('100%')
-      .scrollBar(BarState.Off)
-      .edgeEffect(EdgeEffect.Spring)
-
-      // 我的 · 数据源
-      Row({ space: 11 }) {
-        this.SourceAvatar(38)
-        Column() {
-          Text('音乐库')
-            .fontSize(13)
-            .fontWeight(FontWeight.Medium)
-            .fontColor(V3Theme.tx1(this.mode))
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-          Text('我的 · 数据源')
-            .fontSize(11)
+    Stack() {
+      Column({ space: 18 }) {
+        // 搜索入口
+        Row({ space: 10 }) {
+          SymbolGlyph($r('sys.symbol.magnifyingglass'))
+            .fontSize(18)
+            .fontColor([V3Theme.tx3(this.mode)])
+          Text('搜索歌曲、歌单、歌手')
+            .fontSize(14)
             .fontColor(V3Theme.tx3(this.mode))
-            .margin({ top: 3 })
+            .layoutWeight(1)
+        }
+        .width('100%')
+        .height(44)
+        .padding({ left: 14, right: 14 })
+        .borderRadius(22)
+        .backgroundColor(V3Theme.glass2(this.mode))
+        .border({ width: 1, color: V3Theme.glassBorder(this.mode) })
+        .onClick(() => {
+          this.pageStack.pushPath({ name: 'ImmersiveSearch' }, { animated: true })
+        })
+
+        Text('推荐模式')
+          .fontSize(12)
+          .fontColor(V3Theme.tx3(this.mode))
+          .width('100%')
+        this.ModeSwitcher()
+
+        // 榜单 / 我的歌单 页签
+        Row({ space: 8 }) {
+          this.SideTab('chart', '榜单')
+          this.SideTab('playlist', '我的歌单')
+        }
+        .width('100%')
+        .padding(4)
+        .borderRadius(13)
+        .backgroundColor(V3Theme.glass1(this.mode))
+        .border({ width: 1, color: V3Theme.glassBorder(this.mode) })
+        .margin({ top: 2 })
+
+        // 数据源过滤（仅「我的歌单」且多源时显示）
+        if (this.sideTab === 'playlist' && this.sources.length > 1) {
+          Scroll() {
+            Row({ space: 8 }) {
+              this.SrcChip('', '全部')
+              ForEach(this.sources, (s: SourceConfig) => {
+                this.SrcChip(s.url, s.name)
+              }, (s: SourceConfig) => s.url)
+            }
+          }
+          .scrollable(ScrollDirection.Horizontal)
+          .scrollBar(BarState.Off)
+          .width('100%')
+        }
+
+        // 内容滚动区：榜单 或 我的歌单
+        Scroll() {
+          Column({ space: 10 }) {
+            if (this.sideTab === 'chart') {
+              if (this.chartDisplay().length > 0) {
+                ForEach(this.chartDisplay(), (pl: Playlist) => {
+                  this.ChartItem(pl)
+                }, (pl: Playlist, i: number) => `c-${i}-${pl.id ?? pl.name}`)
+              } else {
+                Text('暂无榜单，添加数据源后自动加载')
+                  .fontSize(12)
+                  .fontColor(V3Theme.tx3(this.mode))
+                  .width('100%')
+                  .padding({ top: 16, bottom: 16 })
+              }
+            } else {
+              if (this.filteredPlaylists().length > 0) {
+                ForEach(this.filteredPlaylists(), (pl: Playlist) => {
+                  this.SidePlaylistItem(pl)
+                }, (pl: Playlist, i: number) => `p-${i}-${pl.id ?? pl.name}`)
+              } else {
+                Text('暂无歌单，登录数据源后自动加载')
+                  .fontSize(12)
+                  .fontColor(V3Theme.tx3(this.mode))
+                  .width('100%')
+                  .padding({ top: 16, bottom: 16 })
+              }
+            }
+          }
+          .width('100%')
         }
         .layoutWeight(1)
-        .alignItems(HorizontalAlign.Start)
-        SymbolGlyph($r('sys.symbol.chevron_right'))
-          .fontSize(16)
-          .fontColor([V3Theme.tx3(this.mode)])
+        .width('100%')
+        .scrollBar(BarState.Off)
+        .edgeEffect(EdgeEffect.Spring)
+
+        // 我的 · 数据源
+        Row({ space: 11 }) {
+          this.SourceAvatar(38)
+          Column() {
+            Text('音乐库')
+              .fontSize(13)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(V3Theme.tx1(this.mode))
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+            Text('我的 · 数据源')
+              .fontSize(11)
+              .fontColor(V3Theme.tx3(this.mode))
+              .margin({ top: 3 })
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
+          SymbolGlyph($r('sys.symbol.chevron_right'))
+            .fontSize(16)
+            .fontColor([V3Theme.tx3(this.mode)])
+        }
+        .width('100%')
+        .padding(11)
+        .borderRadius(15)
+        .backgroundColor(V3Theme.glass2(this.mode))
+        .border({ width: 1, color: V3Theme.glassBorder(this.mode) })
+        .onClick(() => {
+          this.openSheet('my')
+        })
       }
       .width('100%')
-      .padding(11)
-      .borderRadius(15)
-      .backgroundColor(V3Theme.glass2(this.mode))
-      .border({ width: 1, color: V3Theme.glassBorder(this.mode) })
-      .onClick(() => {
-        this.openSheet('my')
-      })
+      .height('100%')
+      .padding({ left: 22, right: 22, top: this.topRect + 68, bottom: this.bottomRect + 24 })
+      .backgroundColor(V3Theme.panel(this.mode))
+      .backgroundBlurStyle(BlurStyle.BACKGROUND_THICK, { colorMode: V3Theme.blurMode(this.mode) })
+      .border({ width: { right: 1 }, color: V3Theme.hairline(this.mode) })
+
+      this.SettingButton()
     }
-    .width('100%')
-    .height('100%')
-    .padding({ left: 22, right: 22, top: this.topRect + 68, bottom: this.bottomRect + 24 })
-    .backgroundColor(V3Theme.panel(this.mode))
-    .backgroundBlurStyle(BlurStyle.BACKGROUND_THICK, { colorMode: V3Theme.blurMode(this.mode) })
-    .border({ width: { right: 1 }, color: V3Theme.hairline(this.mode) })
   }
 
   /** 榜单展示列表：仅展示真实榜单，空则返回空（不伪造占位榜单误导点击） */
@@ -791,6 +795,11 @@ export struct ImmersivePlayer {
       .scale({ x: 0.9, y: 0.9 })
       .shadow({ radius: 50, color: 'rgba(0,0,0,0.7)', offsetX: 0, offsetY: 20 })
       .backgroundColor('rgba(255,255,255,0.05)')
+  }
+
+  private openSettings(): void {
+    this.sheetShow = false
+    this.pageStack.pushPath({ name: 'ImmersiveSettings' }, { animated: true })
   }
 
   @Builder
@@ -930,6 +939,32 @@ export struct ImmersivePlayer {
     .height('100%')
   }
 
+  @Builder
+  SettingButton() {
+    Row() {
+      Stack() {
+        SymbolGlyph($r('sys.symbol.gearshape'))
+          .fontSize(20)
+          .fontColor([V3Theme.tx2(this.mode)])
+      }
+      .width(44)
+      .height(44)
+      .borderRadius(22)
+      .backgroundColor('rgba(255,255,255,0.10)')
+      .backgroundBlurStyle(BlurStyle.BACKGROUND_THIN, { colorMode: ThemeColorMode.DARK })
+      .border({ width: 1, color: 'rgba(255,255,255,0.20)' })
+      .shadow({ radius: 14, color: 'rgba(0,0,0,0.30)', offsetX: 0, offsetY: 4 })
+      .onClick(() => {
+        this.openSettings()
+      })
+    }
+    .justifyContent(FlexAlign.End)
+    .width('100%')
+    .height(44)
+    .padding({ right: 16 })
+    .position({ y: this.topRect + 12 })
+  }
+
   // 玻璃描边图标按钮（侧边栏开合），替代官方裸图标控制按钮
   @Builder
   SidebarToggle() {
@@ -1020,6 +1055,15 @@ export struct ImmersivePlayer {
         ? Math.min(1040, (this.winWidth > 0 ? this.winWidth : 1040) - 40)
         : (this.activeSheet === 'timer' ? 560 : 720)),
       backgroundColor: Color.Transparent
+    })
+    .onBackPressed(() => {
+      if(this.showSidebar) {
+        this.getUIContext().animateTo({ duration: 320, curve: Curve.EaseInOut }, () => {
+          this.showSidebar = false
+        })
+        return true
+      }
+      return false
     })
   }
 

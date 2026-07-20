@@ -985,7 +985,7 @@ class AVPlayerManager {
             if (changeInfoArray.length > 1&&AppStorage.get<boolean>('playing_judge')) {
 
               {
-                let AppBundleName:string = 'zone.yby.seamusic' //TODO::这里包名记得与APP包名一致
+                let AppBundleName:string = 'zone.yby.seamusic_3' //TODO::这里包名记得与APP包名一致
                 let EventChangePlay:string = 'EdgeMusic_Playing' //公共事件名称
                 let wantAgentObj: WantAgent; // 用于保存创建成功的WantAgent对象，后续使用其完成触发的动作。
                 // 通过WantAgentInfo的operationType设置动作类型
