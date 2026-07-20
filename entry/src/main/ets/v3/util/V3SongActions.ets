@@ -21,6 +21,8 @@ export class V3SongActions {
         value: '下一首播放',
         action: () => {
           PlaylistManager.insertSongs([song])
+          // 用户开始手动管理队列 → 降级为非电台，停止自动补充，尊重用户掌控
+          AppStorage.setOrCreate('v3_queue_radio', false)
           ToastUtil.showShort('已添加到下一首')
         }
       },

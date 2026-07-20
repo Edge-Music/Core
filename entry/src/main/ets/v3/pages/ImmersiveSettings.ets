@@ -54,6 +54,9 @@ export struct ImmersiveSettings {
   @State springPreset: string = 'default' // smooth / default / snappy
   @State pipLyricsType: number = 0
 
+  // 歌单自动补充（队列将播完时后台续算补充；默认开启）
+  @State autoTopUp: boolean = true
+
   // 孤儿开关（旧版启用过、3.0 曾无入口关闭）
   @State playingMix: boolean = false
   @State pressureChange: boolean = false
@@ -82,6 +85,7 @@ export struct ImmersiveSettings {
     this.lyricNormalScale = PreferencesCache.lyricNormalScale()
     this.springPreset = this.detectSpringPreset()
     this.pipLyricsType = parseInt(PreferencesCache.getUserPreference('pip_lyrics_type', '0'))
+    this.autoTopUp = PreferencesCache.getUserPreference('v3_auto_topup', '1') === '1'
     // 孤儿开关
     this.playingMix = PreferencesCache.getUserPreference('playing_mix', '0') === '1'
     this.pressureChange = PreferencesCache.getUserPreference('pressure_change', '0') === '1'
@@ -526,6 +530,10 @@ export struct ImmersiveSettings {
       this.ToggleRow('允许同时播放（不独占音频焦点）', this.playingMix, true, (v: boolean) => {
         this.playingMix = v
         PreferencesCache.setUserPreference('playing_mix', v ? '1' : '0')
+      })
+      this.ToggleRow('歌单自动补充（将播完时续算推荐）', this.autoTopUp, true, (v: boolean) => {
+        this.autoTopUp = v
+        PreferencesCache.setUserPreference('v3_auto_topup', v ? '1' : '0')
       })
     }
     .width('100%')

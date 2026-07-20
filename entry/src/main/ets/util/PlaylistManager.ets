@@ -306,8 +306,10 @@ export class PlaylistManager {
    * 装载播放列表
    * @param playlist
    * @param song 默认播放歌曲
+   * @param radio 队列来源是否为「电台/推荐」——仅 radio 队列允许自动补充续播；
+   *              歌单/专辑/历史等有界队列播完即止（默认 false）
    */
-  public static loadPlaylist(playlist: Array<Song>, song?: Song) {
+  public static loadPlaylist(playlist: Array<Song>, song?: Song, radio: boolean = false) {
     const instance = PlaylistManager.getInstance()
     instance._rawPlaylist = playlist
     // 如果当前播放模式是随机播放，那么需要打乱播放列表
@@ -317,6 +319,7 @@ export class PlaylistManager {
       instance._playlist = playlist
     }
     AppStorage.setOrCreate("current_playing_playlist", playlist)
+    AppStorage.setOrCreate('v3_queue_radio', radio)
     PreferencesCache.playlist(playlist)
     if (song) {
       PlaylistManager.playSong(song)
@@ -351,6 +354,34 @@ export class PlaylistManager {
     if (song) {
       PlaylistManager.playSong(song)
     }
+  }
+
+  /**
+   * 追加歌曲到队列末尾（按 id 去重）。供推荐流式补充：哪个接口先返回先压入。
+   * 队列为空且无播放时，自动装载并起播首曲。不改变队列来源标记（radio 由起播时决定）。
+   */
+  public static appendSongs(songs: Array<Song>) {
+    if (!songs || songs.length === 0) {
+      return
+    }
+    const instance = PlaylistManager.getInstance()
+    const existing = new Set(instance._playlist.map(s => s.id.toString()))
+    const fresh = songs.filter(s => s && !existing.has(s.id.toString()))
+    if (fresh.length === 0) {
+      return
+    }
+    const current = AppStorage.get<Song>("current_playing_song")
+    if (!current || instance._playlist.length === 0) {
+      // 空队列/无播放：装载并起播（radio 队列，允许后续自动补充）
+      PlaylistManager.loadPlaylist(fresh, fresh[0], true)
+      return
+    }
+    instance._playlist.push(...fresh)
+    if (instance._playMode === PlayMode.RANDOM) {
+      instance._rawPlaylist.push(...fresh)
+    }
+    AppStorage.setOrCreate("current_playing_playlist", instance._playlist)
+    PreferencesCache.playlist(instance._playlist)
   }
 
   /**

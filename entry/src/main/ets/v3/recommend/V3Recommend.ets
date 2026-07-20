@@ -150,26 +150,59 @@ export class V3Recommend {
     return out
   }
 
-  /** 拉取数据源推荐算法歌单(key_/daily_songs)的歌曲（familiar 增量），容错 */
+  /**
+   * 熟悉模式素材：优先取用户「自己创建 / 收藏」的真实歌单（我喜欢的音乐、自建歌单等）里的歌，
+   * 打乱后作为 familiar 增量——最贴近用户口味。无个人歌单时回退到算法歌单(key_/daily)。全程容错。
+   */
   private static async fetchKeyPlaylistSongs(): Promise<Song[]> {
-    const userPl: Playlist[] = AppStorage.get<Playlist[]>('user_playlist') ?? []
-    const keyPls: Playlist[] = userPl.filter((p) => {
-      const id: string = p.id?.toString() ?? ''
-      return id.startsWith('key_') || id.startsWith('daily_songs')
-    })
-    if (keyPls.length === 0) {
+    // key_ 特殊歌单（全部）+ 随机 3 个自建/收藏歌单
+    const picks: Playlist[] = V3Recommend.familiarPicks()
+    if (picks.length === 0) {
       return []
     }
-    const settled = await Promise.allSettled(keyPls.slice(0, 3).map((pl) => V3Recommend.safeDetail(pl)))
+    // 节选而非全量：每个歌单随机取一段，避免上千首歌单一次性灌入
+    const PER_PLAYLIST: number = 25
+    const TOTAL_CAP: number = 80
+    const settled = await Promise.allSettled(picks.slice(0, 6).map((pl) => V3Recommend.safeDetail(pl)))
+    const seen: Set<string> = new Set()
     const out: Song[] = []
     for (const r of settled) {
-      if (r.status === 'fulfilled' && r.value) {
-        for (const s of r.value) {
-          out.push(s)
+      if (r.status === 'fulfilled' && r.value && r.value.length > 0) {
+        const part: Song[] = V3Recommend.shuffle(r.value).slice(0, PER_PLAYLIST)
+        for (const s of part) {
+          const id: string = s?.id?.toString() ?? ''
+          if (id && !seen.has(id)) {
+            seen.add(id)
+            out.push(s)
+          }
         }
       }
     }
-    return out
+    return V3Recommend.shuffle(out).slice(0, TOTAL_CAP)
+  }
+
+  /** Fisher-Yates 洗牌（泛型，不改原数组） */
+  private static shuffle<T>(arr: Array<T>): Array<T> {
+    const a: Array<T> = arr.slice()
+    for (let i = a.length - 1; i > 0; i--) {
+      const j: number = Math.floor(Math.random() * (i + 1))
+      const t: T = a[i]
+      a[i] = a[j]
+      a[j] = t
+    }
+    return a
+  }
+
+  /** 熟悉模式歌单选取：key_ 特殊歌单（全部，最贴合口味）+ 随机 3 个自建/收藏歌单 */
+  private static familiarPicks(): Playlist[] {
+    const userPl: Playlist[] = AppStorage.get<Playlist[]>('user_playlist') ?? []
+    const isKey = (p: Playlist): boolean => {
+      const id: string = p.id?.toString() ?? ''
+      return id.startsWith('key_') || id.startsWith('daily_songs')
+    }
+    const keyPls: Playlist[] = userPl.filter((p) => isKey(p))
+    const others: Playlist[] = V3Recommend.shuffle(userPl.filter((p) => !isKey(p))).slice(0, 3)
+    return keyPls.concat(others)
   }
 
   /** 单个歌单详情的容错包装：只取可播歌曲，异常返回空 */
@@ -190,6 +223,63 @@ export class V3Recommend {
     const inQueue: Set<string> = new Set(queue.map((s) => s.id.toString()))
     const gen: Song[] = await V3Recommend.generateAsync(mode, count + queue.length)
     return gen.filter((s) => !inQueue.has(s.id.toString())).slice(0, count)
+  }
+
+  /**
+   * 流式推荐：不等所有接口 allSettled，各源（用户歌单详情 / 榜单详情 / 多源搜索）独立请求，
+   * 哪个先返回就先经 onBatch 压入队列。seenIds 跨批次去重（含调用方传入的已有队列 id）。
+   * familiar 偏向用户自建/收藏歌单，fresh 偏向榜单，default 两者兼取；三模式都追加历史搜索扩池。
+   */
+  static streamRecommend(mode: RecMode, seenIds: Set<string>, onBatch: (songs: Song[]) => void): void {
+    const emit = (songs: Song[]): void => {
+      const fresh: Song[] = []
+      for (const s of songs) {
+        const id: string = s?.id?.toString() ?? ''
+        if (id && !seenIds.has(id) && s.privilege?.playable !== false) {
+          seenIds.add(id)
+          fresh.push(s)
+        }
+      }
+      if (fresh.length > 0) {
+        onBatch(fresh)
+      }
+    }
+
+    const charts: Playlist[] = AppStorage.get<Playlist[]>('index_recommend_toplist') ?? []
+
+    // 熟悉/默认：用户歌单 = key_ 特殊歌单(全部) + 随机 3 个自建/收藏，逐个详情返回即节选压入
+    if (mode !== 'fresh') {
+      for (const pl of V3Recommend.familiarPicks()) {
+        V3Recommend.safeDetail(pl).then((songs: Song[]) => emit(V3Recommend.shuffle(songs).slice(0, 25)))
+      }
+    }
+
+    // 新鲜/默认：榜单逐张详情返回即压入
+    if (mode !== 'familiar') {
+      for (const pl of charts.slice(0, 3)) {
+        V3Recommend.safeDetail(pl).then((songs: Song[]) => emit(songs))
+      }
+    }
+
+    // 需历史的部分：多源搜索种子 + 历史稀疏兜底（避免熟悉模式差异过大）
+    PlayRecordManager.getInstance().initialize().then(() => {
+      const records: PlayRecord[] = PlayRecordManager.getInstance().getAllRecords()
+      for (const q of V3Recommend.seedQueries(records)) {
+        V3Recommend.safeSearch(q).then((songs: Song[]) => emit(songs))
+      }
+      // 历史过少：用发现页接口兜底（榜单 + 首页推荐歌），保持熟悉模式的连贯与主流度
+      if (records.length < 5) {
+        if (mode === 'familiar') {
+          for (const pl of charts.slice(0, 2)) {
+            V3Recommend.safeDetail(pl).then((songs: Song[]) => emit(songs))
+          }
+        }
+        const recSongs: Song[] = AppStorage.get<Song[]>('index_recommend_songs') ?? []
+        if (recSongs.length > 0) {
+          emit(V3Recommend.shuffle(recSongs).slice(0, 30))
+        }
+      }
+    })
   }
 
   // ============ 内部：多源搜索扩池（所有种子并行搜索） ============

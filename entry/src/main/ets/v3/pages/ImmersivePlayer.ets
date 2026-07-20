@@ -9,6 +9,7 @@ import { Song, Playlist, SourceConfig } from '../../type/Adapter'
 import { cover, playlistCover } from '../../util/AdapterHelper'
 import { PlaylistManager } from '../../util/PlaylistManager'
 import { PushPathHelper } from '../../util/PushPathHelper'
+import { PreferencesCache } from '../../util/PreferenceCache'
 import { SourceAdapter } from '../../adapter'
 import { PlaylistCover } from '../components/PlaylistCover'
 import { V3Recommend, RecMode } from '../recommend/V3Recommend'
@@ -30,6 +31,7 @@ export struct ImmersivePlayer {
   @StorageProp('current_playing_playlist') queue: Song[] = []
   @StorageProp('user_data_source') sources: SourceConfig[] = []
   @StorageProp('index_recommend_toplist') topList: Playlist[] = []
+  @StorageProp('user_playlist') userPlaylists: Playlist[] = []
   @StorageProp('current_parsed_lyrics') parsedLyrics: LyricsLine[] = []
   @StorageProp('current_lyrics_index') lyricIndex: number = 0
   @StorageProp('v3_ambient_glow') glow: string = V3Color.ACCENT_GLOW
@@ -37,10 +39,13 @@ export struct ImmersivePlayer {
   @StorageProp('bottomRect') bottomRect: number = 0
   @StorageProp('current_width_breakpoint') widthBp: WidthBreakpoint = WidthBreakpoint.WIDTH_SM
   @StorageProp('winHeight') winHeight: number = 0
+  @StorageProp('winWidth') winWidth: number = 0
   @StorageProp('v3_theme_mode') mode: string = 'dark'
   @State fav: boolean = false
   // 官方 SideBarContainer 的显隐（宽屏默认常驻展开，窄屏默认收起为抽屉）
   @State showSidebar: boolean = false
+  @State sideTab: string = 'chart' // 侧边栏内容页：'chart' 榜单 / 'playlist' 我的歌单
+  @State plFilterSource: string = '' // 歌单数据源过滤（空=全部，否则数据源 url）
   // 统一弹层控制：鸿蒙同节点多个 bindSheet 会互相冲突（只有一个能打开），
   // 故用「单 bindSheet + flag」——sheetShow 控制显隐，activeSheet 决定内容/尺寸。
   @State sheetShow: boolean = false
@@ -64,46 +69,34 @@ export struct ImmersivePlayer {
   private selectMode(mode: RecMode): void {
     this.recMode = mode
     AppStorage.setOrCreate('v3_rec_mode', mode)
-    // ① 后台预取缓存命中 → 立即切换播放（无等待）
+    const seenIds: Set<string> = new Set()
+    // ① 立即起播：缓存命中优先，否则本地即时生成（radio 队列，允许自动补充）
     const cached: Song[] = V3Recommend.getCached(mode)
-    if (cached.length > 0) {
-      PlaylistManager.loadPlaylist(cached)
-      PlaylistManager.playSong(cached[0])
-      ToastUtil.showShort(`「${this.modeLabel(mode)}模式」· ${cached.length} 首`)
-      // 后台刷新该模式缓存，供下次秒切
-      V3Recommend.generateAsync(mode).then((fresh: Song[]) => {
-        if (fresh.length > 0) {
-          AppStorage.setOrCreate(`v3_rec_${mode}`, fresh)
-        }
-      })
-      return
+    const seed: Song[] = cached.length > 0 ? cached : V3Recommend.generate(mode)
+    if (seed.length > 0) {
+      PlaylistManager.loadPlaylist(seed, undefined, true)
+      PlaylistManager.playSong(seed[0])
+      for (const s of seed) {
+        seenIds.add(s.id.toString())
+      }
+      ToastUtil.showShort(`「${this.modeLabel(mode)}模式」· 续算补充中`)
+    } else {
+      ToastUtil.showShort(`正在生成「${this.modeLabel(mode)}模式」推荐...`)
     }
-    // ② 无缓存：本地即时秒开 + 异步扩池替换
-    const instant: Song[] = V3Recommend.generate(mode)
-    if (instant.length > 0) {
-      PlaylistManager.loadPlaylist(instant)
-      PlaylistManager.playSong(instant[0])
-    }
-    ToastUtil.showShort(`正在生成「${this.modeLabel(mode)}模式」推荐...`)
-    V3Recommend.generateAsync(mode).then((songs: Song[]) => {
-      if (songs.length === 0) {
-        if (instant.length === 0) {
-          ToastUtil.showShort('暂无可推荐内容，试试添加数据源或多听几首')
-        }
-        return
+    // ② 流式补充：各接口独立请求，哪个先返回先压入队列（不等 allSettled）
+    V3Recommend.streamRecommend(mode, seenIds, (batch: Song[]) => {
+      if (!this.song) {
+        PlaylistManager.loadPlaylist(batch, undefined, true)
+        PlaylistManager.playSong(batch[0])
+      } else {
+        PlaylistManager.appendSongs(batch)
       }
-      AppStorage.setOrCreate(`v3_rec_${mode}`, songs)
-      const cur: Song | null = this.song
-      let ordered: Song[] = songs
-      if (cur) {
-        const rest: Song[] = songs.filter((s) => s.id.toString() !== cur.id.toString())
-        ordered = [cur, ...rest]
+    })
+    // ③ 后台刷新该模式缓存，供下次秒切
+    V3Recommend.generateAsync(mode).then((fresh: Song[]) => {
+      if (fresh.length > 0) {
+        AppStorage.setOrCreate(`v3_rec_${mode}`, fresh)
       }
-      PlaylistManager.loadPlaylist(ordered)
-      if (instant.length === 0) {
-        PlaylistManager.playSong(ordered[0])
-      }
-      ToastUtil.showShort(`「${this.modeLabel(mode)}模式」· ${ordered.length} 首`)
     })
   }
 
@@ -133,8 +126,45 @@ export struct ImmersivePlayer {
     this.maybeTopUp()
   }
 
+  // 红心收藏：真实同步到数据源（网易云等），乐观更新 + 失败回滚
+  private toggleFav(): void {
+    const s: Song | null = this.song
+    if (!s) {
+      return
+    }
+    if (!s.source) {
+      ToastUtil.showShort('无法收藏：该歌曲缺少数据源')
+      return
+    }
+    const next: boolean = !this.fav
+    this.fav = next // 乐观更新
+    SourceAdapter.likeSong(s, next).then((ok: boolean) => {
+      if (!ok) {
+        this.fav = !next // 回滚
+        ToastUtil.showShort('操作失败，请稍后重试')
+        return
+      }
+      if (s.meta) {
+        s.meta.isFavorite = next
+      }
+      ToastUtil.showShort(next ? '已收藏到「我喜欢的音乐」' : '已取消收藏')
+    }).catch(() => {
+      this.fav = !next // 回滚
+      ToastUtil.showShort('操作失败，请稍后重试')
+    })
+  }
+
   // 队列将播完（剩余 < 5 首）时，后台多源续算补充，无缝续播
   private maybeTopUp(): void {
+    // 用户可在设置关闭「歌单自动补充」（默认开启，保持无缝续播）
+    if (PreferencesCache.getUserPreference('v3_auto_topup', '1') !== '1') {
+      return
+    }
+    // 仅「电台/推荐」来源的队列才自动补充：歌单/专辑/历史等有界队列，
+    // 以及用户手动「下一首/加入队列」后降级的队列，都播完即止，绝不越俎压入
+    if (!(AppStorage.get<boolean>('v3_queue_radio') ?? false)) {
+      return
+    }
     if (this.toppingUp || !this.song || !this.queue || this.queue.length === 0) {
       return
     }
@@ -401,7 +431,7 @@ export struct ImmersivePlayer {
             .fontSize(26)
             .fontColor([this.fav ? V3Theme.accentFallback(this.mode) : V3Theme.tx2(this.mode)])
             .onClick(() => {
-              this.fav = !this.fav
+              this.toggleFav()
             })
         }
         .width('100%')
@@ -524,6 +554,74 @@ export struct ImmersivePlayer {
     })
   }
 
+  // 侧边栏内容页签（榜单 / 我的歌单）
+  @Builder
+  SideTab(key: string, label: string) {
+    Text(label)
+      .fontSize(13)
+      .fontWeight(this.sideTab === key ? FontWeight.Medium : FontWeight.Regular)
+      .fontColor(this.sideTab === key ? V3Theme.accentFallback(this.mode) : V3Theme.tx2(this.mode))
+      .textAlign(TextAlign.Center)
+      .layoutWeight(1)
+      .height(32)
+      .borderRadius(11)
+      .backgroundColor(this.sideTab === key
+        ? (V3Theme.isLight(this.mode) ? '#FFFFFF' : 'rgba(255,255,255,0.14)')
+        : 'rgba(0,0,0,0)')
+      .border({ width: 1, color: this.sideTab === key ? 'rgba(201,154,87,0.55)' : 'rgba(0,0,0,0)' })
+      .onClick(() => {
+        this.sideTab = key
+      })
+  }
+
+  // 数据源过滤 chip
+  @Builder
+  SrcChip(url: string, label: string) {
+    Text(label)
+      .fontSize(12)
+      .fontColor(this.plFilterSource === url ? '#FFFFFF' : V3Theme.tx2(this.mode))
+      .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+      .borderRadius(13)
+      .backgroundColor(this.plFilterSource === url ? '#C99A57' : V3Theme.glass2(this.mode))
+      .border({ width: 1, color: this.plFilterSource === url ? Color.Transparent : V3Theme.glassBorder(this.mode) })
+      .maxLines(1)
+      .onClick(() => {
+        this.plFilterSource = url
+      })
+  }
+
+  // 侧边栏歌单行（点击进详情）
+  @Builder
+  SidePlaylistItem(pl: Playlist) {
+    Row({ space: 12 }) {
+      PlaylistCover({ pl: pl, coverSize: 100, sizeW: 42, radius: 11 })
+      Column() {
+        Text(pl.name ?? '')
+          .fontSize(14)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(V3Theme.tx1(this.mode))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+        Text(pl.source?.name ?? '')
+          .fontSize(11.5)
+          .fontColor(V3Theme.tx3(this.mode))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .margin({ top: 3 })
+      }
+      .layoutWeight(1)
+      .alignItems(HorizontalAlign.Start)
+    }
+    .width('100%')
+    .padding({ left: 11, right: 11, top: 9, bottom: 9 })
+    .borderRadius(15)
+    .backgroundColor(V3Theme.glass1(this.mode))
+    .border({ width: 1, color: V3Theme.glassBorder(this.mode) })
+    .onClick(() => {
+      this.openSidePlaylist(pl)
+    })
+  }
+
   @Builder
   WideSidebar() {
     Column({ space: 18 }) {
@@ -553,25 +651,60 @@ export struct ImmersivePlayer {
         .width('100%')
       this.ModeSwitcher()
 
-      Text('榜单 · 每日')
-        .fontSize(12)
-        .fontColor(V3Theme.tx3(this.mode))
-        .width('100%')
-        .margin({ top: 2 })
+      // 榜单 / 我的歌单 页签
+      Row({ space: 8 }) {
+        this.SideTab('chart', '榜单')
+        this.SideTab('playlist', '我的歌单')
+      }
+      .width('100%')
+      .padding(4)
+      .borderRadius(13)
+      .backgroundColor(V3Theme.glass1(this.mode))
+      .border({ width: 1, color: V3Theme.glassBorder(this.mode) })
+      .margin({ top: 2 })
 
-      // 榜单可滚动（仅真实榜单；空时提示，不伪造）
+      // 数据源过滤（仅「我的歌单」且多源时显示）
+      if (this.sideTab === 'playlist' && this.sources.length > 1) {
+        Scroll() {
+          Row({ space: 8 }) {
+            this.SrcChip('', '全部')
+            ForEach(this.sources, (s: SourceConfig) => {
+              this.SrcChip(s.url, s.name)
+            }, (s: SourceConfig) => s.url)
+          }
+        }
+        .scrollable(ScrollDirection.Horizontal)
+        .scrollBar(BarState.Off)
+        .width('100%')
+      }
+
+      // 内容滚动区：榜单 或 我的歌单
       Scroll() {
         Column({ space: 10 }) {
-          if (this.chartDisplay().length > 0) {
-            ForEach(this.chartDisplay(), (pl: Playlist) => {
-              this.ChartItem(pl)
-            }, (pl: Playlist, i: number) => `${i}-${pl.id ?? pl.name}`)
+          if (this.sideTab === 'chart') {
+            if (this.chartDisplay().length > 0) {
+              ForEach(this.chartDisplay(), (pl: Playlist) => {
+                this.ChartItem(pl)
+              }, (pl: Playlist, i: number) => `c-${i}-${pl.id ?? pl.name}`)
+            } else {
+              Text('暂无榜单，添加数据源后自动加载')
+                .fontSize(12)
+                .fontColor(V3Theme.tx3(this.mode))
+                .width('100%')
+                .padding({ top: 16, bottom: 16 })
+            }
           } else {
-            Text('暂无榜单，添加数据源后自动加载')
-              .fontSize(12)
-              .fontColor(V3Theme.tx3(this.mode))
-              .width('100%')
-              .padding({ top: 16, bottom: 16 })
+            if (this.filteredPlaylists().length > 0) {
+              ForEach(this.filteredPlaylists(), (pl: Playlist) => {
+                this.SidePlaylistItem(pl)
+              }, (pl: Playlist, i: number) => `p-${i}-${pl.id ?? pl.name}`)
+            } else {
+              Text('暂无歌单，登录数据源后自动加载')
+                .fontSize(12)
+                .fontColor(V3Theme.tx3(this.mode))
+                .width('100%')
+                .padding({ top: 16, bottom: 16 })
+            }
           }
         }
         .width('100%')
@@ -622,6 +755,27 @@ export struct ImmersivePlayer {
   /** 榜单展示列表：仅展示真实榜单，空则返回空（不伪造占位榜单误导点击） */
   private chartDisplay(): Playlist[] {
     return this.topList ?? []
+  }
+
+  /** 侧边栏「我的歌单」列表：按数据源过滤（plFilterSource 空=全部） */
+  private filteredPlaylists(): Playlist[] {
+    const all: Playlist[] = this.userPlaylists ?? []
+    if (this.plFilterSource.length === 0) {
+      return all
+    }
+    return all.filter((p) => (p.source?.url ?? '') === this.plFilterSource)
+  }
+
+  /** 从侧边栏打开歌单详情（入口更浅） */
+  private openSidePlaylist(pl: Playlist): void {
+    if (!this.isWide()) {
+      this.showSidebar = false
+    }
+    PushPathHelper.pushPath(this.pageStack, 'ImmersivePlaylist', async () => {
+      const detail: Playlist = await SourceAdapter.getPlaylistDetail(pl)
+      AppStorage.setOrCreate('current_playlist_data', detail)
+      AppStorage.setOrCreate('current_playlist_songs', detail.songs)
+    })
   }
 
   // 直接在 Builder 内读取 @State（prevCover/nextCover），保证切歌时两侧刷新；
@@ -749,6 +903,18 @@ export struct ImmersivePlayer {
         } else {
           this.PhoneLayout()
         }
+        // 窄屏抽屉打开时的遮罩：点击空白关闭 + 冻结内容点击/滑动
+        if (!this.isWide() && this.showSidebar) {
+          Column()
+            .width('100%')
+            .height('100%')
+            .backgroundColor('rgba(0,0,0,0.32)')
+            .onClick(() => {
+              this.getUIContext().animateTo({ duration: 320, curve: Curve.EaseInOut }, () => {
+                this.showSidebar = false
+              })
+            })
+        }
       }
       .width('100%')
       .height('100%')
@@ -809,11 +975,18 @@ export struct ImmersivePlayer {
       .gesture(
         PanGesture({ direction: PanDirection.Horizontal, distance: 30 })
           .onActionUpdate((e: GestureEvent) => {
+            // 仅窄屏抽屉打开时冻结切歌滑动；宽屏侧边栏常驻展开不影响切歌
+            if (!this.isWide() && this.showSidebar) {
+              return
+            }
             // 跟手拖拽（带阻尼）
             this.cardDx = e.offsetX * 0.5
             this.cardOpacity = 1 - Math.min(0.4, Math.abs(e.offsetX) / 600)
           })
           .onActionEnd((e: GestureEvent) => {
+            if (!this.isWide() && this.showSidebar) {
+              return
+            }
             if (e.offsetX < -70) {
               this.animateSwitch('next')
             } else if (e.offsetX > 70) {
@@ -843,7 +1016,9 @@ export struct ImmersivePlayer {
       preferType: this.isWide() ? SheetType.CENTER : SheetType.BOTTOM,
       showClose: false,
       dragBar: !this.isWide(),
-      width: !this.isWide() ? '100%' : (this.activeSheet === 'my' ? 1040 : (this.activeSheet === 'timer' ? 560 : 720)),
+      width: !this.isWide() ? '100%' : (this.activeSheet === 'my'
+        ? Math.min(1040, (this.winWidth > 0 ? this.winWidth : 1040) - 40)
+        : (this.activeSheet === 'timer' ? 560 : 720)),
       backgroundColor: Color.Transparent
     })
   }
