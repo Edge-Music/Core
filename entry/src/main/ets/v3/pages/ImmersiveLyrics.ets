@@ -446,7 +446,6 @@ export struct ImmersiveLyrics {
     }
     .width('100%')
     .height('100%')
-    .padding({ top: this.topRect, bottom: this.bottomRect })
   }
 
   build() {
