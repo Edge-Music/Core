@@ -25,12 +25,37 @@ export struct ImmersiveMy {
   @StorageProp('topRect') topRect: number = 0
   @StorageProp('bottomRect') bottomRect: number = 0
   @StorageProp('current_width_breakpoint') widthBp: WidthBreakpoint = WidthBreakpoint.WIDTH_SM
+  @StorageProp('winWidth') winWidth: number = 0
   @StorageProp('v3_theme_mode') mode: string = 'dark'
   // 当前选中的数据源：'local'=聚合源（本地），否则为 source.id.toString()
   @State selectedSourceId: string = 'local'
 
   private isWide(): boolean {
     return this.widthBp >= WidthBreakpoint.WIDTH_LG
+  }
+
+  // 弹层实际容器宽（'my' sheet 上限 1040，小屏取屏宽），用于宽屏双栏的响应式布局
+  private containerW(): number {
+    const w: number = this.winWidth > 0 ? this.winWidth : 1040
+    return Math.min(1040, w)
+  }
+
+  // 左栏宽度：小容器收窄，避免右侧网格被挤没
+  private leftPanelW(): number {
+    return this.containerW() < 920 ? 260 : 340
+  }
+
+  // 右侧歌单网格列数：按可用宽度动态 2~4 列（每列约 200vp）
+  private gridCols(): string {
+    const avail: number = this.containerW() - this.leftPanelW() - 76
+    let cols: number = Math.floor(avail / 200)
+    if (cols < 2) {
+      cols = 2
+    }
+    if (cols > 4) {
+      cols = 4
+    }
+    return new Array<string>(cols).fill('1fr').join(' ')
   }
 
   private firstChar(name: string): string {
@@ -569,9 +594,9 @@ export struct ImmersiveMy {
           }
           .width('100%')
         }
-        .width(360)
+        .width(this.leftPanelW())
         .height('100%')
-        .padding(26)
+        .padding(this.containerW() < 920 ? 18 : 26)
         .border({ width: { right: 1 }, color: V3Theme.hairline(this.mode) })
 
         // 右栏：歌单网格
@@ -594,7 +619,7 @@ export struct ImmersiveMy {
             Blank()
           }
           .width('100%')
-          .margin({ bottom: 20, right: 92 })
+          .margin({ bottom: 20, right: 56 })
 
           if (this.listPlaylists().length > 0) {
             Scroll() {
@@ -605,7 +630,7 @@ export struct ImmersiveMy {
                   }
                 }, (pl: Playlist) => pl.id.toString())
               }
-              .columnsTemplate('1fr 1fr 1fr')
+              .columnsTemplate(this.gridCols())
               .columnsGap(20)
               .rowsGap(22)
               .width('100%')
