@@ -161,6 +161,13 @@ struct Index {
       PipManager.getInstance().init(this.getUIContext().getHostContext() as common.Context)
       PipManager.getInstance().setAutoStart(true)
     }
+    // 悬浮球「智感」模式：注册握持手势监听（1左/2右），驱动 AppStorage 'hand'
+    // 3.0 首页替换时漏迁移，补回；HoldHand 内部已做 canIUse 守卫
+    if (canIUse('SystemCapability.MultimodalAwareness.Motion')) {
+      import('../util/HoldHand').then((nv) => {
+        nv.startHoldingHand(this.getUIContext())
+      })
+    }
   }
 
   @Builder
