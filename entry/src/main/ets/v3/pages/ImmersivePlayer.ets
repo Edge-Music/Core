@@ -951,9 +951,8 @@ export struct ImmersivePlayer {
       .height(44)
       .borderRadius(22)
       .backgroundColor('rgba(255,255,255,0.10)')
-      .backgroundBlurStyle(BlurStyle.BACKGROUND_THIN, { colorMode: ThemeColorMode.DARK })
+      .backgroundBlurStyle(BlurStyle.BACKGROUND_THIN, { colorMode: ThemeColorMode.LIGHT })
       .border({ width: 1, color: 'rgba(255,255,255,0.20)' })
-      .shadow({ radius: 14, color: 'rgba(0,0,0,0.30)', offsetX: 0, offsetY: 4 })
       .onClick(() => {
         this.openSettings()
       })
@@ -977,9 +976,8 @@ export struct ImmersivePlayer {
     .height(44)
     .borderRadius(22)
     .backgroundColor('rgba(255,255,255,0.10)')
-    .backgroundBlurStyle(BlurStyle.BACKGROUND_THIN, { colorMode: ThemeColorMode.DARK })
+    .backgroundBlurStyle(BlurStyle.BACKGROUND_THIN, { colorMode: ThemeColorMode.LIGHT })
     .border({ width: 1, color: 'rgba(255,255,255,0.20)' })
-    .shadow({ radius: 14, color: 'rgba(0,0,0,0.30)', offsetX: 0, offsetY: 4 })
     .position({ x: 16, y: this.topRect + 12 })
     .onClick(() => {
       this.getUIContext().animateTo({ duration: 320, curve: Curve.EaseInOut }, () => {
