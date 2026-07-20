@@ -5,7 +5,6 @@ import { EventHelper } from './EventHelper';
 import { LogUtil, ToastUtil } from '@pura/harmony-utils';
 import { PreferencesCache } from './PreferenceCache';
 import { resourceManager } from '@kit.LocalizationKit';
-import { Setting } from '../view/Setting';
 import { StyleConstants } from '../constants/StyleConstants';
 
 const TAG = 'WindowUtil'
@@ -16,6 +15,7 @@ class WindowUtil {
 
   loadContent(windowStage: window.WindowStage, page: string | undefined | null) {
     if(!windowStage) return
+    this.windowStage = windowStage
     AppStorage.setOrCreate('windowStage', windowStage)
 
     windowStage.loadContent('pages/Index', (err) => {
@@ -372,6 +372,30 @@ class WindowUtil {
     subWindow.destroyWindow(() => {
       LogUtil.info(`[${TAG}]`, 'Successfully destroyed the sub window.');
     })
+  }
+
+  /**
+   * 即时刷新多功能悬浮子窗（供设置页切换「悬浮球位置」时调用）：
+   * 类型 3(关闭) → 销毁已有窗；0/1/2 → 确保创建（左右手/智感位置由页面 @Watch 处理）。
+   */
+  async refreshMultiFuncSubWindow(): Promise<void> {
+    const type: number = parseInt(PreferencesCache.getUserPreference('sub_window_show_type', '2'))
+    let existing: window.Window | null = null
+    try {
+      existing = window.findWindow('MultiFuncSubWindow')
+    } catch (e) {
+      existing = null
+    }
+    if (type === 3) {
+      if (existing) {
+        this.destroyMultiFuncSubWindow(existing)
+      }
+      return
+    }
+    const stage: window.WindowStage | undefined = this.windowStage ?? AppStorage.get('windowStage')
+    if (!existing && stage) {
+      this.createMultiFuncSubWindow(stage)
+    }
   }
 
 }

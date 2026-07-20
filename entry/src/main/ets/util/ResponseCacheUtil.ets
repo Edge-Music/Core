@@ -16,6 +16,15 @@ export class ResponseCacheUtil {
   }
 
   static set<T>(key: string, value: T, expireTime?: number): void {
+    // 未显式指定过期时间时按配置项换算（3.0 默认 0 天）
+    if (!expireTime) {
+      expireTime = 24 * 60 * 60 * 1000 * PreferencesCache.requestCacheExpire();
+    }
+    // 过期时间 <= 0 即「不缓存」：直接跳过写入，避免堆积立即过期的垃圾缓存
+    if (expireTime <= 0) {
+      return;
+    }
+
     const fullKey = ResponseCacheUtil.getFullKey(key);
     const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
 
@@ -26,10 +35,6 @@ export class ResponseCacheUtil {
     PreferencesUtil.putSync(ResponseCacheUtil.CREATED_AT_PREFIX + fullKey, createdAt.toString(),
       ResponseCacheUtil.PREFERENCE_NAME);
 
-    if (!expireTime) {
-      // 如果没有填写则按照配置项设置
-      expireTime = 24 * 60 * 60 * 1000 * PreferencesCache.requestCacheExpire();
-    }
     const expireAt = createdAt + expireTime;
     PreferencesUtil.putSync(ResponseCacheUtil.EXPIRATION_PREFIX + fullKey, expireAt.toString(),
       ResponseCacheUtil.PREFERENCE_NAME);

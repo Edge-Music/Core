@@ -41,34 +41,12 @@ export struct SourceFilter {
       const source = userSources[i]
       options.push({
         id: source.id,
-        name: source.name || this.getSourceDisplayName(source),
+        name: source.name,
         isAll: false
       })
     }
 
     this.sources = options
-  }
-
-  /**
-   * 获取数据源显示名称
-   */
-  private getSourceDisplayName(source: SourceConfig): string {
-    // 根据 URL 推断数据源名称
-    const url = source.url.toLowerCase()
-    if (url.includes('netease') || url.includes('163')) {
-      return '网易云音乐'
-    } else if (url.includes('qq') || url.includes('tencent')) {
-      return 'QQ音乐'
-    } else if (url.includes('kugou')) {
-      return '酷狗音乐'
-    } else if (url.includes('kuwo')) {
-      return '酷我音乐'
-    } else if (url.includes('migu')) {
-      return '咪咕音乐'
-    } else if (url.includes('bilibili')) {
-      return '哔哩哔哩'
-    }
-    return source.name || '未知数据源'
   }
 
   private isSelected(option: SourceFilterOption): boolean {

@@ -684,9 +684,12 @@ export class SourceAdapter {
     return finalResult;
   }
 
-  static async likeSong(song: Song, like: boolean = true): Promise<void> {
+  static async likeSong(song: Song, like: boolean = true): Promise<boolean> {
     try {
       const source = song.source as SourceConfig;
+      if (!source) {
+        return false;
+      }
       const request = createRequest(source);
       const res = (await request.put(`/song/like?id=${song.id}&like=${like}`)).data as BaseResponse<LikeResponse>;
       const playlistId = res.data.playlist;
@@ -695,9 +698,11 @@ export class SourceAdapter {
       ResponseCacheUtil.remove(fullKey);
       // 更新用户歌单
       SourceAdapter.getUserPlaylist();
+      return true;
     } catch (error) {
       LogUtil.error(TAG, `收藏歌曲操作失败，歌曲id：${song.id}，错误：${error}`);
       // 不抛出异常，只记录日志
+      return false;
     }
   }
 

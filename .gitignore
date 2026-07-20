@@ -10,3 +10,11 @@
 /.clang-tidy
 **/.test
 /.appanalyzer
+/omsp-3-0
+# 本地临时产物（截图 / 工具目录 / Windows 保留名）
+/.spec-workflow
+/.v3shots
+/*.jpeg
+/*.jpg
+/*.png
+/nul

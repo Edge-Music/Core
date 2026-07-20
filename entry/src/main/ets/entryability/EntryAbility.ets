@@ -166,7 +166,7 @@ export default class EntryAbility extends UIAbility {
       }
     }else {
       if (want?.parameters?.["ohos.aafwk.param.callerBundleName"]==='com.ohos.sceneboard') {
-        EventHelper.postFormJumpPage('Playing')
+        EventHelper.postFormJumpPage('ImmersivePlayer')
 
       }
     }

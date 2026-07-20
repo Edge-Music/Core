@@ -649,6 +649,39 @@ class AVPlayerManager {
     return this.parseBooleanPref(raw);
   }
 
+  // DRC 预设参数表（与音效面板 DRC_PRESETS 保持一致）
+  private static readonly DRC_PARAMS: Record<string, number[]> = {
+    'Default': [-12, 2.0, 10, 100, 0],
+    'Speech': [-24, 4.0, 5, 80, 6],
+    'Vocal': [-20, 3.0, 20, 300, 3],
+    'Night': [-35, 10.0, 5, 500, 12],
+    'Mastering': [-10, 1.5, 30, 400, 1],
+    'Punch': [-18, 4.0, 30, 50, 4],
+    'Broadcast': [-20, 6.0, 15, 200, 6],
+    'Limiter': [-0.5, 20.0, 0.1, 50, 0]
+  };
+
+  // 换歌后重放 DRC / 声道平衡（这两者绑定在解码器/播放器实例上，管线重建会复位）
+  private reapplyPostPrepareEffects(): void {
+    try {
+      const volLeft = parseFloat(PreferencesCache.getUserPreference('vol_left', '1.0'));
+      const volRight = parseFloat(PreferencesCache.getUserPreference('vol_right', '1.0'));
+      if (!isNaN(volLeft) && !isNaN(volRight) && (volLeft !== 1.0 || volRight !== 1.0)) {
+        this.setChannelVolumes(volLeft, volRight);
+      }
+
+      const drcEnabled = this.parseBooleanPref(PreferencesCache.getUserPreference('drc_enabled', '0'));
+      if (drcEnabled) {
+        this.setDrcEnabled(true);
+        const presetId = PreferencesCache.getUserPreference('drc_preset', 'Default');
+        const p = AVPlayerManager.DRC_PARAMS[presetId] ?? AVPlayerManager.DRC_PARAMS['Default'];
+        this.setDrcParams(p[0], p[1], p[2], p[3], p[4]);
+      }
+    } catch (e) {
+      LogUtil.warn(TAG, `reapplyPostPrepareEffects failed: ${e}`);
+    }
+  }
+
   private async cleanupCurrentPipeline() {
     // Stop playback first.
     if (this.avPlayer) {
@@ -730,6 +763,9 @@ class AVPlayerManager {
 
     this.triggerDurationChange(info.durationMs);
     this.triggerStateChange('prepared');
+
+    // 换歌后重放 DRC / 声道平衡（EQ 已在解码器创建时应用；此两者随管线重建会丢失，需补回）
+    this.reapplyPostPrepareEffects();
 
     // Metadata + lyrics init (kept consistent with AVPlayer flow)
     LyricsManager.init();

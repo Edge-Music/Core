@@ -47,6 +47,15 @@ interface SliderParams {
 export struct LyricsView {
   /** 是否显示设置按钮（mode_judge 为 true 时显示翻译按钮和设置按钮） */
   @Prop mode_judge: boolean = false
+  /** 高亮行发光颜色（默认白色微光；OMSP 3.0 沉浸页传入封面光感色实现暖金发光） */
+  @Prop glowColor: string = 'rgba(255, 255, 255, 0.6)'
+  /** 高亮行发光半径 */
+  @Prop glowRadius: number = 12
+  /** 普通行/高亮行文字色（浅色主题传入深色，实现深底白/浅底深） */
+  @Prop normalColor: string = 'rgba(255, 255, 255, 0.85)'
+  @Prop highlightColor: string = '#FFFFFF'
+  /** 用户交互（手动滚动 / 点击歌词行）回调，供外部显示播控/进度条等 */
+  onInteract?: () => void
 
   // ==================== AppStorage 数据源 ====================
   @StorageProp('current_parsed_lyrics') private parsedLyrics: AppLyricsLine[] = []
@@ -127,17 +136,17 @@ export struct LyricsView {
       normalStyle: {
         fontSize: this.lyricFontSize,
         fontWeight: FontWeight.Bolder,
-        fontColor: 'rgba(255, 255, 255, 0.85)',
+        fontColor: this.normalColor,
         opacity: 0.9,
         scale: this.lyricNormalScale
       },
       highlightStyle: {
         fontSize: this.lyricFontSize,
         fontWeight: FontWeight.Bolder,
-        fontColor: Color.White,
+        fontColor: this.highlightColor,
         textShadow: {
-          radius: 12,
-          color: 'rgba(255, 255, 255, 0.6)',
+          radius: this.glowRadius,
+          color: this.glowColor,
           offsetX: 0,
           offsetY: 0
         },
@@ -151,6 +160,7 @@ export struct LyricsView {
 
   // ==================== 事件处理 ====================
   private handleLineClick(time: number, index: number) {
+    this.onInteract?.()
     // 跳转播放
     avPlayerManager.seek(time)
     // 更新 PiP 歌词
@@ -164,6 +174,7 @@ export struct LyricsView {
   }
 
   private handleManualScrollStart() {
+    this.onInteract?.()
     this.isManualScroll = true
     this.refreshTranslateBtnTimer()
   }

@@ -284,14 +284,9 @@ export class PreferencesCache {
    * @returns 过期时间
    */
   static requestCacheExpire(value?: number): number {
-    if (value !== undefined) {
-      PreferencesCache.setUserPreference('request_cache_expire', value.toString());
-    }
-
-    const storedValue = PreferencesCache.getUserPreference('request_cache_expire');
-    return storedValue !== undefined && storedValue !== null && storedValue !== ''
-      ? parseInt(storedValue)
-      : 7;
+    // OMSP 3.0：接口响应缓存默认关闭。无论历史 request_cache_expire 设置如何，
+    // 一律写死为 0 天（缓存写入即过期 / 直接跳过写入 → 每次都走网络），彻底不缓存。
+    return 0;
   }
 
   /**

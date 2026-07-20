@@ -31,7 +31,7 @@ export enum CollectAction {
 }
 
 export enum RouterType {
-  PLAYER = 'Playing',
+  PLAYER = 'ImmersivePlayer',
   LYRICS = '2',
   PLAYLISTS = 'Library',
   COLLECTED = '4'

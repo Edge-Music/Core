@@ -1,32 +1,22 @@
 import { BreakpointSystem } from '../component/BreakpointSystem'
-import { MenuButton } from '../component/MenuButton'
 import { StyleConstants } from '../constants/StyleConstants'
-import { HomePageMenu } from '../model/HomePageMenu'
-import { ComingSoon } from '../view/ComingSoon'
-import { HomePageMenuData } from '../viewmodel/HomePageMenuData'
-import { MenuIcon } from '../component/MenuIcon'
-import { Setting } from '../view/Setting'
 import { PreferencesCache } from '../util/PreferenceCache'
 import { Artist, Playlist, Song, SourceConfig } from '../type/Adapter'
 import { SourceAdapter } from '../adapter'
-import { Segment } from '../component/Segment'
-import { PlayList } from '../view/Playlist'
-import { MiniPlaybackControl } from '../component/MiniPlaybackControl'
-import { MultiSearch } from '../view/MultiSearch'
-import { Download } from '../view/Download'
-import { ScrollController } from '../util/ScrollController'
-import { HeaderAnimation } from '../component/HeaderAnimation'
 import { BusinessError, deviceInfo } from '@kit.BasicServicesKit'
 import { PipManager } from '../util/PipManager'
 import { avPlayerManager } from '../util/AVPlayerManager'
-import { IS_2IN1_UI } from '../For_2in1_UI/FOR2IN1'
-import { Aggregation } from '../view/Aggregation'
 import { LogUtil, ToastUtil, WantUtil } from '@pura/harmony-utils'
 import { common } from '@kit.AbilityKit'
-import { HeaderComponent } from '../component/HeaderComponent'
-import { HeaderPlaceholder } from '../component/HeaderPlaceholder'
-import { Statistics } from '../view/Statistics'
-import { FooterPlaceholder } from '../component/FooterPlaceholder'
+import { ImmersivePlayer } from '../v3/pages/ImmersivePlayer'
+import { ImmersiveLyrics } from '../v3/pages/ImmersiveLyrics'
+import { ImmersiveSettings } from '../v3/pages/ImmersiveSettings'
+import { ImmersiveSearch } from '../v3/pages/ImmersiveSearch'
+import { ImmersiveSourceManager } from '../v3/pages/ImmersiveSourceManager'
+import { ImmersivePlaylist } from '../v3/pages/ImmersivePlaylist'
+import { ImmersiveStatistics } from '../v3/pages/ImmersiveStatistics'
+import { ImmersiveDownload } from '../v3/pages/ImmersiveDownload'
+import { ImmersiveAggregation } from '../v3/pages/ImmersiveAggregation'
 // import { motion } from '@kit.MultimodalAwarenessKit'
 import { sensor } from '@kit.SensorServiceKit'
 import { notificationManager } from '@kit.NotificationKit'
@@ -142,30 +132,64 @@ struct PrivacyPolicyDialog {
 @Component
 struct Index {
   @Provide('NavPathStack') pageStack: NavPathStack = new NavPathStack()
+  private breakpointSystem: BreakpointSystem = new BreakpointSystem()
+
+  // 3.0 根级关键初始化（原在旧 Index_page.onWillAppear + @StorageLink 播种，换首屏后迁到此处）
+  private rootInit(): void {
+    // 关键：把缓存播种进 AppStorage（原由旧 Index_page 的 @StorageLink 初始化器完成）——
+    // 否则「我的」数据源列表/头像、推荐/榜单/聚合歌单为空（歌曲仍能取因 source 走缓存 API）
+    AppStorage.setOrCreate('user_data_source', PreferencesCache.getUserDataSource())
+    AppStorage.setOrCreate('show_user_data_source', PreferencesCache.getShowUserDataSource())
+    AppStorage.setOrCreate('index_recommend_songs', PreferencesCache.getSongCache('index_recommend_songs'))
+    AppStorage.setOrCreate('index_recommend_toplist', PreferencesCache.getPlaylistCache('index_recommend_toplist'))
+    AppStorage.setOrCreate('aggregation_playlist', PreferencesCache.getPlaylistCache('aggregation_playlist'))
+    // 供服务卡片/深链跳转读取的导航栈
+    AppStorage.setOrCreate('pageStack', this.pageStack)
+    // 断点系统：写 current_width_breakpoint / currentOrientation，v3 全部页面依赖
+    this.breakpointSystem.register(this.getUIContext())
+    // 音频会话
+    avPlayerManager.setAudioSession()
+    // 设备类型 / 宽屏标志
+    const deviceType: string = deviceInfo.deviceType
+    const productSeries: string = deviceInfo.productSeries
+    AppStorage.setOrCreate<boolean>('isWideScreen', deviceType !== 'phone' && productSeries !== 'VDE')
+    AppStorage.setOrCreate('devicetype', deviceType)
+    PreferencesCache.setUserPreference('devicetype', deviceType)
+    PreferencesCache.setUserPreference('is_Pura_X', productSeries === 'VDE' ? '1' : '0')
+    // 桌面歌词（画中画）：用户开启则初始化，退后台自动启动
+    if (PreferencesCache.getUserPreference('Lyic_desktop', '0') === '1') {
+      PipManager.getInstance().init(this.getUIContext().getHostContext() as common.Context)
+      PipManager.getInstance().setAutoStart(true)
+    }
+  }
 
   @Builder
   PageMap(name: string) {
-    if (name === 'ComingSoon') {
-      ComingSoon()
-    } else if (name === 'Setting') {
-      Setting()
-    } else if (name === 'Playlist') {
-      PlayList()
-    } else if (name === 'MultiSearch') {
-      MultiSearch()
-    } else if (name === 'Index_page') {
-      Index_page()
-    } else if (name === 'Download') {
-      Download()
-    } else if (name === 'Aggregation') {
-      Aggregation()
-    } else if (name === 'Statistics') {
-      Statistics()
+    if (name === 'ImmersivePlayer') {
+      ImmersivePlayer()
+    } else if (name === 'ImmersiveLyrics') {
+      ImmersiveLyrics()
+    } else if (name === 'ImmersiveSettings') {
+      ImmersiveSettings()
+    } else if (name === 'ImmersiveSearch') {
+      ImmersiveSearch()
+    } else if (name === 'ImmersiveSourceManager') {
+      ImmersiveSourceManager()
+    } else if (name === 'ImmersivePlaylist') {
+      ImmersivePlaylist()
+    } else if (name === 'ImmersiveStatistics') {
+      ImmersiveStatistics()
+    } else if (name === 'ImmersiveDownload') {
+      ImmersiveDownload()
+    } else if (name === 'ImmersiveAggregation') {
+      ImmersiveAggregation()
     }
   }
 
   aboutToAppear(): void {
-    this.pageStack.replacePath({ name: 'Index_page' })
+    // 3.0：首屏即沉浸播放页（设计规范 §0/§3）
+    this.rootInit()
+    this.pageStack.replacePath({ name: 'ImmersivePlayer' })
     let pressure_change_judge = PreferencesCache.getUserPreference('pressure_change', '0')
     if (pressure_change_judge === '1') {
       try {
@@ -282,7 +306,7 @@ struct Index {
       // 通过stopPropagation阻止事件冒泡
       let names = this.pageStack.getAllPathName();
       let pageName = names[names.length-1];
-      if (['Index_page', 'Playing'].includes(pageName)) {
+      if (['ImmersivePlayer'].includes(pageName)) {
         if (event) {
           if (event.stopPropagation) {
             event.stopPropagation();
@@ -324,572 +348,3 @@ struct Index {
   }
 }
 
-@Component
-struct Index_page {
-  @StorageProp('decorHeight') decorHeight: number = 0
-  @State blankHeight: number = 0
-  @State limit: number = 10
-  @State page_judge: string = 'index'
-  @State title: string = '首页'
-  @State scrollOffsetY: number = 0
-  @State startScrollOffsetY: number = 0
-  @State scrollOffsetEndY: number = 0
-  @Consume('NavPathStack') pageStack: NavPathStack
-  @StorageProp('currentBreakpoint') currentBreakpoint: string = 'sm'
-  @StorageLink("user_data_source") adapters: SourceConfig[] = PreferencesCache.getUserDataSource()
-  // 使用StorageLink保持数据同步
-  @StorageLink("index_recommend_playlist") recommendPlaylist: Playlist[] =
-    PreferencesCache.getPlaylistCache('index_recommend_playlist')
-  @StorageLink("index_recommend_songs") recommendSongs: Song[] = PreferencesCache.getSongCache('index_recommend_songs')
-  @StorageLink("index_recommend_artists") recommendArtists: Artist[] =
-    PreferencesCache.getArtistCache('index_recommend_artists')
-  @StorageLink("index_recommend_toplist") topList: Playlist[] =
-    PreferencesCache.getPlaylistCache('index_recommend_toplist')
-  @StorageLink('user_playlist') playlists: Playlist[] = []
-  @State loading: boolean = false
-  // 避让导航栏高度
-  @StorageProp('bottomRect') bottomRect: number = 0
-  @StorageProp('topRect') topRect: number = 0
-  @StorageProp('winHeight') winHeight: number = 0
-  @StorageProp('windowStatus') windowStatus: string = 'FULL_SCREEN'
-  //2in1 UI控制
-  @StorageProp('zhishi_UI') zhishi_UI: string = PreferencesCache.getUserPreference('zhishi_UI', '0')
-  private policyVersion: string = 'privacy_policy_2025'
-  private breakpointSystem = new BreakpointSystem()
-  private menuItems = HomePageMenuData
-  private scroller: Scroller = new Scroller()
-  @State scrollController: ScrollController = new ScrollController({
-    onIndexChange: (index) => {
-      this.onMenuIconClick(index)
-    },
-    componentTag: TAG
-  }).linkController(this.scroller)
-  // 诗人握持定时器及类型判断
-  @StorageProp('hand') hand: number = 0
-  @StorageProp('hand_timer') hand_timer: number = 0
-  // 隐私协议弹窗控制器
-  private privacyDialogController: CustomDialogController | null = new CustomDialogController({
-    builder: PrivacyPolicyDialog({
-      onAgree: () => {
-        this.onPrivacyAgree();
-      },
-      onDisagree: () => {
-        this.onPrivacyDisagree();
-      }
-    }),
-    autoCancel: false,
-    alignment: DialogAlignment.Center,
-    customStyle: true,
-    onWillDismiss: (dismissDialogAction: DismissDialogAction) => {
-      // 阻止用户通过返回键或点击外部关闭弹窗
-      if (dismissDialogAction.reason === DismissReason.PRESS_BACK ||
-        dismissDialogAction.reason === DismissReason.TOUCH_OUTSIDE) {
-        dismissDialogAction.dismiss();
-      }
-    }
-  })
-
-  // async aboutToAppear() {
-  //   avPlayerManager.setAudioSession()
-  //
-  //   this.zhishi_UI = PreferencesCache.getUserPreference('zhishi_UI', '0')
-  //   if (this.zhishi_UI === '1') {
-  //     this.limit = 20
-  //   }
-  //
-  //   // avPlayerManager.avPlayer?.setVolume(Number(PreferencesCache.getUserPreference('Volume','100'))/100)
-  //   if (PreferencesCache.getUserPreference('Lyic_desktop', '0') === '1') {
-  //     PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
-  //     PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
-  //   }
-  //   // 检查用户是否已同意隐私协议
-  //   if (PreferencesCache.getUserPreference(this.policyVersion, '0') === '0') {
-  //     // 延迟显示弹窗，确保UI已完全加载
-  //     setTimeout(() => {
-  //       if (this.privacyDialogController) {
-  //         this.privacyDialogController.open();
-  //       }
-  //     }, 500);
-  //   }
-  //
-  //   // 注册断点系统
-  //   this.breakpointSystem.register(this.getUIContext())
-  //   HorizontalMode(this.getUIContext().getHostContext() as Context, this.HorizontalMode_ctrl === '1')
-  //   AppStorage.setOrCreate("pageStack", this.pageStack)
-  //   let productSeries: string = deviceInfo.productSeries
-  //   let deviceType: string = deviceInfo.deviceType
-  //   if (deviceType != 'phone' && productSeries != 'VDE') {
-  //     AppStorage.setOrCreate<boolean>('isWideScreen', true)
-  //   } else {
-  //     AppStorage.setOrCreate<boolean>('isWideScreen', false)
-  //
-  //   }
-  //   AppStorage.setOrCreate("devicetype", deviceType)
-  //   PreferencesCache.setUserPreference('devicetype', deviceType)
-  //   if (productSeries == 'VDE') {
-  //     PreferencesCache.setUserPreference('is_Pura_X', '1')
-  //   } else {
-  //     PreferencesCache.setUserPreference('is_Pura_X', '0')
-  //   }
-  // }
-
-  // 处理用户同意隐私协议
-  private onPrivacyAgree() {
-    LogUtil.info(TAG, '用户同意隐私协议');
-    PreferencesCache.setUserPreference(this.policyVersion, '1');
-  }
-
-  // 处理用户不同意隐私协议
-  private onPrivacyDisagree() {
-    LogUtil.info(TAG, '用户不同意隐私协议，退出应用');
-    ToastUtil.showShort($r('app.string.privacy_policy_required_message'));
-    // 退出应用
-    setTimeout(() => {
-      let context = this.getUIContext().getHostContext() as common.UIAbilityContext;
-      context.terminateSelf().catch(() => {
-        console.error('关闭应用失败')
-      });
-    }, 500);
-  }
-
-  async initData() {
-    this.loading = true
-    SourceAdapter.getAllRecommend().then(() => {
-      LogUtil.info(`[${TAG}]`, `首页刷新数据成功`)
-    }).finally(() => {
-      this.loading = false
-    })
-
-  }
-
-  @Builder
-  Title() {
-
-    Column() {
-      // PC工具栏适配
-      Row()
-        .height(this.topRect > this.decorHeight ? this.topRect : this.decorHeight)
-        .backgroundColor('transparent')
-        .width('100%')
-
-      Row() {
-        Text($r("app.string.homepage"))
-          .fontColor($r('app.color.text_title'))
-          .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-          .fontSize($r('app.float.title_font_size'))
-        Row({ space: 4 }) {
-          MenuIcon({
-            icon: $r('app.media.ic_search'),
-            active: this.scrollController.currentIndex === 1
-          })
-            .onClick(() => {
-              this.onMenuIconClick(1)
-            })
-            .clickEffect({ level: ClickEffectLevel.LIGHT })
-
-          MenuIcon({
-            icon: $r('app.media.ic_gearshape'),
-            active: this.scrollController.currentIndex === 0
-          })
-            .onClick(() => {
-              this.onMenuIconClick(0)
-            })
-            .clickEffect({ level: ClickEffectLevel.LIGHT })
-        }
-        .height(StyleConstants.FULL_HEIGHT)
-        .alignItems(VerticalAlign.Center)
-      }
-      .width(StyleConstants.FULL_WIDTH)
-      .height(StyleConstants.TITLE_HEIGHT)
-      .justifyContent(FlexAlign.SpaceBetween)
-      .alignItems(VerticalAlign.Center)
-      .padding({
-        left: 16,
-        right: 16
-      })
-    }
-
-  }
-
-  onMenuIconClick(index: number) {
-    if (index === 0) {
-      this.pageStack.pushPath({ name: 'Setting' })
-    } else if (index === 1) {
-      this.pageStack.pushPath({ name: 'MultiSearch' })
-    } else if (index === 2) {
-      this.initData()
-    }
-  }
-
-  // 使用Builder模式优化各个部分的渲染
-  @Builder
-  MenuGrid() {
-    // 使用Grid布局实现响应式：窄屏2×2，宽屏1×4
-    Grid() {
-      ForEach(this.menuItems, (item: HomePageMenu) => {
-        GridItem() {
-          MenuButton({
-            title: item.title,
-            onNavigate: () => {
-              this.pageStack.pushPath({ name: item.path })
-            }
-          })
-        }
-        .padding(4)
-      })
-    }
-    .columnsTemplate(this.currentBreakpoint === 'sm' ? COLUMNS_TEMPLATE_SM : COLUMNS_TEMPLATE_LG)
-    .padding(12)
-    .width(StyleConstants.FULL_WIDTH)
-    .rowsGap(8)
-    .columnsGap(8)
-  }
-
-  @Builder
-  RecommendedSongs() {
-    Segment({
-      lists: this.recommendSongs,
-      type: 'Song',
-      title: $r('app.string.hot_songs'),
-      loading: this.loading,
-    })
-  }
-
-  @Builder
-  RecommendedPlaylists() {
-    Segment({
-      lists: this.recommendPlaylist,
-      type: 'Playlist',
-      title: $r('app.string.recommended_playlists'),
-      loading: this.loading,
-    })
-  }
-
-  @Builder
-  RecommendedArtists() {
-    Segment({
-      lists: this.recommendArtists,
-      type: 'Artist',
-      title: $r('app.string.recommended_artists'),
-      loading: this.loading,
-      radius: "100%",
-    })
-  }
-
-  @Builder
-  TopLists() {
-    Segment({
-      lists: this.topList,
-      type: 'TopPlaylist',
-      title: $r('app.string.chart'),
-      loading: this.loading
-    })
-  }
-
-  @Builder
-  ForYouSection() {
-    Segment({
-      lists: this.playlists.filter(playlist =>
-      playlist.id && playlist.id.toString().startsWith('key_')
-      ),
-      type: 'Capsule',
-      title: $r('app.string.for_you'),
-      loading: this.loading
-    })
-  }
-
-  @Builder
-  EmptyDataSource() {
-    Column() {
-      Row() {
-        Text($r('app.string.add_data_source'))
-          .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-          .fontColor($r('app.color.text_click'))
-          .fontSize(16)
-          .margin({ right: 2 })
-          .onClick(() => {
-            this.pageStack.pushPath({ name: 'Setting' })
-          })
-        Text("开启云上漫游！")
-          .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-          .fontColor($r('app.color.text_hint'))
-          .fontSize(15)
-      }
-      .width(StyleConstants.FULL_WIDTH)
-      .height(StyleConstants.FULL_HEIGHT)
-      .alignItems(VerticalAlign.Center)
-      .justifyContent(FlexAlign.Center)
-    }
-    .width(StyleConstants.FULL_WIDTH)
-    .height(StyleConstants.FULL_HEIGHT)
-    .alignItems(HorizontalAlign.Center)
-    .justifyContent(FlexAlign.SpaceBetween)
-  }
-
-  build() {
-    NavDestination() {
-      if (this.zhishi_UI === '1') {
-        IS_2IN1_UI({
-          page_judge: this.page_judge,
-          title: this.title
-        })
-      } else {
-        Stack({ alignContent: Alignment.Bottom }) {
-          Stack({ alignContent: this.hand === 1 ? Alignment.Start : Alignment.End }) {
-            Column() {
-              List({ scroller: this.scroller }) {
-                HeaderPlaceholder()
-
-                ListItem() {
-                  HeaderAnimation({ scrollController: this.scrollController, isShowLoadingProgress: true })
-                }
-
-                if (this.adapters.length > 0) {
-                  ListItem() {
-                    this.MenuGrid()
-                  }
-
-                  // 专属于你模块
-                  ListItem() {
-                    this.ForYouSection()
-                  }
-                  .visibility(this.loading || this.playlists.filter(playlist =>
-                  playlist.id && playlist.id.toString().startsWith('key_')
-                  ).length > 0 ? Visibility.Visible : Visibility.None)
-
-                  ListItem() {
-                    this.RecommendedSongs()
-                  }
-                  .visibility(this.loading || this.recommendPlaylist.length > 0 ? Visibility.Visible : Visibility.None)
-
-                  ListItem() {
-                    this.RecommendedPlaylists()
-                  }
-                  .visibility(this.loading || this.recommendSongs.length > 0 ? Visibility.Visible : Visibility.None)
-
-                  ListItem() {
-                    this.RecommendedArtists()
-                  }
-                  .visibility(this.loading || this.recommendArtists.length > 0 ? Visibility.Visible : Visibility.None)
-
-                  ListItem() {
-                    this.TopLists()
-                  }
-                  .visibility(this.loading || this.topList.length > 0 ? Visibility.Visible : Visibility.None)
-
-                  ListItem() {
-                    Row() {
-                      Column() {
-                        Text($r('app.string.no_recommendations'))
-                          .fontWeight(StyleConstants.FONT_WEIGHT_SEVEN)
-                          .fontColor($r('app.color.text_hint'))
-                          .fontSize(16)
-                      }
-                      .width(StyleConstants.FULL_WIDTH)
-                      .height(StyleConstants.FULL_HEIGHT)
-                      .justifyContent(FlexAlign.Center)
-                    }
-                    .height(this.getBlankHeight())
-                  }
-                  .visibility(this.hasRecommendation() ? Visibility.Visible : Visibility.None)
-
-                } else {
-                  ListItem() {
-                    this.EmptyDataSource()
-                  }
-                }
-
-                FooterPlaceholder()
-              }
-              .width(StyleConstants.FULL_WIDTH)
-              .height(StyleConstants.FULL_HEIGHT)
-              .layoutWeight(1)
-              .backToTop(true)
-              .scrollBar(BarState.Off)
-              .edgeEffect(EdgeEffect.Spring)
-              .onWillScroll(this.scrollController.scrollHandlers.onWillScroll)
-              .onScrollStop(this.scrollController.scrollHandlers.onScrollStop)
-              .onDidScroll(() => {
-                this.scrollOffsetY = this.scroller.currentOffset().yOffset
-              })
-              .onTouch((event) => {
-                switch (event.type) {
-                  case TouchType.Down:
-                    this.startScrollOffsetY = this.scroller.currentOffset().yOffset
-                }
-              })
-            }
-            .width(StyleConstants.FULL_WIDTH)
-            .height(StyleConstants.FULL_HEIGHT)
-            .zIndex(0)
-
-            // if (this.hand===1||this.hand===2){
-            //   Column(){
-            //     HandingCtrl({on_Click:()=>{
-            //       //点击操作触发重置消失定时器
-            //       clearInterval(this.hand_timer)
-            //       console.log('jizhishidebug_clear')
-            //       this.hand_timer = setInterval(()=>{
-            //         this.getUIContext().animateTo({
-            //           duration: 200,
-            //           curve: Curve.Friction,
-            //           // delay: 500,
-            //           // iterations: -1, // 设置-1表示动画无限循环
-            //           playMode: PlayMode.Alternate,
-            //           expectedFrameRateRange: {
-            //             min: 10,
-            //             max: 120,
-            //             expected: 60,
-            //           }
-            //         }, () => {
-            //           // this.hand = 0
-            //         })
-            //       },5000)
-            //     }})
-            //
-            //   }.margin(36)
-            // }
-
-          }
-
-          MiniPlaybackControl({
-            scrollOffsetY: this.scrollOffsetY,
-            startScrollOffsetY: this.startScrollOffsetY
-          })
-
-          HeaderComponent({
-            scrollOffsetY: this.scrollOffsetY,
-            startScrollOffsetY: this.startScrollOffsetY,
-            hasHeaderBuilder: false,
-            titleBuilder: () => {
-              this.Title()
-            }
-          })
-        }
-        .height(StyleConstants.FULL_HEIGHT)
-        .width(StyleConstants.FULL_WIDTH)
-      }
-    }
-    .height(StyleConstants.FULL_HEIGHT)
-    .width(StyleConstants.FULL_WIDTH)
-    // .systemTransition(NavigationSystemTransitionType.SLIDE_RIGHT)
-    .hideToolBar(true)
-    .hideTitleBar(true)
-    .hideBackButton(true)
-    .backgroundColor($r('app.color.page_background'))
-    .onWillAppear(() => {
-      avPlayerManager.setAudioSession()
-
-      this.zhishi_UI = PreferencesCache.getUserPreference('zhishi_UI', '0')
-      if (this.zhishi_UI === '1') {
-        this.limit = 20
-      }
-
-      // avPlayerManager.avPlayer?.setVolume(Number(PreferencesCache.getUserPreference('Volume','100'))/100)
-      if (PreferencesCache.getUserPreference('Lyic_desktop', '0') === '1') {
-        PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
-        PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
-      }
-      // 检查用户是否已同意隐私协议
-      if (PreferencesCache.getUserPreference(this.policyVersion, '0') === '0') {
-        // 延迟显示弹窗，确保UI已完全加载
-        setTimeout(() => {
-          if (this.privacyDialogController) {
-            this.privacyDialogController.open();
-          }
-        }, 500);
-      }
-
-      // 注册断点系统
-      this.breakpointSystem.register(this.getUIContext())
-      AppStorage.setOrCreate("pageStack", this.pageStack)
-      let productSeries: string = deviceInfo.productSeries
-      let deviceType: string = deviceInfo.deviceType
-      if (deviceType != 'phone' && productSeries != 'VDE') {
-        AppStorage.setOrCreate<boolean>('isWideScreen', true)
-      } else {
-        AppStorage.setOrCreate<boolean>('isWideScreen', false)
-
-      }
-      AppStorage.setOrCreate("devicetype", deviceType)
-      PreferencesCache.setUserPreference('devicetype', deviceType)
-      if (productSeries == 'VDE') {
-        PreferencesCache.setUserPreference('is_Pura_X', '1')
-      } else {
-        PreferencesCache.setUserPreference('is_Pura_X', '0')
-      }
-    })
-    .onWillShow(() => {
-      console.info(TAG, 'onPageShow')
-      PipManager.getInstance().init(this.getUIContext().getHostContext() as Context); // 创建画中画控制器
-      //气压变化提醒功能。需要设备支持，进入首页后自动开启
-
-
-      try {
-        if (canIUse("SystemCapability.MultimodalAwareness.Motion")) {
-          import('../util/HoldHand').then((nv) => {
-            nv.startHoldingHand(this.getUIContext())
-          })
-          // motion.on('holdingHandChanged', callback);
-        } else {
-          // Fallback for unsupported SystemCapability
-        }
-        console.info("jizhishi 11 on succeeded");
-      } catch (err) {
-        let error = err as BusinessError;
-        console.error("Failed on and err code is " + error.code);
-      }
-      // PipManager.getInstance().setAutoStart(true); // 设置应用退后台时自动启动画中画
-      // PipManager.getInstance().startPip();
-    })
-    .onWillHide(() => {
-      console.info(TAG, 'onPageHide')
-
-      clearInterval(this.hand_timer)
-      try {
-        if (canIUse("SystemCapability.MultimodalAwareness.Motion")) {
-          // motion.off('holdingHandChanged');
-          import('../util/HoldHand').then((nv) => {
-            // nv.stopHoldingHand()
-          })
-        } else {
-
-        }
-        console.info("off succeeded");
-      } catch (err) {
-        let error = err as BusinessError;
-        console.error("Failed off and err code is " + error.code);
-      }
-      // PipManager.getInstance().setAutoStart(false);
-    })
-    .onWillDisappear(() => {
-      this.breakpointSystem.unregister()
-      PipManager.getInstance().unregisterPipStateChangeListener(); // 解注册画中画生命周期及状态回调
-      // 清理弹窗控制器
-      if (this.privacyDialogController) {
-        this.privacyDialogController = null;
-      }
-    })
-    .onBackPressed(() => {
-      if (this.page_judge !== 'index') {
-        this.page_judge = 'index'
-        this.title = '首页'
-        return true
-      }
-      return false
-    })
-  }
-
-  hasRecommendation(): boolean {
-    return !this.loading
-      && this.recommendPlaylist.length === 0
-      && this.recommendSongs.length === 0
-      && this.recommendArtists.length === 0
-      && this.topList.length === 0
-  }
-
-  getBlankHeight(): number {
-    let sub = this.winHeight - this.blankHeight - 50 - (this.bottomRect + this.topRect)
-    return sub > 0 ? sub : 0
-  }
-}
