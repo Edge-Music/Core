@@ -2,8 +2,8 @@
   "app": {
     "bundleName": "zone.yby.seamusic",
     "vendor": "SeaMusic",
-    "versionCode": 30000000,
-    "versionName": "3.0.0",
+    "versionCode": 30000100,
+    "versionName": "3.0.1",
     "icon": "$media:icon",
     "label": "$string:app_name"
   }
