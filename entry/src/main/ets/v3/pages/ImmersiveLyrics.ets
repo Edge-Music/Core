@@ -181,13 +181,14 @@ export struct ImmersiveLyrics {
   // 复用工程封装的链式歌词组件（物理滚动 + 点击跳转 + 光感高亮发光）
   // 发光色跟随封面光感 accent（this.glow），实现暖金发光
   @Builder
-  Lyrics() {
+  Lyrics(so: string) {
     LyricsView({
       mode_judge: false,
       glowColor: this.glow,
       glowRadius: 22,
       normalColor: V3Theme.isLight(this.mode) ? 'rgba(10,10,13,0.62)' : V3Theme.tx1(this.mode),
       highlightColor: V3Theme.isLight(this.mode) ? '#6B4A1C' : '#FFFFFF',
+      screenOrientation: so,
       onInteract: () => {
         this.showControls()
       }
@@ -313,7 +314,7 @@ export struct ImmersiveLyrics {
       .margin({ top: 14 })
 
       Stack() {
-        this.Lyrics()
+        this.Lyrics('portrait')
 
         // 进度条：静置数秒后收起（高度归零，歌词直接延伸到最底部，无避让更沉浸）
         // 可见时底部避让系统手势条；隐藏时归零，歌词铺满到屏幕底缘
@@ -435,7 +436,7 @@ export struct ImmersiveLyrics {
 
         // 右：歌词居中
         Column() {
-          this.Lyrics()
+          this.Lyrics('landscape')
         }
         .layoutWeight(1)
         .height('100%')

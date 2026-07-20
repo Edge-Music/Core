@@ -54,6 +54,8 @@ export struct LyricsView {
   /** 普通行/高亮行文字色（浅色主题传入深色，实现深底白/浅底深） */
   @Prop normalColor: string = 'rgba(255, 255, 255, 0.85)'
   @Prop highlightColor: string = '#FFFFFF'
+  /** 屏幕方向 */
+  @Prop screenOrientation: string = 'landscape'
   /** 用户交互（手动滚动 / 点击歌词行）回调，供外部显示播控/进度条等 */
   onInteract?: () => void
 
@@ -121,7 +123,7 @@ export struct LyricsView {
         highlightLineSpacing: this.springParams.highlightLineSpacing,
         dragDelay: this.springParams.dragDelay
       },
-      highlightPositionRatio: 0.25,
+      highlightPositionRatio: this.screenOrientation == 'portrait' ? 0.25 : 0.45,
       dragOffset: 15,
       chainAnimationRange: 20,
       dragHoldDuration: 80,
