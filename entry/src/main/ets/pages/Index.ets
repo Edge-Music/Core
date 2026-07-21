@@ -17,6 +17,8 @@ import { ImmersivePlaylist } from '../v3/pages/ImmersivePlaylist'
 import { ImmersiveStatistics } from '../v3/pages/ImmersiveStatistics'
 import { ImmersiveDownload } from '../v3/pages/ImmersiveDownload'
 import { ImmersiveAggregation } from '../v3/pages/ImmersiveAggregation'
+import LyricsManager from '../util/LyricsManager'
+import { EventHelper } from '../util/EventHelper'
 // import { motion } from '@kit.MultimodalAwarenessKit'
 import { sensor } from '@kit.SensorServiceKit'
 import { notificationManager } from '@kit.NotificationKit'
@@ -143,6 +145,16 @@ struct Index {
     AppStorage.setOrCreate('index_recommend_songs', PreferencesCache.getSongCache('index_recommend_songs'))
     AppStorage.setOrCreate('index_recommend_toplist', PreferencesCache.getPlaylistCache('index_recommend_toplist'))
     AppStorage.setOrCreate('aggregation_playlist', PreferencesCache.getPlaylistCache('aggregation_playlist'))
+    // 再次打开保留歌曲信息
+    const lastSong: Song | null = PreferencesCache.lastSong()
+    if (lastSong) {
+      AppStorage.setOrCreate('current_playing_song', lastSong)
+      AppStorage.setOrCreate('current_playing_playlist', PreferencesCache.playlist())
+      // 主动解析一次歌词：AVPlayerManager 仅在真正播放（player initialized）时才调 init，
+      // 被动展示需在此触发，否则歌词为空。lastSong 已带 meta.lyric，可离线解析。
+      LyricsManager.init()
+      EventHelper.postPlaySong([lastSong, true])
+    }
     // 供服务卡片/深链跳转读取的导航栈
     AppStorage.setOrCreate('pageStack', this.pageStack)
     // 断点系统：写 current_width_breakpoint / currentOrientation，v3 全部页面依赖
