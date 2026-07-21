@@ -625,26 +625,7 @@ export struct ImmersivePlayer {
   @Builder
   WideSidebar() {
     Stack() {
-      Column({ space: 18 }) {
-        // 搜索入口
-        Row({ space: 10 }) {
-          SymbolGlyph($r('sys.symbol.magnifyingglass'))
-            .fontSize(18)
-            .fontColor([V3Theme.tx3(this.mode)])
-          Text('搜索歌曲、歌单、歌手')
-            .fontSize(14)
-            .fontColor(V3Theme.tx3(this.mode))
-            .layoutWeight(1)
-        }
-        .width('100%')
-        .height(44)
-        .padding({ left: 14, right: 14 })
-        .borderRadius(22)
-        .backgroundColor(V3Theme.glass2(this.mode))
-        .border({ width: 1, color: V3Theme.glassBorder(this.mode) })
-        .onClick(() => {
-          this.pageStack.pushPath({ name: 'ImmersiveSearch' }, { animated: true })
-        })
+      Column({ space: 10 }) {
 
         Text('推荐模式')
           .fontSize(12)
@@ -681,7 +662,7 @@ export struct ImmersivePlayer {
 
         // 内容滚动区：榜单 或 我的歌单
         Scroll() {
-          Column({ space: 10 }) {
+          Column({ space: 5 }) {
             if (this.sideTab === 'chart') {
               if (this.chartDisplay().length > 0) {
                 ForEach(this.chartDisplay(), (pl: Playlist) => {
@@ -747,7 +728,7 @@ export struct ImmersivePlayer {
       }
       .width('100%')
       .height('100%')
-      .padding({ left: 22, right: 22, top: this.topRect + 68, bottom: this.bottomRect + 24 })
+      .padding({ left: 22, right: 22, top: this.topRect + 68, bottom: this.bottomRect })
       .backgroundColor(V3Theme.panel(this.mode))
       .backgroundBlurStyle(BlurStyle.BACKGROUND_THICK, { colorMode: V3Theme.blurMode(this.mode) })
       .border({ width: { right: 1 }, color: V3Theme.hairline(this.mode) })
@@ -941,7 +922,22 @@ export struct ImmersivePlayer {
 
   @Builder
   SettingButton() {
-    Row() {
+    Row({ space: 16 }) {
+      Stack() {
+        SymbolGlyph($r('sys.symbol.magnifyingglass'))
+          .fontSize(20)
+          .fontColor([V3Theme.tx2(this.mode)])
+      }
+      .width(44)
+      .height(44)
+      .borderRadius(22)
+      .backgroundColor('rgba(255,255,255,0.10)')
+      .backgroundBlurStyle(BlurStyle.BACKGROUND_THIN, { colorMode: ThemeColorMode.LIGHT })
+      .border({ width: 1, color: 'rgba(255,255,255,0.20)' })
+      .onClick(() => {
+        this.pageStack.pushPath({ name: 'ImmersiveSearch' }, { animated: true })
+      })
+
       Stack() {
         SymbolGlyph($r('sys.symbol.gearshape'))
           .fontSize(20)
