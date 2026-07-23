@@ -8,6 +8,9 @@ import { ContextHelper } from './ContextHelper';
 import { getFileExtension } from './String';
 import { PreferencesCache } from './PreferenceCache';
 import { SourceAdapter } from '../adapter';
+import { AudioTag } from '../v3/util/flacTag/AudioTag';
+import { buildFlacWithTagAutoCover } from '../v3/util/flacTag/FlacTag';
+
 
 // 下载配置接口
 interface DownloadConfig {
@@ -861,6 +864,194 @@ class SongDownloadManagerClass {
   }
 
   /**
+   * 判断二进制内容是否为原生 FLAC。
+   * 不依赖扩展名，避免下载链接没有正确后缀时漏处理。
+   */
+  private isFlacData(data: Uint8Array): boolean {
+    return data.length >= 4 &&
+      data[0] === 0x66 && // f
+      data[1] === 0x4C && // L
+      data[2] === 0x61 && // a
+      data[3] === 0x43; // C
+  }
+
+  /**
+   * 将 URL 下载到本地文件。
+   */
+  private async downloadUrlToFile(url: string, targetPath: string): Promise<void> {
+    try {
+      await fs.unlink(targetPath);
+    } catch (e) {
+      // 忽略不存在的临时文件
+    }
+
+    return new Promise<void>((resolve, reject) => {
+      DownloadManager.downloadFile({
+        url: url,
+        fileName: targetPath,
+        background: true,
+        autoRetry: false,
+        onProgress: () => {
+          // 封面下载进度不需要单独显示
+        },
+        onComplete: () => {
+          resolve();
+        },
+        onError: (err: Error) => {
+          reject(err);
+        }
+      }).catch((err: Error) => {
+        reject(err);
+      });
+    });
+  }
+
+  /**
+   * 读取二进制文件。
+   */
+  private async readFileBytes(path: string): Promise<Uint8Array> {
+    const stats = await fs.stat(path);
+    const file = await fs.open(path, fs.OpenMode.READ_ONLY);
+
+    try {
+      const buffer: ArrayBuffer = new ArrayBuffer(stats.size);
+      let offset: number = 0;
+
+      while (offset < stats.size) {
+        const readLength: number = await fs.read(file.fd, buffer, {
+          offset: offset,
+          length: stats.size - offset
+        });
+        if (readLength <= 0) {
+          break;
+        }
+        offset += readLength;
+      }
+
+      if (offset !== stats.size) {
+        throw new Error(`File read incomplete: ${offset}/${stats.size}`);
+      }
+
+      return new Uint8Array(buffer);
+    } finally {
+      await fs.close(file.fd);
+    }
+  }
+
+  /**
+   * 写入二进制文件。
+   */
+  private async writeFileBytes(path: string, data: Uint8Array): Promise<void> {
+    const file = await fs.open(path,
+      fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE | fs.OpenMode.TRUNC);
+
+    try {
+      const buffer: ArrayBuffer = new ArrayBuffer(data.length);
+      const view: Uint8Array = new Uint8Array(buffer);
+      view.set(data);
+
+      let offset: number = 0;
+      while (offset < data.length) {
+        const writeLength: number = await fs.write(file.fd, buffer, {
+          offset: offset,
+          length: data.length - offset
+        });
+        if (writeLength <= 0) {
+          break;
+        }
+        offset += writeLength;
+      }
+
+      if (offset !== data.length) {
+        throw new Error(`File write incomplete: ${offset}/${data.length}`);
+      }
+    } finally {
+      await fs.close(file.fd);
+    }
+  }
+
+  /**
+   * 将标题、歌手、专辑、歌词和封面写入 FLAC 文件。
+   * 非 FLAC 文件直接跳过；标签写入失败不影响歌曲下载。
+   */
+  private async embedFlacMetadataIfNeeded(
+    audioFilePath: string,
+    song: Song,
+    artistNames: string,
+    albumName: string,
+    lyricContent: string,
+    coverUrl: string
+  ): Promise<void> {
+    const audioData: Uint8Array = await this.readFileBytes(audioFilePath);
+    if (!this.isFlacData(audioData)) {
+      return;
+    }
+
+    const tag: AudioTag = new AudioTag();
+    tag.title = song.name || '';
+    tag.artist = artistNames || '';
+    tag.album = albumName || '';
+    tag.lyrics = lyricContent || '';
+
+    let hasNewCover: boolean = false;
+    if (coverUrl.length > 0) {
+      const coverTempPath: string = `${audioFilePath}.cover`;
+      try {
+        await this.downloadUrlToFile(coverUrl, coverTempPath);
+        const coverData: Uint8Array = await this.readFileBytes(coverTempPath);
+        if (coverData.length > 0) {
+          tag.cover = coverData;
+          hasNewCover = true;
+        }
+      } catch (coverErr) {
+        // 封面下载失败时仍写入其他标签，并保留原 FLAC 封面。
+        LogUtil.warn('SongDownloadManager',
+          'Failed to download cover: ' + (coverErr as Error).message);
+      } finally {
+        try {
+          await fs.unlink(coverTempPath);
+        } catch (e) {
+          // 忽略
+        }
+      }
+    }
+
+    // preserveOriginalFields=true：空字段保留原标签；有封面时优先使用新封面。
+    let taggedData: Uint8Array | null =
+      await buildFlacWithTagAutoCover(audioData, tag, true);
+
+    // 如果 WebP/HEIC 转码失败，则退回为不替换封面，只写入文字标签。
+    if (taggedData === null && hasNewCover) {
+      const fallbackTag: AudioTag = new AudioTag();
+      fallbackTag.title = tag.title;
+      fallbackTag.artist = tag.artist;
+      fallbackTag.album = tag.album;
+      fallbackTag.lyrics = tag.lyrics;
+      taggedData = await buildFlacWithTagAutoCover(audioData, fallbackTag, true);
+      LogUtil.warn('SongDownloadManager', 'Cover conversion failed, metadata written without replacing cover');
+    }
+
+    if (taggedData === null) {
+      throw new Error('Failed to build FLAC metadata');
+    }
+
+    const taggedTempPath: string = `${audioFilePath}.tagged`;
+    try {
+      await this.writeFileBytes(taggedTempPath, taggedData);
+      await fs.unlink(audioFilePath);
+      await fs.moveFile(taggedTempPath, audioFilePath);
+    } finally {
+      try {
+        await fs.unlink(taggedTempPath);
+      } catch (e) {
+        // 忽略
+      }
+    }
+
+    LogUtil.info('SongDownloadManager', `FLAC metadata embedded: ${song.name}`);
+  }
+
+  /**
    * 下载并保存歌曲（内部实现）
    * @param songId 歌曲ID
    * @param song 歌曲数据
@@ -903,6 +1094,12 @@ class SongDownloadManagerClass {
     if (!url) {
       throw new Error('No download link found');
     }
+
+    // 从下载详情中提取封面和专辑信息。
+    // coverUrl 对应：downloadSong?.album?.cover
+    const coverUrl: string = downloadSong?.album?.cover || '';
+    const albumName: string = downloadSong?.album?.name || '';
+    const lyricContent: string = song.meta?.lyric?.normal || '';
 
     const ext = getFileExtension(url);
     // 使用 & 连接歌手名，避免 / 被解析为目录分隔符
@@ -955,6 +1152,22 @@ class SongDownloadManagerClass {
 
             LogUtil.info('SongDownloadManager', `Temp file verified: ${tempFilePath}, size: ${tempStats.size} bytes`);
 
+            // 只有实际内容为 FLAC 时才写入内置标签。
+            // 封面、歌词、标题、歌手写入失败不影响歌曲下载和移动。
+            try {
+              await this.embedFlacMetadataIfNeeded(
+                tempFilePath,
+                song,
+                artistNames,
+                albumName,
+                lyricContent,
+                coverUrl
+              );
+            } catch (metadataErr) {
+              LogUtil.warn('SongDownloadManager',
+                'Failed to embed FLAC metadata: ' + (metadataErr as Error).message);
+            }
+
             // 移动文件到目标目录
             await fs.moveFile(tempFilePath, filePath);
 
@@ -972,9 +1185,8 @@ class SongDownloadManagerClass {
 
             LogUtil.info('SongDownloadManager', `File moved and verified: ${filePath}, size: ${finalStats.size} bytes`);
 
-            // 保存歌词文件
-            const lyricContent = song.meta?.lyric?.normal;
-            if (lyricContent) {
+            // 保存歌词文件（同时保留外部 .lrc，提升本地播放器兼容性）
+            if (lyricContent.length > 0) {
               try {
                 const lyricFilePath = filePath.replace(/\.[^/.]+$/, '.lrc');
                 LogUtil.info('SongDownloadManager', 'Creating lyric file:', lyricFilePath);
