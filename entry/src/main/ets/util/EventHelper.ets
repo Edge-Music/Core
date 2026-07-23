@@ -14,6 +14,8 @@ import { image } from '@kit.ImageKit';
 import { playRecordManager } from './PlayRecordManager';
 import { AppStorageV2 } from '@kit.ArkUI';
 import { common } from '@kit.AbilityKit';
+import { AudioTagService } from '../v3/util/flacTag/AudioTagService';
+import { systemDateTime } from '@kit.BasicServicesKit';
 
 const TAG = 'EventHelper'
 
@@ -238,6 +240,7 @@ const playSong = async (song: Song, path: string, cached: boolean, pause: boolea
 
 // 让主线程代码好看一点，所以写在这里
 const defaultPlaySongCallback = async (data: [Song, boolean]) => {
+
   const song = data[0];
   const pause = data[1]; // 是否暂停
   try {
@@ -248,13 +251,47 @@ const defaultPlaySongCallback = async (data: [Song, boolean]) => {
       // 找到了本地文件（缓存或下载）
       LogUtil.info("EventHelper ", "defaultPlaySongCallback ",
         `Using ${optimalFile.fileType} file: ${optimalFile.filePath}`);
+      let LocalCover = AudioTagService.readTag(optimalFile.filePath)?.cover
+      let cacheDir = AppStorage.get<string>('cacheDir_jzs')
+      let cacheDirjpg = cacheDir + '/cover_preview'
+      // let cacheDirjpg = cacheDir + '/cover_preview.jpg'
+      let isExist = fs.accessSync(cacheDirjpg, fs.AccessModeType.EXIST);
+      if (!isExist) {
+        try {
+          fs.rmdirSync(cacheDirjpg)
+          fs.mkdirSync(cacheDirjpg)
+        }catch (e) {
+
+        }
+      }
+      let systime:number =systemDateTime.getTime()
+      const tempPath = cacheDirjpg + systime +'cover_preview.jpg';
+      if (LocalCover?.buffer){
+        try{
+          const file = fs.openSync(tempPath, fs.OpenMode.READ_WRITE | fs.OpenMode.CREATE | fs.OpenMode.TRUNC);
+          fs.writeSync(file.fd, LocalCover.buffer);
+          fs.closeSync(file);
+          optimalFile.song.album.cover = 'file://' + tempPath;
+          console.log('EventHelper defaultPlaySongCallback 读取本地图片',tempPath)
+        }catch (e){
+          console.log('EventHelper defaultPlaySongCallback  读取本地图片error',JSON.stringify(e))
+        }
+      }
       AppStorage.setOrCreate("current_playing_song", optimalFile.song);
+      // setTimeout(() => {
+      //   AppStorage.setOrCreate("current_playing_song", optimalFile.song);
+      //   console.info('delay 10ms');
+      // }, 10);
+
       PreferencesCache.lastSong(optimalFile.song);
       await playSong(optimalFile.song, optimalFile.filePath, optimalFile.fileType !== 'none', pause);
       // 尝试访问一遍最新数据，但不缓存歌曲文件
       SourceAdapter.getSongDetail(optimalFile.song).then((latestSong) => {
-        AppStorage.setOrCreate("current_playing_song", latestSong);
-        PreferencesCache.lastSong(latestSong);
+        if(latestSong != null){
+          AppStorage.setOrCreate("current_playing_song", latestSong);
+          PreferencesCache.lastSong(latestSong);
+        }
+
       }).catch((error: Error) => {
         LogUtil.error("EventHelper ", "defaultPlaySongCallback ",
           `Failed to fetch latest song details: ${error.message}`);
@@ -284,6 +321,7 @@ const defaultPlaySongCallback = async (data: [Song, boolean]) => {
     LogUtil.error("EventHelper ", "defaultPlaySongCallback", error.message);
   }
 };
+
 
 export class EventHelper {
   public static subscribePlaySong(callback?: (data: [Song, boolean]) => void) {

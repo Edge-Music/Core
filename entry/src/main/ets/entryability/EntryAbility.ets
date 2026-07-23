@@ -56,7 +56,7 @@ export default class EntryAbility extends UIAbility {
     EventHelper.subscribePlaySong()
     EventHelper.subscribeInitData()
     EventHelper.subscribeFavoriteToggle()
-
+    AppStorage.setOrCreate('cacheDir_jzs',this.context.cacheDir)
     SongCacheManager.initialize() // 初始化歌曲缓存管理器
     SongDownloadManager.init(this.context) // 初始化歌曲下载管理器
     CrashUtil.onHandled((errMsg: ExceptionInfo) => {
