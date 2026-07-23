@@ -349,7 +349,12 @@ export class EventHelper {
         callback(targetPage);
       } else {
         let pageStack = AppStorage.get("pageStack") as NavPathStack
-        pageStack.pushPath({ name: targetPage }, { launchMode: LaunchMode.MOVE_TO_TOP_SINGLETON })
+        if (targetPage == 'ImmersivePlayer'){
+          // pageStack.replacePath({ name: targetPage }, { launchMode: LaunchMode.MOVE_TO_TOP_SINGLETON })
+          pageStack.popToName(targetPage, true)
+        }else{
+          pageStack.pushPath({ name: targetPage }, { launchMode: LaunchMode.MOVE_TO_TOP_SINGLETON })
+        }
       }
     });
   }
