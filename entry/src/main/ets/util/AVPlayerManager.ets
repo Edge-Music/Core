@@ -70,7 +70,7 @@ class AVPlayerManager {
   private rendererListenersBound: boolean = false;
   audioManager = audio?.getAudioManager()
   audioSessionManager: audio.AudioSessionManager = this.audioManager?.getSessionManager()
-  private avSession: avSession.AVSession | null = null;
+  avSession: avSession.AVSession | null = null;
   private currentPlaybackState: avSession.PlaybackState = avSession.PlaybackState.PLAYBACK_STATE_PAUSE;
   private context: common.UIAbilityContext | undefined;
   private cachedAvMetadata: avSession.AVMetadata | null = null; // 缓存的元数据
@@ -338,7 +338,11 @@ class AVPlayerManager {
       // ignore
     }
   }
-
+  // getDesktopLyricVisibility():{
+  //   let r = this.avSession?.isDesktopLyricVisible()
+  //   return r
+  //
+  // }
   private setupMediaSessionListeners() {
     if (!this.avSession) {
       return;
@@ -346,6 +350,13 @@ class AVPlayerManager {
 
     this.avSession.on('play', () => {
       this.play();
+      if (deviceInfo.sdkApiVersion >= 23) {
+        this.avSession?.enableDesktopLyric(true)
+        // this.avSession?.onDesktopLyricVisibilityChanged((visible: boolean) => {
+        //   console.info(`desktop lyric visible state: ${visible}`);
+        //
+        // });
+      }
     });
 
     this.avSession.on('pause', () => {

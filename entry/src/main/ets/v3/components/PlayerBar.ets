@@ -14,6 +14,7 @@ import { audio } from '@kit.AudioKit'
 import { ToastUtil } from '@pura/harmony-utils'
 import { V3Color, V3Radius, V3Space, V3Theme } from '../theme/Tokens'
 import { ProgressTrack } from './ProgressTrack'
+import { deviceInfo } from '@kit.BasicServicesKit'
 
 @Component
 export struct PlayerBar {
@@ -175,6 +176,24 @@ export struct PlayerBar {
   }
 
   @Builder
+  desktopLyrics(){
+    Stack(){
+      SymbolGlyph($r('sys.symbol.lyrics_square')).fontSize(20).fontColor([V3Theme.tx3(this.mode)])
+    }
+    .width(28)
+    .height(28)
+    .onClick(() => {
+      if (deviceInfo.sdkApiVersion >= 23) {
+        avPlayerManager.avSession?.isDesktopLyricVisible().then((visible: boolean) => {
+          console.info(`isDesktopLyricVisible: ${visible}`);
+          avPlayerManager.avSession?.setDesktopLyricVisible(!visible);
+        })
+      }
+
+    })
+  }
+
+  @Builder
   PlayButton() {
     Stack() {
       SymbolGlyph(this.isPlaying ? $r('sys.symbol.pause_fill') : $r('sys.symbol.play_fill'))
@@ -218,6 +237,9 @@ export struct PlayerBar {
 
       // 控制区（手机与宽屏一致：模式/上一首/播放/下一首/列表/更多）
       Row({ space: this.variant === 'wide' ? 28 : 18 }) {
+        if (deviceInfo.sdkApiVersion >= 23){
+          this.desktopLyrics()
+        }
         this.ModeButton()
         SymbolGlyph($r('sys.symbol.backward_end_fill'))
           .fontSize(24)
