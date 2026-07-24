@@ -11,7 +11,7 @@ import { PreferencesCache } from './PreferenceCache';
 import { SourceAdapter } from '../adapter';
 import { AudioTag } from '../v3/util/flacTag/AudioTag';
 import { buildFlacWithTagAutoCover } from '../v3/util/flacTag/FlacTag';
-import { buildId3v2,parseId3v2 } from '../v3/util/flacTag/Id3v2';
+import { buildId3v2, parseId3v2 } from '../v3/util/flacTag/Id3v2';
 
 
 // 下载配置接口
@@ -878,21 +878,65 @@ class SongDownloadManagerClass {
   }
 
   /**
-   * 判断二进制内容是否为 MP3。
-   * 支持带 ID3v2 头的 MP3 和直接以 MPEG 帧同步开始的 MP3。
+   * 获取 ID3v2 标签总大小。没有 ID3v2 标签时返回 0。
    */
-  private isMp3Data(data: Uint8Array): boolean {
-    if (data.length >= 3 &&
-      data[0] === 0x49 && // I
-      data[1] === 0x44 && // D
-      data[2] === 0x33) { // 3
-      return true;
+  private getId3v2TotalSize(data: Uint8Array): number {
+    if (data.length < 10 ||
+      data[0] !== 0x49 || // I
+      data[1] !== 0x44 || // D
+      data[2] !== 0x33) { // 3
+      return 0;
     }
 
-    // MPEG frame sync：11111111 111xxxxx
-    return data.length >= 2 &&
-      data[0] === 0xFF &&
-      (data[1] & 0xE0) === 0xE0;
+    const tagSize: number = ((data[6] & 0x7F) << 21) |
+      ((data[7] & 0x7F) << 14) |
+      ((data[8] & 0x7F) << 7) |
+      (data[9] & 0x7F);
+    return 10 + tagSize;
+  }
+
+  /**
+   * 校验指定位置是否为真正的 MPEG Layer III（MP3）帧头。
+   * 不检查码率、采样率和声道，因为这些不影响 ID3 标签写入。
+   */
+  private isMp3FrameHeader(data: Uint8Array, offset: number): boolean {
+    if (offset < 0 || offset + 4 > data.length) {
+      return false;
+    }
+
+    // 11 位帧同步：11111111 111xxxxx
+    if (data[offset] !== 0xFF || (data[offset + 1] & 0xE0) !== 0xE0) {
+      return false;
+    }
+
+    const versionBits: number = (data[offset + 1] >> 3) & 0x03;
+    const layerBits: number = (data[offset + 1] >> 1) & 0x03;
+    const bitrateIndex: number = (data[offset + 2] >> 4) & 0x0F;
+    const sampleRateIndex: number = (data[offset + 2] >> 2) & 0x03;
+
+    // versionBits=01 为保留值；layerBits=01 才表示 Layer III，也就是通常所说的 MP3。
+    if (versionBits === 0x01 || layerBits !== 0x01) {
+      return false;
+    }
+
+    // bitrateIndex=15、sampleRateIndex=3 均为非法值。
+    if (bitrateIndex === 0x0F || sampleRateIndex === 0x03) {
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * 判断二进制内容是否为 MP3。
+   * 会跳过 ID3v2 标签后继续校验 MPEG Layer III 帧头，避免把 AAC/MP2 误判为 MP3。
+   */
+  private isMp3Data(data: Uint8Array): boolean {
+    const audioOffset: number = this.getId3v2TotalSize(data);
+    if (audioOffset > data.length) {
+      return false;
+    }
+    return this.isMp3FrameHeader(data, audioOffset);
   }
 
   /**
