@@ -1,6 +1,7 @@
 import { fileUri, picker } from '@kit.CoreFileKit';
 import { fileIo as fs } from '@kit.CoreFileKit';
 import { common } from '@kit.AbilityKit';
+import { image } from '@kit.ImageKit';
 import { ID, Song } from '../type/Adapter';
 import { LogUtil, PreferencesUtil, ToastUtil } from '@pura/harmony-utils';
 import { DownloadManager } from './DownloadUtils';
@@ -10,6 +11,7 @@ import { PreferencesCache } from './PreferenceCache';
 import { SourceAdapter } from '../adapter';
 import { AudioTag } from '../v3/util/flacTag/AudioTag';
 import { buildFlacWithTagAutoCover } from '../v3/util/flacTag/FlacTag';
+import { buildId3v2,parseId3v2 } from '../v3/util/flacTag/Id3v2';
 
 
 // 下载配置接口
@@ -876,6 +878,168 @@ class SongDownloadManagerClass {
   }
 
   /**
+   * 判断二进制内容是否为 MP3。
+   * 支持带 ID3v2 头的 MP3 和直接以 MPEG 帧同步开始的 MP3。
+   */
+  private isMp3Data(data: Uint8Array): boolean {
+    if (data.length >= 3 &&
+      data[0] === 0x49 && // I
+      data[1] === 0x44 && // D
+      data[2] === 0x33) { // 3
+      return true;
+    }
+
+    // MPEG frame sync：11111111 111xxxxx
+    return data.length >= 2 &&
+      data[0] === 0xFF &&
+      (data[1] & 0xE0) === 0xE0;
+  }
+
+  /**
+   * 识别封面格式。
+   */
+  private detectCoverMime(data: Uint8Array): string {
+    // JPEG SOI
+    if (data.length >= 3 && data[0] === 0xFF && data[1] === 0xD8 && data[2] === 0xFF) {
+      return 'image/jpeg';
+    }
+
+    // PNG
+    if (data.length >= 8 &&
+      data[0] === 0x89 && data[1] === 0x50 && data[2] === 0x4E && data[3] === 0x47 &&
+      data[4] === 0x0D && data[5] === 0x0A && data[6] === 0x1A && data[7] === 0x0A) {
+      return 'image/png';
+    }
+
+    // WebP：RIFF....WEBP
+    if (data.length >= 12 &&
+      data[0] === 0x52 && data[1] === 0x49 && data[2] === 0x46 && data[3] === 0x46 &&
+      data[8] === 0x57 && data[9] === 0x45 && data[10] === 0x42 && data[11] === 0x50) {
+      return 'image/webp';
+    }
+
+    // HEIC/HEIF：....ftyp + heic/heix/hevc/hevx/mif1/msf1
+    if (data.length >= 12 &&
+      data[4] === 0x66 && data[5] === 0x74 && data[6] === 0x79 && data[7] === 0x70) {
+      const brand: number = (data[8] << 24) | (data[9] << 16) | (data[10] << 8) | data[11];
+      if (brand === 0x68656963 || brand === 0x68656966 || brand === 0x68656978 ||
+        brand === 0x68657663 || brand === 0x68657678 || brand === 0x6D696631 ||
+        brand === 0x6D736631) {
+        return 'image/heic';
+      }
+    }
+
+    return '';
+  }
+
+  private uint8ArrayToArrayBuffer(data: Uint8Array): ArrayBuffer {
+    const buffer: ArrayBuffer = new ArrayBuffer(data.length);
+    const view: Uint8Array = new Uint8Array(buffer);
+    view.set(data);
+    return buffer;
+  }
+
+  /**
+   * 将 WebP/HEIC 封面转换为 PNG，避免 APIC 中写入播放器不识别的格式。
+   */
+  private async convertCoverToPng(coverData: Uint8Array): Promise<Uint8Array | null> {
+    let imageSource: image.ImageSource | null = null;
+    let pixelMap: image.PixelMap | null = null;
+    let imagePacker: image.ImagePacker | null = null;
+
+    try {
+      imageSource = image.createImageSource(this.uint8ArrayToArrayBuffer(coverData));
+      if (imageSource === null) {
+        return null;
+      }
+
+      const decodingOptions: image.DecodingOptions = {
+        editable: false,
+        desiredPixelFormat: image.PixelMapFormat.RGBA_8888
+      };
+      pixelMap = await imageSource.createPixelMap(decodingOptions);
+
+      imagePacker = image.createImagePacker();
+      if (imagePacker === null) {
+        return null;
+      }
+
+      const pngData: ArrayBuffer = await imagePacker.packToData(pixelMap, {
+        format: 'image/png',
+        quality: 100
+      });
+      return new Uint8Array(pngData);
+    } catch (err) {
+      return null;
+    } finally {
+      if (pixelMap !== null) {
+        try {
+          await pixelMap.release();
+        } catch (err) {
+        }
+      }
+      if (imageSource !== null) {
+        try {
+          await imageSource.release();
+        } catch (err) {
+        }
+      }
+      if (imagePacker !== null) {
+        try {
+          await imagePacker.release();
+        } catch (err) {
+        }
+      }
+    }
+  }
+
+  private async normalizeCoverForMp3(coverData: Uint8Array): Promise<Uint8Array | null> {
+    const mime: string = this.detectCoverMime(coverData);
+    if (mime === 'image/jpeg' || mime === 'image/png') {
+      return coverData;
+    }
+    if (mime === 'image/webp' || mime === 'image/heic') {
+      return await this.convertCoverToPng(coverData);
+    }
+    return null;
+  }
+
+  /**
+   * 合并新旧标签。新字段为空时保留原字段。
+   */
+  private mergeAudioTag(originalTag: AudioTag, newTag: AudioTag): AudioTag {
+    const merged: AudioTag = new AudioTag();
+    merged.title = newTag.title.length > 0 ? newTag.title : originalTag.title;
+    merged.artist = newTag.artist.length > 0 ? newTag.artist : originalTag.artist;
+    merged.album = newTag.album.length > 0 ? newTag.album : originalTag.album;
+    merged.lyrics = newTag.lyrics.length > 0 ? newTag.lyrics : originalTag.lyrics;
+    merged.cover = newTag.cover !== null && newTag.cover.length > 0 ? newTag.cover : originalTag.cover;
+    return merged;
+  }
+
+  /**
+   * 替换 MP3 文件头部的 ID3v2 标签，保留后面的音频数据。
+   */
+  private buildMp3WithTag(original: Uint8Array, newTag: AudioTag): Uint8Array | null {
+    const parseResult: [AudioTag, number] = parseId3v2(original);
+    const oldTag: AudioTag = parseResult[0];
+    const oldTagSize: number = parseResult[1];
+
+    if (oldTagSize < 0 || oldTagSize > original.length) {
+      return null;
+    }
+
+    const finalTag: AudioTag = this.mergeAudioTag(oldTag, newTag);
+    const id3Data: Uint8Array = buildId3v2(finalTag);
+    const audioData: Uint8Array = original.slice(oldTagSize);
+
+    const result: Uint8Array = new Uint8Array(id3Data.length + audioData.length);
+    result.set(id3Data, 0);
+    result.set(audioData, id3Data.length);
+    return result;
+  }
+
+  /**
    * 将 URL 下载到本地文件。
    */
   private async downloadUrlToFile(url: string, targetPath: string): Promise<void> {
@@ -1052,6 +1216,88 @@ class SongDownloadManagerClass {
   }
 
   /**
+   * 将标题、歌手、专辑、歌词和封面写入 MP3 的 ID3v2.3 标签。
+   * 非 MP3 文件直接跳过；标签写入失败不影响歌曲下载。
+   */
+  private async embedMp3MetadataIfNeeded(
+    audioFilePath: string,
+    song: Song,
+    artistNames: string,
+    albumName: string,
+    lyricContent: string,
+    coverUrl: string
+  ): Promise<void> {
+    const audioData: Uint8Array = await this.readFileBytes(audioFilePath);
+    if (!this.isMp3Data(audioData)) {
+      return;
+    }
+
+    const tag: AudioTag = new AudioTag();
+    tag.title = song.name || '';
+    tag.artist = artistNames || '';
+    tag.album = albumName || '';
+    tag.lyrics = lyricContent || '';
+
+    let hasNewCover: boolean = false;
+    if (coverUrl.length > 0) {
+      const coverTempPath: string = `${audioFilePath}.cover`;
+      try {
+        await this.downloadUrlToFile(coverUrl, coverTempPath);
+        const coverData: Uint8Array = await this.readFileBytes(coverTempPath);
+        const normalizedCover: Uint8Array | null = await this.normalizeCoverForMp3(coverData);
+        if (normalizedCover !== null && normalizedCover.length > 0) {
+          tag.cover = normalizedCover;
+          hasNewCover = true;
+        } else {
+          LogUtil.warn('SongDownloadManager', 'Unsupported or failed cover image, keep original MP3 cover');
+        }
+      } catch (coverErr) {
+        // 封面下载失败时仍写入其他标签，并保留原 MP3 封面。
+        LogUtil.warn('SongDownloadManager',
+          'Failed to download cover: ' + (coverErr as Error).message);
+      } finally {
+        try {
+          await fs.unlink(coverTempPath);
+        } catch (e) {
+          // 忽略
+        }
+      }
+    }
+
+    let taggedData: Uint8Array | null = this.buildMp3WithTag(audioData, tag);
+
+    // 如果新封面导致标签构建失败，则退回为只写文字标签并保留原封面。
+    if (taggedData === null && hasNewCover) {
+      const fallbackTag: AudioTag = new AudioTag();
+      fallbackTag.title = tag.title;
+      fallbackTag.artist = tag.artist;
+      fallbackTag.album = tag.album;
+      fallbackTag.lyrics = tag.lyrics;
+      taggedData = this.buildMp3WithTag(audioData, fallbackTag);
+      LogUtil.warn('SongDownloadManager', 'MP3 cover write failed, metadata written without replacing cover');
+    }
+
+    if (taggedData === null) {
+      throw new Error('Failed to build MP3 ID3 metadata');
+    }
+
+    const taggedTempPath: string = `${audioFilePath}.tagged`;
+    try {
+      await this.writeFileBytes(taggedTempPath, taggedData);
+      await fs.unlink(audioFilePath);
+      await fs.moveFile(taggedTempPath, audioFilePath);
+    } finally {
+      try {
+        await fs.unlink(taggedTempPath);
+      } catch (e) {
+        // 忽略
+      }
+    }
+
+    LogUtil.info('SongDownloadManager', `MP3 ID3 metadata embedded: ${song.name}`);
+  }
+
+  /**
    * 下载并保存歌曲（内部实现）
    * @param songId 歌曲ID
    * @param song 歌曲数据
@@ -1152,7 +1398,7 @@ class SongDownloadManagerClass {
 
             LogUtil.info('SongDownloadManager', `Temp file verified: ${tempFilePath}, size: ${tempStats.size} bytes`);
 
-            // 只有实际内容为 FLAC 时才写入内置标签。
+            // 根据实际文件内容写入内置标签：FLAC 使用 Vorbis Comment，MP3 使用 ID3v2.3。
             // 封面、歌词、标题、歌手写入失败不影响歌曲下载和移动。
             try {
               await this.embedFlacMetadataIfNeeded(
@@ -1163,9 +1409,17 @@ class SongDownloadManagerClass {
                 lyricContent,
                 coverUrl
               );
+              await this.embedMp3MetadataIfNeeded(
+                tempFilePath,
+                song,
+                artistNames,
+                albumName,
+                lyricContent,
+                coverUrl
+              );
             } catch (metadataErr) {
               LogUtil.warn('SongDownloadManager',
-                'Failed to embed FLAC metadata: ' + (metadataErr as Error).message);
+                'Failed to embed audio metadata: ' + (metadataErr as Error).message);
             }
 
             // 移动文件到目标目录
