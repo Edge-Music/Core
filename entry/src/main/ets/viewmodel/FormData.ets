@@ -17,5 +17,6 @@ export class FormControlData {
   isCollected: boolean = false;
   imageColorHex:string = '';
   imgName: string = '';
+  blurImg: string = '';
   formImages: Record<string, number> = {};
 }

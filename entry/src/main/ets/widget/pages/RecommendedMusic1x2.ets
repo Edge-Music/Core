@@ -8,6 +8,7 @@ struct RecommendedMusic1x2 {
   @LocalStorageProp('isLoaded') isLoaded: boolean = false;
   @LocalStorageProp('imageColor') imageColor: string = 'rgba(122,162,202,1)';
   @LocalStorageProp('imageColorHex') imageColorHex: string = '7aa2ca';
+  @LocalStorageProp('blurImg') blurImg: string = '';
 
   build() {
     FormLink({
@@ -35,9 +36,12 @@ struct RecommendedMusic1x2 {
       .linearGradient({
         direction: GradientDirection.Bottom,
         repeating: false,
-        colors: [[`#ff${this.imageColorHex}`, 0.0], [`#cc${this.imageColorHex}`, 0.5],
-          [`#99${this.imageColorHex}`, 0.7]]
+        // 半透明 scrim：压暗模糊封面让白字可读，同时透出封面色相（blurImg 铺底时生效）
+        colors: [[`#cc${this.imageColorHex}`, 0.0], [`#99${this.imageColorHex}`, 0.5],
+          [`#d9${this.imageColorHex}`, 0.7]]
       })
+      .backgroundImage(this.isLoaded && this.blurImg ? `memory://${this.blurImg}` : undefined)
+      .backgroundImageSize(ImageSize.Cover)
       .padding(8)
     }
   }

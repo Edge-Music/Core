@@ -17,6 +17,7 @@ struct PlayControlCard1x2 {
   @LocalStorageProp('imageColor') imageColor: string = 'rgba(122,162,202,1)';
   @LocalStorageProp('imageColorHex') imageColorHex: string = '7aa2ca';
   @LocalStorageProp('loaded') loaded: boolean = false;
+  @LocalStorageProp('blurImg') blurImg: string = '';
 
   requestData() {
     ActionUtils.updateControlCardAction(this, this.formId);
@@ -60,7 +61,10 @@ struct PlayControlCard1x2 {
     .linearGradient({
       direction: GradientDirection.Bottom,
       repeating: false,
-      colors: [[`#ff${this.imageColorHex}`, 0.0], [`#cc${this.imageColorHex}`, 0.5], [`#ff${this.imageColorHex}`, 1.0]]
+      // 半透明 scrim：压暗模糊封面让白字可读，同时透出封面色相（blurImg 铺底时生效）
+      colors: [[`#cc${this.imageColorHex}`, 0.0], [`#99${this.imageColorHex}`, 0.5], [`#d9${this.imageColorHex}`, 1.0]]
     })
+    .backgroundImage(this.loaded && this.blurImg ? `memory://${this.blurImg}` : undefined)
+    .backgroundImageSize(ImageSize.Cover)
   }
 }

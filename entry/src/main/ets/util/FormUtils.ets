@@ -117,12 +117,20 @@ class FormUtils {
         try {
           let imgFile = fileIo.openSync(tmpFile, fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.CREATE);
           imgMap[fileName] = imgFile.fd;
+          let blurFile: fileIo.File | null = null;
           try {
             await fileIo.write(imgFile.fd, data.result as ArrayBuffer);
             let imageDealData = await ImageUtils.getImageDealDataByArr(data.result as ArrayBuffer);
             formData.imageColor = imageDealData.imageColor;
             formData.imageColorHex = imageDealData.imageColorHex;
             LogUtil.info(TAG, `updateMusicControlCards imageColorHex: ${imageDealData.imageColorHex.length}`)
+            // 模糊封面落盘成 fd，随 formImages 一起推给卡片（2×4 用作铺底背景）
+            const blurResult = await ImageUtils.writeBlurToTemp(FormUtils.context!, imageDealData.blurPixelMapForCard, 'card');
+            if (blurResult) {
+              blurFile = blurResult.file;
+              imgMap[blurResult.fileName] = blurFile.fd;
+              formData.blurImg = blurResult.fileName;
+            }
             try {
               formData.formImages = imgMap
               formData.imgName = fileName
@@ -138,6 +146,9 @@ class FormUtils {
           } finally {
             // 在fileIo.closeSync执行之前，确保formProvider.updateForm已执行完毕。
             fileIo.closeSync(imgFile);
+            if (blurFile) {
+              fileIo.closeSync(blurFile);
+            }
           }
           ;
         } catch (e) {
@@ -173,12 +184,20 @@ class FormUtils {
         try {
           let imgFile = fileIo.openSync(tmpFile, fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.CREATE);
           imgMap[fileName] = imgFile.fd;
+          let blurFile: fileIo.File | null = null;
           try {
             await fileIo.write(imgFile.fd, data.result as ArrayBuffer);
             let imageDealData = await ImageUtils.getImageDealDataByArr(data.result as ArrayBuffer);
             formData.imageColor = imageDealData.imageColor;
             formData.imageColorHex = imageDealData.imageColorHex;
             LogUtil.info(TAG, `updateMusicControlCards imageColorHex: ${imageDealData.imageColorHex.length}`)
+            // 模糊封面落盘成 fd，随 formImages 一起推给卡片（2×4 用作铺底背景）
+            const blurResult = await ImageUtils.writeBlurToTemp(FormUtils.context!, imageDealData.blurPixelMapForCard, 'single');
+            if (blurResult) {
+              blurFile = blurResult.file;
+              imgMap[blurResult.fileName] = blurFile.fd;
+              formData.blurImg = blurResult.fileName;
+            }
             try {
               formData.formImages = imgMap
               formData.imgName = fileName
@@ -192,6 +211,9 @@ class FormUtils {
           } finally {
             // 在fileIo.closeSync执行之前，确保formProvider.updateForm已执行完毕。
             fileIo.closeSync(imgFile);
+            if (blurFile) {
+              fileIo.closeSync(blurFile);
+            }
           }
           ;
         } catch (e) {
@@ -227,26 +249,41 @@ class FormUtils {
       formImages: Record<string, number> = imgMap;
       isLoaded: boolean = true;
       imageColorHex: string = '';
+      blurImg: string = '';
     }
 
     if (data.responseCode === http.ResponseCode.OK) {
       let imgFile = fileIo.openSync(tmpFile, fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.CREATE);
       imgMap[fileName] = imgFile.fd;
+      let blurFile: fileIo.File | null = null;
       try {
         let imageBuffer: ArrayBuffer = data.result as ArrayBuffer;
         let writeLen: number = fileIo.writeSync(imgFile.fd, imageBuffer);
         let imageDealData = await ImageUtils.getImageDealDataByArr(imageBuffer);
         LogUtil.info(TAG, `write data to file succeed and size is: ${writeLen}`);
         LogUtil.info(TAG, `ArkTSCard download complete: ${tmpFile}`);
+        // 模糊封面落盘成 fd，随 formImages 一起推给推荐卡（铺底背景）
+        const blurResult = await ImageUtils.writeBlurToTemp(FormUtils.context!, imageDealData.blurPixelMapForCard, 'recommend');
+        if (blurResult) {
+          blurFile = blurResult.file;
+          imgMap[blurResult.fileName] = blurFile.fd;
+        }
         let formData = new FormDataClass();
         formData.imageColorHex = imageDealData.imageColorHex;
+        if (blurResult) {
+          formData.blurImg = blurResult.fileName;
+        }
         formList.forEach(formInfo => {
           this.updateForm(formInfo.formId, formData);
         });
       } catch (err) {
         LogUtil.error(TAG, `write data to file failed with error: ${JSON.stringify(err)}`);
       } finally {
+        // 在fileIo.closeSync执行之前，确保formProvider.updateForm已执行完毕。
         fileIo.closeSync(imgFile);
+        if (blurFile) {
+          fileIo.closeSync(blurFile);
+        }
         httpRequest.destroy();
       }
     } else {

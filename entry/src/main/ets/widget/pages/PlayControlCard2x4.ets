@@ -43,6 +43,7 @@ struct PlayControlCard2x4 {
   @LocalStorageProp('imageColorHex') imageColorHex: string = '7aa2ca';
   @LocalStorageProp('loaded') loaded: boolean = false;
   @LocalStorageProp('currentLyric') currentLyric: string = '';
+  @LocalStorageProp('blurImg') blurImg: string = '';
 
   requestData() {
     ActionUtils.updateControlCardAction(this, this.formId);
@@ -162,10 +163,15 @@ struct PlayControlCard2x4 {
     .onClick(() => {
       ActionUtils.jumpPlayPage(this);
     })
+    // 底层背景：模糊封面用 backgroundImage 铺满整卡（含 padding 外圈，容器级背景天然突破 padding）。
+    // linearGradient 作为 scrim 叠在其上压暗白字。无 blurImg 时不设背景图，回退纯 scrim 渐变。
+    .backgroundImage(this.loaded && this.blurImg ? `memory://${this.blurImg}` : undefined)
+    .backgroundImageSize(ImageSize.Cover)
     .linearGradient({
       direction: GradientDirection.Bottom,
       repeating: false,
-      colors: [[`#ff${this.imageColorHex}`, 0.0], [`#cc${this.imageColorHex}`, 0.5], [`#ff${this.imageColorHex}`, 1.0]]
+      // 半透明 scrim：压暗模糊封面让白字可读，同时透出封面色相（blurImg 铺底时生效）
+      colors: [[`#cc${this.imageColorHex}`, 0.0], [`#99${this.imageColorHex}`, 0.5], [`#d9${this.imageColorHex}`, 1.0]]
     })
   }
 }
