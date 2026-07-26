@@ -235,62 +235,6 @@ class FormUtils {
   }
 
 
-  public async updateRecommendedCards(imageUrl: string) {
-    let formList: Array<FormInfo> = await FormRdbHelper.getInstance(FormUtils.context!).queryFormByName('RecommendedMusic');
-    let tempDir = FormUtils.context!.getApplicationContext().tempDir;
-    let fileName = 'file' + Date.now();
-    let tmpFile = tempDir + '/' + fileName + '.jpg';
-    let httpRequest = http.createHttp();
-    let data = await httpRequest.request(imageUrl+'?param=512y512');
-    let imgMap: Record<string, number> = {};
-
-    class FormDataClass {
-      imgBg: string = fileName;
-      formImages: Record<string, number> = imgMap;
-      isLoaded: boolean = true;
-      imageColorHex: string = '';
-      blurImg: string = '';
-    }
-
-    if (data.responseCode === http.ResponseCode.OK) {
-      let imgFile = fileIo.openSync(tmpFile, fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.CREATE);
-      imgMap[fileName] = imgFile.fd;
-      let blurFile: fileIo.File | null = null;
-      try {
-        let imageBuffer: ArrayBuffer = data.result as ArrayBuffer;
-        let writeLen: number = fileIo.writeSync(imgFile.fd, imageBuffer);
-        let imageDealData = await ImageUtils.getImageDealDataByArr(imageBuffer);
-        LogUtil.info(TAG, `write data to file succeed and size is: ${writeLen}`);
-        LogUtil.info(TAG, `ArkTSCard download complete: ${tmpFile}`);
-        // 模糊封面落盘成 fd，随 formImages 一起推给推荐卡（铺底背景）
-        const blurResult = await ImageUtils.writeBlurToTemp(FormUtils.context!, imageDealData.blurPixelMapForCard, 'recommend');
-        if (blurResult) {
-          blurFile = blurResult.file;
-          imgMap[blurResult.fileName] = blurFile.fd;
-        }
-        let formData = new FormDataClass();
-        formData.imageColorHex = imageDealData.imageColorHex;
-        if (blurResult) {
-          formData.blurImg = blurResult.fileName;
-        }
-        formList.forEach(formInfo => {
-          this.updateForm(formInfo.formId, formData);
-        });
-      } catch (err) {
-        LogUtil.error(TAG, `write data to file failed with error: ${JSON.stringify(err)}`);
-      } finally {
-        // 在fileIo.closeSync执行之前，确保formProvider.updateForm已执行完毕。
-        fileIo.closeSync(imgFile);
-        if (blurFile) {
-          fileIo.closeSync(blurFile);
-        }
-        httpRequest.destroy();
-      }
-    } else {
-      LogUtil.error(TAG, `ArkTSCard download task failed`);
-    }
-  }
-
   private updateForm(formId: string, updateData: object) {
     LogUtil.info(TAG, `updateForm  updateData: ${JSON.stringify(updateData)}}`);
     let formMsg: formBindingData.FormBindingData = formBindingData.createFormBindingData(updateData);

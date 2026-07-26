@@ -137,14 +137,6 @@
       "value": "服务卡片"
     },
     {
-      "name": "widget_display_name_recommended",
-      "value": "音乐推荐"
-    },
-    {
-      "name": "widget_desc_recommended",
-      "value": "推荐您喜爱的音乐"
-    },
-    {
       "name": "widget_display_name_control",
       "value": "音乐播控"
     },

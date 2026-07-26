@@ -8,8 +8,6 @@ export enum FormCarAction {
 export enum FormCardName {
   CONTROL_2X2 = 'PlayControlCard2x2',
   CONTROL_2X4 = 'PlayControlCard2x4',
-  RECOMMENDED_1X2 = 'RecommendedMusic1x2',
-  RECOMMENDED_2X4 = 'RecommendedMusic2x4',
 }
 
 export enum PlayActionType {
@@ -33,6 +31,5 @@ export enum CollectAction {
 export enum RouterType {
   PLAYER = 'ImmersivePlayer',
   LYRICS = '2',
-  PLAYLISTS = 'Library',
   COLLECTED = '4'
 }

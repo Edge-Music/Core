@@ -125,14 +125,6 @@
       "value": "Service Widget"
     },
     {
-      "name": "widget_display_name_recommended",
-      "value": "Music Recommendations"
-    },
-    {
-      "name": "widget_desc_recommended",
-      "value": "Recommend Music to You"
-    },
-    {
       "name": "widget_display_name_control",
       "value": "Music Control"
     },
