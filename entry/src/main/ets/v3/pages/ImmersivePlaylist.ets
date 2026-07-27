@@ -421,7 +421,7 @@ export struct ImmersivePlaylist {
               Blank()
               SymbolGlyph($r('sys.symbol.more'))
                 .fontSize(this.freeWindowMode?16:20)
-                .fontColor([V3Theme.tx1(this.mode)])
+                .fontColor([V3Theme.tx2(this.mode)])
                 .padding(6)
                 .bindMenu(this.playlistMenu())
             }.height(this.titleButtonRect.height)
