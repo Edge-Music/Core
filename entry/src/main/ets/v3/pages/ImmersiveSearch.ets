@@ -13,6 +13,7 @@ import { AmbientBackground } from '../components/AmbientBackground'
 import { V3SongActions } from '../util/V3SongActions'
 import { ToastUtil } from '@pura/harmony-utils'
 import { V3Color, V3Radius, V3Theme } from '../theme/Tokens'
+import { window } from '@kit.ArkUI'
 
 interface SearchTab {
   key: string
@@ -29,7 +30,13 @@ export struct ImmersiveSearch {
   @StorageProp('v3_theme_mode') mode: string = 'dark'
   @StorageProp('user_data_source') sources: SourceConfig[] = []
   @StorageProp('aggregation_playlist') aggPlaylists: Playlist[] = []
-
+  @StorageLink('freeWindowMode') freeWindowMode:boolean = false
+  @StorageLink('titleButtonRect') titleButtonRect:window.TitleButtonRect = {
+    right: 0,
+    top: 0,
+    width: 0,
+    height: 0
+  };
   @State keywords: string = ''
   @State result: SearchResult | null = null
   @State loading: boolean = false
@@ -181,13 +188,16 @@ export struct ImmersiveSearch {
   @Builder
   SearchBar() {
     Row({ space: 12 }) {
-      SymbolGlyph($r('sys.symbol.chevron_left'))
-        .fontSize(22)
-        .fontColor([V3Theme.tx1(this.mode)])
-        .padding(6)
-        .onClick(() => {
-          this.pageStack.pop()
-        })
+      if(!this.freeWindowMode){
+        SymbolGlyph($r('sys.symbol.chevron_left'))
+          .fontSize(22)
+          .fontColor([V3Theme.tx1(this.mode)])
+          .padding(6)
+          .onClick(() => {
+            this.pageStack.pop()
+          })
+      }
+
 
       Row({ space: 8 }) {
         SymbolGlyph($r('sys.symbol.magnifyingglass'))
@@ -225,6 +235,7 @@ export struct ImmersiveSearch {
       .border({ width: 1, color: V3Theme.glassBorder(this.mode) })
     }
     .width('100%')
+    .margin({top:this.freeWindowMode?this.titleButtonRect.height:0})
     .padding({ left: 12, right: 16 })
   }
 
@@ -523,7 +534,8 @@ export struct ImmersiveSearch {
       .width('100%')
       .height('100%')
     }
-    .hideTitleBar(true)
+    .hideTitleBar(this.freeWindowMode&&this.isWide()?false:true)
+    .title("",{barStyle:BarStyle.STACK})
     .backgroundColor(V3Color.CANVAS)
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }

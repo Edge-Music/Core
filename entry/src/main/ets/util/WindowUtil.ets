@@ -1,5 +1,5 @@
 import { display, window } from '@kit.ArkUI';
-import { BusinessError } from '@kit.BasicServicesKit';
+import { BusinessError, deviceInfo } from '@kit.BasicServicesKit';
 import { PipManager } from './PipManager';
 import { EventHelper } from './EventHelper';
 import { LogUtil, ToastUtil } from '@pura/harmony-utils';
@@ -46,6 +46,7 @@ class WindowUtil {
             this.setPageJump(page)
           }
           this.createMultiFuncSubWindow(windowStage)
+          this.setFreeWindowStatus(windowClass)
         } catch (exception) {
           LogUtil.error(`[${TAG}]`, `Failed to set the visibility of window decor. Cause code: ${exception.code}, message: ${exception.message}`);
         }
@@ -227,7 +228,42 @@ class WindowUtil {
       })
     }
   }
+  setFreeWindowStatus(windowClass:window.Window){
+    try {
+      let isInFreeWindowMode =  windowClass.isInFreeWindowMode()
+      AppStorage.setOrCreate('freeWindowMode',isInFreeWindowMode)
+    } catch (exception) {
+      console.error(`Failed to get mode for free window mode changes. Cause code: ${exception.code}, message: ${exception.message}`);
+    }
 
+    try {
+      windowClass.on('freeWindowModeChange', (data) => {
+        console.info('Succeeded in enabling the listener for free window mode changes. Data: ' + JSON.stringify(data));
+        AppStorage.setOrCreate('freeWindowMode',data)
+      });
+    } catch (exception) {
+      console.error(`Failed to enable the listener for free window mode changes. Cause code: ${exception.code}, message: ${exception.message}`);
+    }
+
+    try {
+      let titleButtonRect = windowClass.getTitleButtonRect()
+      AppStorage.setOrCreate<window.TitleButtonRect>('titleButtonRect',titleButtonRect)
+
+    } catch (exception) {
+      console.error(`Failed to get Rect for window title buttons area changes. Cause code: ${exception.code}, message: ${exception.message}`);
+    }
+
+    try {
+      windowClass?.on('windowTitleButtonRectChange', (titleButtonRect) => {
+        AppStorage.setOrCreate<window.TitleButtonRect>('titleButtonRect',titleButtonRect)
+        console.info('Succeeded in enabling the listener for window title buttons area changes. Data: ' + JSON.stringify(titleButtonRect));
+      });
+    } catch (exception) {
+      console.error(`Failed to enable the listener for window title buttons area changes. Cause code: ${exception.code}, message: ${exception.message}`);
+    }
+
+
+  }
   createLyricsFloatWindow(): void {
     if(this.lyricsFloatWindow) return
     let config: window.Configuration = {

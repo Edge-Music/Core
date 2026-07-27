@@ -13,6 +13,7 @@ import { AmbientBackground } from '../components/AmbientBackground'
 import { V3SongActions } from '../util/V3SongActions'
 import { ToastUtil } from '@pura/harmony-utils'
 import { V3Color, V3Radius, V3Theme } from '../theme/Tokens'
+import { window } from '@kit.ArkUI'
 
 @Component
 export struct ImmersivePlaylist {
@@ -25,6 +26,14 @@ export struct ImmersivePlaylist {
   @StorageProp('bottomRect') bottomRect: number = 0
   @StorageProp('current_width_breakpoint') widthBp: WidthBreakpoint = WidthBreakpoint.WIDTH_SM
   @StorageProp('v3_theme_mode') mode: string = 'dark'
+  @StorageLink('freeWindowMode') freeWindowMode:boolean = false
+  @StorageLink('titleButtonRect') titleButtonRect:window.TitleButtonRect = {
+    right: 0,
+    top: 0,
+    width: 0,
+    height: 0
+  };
+  @State mouseHover:string = ''
   @State private ds: SongsDataSource = new SongsDataSource()
   @State private keyword: string = ''
   private scroller: Scroller = new Scroller()
@@ -122,7 +131,68 @@ export struct ImmersivePlaylist {
     const creator: string = this.playlist?.creator?.name ?? ''
     return creator.length > 0 ? `${creator} · ${n} 首` : `${n} 首`
   }
+  @Builder
+  FreeModeTopBar() {
+    Row() {
+      // Button().onClick(()=>{
+      //   if(this.showSidebar){
+      //     this.showSidebar = !this.showSidebar
+      //   }
+      // })
+      // if (this.pageStack.getPathStack().length>1) {
+      //   Button().onClick(()=>{
+      //     this.pageStack.pop()
+      //   })
+      //
+      // }
+      Blank()
+      Stack() {
+        // SymbolGlyph($r('sys.symbol.more'))
+        //   .fontSize(20)
+        //   .fontColor([V3Theme.tx1(this.mode)])
+        //   .padding(6)
 
+        SymbolGlyph($r('sys.symbol.more'))
+        // .fontSize(20)
+          .fontColor([V3Theme.tx2(this.mode)])
+          .fontWeight(this.mouseHover == 'topBarMore'? FontWeight.Bolder:FontWeight.Normal)
+      }
+      .width(this.titleButtonRect.height)
+      .height(this.titleButtonRect.height)
+      // .borderRadius(22)
+      // .backgroundColor('rgba(255,255,255,0.10)')
+      // .backgroundBlurStyle(BlurStyle.BACKGROUND_THIN, { colorMode: ThemeColorMode.LIGHT })
+      // .border({ width: 1, color: 'rgba(255,255,255,0.20)' })
+      .bindMenu(this.playlistMenu())
+      .onHover((isHover)=>{
+        if(isHover){
+          this.mouseHover = 'topBarMore'
+        }else {
+          this.mouseHover = ''
+        }
+      })
+
+      Stack() {
+        SymbolGlyph($r('sys.symbol.gearshape'))
+        // .fontSize(16)
+          .fontColor([V3Theme.tx2(this.mode)])
+          .fontWeight(this.mouseHover == 'topBarSetting'? FontWeight.Bolder:FontWeight.Normal)
+      }
+      .width(this.titleButtonRect.height)
+      .height(this.titleButtonRect.height)
+      .onHover((isHover)=>{
+        if(isHover){
+          this.mouseHover = 'topBarSetting'
+        }else {
+          this.mouseHover = ''
+        }
+      })
+
+    }
+    .width('100%')
+    .height(this.titleButtonRect.height)
+    .padding({ left: 16, right: this.titleButtonRect.width  })
+  }
   // ============ 头部（封面 + 信息 + 播放全部） ============
   @Builder
   Header() {
@@ -320,24 +390,45 @@ export struct ImmersivePlaylist {
         })
 
         Column() {
-          // 顶栏（返回 + 歌单菜单）
-          Row() {
-            SymbolGlyph($r('sys.symbol.chevron_left'))
-              .fontSize(22)
-              .fontColor([V3Theme.tx1(this.mode)])
-              .padding(6)
-              .onClick(() => {
-                this.pageStack.pop()
-              })
-            Blank()
-            SymbolGlyph($r('sys.symbol.more'))
-              .fontSize(20)
-              .fontColor([V3Theme.tx1(this.mode)])
-              .padding(6)
-              .bindMenu(this.playlistMenu())
+          if(!this.freeWindowMode){
+            // 顶栏（返回 + 歌单菜单）
+            Row() {
+              SymbolGlyph($r('sys.symbol.chevron_left'))
+                .fontSize(22)
+                .fontColor([V3Theme.tx1(this.mode)])
+                .padding(6)
+                .onClick(() => {
+                  this.pageStack.pop()
+                })
+              Blank()
+              SymbolGlyph($r('sys.symbol.more'))
+                .fontSize(20)
+                .fontColor([V3Theme.tx1(this.mode)])
+                .padding(6)
+                .bindMenu(this.playlistMenu())
+            }
+            .width('100%')
+            .padding({ left: 12, right: 16 })
+          }else{
+            Row() {
+              SymbolGlyph($r('sys.symbol.chevron_left'))
+                .fontSize(22)
+                .fontColor([V3Theme.tx1(this.mode)])
+                .padding(6)
+                .onClick(() => {
+                  this.pageStack.pop()
+                })
+              Blank()
+              SymbolGlyph($r('sys.symbol.more'))
+                .fontSize(this.freeWindowMode?16:20)
+                .fontColor([V3Theme.tx1(this.mode)])
+                .padding(6)
+                .bindMenu(this.playlistMenu())
+            }.height(this.titleButtonRect.height)
+            .width('100%')
+            .padding({ left: 12, right:this.freeWindowMode?  this.titleButtonRect.width :16 })
+
           }
-          .width('100%')
-          .padding({ left: 12, right: 16 })
 
           if (this.isWide()) {
             // 宽屏：左封面信息 + 右（搜索框 + 列表）
@@ -376,12 +467,13 @@ export struct ImmersivePlaylist {
         }
         .width('100%')
         .height('100%')
-        .padding({ top: this.topRect + 8 })
+        .padding({ top: this.topRect + (this.freeWindowMode? 0:8) })
       }
       .width('100%')
       .height('100%')
     }
     .hideTitleBar(true)
+    // .title("",{barStyle:BarStyle.STACK})
     .backgroundColor(V3Color.CANVAS)
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }

@@ -29,6 +29,7 @@ export struct ImmersiveLyrics {
   @StorageProp('current_width_breakpoint') widthBp: WidthBreakpoint = WidthBreakpoint.WIDTH_SM
   @StorageProp('currentOrientation') orientation: string = 'portrait'
   @StorageProp('v3_theme_mode') mode: string = 'dark'
+  @StorageLink('freeWindowMode') freeWindowMode:boolean = false
 
   @State currentTimeMs: number = 0
   @State durationMs: number = 0
@@ -472,6 +473,8 @@ export struct ImmersiveLyrics {
     }
     .hideTitleBar(true)
     .backgroundColor(V3Color.CANVAS)
+    .hideTitleBar(this.freeWindowMode&&this.isWide()?false:true)
+    .title("",{barStyle:BarStyle.STACK})
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
     .onBackPressed(() => {
       // 系统返回键：先复位方向再走默认返回

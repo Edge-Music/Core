@@ -23,6 +23,7 @@ import { TimerSheet } from '../components/TimerSheet'
 import { ImmersiveMy } from './ImmersiveMy'
 import { V3Ambient } from '../util/V3Ambient'
 import { V3Color, V3Radius, V3Space, V3Theme } from '../theme/Tokens'
+import window from '@ohos.window'
 
 @Component
 export struct ImmersivePlayer {
@@ -40,7 +41,15 @@ export struct ImmersivePlayer {
   @StorageProp('current_width_breakpoint') widthBp: WidthBreakpoint = WidthBreakpoint.WIDTH_SM
   @StorageProp('winHeight') winHeight: number = 0
   @StorageProp('winWidth') winWidth: number = 0
+  @StorageLink('freeWindowMode') freeWindowMode:boolean = false
+  @StorageLink('titleButtonRect') titleButtonRect:window.TitleButtonRect = {
+    right: 0,
+    top: 0,
+    width: 0,
+    height: 0
+  };
   @StorageProp('v3_theme_mode') mode: string = 'dark'
+  @State mouseHover:string = ''
   @State fav: boolean = false
   // 官方 SideBarContainer 的显隐（宽屏默认常驻展开，窄屏默认收起为抽屉）
   @State showSidebar: boolean = false
@@ -339,8 +348,9 @@ export struct ImmersivePlayer {
       this.SourceAvatar(44)
     }
     .width('100%')
-    .padding({ left: 16, right: 16 })
+    .padding({ left: 16, right: 16,top:this.freeWindowMode?this.titleButtonRect.height:0 })
   }
+
 
   private firstSourceAvatar(): string {
     if (this.sources && this.sources.length > 0) {
@@ -874,7 +884,71 @@ export struct ImmersivePlayer {
     .height('100%')
     .justifyContent(FlexAlign.Center)
   }
+  @Builder
+  FreeModeTopBar() {
+    Row() {
+      // Button().onClick(()=>{
+      //   if(this.showSidebar){
+      //     this.showSidebar = !this.showSidebar
+      //   }
+      // })
+      // if (this.pageStack.getPathStack().length>1) {
+      //   Button().onClick(()=>{
+      //     this.pageStack.pop()
+      //   })
+      //
+      // }
+      Blank()
+      Stack() {
+        SymbolGlyph($r('sys.symbol.magnifyingglass'))
+          // .fontSize(20)
+          .fontColor([V3Theme.tx2(this.mode)])
+          .fontWeight(this.mouseHover == 'topBarSearch'? FontWeight.Bolder:FontWeight.Normal)
+      }
+      .width(this.titleButtonRect.height)
+      .height(this.titleButtonRect.height)
+      // .borderRadius(22)
+      // .backgroundColor('rgba(255,255,255,0.10)')
+      // .backgroundBlurStyle(BlurStyle.BACKGROUND_THIN, { colorMode: ThemeColorMode.LIGHT })
+      // .border({ width: 1, color: 'rgba(255,255,255,0.20)' })
+      .onClick(() => {
+        this.pageStack.pushPath({ name: 'ImmersiveSearch' }, { animated: true })
+      })
+      .onHover((isHover)=>{
+        if(isHover){
+          this.mouseHover = 'topBarSearch'
+        }else {
+          this.mouseHover = ''
+        }
+      })
 
+      Stack() {
+        SymbolGlyph($r('sys.symbol.gearshape'))
+          // .fontSize(16)
+          .fontColor([V3Theme.tx2(this.mode)])
+          .fontWeight(this.mouseHover == 'topBarSetting'? FontWeight.Bolder:FontWeight.Normal)
+      }
+      .width(this.titleButtonRect.height)
+      .height(this.titleButtonRect.height)
+      // .borderRadius(this.titleButtonRect.height)
+      //.backgroundColor(this.mouseHover == 'topBarSetting'? 'rgba(255,255,255,0.10)':'#00000000')
+      .onHover((isHover)=>{
+        if(isHover){
+          this.mouseHover = 'topBarSetting'
+        }else {
+          this.mouseHover = ''
+        }
+      })
+     // .backgroundBlurStyle(this.mouseHover == 'topBarSetting'?BlurStyle.BACKGROUND_THIN:BlurStyle.NONE, { colorMode: ThemeColorMode.LIGHT })
+      // .border({ width: 1, color: 'rgba(255,255,255,0.20)' })
+      .onClick(() => {
+        this.openSettings()
+      })
+    }
+    .width('100%')
+    .height(this.titleButtonRect.height)
+    .padding({ left: 16, right: this.titleButtonRect.width  })
+  }
   // 官方 SideBarContainer：宽屏 Embed（并列，可折叠），窄屏 Overlay（抽屉悬浮）
   @Builder
   Sidebarred() {
@@ -922,42 +996,82 @@ export struct ImmersivePlayer {
 
   @Builder
   SettingButton() {
-    Row({ space: 16 }) {
-      Stack() {
-        SymbolGlyph($r('sys.symbol.magnifyingglass'))
-          .fontSize(20)
-          .fontColor([V3Theme.tx2(this.mode)])
+    if(this.freeWindowMode){
+      Row({ space: 16 }) {
+        // Stack() {
+        //   SymbolGlyph($r('sys.symbol.magnifyingglass'))
+        //     .fontSize(20)
+        //     .fontColor([V3Theme.tx2(this.mode)])
+        // }
+        // .width(44)
+        // .height(44)
+        // .borderRadius(22)
+        // .backgroundColor('rgba(255,255,255,0.10)')
+        // .backgroundBlurStyle(BlurStyle.BACKGROUND_THIN, { colorMode: ThemeColorMode.LIGHT })
+        // .border({ width: 1, color: 'rgba(255,255,255,0.20)' })
+        // .onClick(() => {
+        //   this.pageStack.pushPath({ name: 'ImmersiveSearch' }, { animated: true })
+        // })
+        //
+        // Stack() {
+        //   SymbolGlyph($r('sys.symbol.gearshape'))
+        //     .fontSize(20)
+        //     .fontColor([V3Theme.tx2(this.mode)])
+        // }
+        // .width(44)
+        // .height(44)
+        // .borderRadius(22)
+        // .backgroundColor('rgba(255,255,255,0.10)')
+        // .backgroundBlurStyle(BlurStyle.BACKGROUND_THIN, { colorMode: ThemeColorMode.LIGHT })
+        // .border({ width: 1, color: 'rgba(255,255,255,0.20)' })
+        // .onClick(() => {
+        //   this.openSettings()
+        // })
       }
-      .width(44)
-      .height(44)
-      .borderRadius(22)
-      .backgroundColor('rgba(255,255,255,0.10)')
-      .backgroundBlurStyle(BlurStyle.BACKGROUND_THIN, { colorMode: ThemeColorMode.LIGHT })
-      .border({ width: 1, color: 'rgba(255,255,255,0.20)' })
-      .onClick(() => {
-        this.pageStack.pushPath({ name: 'ImmersiveSearch' }, { animated: true })
-      })
+      .justifyContent(FlexAlign.End)
+      .width('100%')
+      .height(this.titleButtonRect.height)
+      .padding({ right: 16 })
+      // .position({ y: this.topRect + 12 })
+    }else{
+      Row({ space: 16 }) {
+        Stack() {
+          SymbolGlyph($r('sys.symbol.magnifyingglass'))
+            .fontSize(20)
+            .fontColor([V3Theme.tx2(this.mode)])
+        }
+        .width(44)
+        .height(44)
+        .borderRadius(22)
+        .backgroundColor('rgba(255,255,255,0.10)')
+        .backgroundBlurStyle(BlurStyle.BACKGROUND_THIN, { colorMode: ThemeColorMode.LIGHT })
+        .border({ width: 1, color: 'rgba(255,255,255,0.20)' })
+        .onClick(() => {
+          this.pageStack.pushPath({ name: 'ImmersiveSearch' }, { animated: true })
+        })
 
-      Stack() {
-        SymbolGlyph($r('sys.symbol.gearshape'))
-          .fontSize(20)
-          .fontColor([V3Theme.tx2(this.mode)])
+        Stack() {
+          SymbolGlyph($r('sys.symbol.gearshape'))
+            .fontSize(20)
+            .fontColor([V3Theme.tx2(this.mode)])
+        }
+        .width(44)
+        .height(44)
+        .borderRadius(22)
+        .backgroundColor('rgba(255,255,255,0.10)')
+        .backgroundBlurStyle(BlurStyle.BACKGROUND_THIN, { colorMode: ThemeColorMode.LIGHT })
+        .border({ width: 1, color: 'rgba(255,255,255,0.20)' })
+        .onClick(() => {
+          this.openSettings()
+        })
       }
-      .width(44)
-      .height(44)
-      .borderRadius(22)
-      .backgroundColor('rgba(255,255,255,0.10)')
-      .backgroundBlurStyle(BlurStyle.BACKGROUND_THIN, { colorMode: ThemeColorMode.LIGHT })
-      .border({ width: 1, color: 'rgba(255,255,255,0.20)' })
-      .onClick(() => {
-        this.openSettings()
-      })
+      .justifyContent(FlexAlign.End)
+      .width('100%')
+      .height(  44)
+      .padding({ right: 16 })
+      .position({ y: this.topRect + 12 })
     }
-    .justifyContent(FlexAlign.End)
-    .width('100%')
-    .height(44)
-    .padding({ right: 16 })
-    .position({ y: this.topRect + 12 })
+
   }
 
   // 玻璃描边图标按钮（侧边栏开合），替代官方裸图标控制按钮
@@ -984,6 +1098,7 @@ export struct ImmersivePlayer {
 
   build() {
     NavDestination() {
+
       Stack({ alignContent: Alignment.Bottom }) {
         AmbientBackground({
           coverUrl: this.song?.album?.cover ?? '',
@@ -994,11 +1109,18 @@ export struct ImmersivePlayer {
           mode: this.mode
         })
 
-        this.Sidebarred()
 
-        // 悬浮玻璃开合按钮（始终在最上层）
-        this.SidebarToggle()
+          this.Sidebarred()
+        if(this.freeWindowMode){
+          this.FreeModeTopBar()
+        }
+          // 悬浮玻璃开合按钮（始终在最上层）
+          this.SidebarToggle()
+
+
+
       }
+      .align(Alignment.Top)
       .width('100%')
       .height('100%')
       .gesture(

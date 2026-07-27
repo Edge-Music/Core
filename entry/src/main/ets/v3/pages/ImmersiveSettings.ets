@@ -38,6 +38,7 @@ export struct ImmersiveSettings {
   @StorageProp('v3_rec_mode') recMode: string = 'default'
   @StorageProp('user_data_source') dataSources: SourceConfig[] = []
   @StorageProp('v3_theme_override') themeOverride: string = 'auto'
+  @StorageLink('freeWindowMode') freeWindowMode:boolean = false
 
   @State fadeInOut: boolean = false
   @State playQuality: number = 128000
@@ -918,14 +919,14 @@ export struct ImmersiveSettings {
       .alignItems(HorizontalAlign.Start)
       .padding({ left: 44, right: 44, top: this.topRect + 40 })
 
-      // 右上关闭
-      SymbolGlyph($r('sys.symbol.xmark'))
-        .fontSize(18)
-        .fontColor([V3Theme.tx2(this.mode)])
-        .margin({ top: this.topRect + 26, right: 28 })
-        .onClick(() => {
-          this.pageStack.pop()
-        })
+      // // 右上关闭
+      // SymbolGlyph($r('sys.symbol.xmark'))
+      //   .fontSize(18)
+      //   .fontColor([V3Theme.tx2(this.mode)])
+      //   .margin({ top: this.topRect + 26, right: 28 })
+      //   .onClick(() => {
+      //     this.pageStack.pop()
+      //   })
     }
     .width('100%')
     .height('100%')
@@ -954,7 +955,8 @@ export struct ImmersiveSettings {
       .width('100%')
       .height('100%')
     }
-    .hideTitleBar(true)
+    .hideTitleBar(this.freeWindowMode&&this.isWide()?false:true)
+    .title("",{barStyle:BarStyle.STACK})
     .backgroundColor(V3Color.CANVAS)
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
