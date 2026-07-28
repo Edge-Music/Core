@@ -35,6 +35,8 @@ struct PlayControlCard2x2 {
   @LocalStorageProp('isNeedRequestUpdate') @Watch('requestData') isNeedRequestUpdate: boolean = false;
   @LocalStorageProp('imageColor') imageColor: string = 'rgba(122,162,202,1)';
   @LocalStorageProp('imageColorHex') imageColorHex: string = '7aa2ca';
+  @LocalStorageProp('accentColor') accentColor: string = 'rgba(216,176,114,1)';
+  @LocalStorageProp('accentColorHex') accentColorHex: string = 'D8B072';
   @LocalStorageProp('loaded') loaded: boolean = false;
   @LocalStorageProp('blurImg') blurImg: string = '';
 
@@ -54,6 +56,12 @@ struct PlayControlCard2x2 {
         .id('musicTitle')
         .textOverflow({overflow: TextOverflow.Ellipsis})
         .width(100)
+        .textShadow({
+          radius: 6,
+          color: 'rgba(255,255,255,0.25)',
+          offsetX: 0,
+          offsetY: 0
+        })
 
       Text(this.singer)
         .fontSize(12)
@@ -85,6 +93,12 @@ struct PlayControlCard2x2 {
         .borderRadius(8)
         .alignRules(CoverAlignRules)
         .margin({ top: 2 })
+        .shadow({
+          radius: 12,
+          color: 'rgba(0,0,0,0.4)',
+          offsetX: 0,
+          offsetY: 4
+        })
 
 
       Row() {
@@ -121,17 +135,44 @@ struct PlayControlCard2x2 {
     }
     .height('100%')
     .width('100%')
-    .linearGradient({
-      direction: GradientDirection.Bottom,
-      repeating: false,
-      // 半透明 scrim：压暗模糊封面让白字可读，同时透出封面色相（blurImg 铺底时生效）
-      colors: [[`#cc${this.imageColorHex}`, 0.0], [`#99${this.imageColorHex}`, 0.5], [`#d9${this.imageColorHex}`, 1.0]]
-    })
-    .backgroundImage(this.loaded && this.blurImg ? `memory://${this.blurImg}` : undefined)
-    .backgroundImageSize(ImageSize.Cover)
     .padding(12)
     .onClick(() => {
       ActionUtils.jumpPlayPage(this);
+    })
+    // 预模糊封面
+    .backgroundImage(this.loaded && this.blurImg ? `memory://${this.blurImg}` : undefined)
+    .backgroundImageSize(ImageSize.Cover)
+    // 光感晕
+    .radialGradient({
+      center: ['30%', '25%'],
+      radius: '70%',
+      colors: [
+        [`#${this.accentColorHex}28`, 0.0],
+        [`#${this.accentColorHex}00`, 1.0]
+      ]
+    })
+    // scrim（4-stop 双色）
+    .linearGradient({
+      direction: GradientDirection.Bottom,
+      repeating: false,
+      colors: [
+        [`#${this.imageColorHex}CC`, 0.0],
+        [`#${this.accentColorHex}55`, 0.3],
+        [`#${this.imageColorHex}88`, 0.6],
+        [`#${this.imageColorHex}D9`, 1.0]
+      ]
+    })
+    // 玻璃折射边框
+    .border({
+      width: 1,
+      color: 'rgba(255,255,255,0.18)'
+    })
+    // 氛围投影
+    .shadow({
+      radius: 36,
+      color: `#${this.imageColorHex}50`,
+      offsetX: 0,
+      offsetY: 8
     })
   }
 }

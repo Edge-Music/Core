@@ -16,6 +16,8 @@ struct PlayControlCard1x2 {
   @LocalStorageProp('isNeedRequestUpdate') @Watch('requestData') isNeedRequestUpdate: boolean = false;
   @LocalStorageProp('imageColor') imageColor: string = 'rgba(122,162,202,1)';
   @LocalStorageProp('imageColorHex') imageColorHex: string = '7aa2ca';
+  @LocalStorageProp('accentColor') accentColor: string = 'rgba(216,176,114,1)';
+  @LocalStorageProp('accentColorHex') accentColorHex: string = 'D8B072';
   @LocalStorageProp('loaded') loaded: boolean = false;
   @LocalStorageProp('blurImg') blurImg: string = '';
 
@@ -30,6 +32,12 @@ struct PlayControlCard1x2 {
           .height('100%')
           .borderRadius(8)
           .margin({ top: 2 })
+          .shadow({
+            radius: 10,
+            color: 'rgba(0,0,0,0.35)',
+            offsetX: 0,
+            offsetY: 3
+          })
 
         SymbolGlyph(this.isPlay ? $r('sys.symbol.pause_round_triangle_fill') : $r('sys.symbol.play_round_triangle_fill'))
           .fontSize(28)
@@ -58,13 +66,40 @@ struct PlayControlCard1x2 {
         ActionUtils.jumpPlayPage(this);
       })
     }
+    // 预模糊封面
+    .backgroundImage(this.loaded && this.blurImg ? `memory://${this.blurImg}` : undefined)
+    .backgroundImageSize(ImageSize.Cover)
+    // 光感晕
+    .radialGradient({
+      center: ['35%', '30%'],
+      radius: '75%',
+      colors: [
+        [`#${this.accentColorHex}25`, 0.0],
+        [`#${this.accentColorHex}00`, 1.0]
+      ]
+    })
+    // scrim（4-stop 双色）
     .linearGradient({
       direction: GradientDirection.Bottom,
       repeating: false,
-      // 半透明 scrim：压暗模糊封面让白字可读，同时透出封面色相（blurImg 铺底时生效）
-      colors: [[`#cc${this.imageColorHex}`, 0.0], [`#99${this.imageColorHex}`, 0.5], [`#d9${this.imageColorHex}`, 1.0]]
+      colors: [
+        [`#${this.imageColorHex}CC`, 0.0],
+        [`#${this.accentColorHex}50`, 0.3],
+        [`#${this.imageColorHex}80`, 0.6],
+        [`#${this.imageColorHex}D9`, 1.0]
+      ]
     })
-    .backgroundImage(this.loaded && this.blurImg ? `memory://${this.blurImg}` : undefined)
-    .backgroundImageSize(ImageSize.Cover)
+    // 玻璃折射边框
+    .border({
+      width: 1,
+      color: 'rgba(255,255,255,0.18)'
+    })
+    // 氛围投影
+    .shadow({
+      radius: 32,
+      color: `#${this.imageColorHex}48`,
+      offsetX: 0,
+      offsetY: 6
+    })
   }
 }

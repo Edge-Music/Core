@@ -17,6 +17,8 @@ export interface BlurTempFile {
 export class ImageDealData {
   imageColor: string = 'rgba(0, 0, 2, 1.00)';
   imageColorHex: string = '';
+  accentColor: string = 'rgba(216,176,114,1)';
+  accentColorHex: string = 'D8B072';
   blurPixelMap: PixelMap | undefined = undefined;
   blurPixelMapForCard: PixelMap | undefined = undefined;
 }
@@ -116,6 +118,10 @@ class ImageUtils {
         LogUtil.info(TAG, `getImageDealDataByArr imageColorHex :${imageColorHex}`);
         imageData.imageColor = imageColor;
         imageData.imageColorHex = imageColorHex.replace('#', '');
+        const accentHex = this.pickAccent(colors);
+        imageData.accentColorHex = accentHex.replace('#', '');
+        const accentRgb = ColorConverter.hexToRgb(accentHex);
+        imageData.accentColor = `rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 1)`;
         imageData.blurPixelMap = await this.getBlurPixelMap(pixelMap, 15);
         imageData.blurPixelMapForCard = await this.getBlurPixelMap(pixelMap, 100);
         LogUtil.info(TAG, `getImageDealDataByArr success`);
@@ -225,6 +231,66 @@ class ImageUtils {
       return 0;
     }
     return (max - min) / max;
+  }
+
+  /**
+   * 从候选色中挑选一个适合「小面积高光 accent」的色（按钮发光、进度条前景、光感晕）。
+   * 与 pickBackground 互补：背景要深而稳，accent 要亮而鲜艳。
+   * 偏向高饱和度 + 中高亮度，占比大的色优先。
+   */
+  public pickAccent(colors: ExtractedColor[]): string {
+    if (!colors || colors.length === 0) {
+      return '#D8B072';
+    }
+    let best: RGB | null = null;
+    let bestScore: number = -Infinity;
+    for (const c of colors) {
+      const rgb: RGB = ColorConverter.hexToRgb(c.hex);
+      const lum: number = this.luminance(rgb);
+      const sat: number = this.saturation(rgb);
+
+      // 饱和度分：越高越好（accent 要鲜艳），0.45~0.95 最佳
+      const satScore: number = Math.min(1, sat / 0.7);
+      // 亮度分：中高亮度最佳（0.40~0.75），太暗看不清、太亮刺眼
+      const lumScore: number = 1 - Math.min(1, Math.abs(lum - 0.55) / 0.45);
+      // 占比分
+      const propScore: number = Math.min(1, (c.count || 0) / 100);
+
+      const score: number = satScore * 0.50 + lumScore * 0.30 + propScore * 0.20;
+      if (score > bestScore) {
+        bestScore = score;
+        best = rgb;
+      }
+    }
+    if (!best) {
+      return '#D8B072';
+    }
+    // accent 不做激进收敛，保留原始色相/饱和度；仅确保亮度不低于 0.35
+    const lum: number = this.luminance(best);
+    if (lum < 0.35) {
+      const scale: number = 0.35 / Math.max(lum, 0.01);
+      best = {
+        r: Math.min(255, Math.round(best.r * scale)),
+        g: Math.min(255, Math.round(best.g * scale)),
+        b: Math.min(255, Math.round(best.b * scale))
+      };
+    }
+    return ColorConverter.rgbToHex(best.r, best.g, best.b);
+  }
+
+  /**
+   * 从 accent 色生成发光色（提亮 20%，用于 shadow/glow 效果）。
+   * 返回 #RRGGBB 格式，调用方自行追加 alpha 后缀。
+   */
+  public makeGlowColor(accentHex: string): string {
+    if (!accentHex || accentHex.length < 6) {
+      return '#D8B072';
+    }
+    const rgb: RGB = ColorConverter.hexToRgb(accentHex);
+    const hsl = ColorConverter.rgbToHsl(rgb.r, rgb.g, rgb.b);
+    const boostedL = Math.min(85, hsl.l + 20);
+    const boosted: RGB = ColorConverter.hslToRgb(hsl.h, hsl.s, boostedL);
+    return ColorConverter.rgbToHex(boosted.r, boosted.g, boosted.b).toUpperCase();
   }
 }
 

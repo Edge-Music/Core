@@ -41,6 +41,8 @@ struct PlayControlCard2x4 {
   @LocalStorageProp('isNeedRequestUpdate') @Watch('requestData') isNeedRequestUpdate: boolean = false;
   @LocalStorageProp('imageColor') imageColor: string = 'rgba(122,162,202,1)';
   @LocalStorageProp('imageColorHex') imageColorHex: string = '7aa2ca';
+  @LocalStorageProp('accentColor') accentColor: string = 'rgba(216,176,114,1)';
+  @LocalStorageProp('accentColorHex') accentColorHex: string = 'D8B072';
   @LocalStorageProp('loaded') loaded: boolean = false;
   @LocalStorageProp('currentLyric') currentLyric: string = '';
   @LocalStorageProp('blurImg') blurImg: string = '';
@@ -56,6 +58,12 @@ struct PlayControlCard2x4 {
         .borderRadius(10)
         .aspectRatio(1)
         .id('musicCover')
+        .shadow({
+          radius: 12,
+          color: 'rgba(0,0,0,0.4)',
+          offsetX: 0,
+          offsetY: 4
+        })
         .onClick(() => {
           ActionUtils.jumpPlayPage(this);
         })
@@ -85,6 +93,12 @@ struct PlayControlCard2x4 {
         .id('musicTitle')
         .textOverflow({overflow: TextOverflow.Ellipsis})
         .width(140)
+        .textShadow({
+          radius: 6,
+          color: 'rgba(255,255,255,0.25)',
+          offsetX: 0,
+          offsetY: 0
+        })
 
       Text(this.singer)
         .fontSize(14)
@@ -108,7 +122,7 @@ struct PlayControlCard2x4 {
         .minFontSize(10)
         .fontWeight(700)
         .fontColor(Color.White)
-        .opacity(0.8)
+        .opacity(0.85)
         .maxLines(2)
         .margin({
           left: 24,
@@ -119,6 +133,12 @@ struct PlayControlCard2x4 {
         .id('musicLyric')
         .textOverflow({overflow: TextOverflow.Ellipsis })
         .width(150)
+        .textShadow({
+          radius: 8,
+          color: `#${this.accentColorHex}40`,
+          offsetX: 0,
+          offsetY: 0
+        })
 
       Row() {
         SymbolGlyph($r('sys.symbol.backward_end_fill'))
@@ -163,15 +183,40 @@ struct PlayControlCard2x4 {
     .onClick(() => {
       ActionUtils.jumpPlayPage(this);
     })
-    // 底层背景：模糊封面用 backgroundImage 铺满整卡（含 padding 外圈，容器级背景天然突破 padding）。
-    // linearGradient 作为 scrim 叠在其上压暗白字。无 blurImg 时不设背景图，回退纯 scrim 渐变。
+    // 预模糊封面铺底
     .backgroundImage(this.loaded && this.blurImg ? `memory://${this.blurImg}` : undefined)
     .backgroundImageSize(ImageSize.Cover)
+    // 光感晕 - accent 色从封面区域扩散
+    .radialGradient({
+      center: ['25%', '30%'],
+      radius: '65%',
+      colors: [
+        [`#${this.accentColorHex}30`, 0.0],
+        [`#${this.accentColorHex}00`, 1.0]
+      ]
+    })
+    // scrim 渐变（4-stop，双色，压暗让白字可读）
     .linearGradient({
       direction: GradientDirection.Bottom,
       repeating: false,
-      // 半透明 scrim：压暗模糊封面让白字可读，同时透出封面色相（blurImg 铺底时生效）
-      colors: [[`#cc${this.imageColorHex}`, 0.0], [`#99${this.imageColorHex}`, 0.5], [`#d9${this.imageColorHex}`, 1.0]]
+      colors: [
+        [`#${this.imageColorHex}CC`, 0.0],
+        [`#${this.accentColorHex}66`, 0.3],
+        [`#${this.imageColorHex}99`, 0.6],
+        [`#${this.imageColorHex}D9`, 1.0]
+      ]
+    })
+    // 玻璃折射边框
+    .border({
+      width: 1,
+      color: 'rgba(255,255,255,0.18)'
+    })
+    // 氛围投影（封面色发光悬浮）
+    .shadow({
+      radius: 40,
+      color: `#${this.imageColorHex}50`,
+      offsetX: 0,
+      offsetY: 8
     })
   }
 }
