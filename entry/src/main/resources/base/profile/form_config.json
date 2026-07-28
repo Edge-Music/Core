@@ -64,29 +64,24 @@
       ]
     },
     {
-      "name": "RecommendedMusic1x2",
-      "displayName": "$string:widget_display_name_recommended",
-      "description": "$string:widget_desc_recommended",
-      "src": "./ets/widget/pages/RecommendedMusic1x2.ets",
+      "name": "PlayControlCardLargeLyrics",
+      "displayName": "$string:widget_display_name_lyrics",
+      "description": "$string:widget_desc_lyrics",
+      "src": "./ets/widget/pages/PlayControlCardLargeLyrics.ets",
       "uiSyntax": "arkts",
       "window": {
         "designWidth": 720,
         "autoDesignWidth": true
       },
       "colorMode": "auto",
-      "isDynamic": false,
+      "isDynamic": true,
       "isDefault": false,
-      "updateEnabled": true,
+      "updateEnabled": false,
       "scheduledUpdateTime": "10:30",
-      "defaultDimension": "1*2",
+      "updateDuration": 1,
+      "defaultDimension": "2*4",
       "supportDimensions": [
-        "1*2"
-      ],
-      "metadata": [
-        {
-          "name": "formType",
-          "value": "test"
-        }
+        "2*4"
       ]
     }
   ]

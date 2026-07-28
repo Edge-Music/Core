@@ -63,7 +63,10 @@ class FormUtils {
     }
 
     let data = new CardLyricsUpdateData();
+    // 更新所有歌词相关卡片（PlayControlCardWithLyrics + PlayControlCardLargeLyrics）
     let formList: Array<FormInfo> = await FormRdbHelper.getInstance(FormUtils.context!).queryFormByName('PlayControlCardWithLyrics');
+    let largeLyricsList: Array<FormInfo> = await FormRdbHelper.getInstance(FormUtils.context!).queryFormByName('PlayControlCardLargeLyrics');
+    formList = formList.concat(largeLyricsList);
     LogUtil.info(TAG, `updateCardPlayLyrics formList length:  ${formList.length}`);
     formList.forEach(formInfo => {
       this.updateForm(formInfo.formId, data);
@@ -76,7 +79,10 @@ class FormUtils {
     }
 
     let data = new CardLyricsUpdateData();
+    // 更新所有歌词相关卡片（PlayControlCardWithLyrics + PlayControlCardLargeLyrics）
     let formList: Array<FormInfo> = await FormRdbHelper.getInstance(FormUtils.context!).queryFormByName('PlayControlCardWithLyrics');
+    let largeLyricsList: Array<FormInfo> = await FormRdbHelper.getInstance(FormUtils.context!).queryFormByName('PlayControlCardLargeLyrics');
+    formList = formList.concat(largeLyricsList);
     LogUtil.info(TAG, `updateCardPlayLyricsIndex formList length:  ${formList.length}`);
     formList.forEach(formInfo => {
       this.updateForm(formInfo.formId, data);
@@ -90,6 +96,8 @@ class FormUtils {
 
     let data = new CardCurrentLyricsUpdateData();
     let formList: Array<FormInfo> = await FormRdbHelper.getInstance(FormUtils.context!).queryFormByName('PlayControlCard2x4');
+    let largeLyricsList: Array<FormInfo> = await FormRdbHelper.getInstance(FormUtils.context!).queryFormByName('PlayControlCardLargeLyrics');
+    formList = formList.concat(largeLyricsList);
     LogUtil.info(TAG, `updateCardCurrentLyrics formList length:  ${formList.length}`);
     formList.forEach(formInfo => {
       this.updateForm(formInfo.formId, data);
@@ -104,6 +112,7 @@ class FormUtils {
     formData.title = songItem.name;
     formData.songId = songItem.id;
     formData.isCollected = songItem?.meta?.isFavorite || false;
+    formData.currentLyric = (AppStorage.get<string>('test_index') as string) || '';
     LogUtil.info(TAG, `updateMusicControlCards isPlay:${isPlay}, songItem:${JSON.stringify(songItem)}`);
     try {
       let netFile = songItem?.album?.cover + "?param=512y512" ?? "";
@@ -117,12 +126,21 @@ class FormUtils {
         try {
           let imgFile = fileIo.openSync(tmpFile, fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.CREATE);
           imgMap[fileName] = imgFile.fd;
+          let blurFile: fileIo.File | null = null;
           try {
             await fileIo.write(imgFile.fd, data.result as ArrayBuffer);
             let imageDealData = await ImageUtils.getImageDealDataByArr(data.result as ArrayBuffer);
             formData.imageColor = imageDealData.imageColor;
             formData.imageColorHex = imageDealData.imageColorHex;
+            formData.accentColorHex = imageDealData.accentColorHex;
             LogUtil.info(TAG, `updateMusicControlCards imageColorHex: ${imageDealData.imageColorHex.length}`)
+            // 模糊封面落盘成 fd，随 formImages 一起推给卡片（2×4 用作铺底背景）
+            const blurResult = await ImageUtils.writeBlurToTemp(FormUtils.context!, imageDealData.blurPixelMapForCard, 'card');
+            if (blurResult) {
+              blurFile = blurResult.file;
+              imgMap[blurResult.fileName] = blurFile.fd;
+              formData.blurImg = blurResult.fileName;
+            }
             try {
               formData.formImages = imgMap
               formData.imgName = fileName
@@ -138,6 +156,9 @@ class FormUtils {
           } finally {
             // 在fileIo.closeSync执行之前，确保formProvider.updateForm已执行完毕。
             fileIo.closeSync(imgFile);
+            if (blurFile) {
+              fileIo.closeSync(blurFile);
+            }
           }
           ;
         } catch (e) {
@@ -161,6 +182,7 @@ class FormUtils {
     formData.title = songItem.name;
     formData.songId = songItem.id;
     formData.isCollected = songItem?.meta?.isFavorite || false;
+    formData.currentLyric = (AppStorage.get<string>('test_index') as string) || '';
     try {
       let netFile = songItem?.album?.cover + "?param=512y512" ?? "";
       let tempDir = FormUtils.context!.getApplicationContext().tempDir;
@@ -173,12 +195,21 @@ class FormUtils {
         try {
           let imgFile = fileIo.openSync(tmpFile, fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.CREATE);
           imgMap[fileName] = imgFile.fd;
+          let blurFile: fileIo.File | null = null;
           try {
             await fileIo.write(imgFile.fd, data.result as ArrayBuffer);
             let imageDealData = await ImageUtils.getImageDealDataByArr(data.result as ArrayBuffer);
             formData.imageColor = imageDealData.imageColor;
             formData.imageColorHex = imageDealData.imageColorHex;
+            formData.accentColorHex = imageDealData.accentColorHex;
             LogUtil.info(TAG, `updateMusicControlCards imageColorHex: ${imageDealData.imageColorHex.length}`)
+            // 模糊封面落盘成 fd，随 formImages 一起推给卡片（2×4 用作铺底背景）
+            const blurResult = await ImageUtils.writeBlurToTemp(FormUtils.context!, imageDealData.blurPixelMapForCard, 'single');
+            if (blurResult) {
+              blurFile = blurResult.file;
+              imgMap[blurResult.fileName] = blurFile.fd;
+              formData.blurImg = blurResult.fileName;
+            }
             try {
               formData.formImages = imgMap
               formData.imgName = fileName
@@ -192,6 +223,9 @@ class FormUtils {
           } finally {
             // 在fileIo.closeSync执行之前，确保formProvider.updateForm已执行完毕。
             fileIo.closeSync(imgFile);
+            if (blurFile) {
+              fileIo.closeSync(blurFile);
+            }
           }
           ;
         } catch (e) {
@@ -212,47 +246,6 @@ class FormUtils {
     this.updateForm(formId, updateData);
   }
 
-
-  public async updateRecommendedCards(imageUrl: string) {
-    let formList: Array<FormInfo> = await FormRdbHelper.getInstance(FormUtils.context!).queryFormByName('RecommendedMusic');
-    let tempDir = FormUtils.context!.getApplicationContext().tempDir;
-    let fileName = 'file' + Date.now();
-    let tmpFile = tempDir + '/' + fileName + '.jpg';
-    let httpRequest = http.createHttp();
-    let data = await httpRequest.request(imageUrl+'?param=512y512');
-    let imgMap: Record<string, number> = {};
-
-    class FormDataClass {
-      imgBg: string = fileName;
-      formImages: Record<string, number> = imgMap;
-      isLoaded: boolean = true;
-      imageColorHex: string = '';
-    }
-
-    if (data.responseCode === http.ResponseCode.OK) {
-      let imgFile = fileIo.openSync(tmpFile, fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.CREATE);
-      imgMap[fileName] = imgFile.fd;
-      try {
-        let imageBuffer: ArrayBuffer = data.result as ArrayBuffer;
-        let writeLen: number = fileIo.writeSync(imgFile.fd, imageBuffer);
-        let imageDealData = await ImageUtils.getImageDealDataByArr(imageBuffer);
-        LogUtil.info(TAG, `write data to file succeed and size is: ${writeLen}`);
-        LogUtil.info(TAG, `ArkTSCard download complete: ${tmpFile}`);
-        let formData = new FormDataClass();
-        formData.imageColorHex = imageDealData.imageColorHex;
-        formList.forEach(formInfo => {
-          this.updateForm(formInfo.formId, formData);
-        });
-      } catch (err) {
-        LogUtil.error(TAG, `write data to file failed with error: ${JSON.stringify(err)}`);
-      } finally {
-        fileIo.closeSync(imgFile);
-        httpRequest.destroy();
-      }
-    } else {
-      LogUtil.error(TAG, `ArkTSCard download task failed`);
-    }
-  }
 
   private updateForm(formId: string, updateData: object) {
     LogUtil.info(TAG, `updateForm  updateData: ${JSON.stringify(updateData)}}`);

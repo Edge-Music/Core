@@ -125,14 +125,6 @@
       "value": "Service Widget"
     },
     {
-      "name": "widget_display_name_recommended",
-      "value": "Music Recommendations"
-    },
-    {
-      "name": "widget_desc_recommended",
-      "value": "Recommend Music to You"
-    },
-    {
       "name": "widget_display_name_control",
       "value": "Music Control"
     },
@@ -727,6 +719,14 @@
     {
       "name": "sub_window_show_type",
       "value": "Multi Btn Show Type"
+    },
+    {
+      "name": "widget_display_name_lyrics",
+      "value": "Lyrics"
+    },
+    {
+      "name": "widget_desc_lyrics",
+      "value": "Real-time lyrics display"
     }
   ]
 }

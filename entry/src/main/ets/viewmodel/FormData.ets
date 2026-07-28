@@ -16,6 +16,9 @@ export class FormControlData {
   songId: ID = '';
   isCollected: boolean = false;
   imageColorHex:string = '';
+  accentColorHex: string = '';
   imgName: string = '';
+  blurImg: string = '';
+  currentLyric: string = '';
   formImages: Record<string, number> = {};
 }
