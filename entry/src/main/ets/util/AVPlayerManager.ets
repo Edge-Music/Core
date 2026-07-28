@@ -485,6 +485,7 @@ class AVPlayerManager {
             const tempState = this.isPlayingBeforeInterrupt
             await this.stop();
             this.isPlayingBeforeInterrupt = tempState;
+            EventHelper.postSongState('PAUSE');
             break;
 
           case audio.InterruptHint.INTERRUPT_HINT_RESUME:
@@ -498,6 +499,7 @@ class AVPlayerManager {
             // 系统强制停止（永久失去焦点）
             this.isPlayingBeforeInterrupt = false;
             await this.stop();
+            EventHelper.postSongState('PAUSE');
             break;
 
           case audio.InterruptHint.INTERRUPT_HINT_DUCK:
@@ -516,6 +518,7 @@ class AVPlayerManager {
         switch (interruptEvent.hintType) {
           case audio.InterruptHint.INTERRUPT_HINT_PAUSE:
             await this.stop();
+            EventHelper.postSongState('PAUSE');
             break;
           case audio.InterruptHint.INTERRUPT_HINT_RESUME:
             if (this.isPlayingBeforeInterrupt) {
