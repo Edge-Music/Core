@@ -39,6 +39,9 @@ struct PlayControlCardLargeLyrics {
   // 行高（与下方 Text.lineHeight 对齐）
   private readonly LINE_HEIGHT: number = 42;
   @State lyricTranslateY: number = 0;
+  // 切歌按钮缩放动效 trigger：值变化即触发一次 ScaleSymbolEffect
+  @State prevTrigger: number = 0;
+  @State nextTrigger: number = 0;
 
   requestData() {
     ActionUtils.updateControlCardAction(this, this.formId);
@@ -170,13 +173,15 @@ struct PlayControlCardLargeLyrics {
           .layoutWeight(1)
           .alignItems(HorizontalAlign.Start)
         }
-        .width('40%')
+        .width('60%')
 
         Row() {
           SymbolGlyph($r('sys.symbol.backward_end_fill'))
             .fontSize(24)
             .fontColor(['#E5FFFFFF'])
+            .symbolEffect(new ScaleSymbolEffect(EffectScope.WHOLE), this.prevTrigger)
             .onClick(() => {
+              this.prevTrigger++;
               ActionUtils.playByAction(this, PlayActionType.PREVIOUS, this.formId);
             })
 
@@ -196,7 +201,9 @@ struct PlayControlCardLargeLyrics {
           SymbolGlyph($r('sys.symbol.forward_end_fill'))
             .fontSize(24)
             .fontColor(['#E5FFFFFF'])
+            .symbolEffect(new ScaleSymbolEffect(EffectScope.WHOLE), this.nextTrigger)
             .onClick(() => {
+              this.nextTrigger++;
               ActionUtils.playByAction(this, PlayActionType.NEXT, this.formId);
             })
         }
