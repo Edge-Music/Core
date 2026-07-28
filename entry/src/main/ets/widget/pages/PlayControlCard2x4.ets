@@ -39,10 +39,10 @@ struct PlayControlCard2x4 {
   @LocalStorageProp('singer') singer: string = '未知歌手';
   @LocalStorageProp('songId') songId: string = '';
   @LocalStorageProp('isNeedRequestUpdate') @Watch('requestData') isNeedRequestUpdate: boolean = false;
-  @LocalStorageProp('imageColor') imageColor: string = 'rgba(122,162,202,1)';
-  @LocalStorageProp('imageColorHex') imageColorHex: string = '7aa2ca';
-  @LocalStorageProp('accentColor') accentColor: string = 'rgba(216,176,114,1)';
-  @LocalStorageProp('accentColorHex') accentColorHex: string = 'D8B072';
+  @LocalStorageProp('imageColor') imageColor: string = 'rgba(30,30,30,1)';
+  @LocalStorageProp('imageColorHex') imageColorHex: string = '1E1E1E';
+  @LocalStorageProp('accentColor') accentColor: string = 'rgba(60,60,60,1)';
+  @LocalStorageProp('accentColorHex') accentColorHex: string = '3C3C3C';
   @LocalStorageProp('loaded') loaded: boolean = false;
   @LocalStorageProp('currentLyric') currentLyric: string = '';
   @LocalStorageProp('blurImg') blurImg: string = '';
@@ -183,16 +183,18 @@ struct PlayControlCard2x4 {
     .onClick(() => {
       ActionUtils.jumpPlayPage(this);
     })
+    // 未加载时显示干净的深色底
+    .backgroundColor(this.loaded ? 'rgba(0,0,0,0)' : 'rgba(26,26,26,1)')
     // 预模糊封面铺底
     .backgroundImage(this.loaded && this.blurImg ? `memory://${this.blurImg}` : undefined)
     .backgroundImageSize(ImageSize.Cover)
-    // 光感晕 - accent 色从封面区域扩散
+    // 光感晕 - accent 色从封面区域扩散（仅加载后显示）
     .radialGradient({
       center: ['25%', '30%'],
       radius: '65%',
       colors: [
-        [`#${this.accentColorHex}30`, 0.0],
-        [`#${this.accentColorHex}00`, 1.0]
+        [this.loaded ? `#${this.accentColorHex}30` : 'rgba(0,0,0,0)', 0.0],
+        [this.loaded ? `#${this.accentColorHex}00` : 'rgba(0,0,0,0)', 1.0]
       ]
     })
     // scrim 渐变（4-stop，双色，压暗让白字可读）
@@ -200,21 +202,21 @@ struct PlayControlCard2x4 {
       direction: GradientDirection.Bottom,
       repeating: false,
       colors: [
-        [`#${this.imageColorHex}CC`, 0.0],
-        [`#${this.accentColorHex}66`, 0.3],
-        [`#${this.imageColorHex}99`, 0.6],
-        [`#${this.imageColorHex}D9`, 1.0]
+        [this.loaded ? `#${this.imageColorHex}CC` : 'rgba(26,26,26,0.8)', 0.0],
+        [this.loaded ? `#${this.accentColorHex}66` : 'rgba(20,20,20,0.85)', 0.3],
+        [this.loaded ? `#${this.imageColorHex}99` : 'rgba(15,15,15,0.9)', 0.6],
+        [this.loaded ? `#${this.imageColorHex}D9` : 'rgba(10,10,10,0.95)', 1.0]
       ]
     })
     // 玻璃折射边框
     .border({
       width: 1,
-      color: 'rgba(255,255,255,0.18)'
+      color: this.loaded ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.08)'
     })
-    // 氛围投影（封面色发光悬浮）
+    // 氛围投影（封面色发光悬浮，仅加载后显示）
     .shadow({
-      radius: 40,
-      color: `#${this.imageColorHex}50`,
+      radius: this.loaded ? 40 : 0,
+      color: this.loaded ? `#${this.imageColorHex}50` : 'rgba(0,0,0,0)',
       offsetX: 0,
       offsetY: 8
     })

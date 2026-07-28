@@ -719,6 +719,14 @@
     {
       "name": "sub_window_show_type",
       "value": "Multi Btn Show Type"
+    },
+    {
+      "name": "widget_display_name_lyrics",
+      "value": "Lyrics"
+    },
+    {
+      "name": "widget_desc_lyrics",
+      "value": "Real-time lyrics display"
     }
   ]
 }

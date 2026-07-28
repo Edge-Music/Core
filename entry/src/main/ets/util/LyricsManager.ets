@@ -52,7 +52,7 @@ class LyricsManager {
       AppStorage.setOrCreate<number>('current_lyrics_index', 0)
       this.currentSongName = tmpSongName
       FormUtils.updateCardCurrentLyrics(tmpSongName)
-      // FormUtils.updateCardLyricsIndex(this.currentIndex)
+      FormUtils.updateCardLyricsIndex(this.currentIndex)
       AppStorage.setOrCreate<string>('test_index', tmpSongName)
       AppStorage.setOrCreate<LyricsLine>('current_line_lyrics', lyricsLine)
       if(EventHelper.getPipLyricListenerCount() > 0){
@@ -150,7 +150,7 @@ class LyricsManager {
     AppStorage.setOrCreate<boolean>('current_lyrics_has_translation', this.hasTranslation)
     AppStorage.setOrCreate<boolean>('current_lyrics_has_transliteration', this.hasTransliteration)
     AppStorage.setOrCreate<Array<LyricsLine>>('current_parsed_lyrics', this.parsedLyrics)
-    // FormUtils.updateCardLyrics(this.parsedLyrics)
+    FormUtils.updateCardLyrics(this.parsedLyrics)
     LogUtil.info(`[${TAG}]`, `完成解析[${this.song?.name}]歌词`)
     LogUtil.info(`[${TAG}]`, `歌词：${JSON.stringify(this.parsedLyrics)}`)
   }
@@ -284,7 +284,7 @@ class LyricsManager {
             AppStorage.setOrCreate<LyricsLine>('current_line_lyrics', this.parsedLyrics[this.currentIndex])
             this.setPipLyrics()
             AppStorage.setOrCreate<number>('current_lyrics_index', this.currentIndex)
-            // FormUtils.updateCardLyricsIndex(this.currentIndex)
+            FormUtils.updateCardLyricsIndex(this.currentIndex)
             FormUtils.updateCardCurrentLyrics(this.parsedLyrics[this.currentIndex].text)
             if(EventHelper.getPipLyricListenerCount() > 0) {
               EventHelper.postPipLyric(this.parsedLyrics[this.currentIndex].text)
@@ -301,7 +301,7 @@ class LyricsManager {
             AppStorage.setOrCreate<LyricsLine>('current_line_lyrics', this.parsedLyrics[this.currentIndex])
             this.setPipLyrics()
             AppStorage.setOrCreate<number>('current_lyrics_index', this.currentIndex)
-            // FormUtils.updateCardLyricsIndex(this.currentIndex)
+            FormUtils.updateCardLyricsIndex(this.currentIndex)
             FormUtils.updateCardCurrentLyrics(this.parsedLyrics[this.currentIndex].text)
             if(EventHelper.getPipLyricListenerCount() > 0) {
               EventHelper.postPipLyric(this.parsedLyrics[this.currentIndex].text)

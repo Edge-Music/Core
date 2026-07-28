@@ -62,6 +62,27 @@
       "supportDimensions": [
         "2*4"
       ]
+    },
+    {
+      "name": "PlayControlCardLargeLyrics",
+      "displayName": "$string:widget_display_name_lyrics",
+      "description": "$string:widget_desc_lyrics",
+      "src": "./ets/widget/pages/PlayControlCardLargeLyrics.ets",
+      "uiSyntax": "arkts",
+      "window": {
+        "designWidth": 720,
+        "autoDesignWidth": true
+      },
+      "colorMode": "auto",
+      "isDynamic": true,
+      "isDefault": false,
+      "updateEnabled": false,
+      "scheduledUpdateTime": "10:30",
+      "updateDuration": 1,
+      "defaultDimension": "2*4",
+      "supportDimensions": [
+        "2*4"
+      ]
     }
   ]
 }

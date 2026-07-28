@@ -63,7 +63,10 @@ class FormUtils {
     }
 
     let data = new CardLyricsUpdateData();
+    // 更新所有歌词相关卡片（PlayControlCardWithLyrics + PlayControlCardLargeLyrics）
     let formList: Array<FormInfo> = await FormRdbHelper.getInstance(FormUtils.context!).queryFormByName('PlayControlCardWithLyrics');
+    let largeLyricsList: Array<FormInfo> = await FormRdbHelper.getInstance(FormUtils.context!).queryFormByName('PlayControlCardLargeLyrics');
+    formList = formList.concat(largeLyricsList);
     LogUtil.info(TAG, `updateCardPlayLyrics formList length:  ${formList.length}`);
     formList.forEach(formInfo => {
       this.updateForm(formInfo.formId, data);
@@ -76,7 +79,10 @@ class FormUtils {
     }
 
     let data = new CardLyricsUpdateData();
+    // 更新所有歌词相关卡片（PlayControlCardWithLyrics + PlayControlCardLargeLyrics）
     let formList: Array<FormInfo> = await FormRdbHelper.getInstance(FormUtils.context!).queryFormByName('PlayControlCardWithLyrics');
+    let largeLyricsList: Array<FormInfo> = await FormRdbHelper.getInstance(FormUtils.context!).queryFormByName('PlayControlCardLargeLyrics');
+    formList = formList.concat(largeLyricsList);
     LogUtil.info(TAG, `updateCardPlayLyricsIndex formList length:  ${formList.length}`);
     formList.forEach(formInfo => {
       this.updateForm(formInfo.formId, data);
@@ -90,6 +96,8 @@ class FormUtils {
 
     let data = new CardCurrentLyricsUpdateData();
     let formList: Array<FormInfo> = await FormRdbHelper.getInstance(FormUtils.context!).queryFormByName('PlayControlCard2x4');
+    let largeLyricsList: Array<FormInfo> = await FormRdbHelper.getInstance(FormUtils.context!).queryFormByName('PlayControlCardLargeLyrics');
+    formList = formList.concat(largeLyricsList);
     LogUtil.info(TAG, `updateCardCurrentLyrics formList length:  ${formList.length}`);
     formList.forEach(formInfo => {
       this.updateForm(formInfo.formId, data);
@@ -104,6 +112,7 @@ class FormUtils {
     formData.title = songItem.name;
     formData.songId = songItem.id;
     formData.isCollected = songItem?.meta?.isFavorite || false;
+    formData.currentLyric = (AppStorage.get<string>('test_index') as string) || '';
     LogUtil.info(TAG, `updateMusicControlCards isPlay:${isPlay}, songItem:${JSON.stringify(songItem)}`);
     try {
       let netFile = songItem?.album?.cover + "?param=512y512" ?? "";
@@ -123,6 +132,7 @@ class FormUtils {
             let imageDealData = await ImageUtils.getImageDealDataByArr(data.result as ArrayBuffer);
             formData.imageColor = imageDealData.imageColor;
             formData.imageColorHex = imageDealData.imageColorHex;
+            formData.accentColorHex = imageDealData.accentColorHex;
             LogUtil.info(TAG, `updateMusicControlCards imageColorHex: ${imageDealData.imageColorHex.length}`)
             // 模糊封面落盘成 fd，随 formImages 一起推给卡片（2×4 用作铺底背景）
             const blurResult = await ImageUtils.writeBlurToTemp(FormUtils.context!, imageDealData.blurPixelMapForCard, 'card');
@@ -172,6 +182,7 @@ class FormUtils {
     formData.title = songItem.name;
     formData.songId = songItem.id;
     formData.isCollected = songItem?.meta?.isFavorite || false;
+    formData.currentLyric = (AppStorage.get<string>('test_index') as string) || '';
     try {
       let netFile = songItem?.album?.cover + "?param=512y512" ?? "";
       let tempDir = FormUtils.context!.getApplicationContext().tempDir;
@@ -190,6 +201,7 @@ class FormUtils {
             let imageDealData = await ImageUtils.getImageDealDataByArr(data.result as ArrayBuffer);
             formData.imageColor = imageDealData.imageColor;
             formData.imageColorHex = imageDealData.imageColorHex;
+            formData.accentColorHex = imageDealData.accentColorHex;
             LogUtil.info(TAG, `updateMusicControlCards imageColorHex: ${imageDealData.imageColorHex.length}`)
             // 模糊封面落盘成 fd，随 formImages 一起推给卡片（2×4 用作铺底背景）
             const blurResult = await ImageUtils.writeBlurToTemp(FormUtils.context!, imageDealData.blurPixelMapForCard, 'single');

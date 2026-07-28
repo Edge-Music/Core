@@ -719,6 +719,14 @@
     {
       "name": "sub_window_show_type",
       "value": "悬浮按钮展示"
+    },
+    {
+      "name": "widget_display_name_lyrics",
+      "value": "歌词卡片"
+    },
+    {
+      "name": "widget_desc_lyrics",
+      "value": "实时歌词显示播控卡片"
     }
   ]
 }
