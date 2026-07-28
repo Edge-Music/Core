@@ -153,7 +153,11 @@ struct Index {
       // 主动解析一次歌词：AVPlayerManager 仅在真正播放（player initialized）时才调 init，
       // 被动展示需在此触发，否则歌词为空。lastSong 已带 meta.lyric，可离线解析。
       LyricsManager.init()
-      EventHelper.postPlaySong([lastSong, true])
+      // 仅在没有已 prepare 的播放源时才恢复上一首（暂停态）。
+      // 卡片后台起播后再开 App 时已有活跃管线，重 prepare 会把正在播放的歌拆掉并暂停。
+      if (!avPlayerManager.getCurrentDecoder()) {
+        EventHelper.postPlaySong([lastSong, true])
+      }
     }
     // 供服务卡片/深链跳转读取的导航栈
     AppStorage.setOrCreate('pageStack', this.pageStack)

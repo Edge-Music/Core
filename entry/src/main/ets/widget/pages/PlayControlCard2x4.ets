@@ -47,6 +47,10 @@ struct PlayControlCard2x4 {
   @LocalStorageProp('currentLyric') currentLyric: string = '';
   @LocalStorageProp('blurImg') blurImg: string = '';
 
+  // 切歌按钮缩放动效 trigger：值变化即触发一次 ScaleSymbolEffect
+  @State prevTrigger: number = 0;
+  @State nextTrigger: number = 0;
+
   requestData() {
     ActionUtils.updateControlCardAction(this, this.formId);
   }
@@ -144,7 +148,9 @@ struct PlayControlCard2x4 {
         SymbolGlyph($r('sys.symbol.backward_end_fill'))
           .fontSize(30)
           .fontColor(['#E5FFFFFF'])
+          .symbolEffect(new ScaleSymbolEffect(EffectScope.WHOLE), this.prevTrigger)
           .onClick(() => {
+            this.prevTrigger++;
             ActionUtils.playByAction(this, PlayActionType.PREVIOUS, this.formId);
           })
 
@@ -167,7 +173,9 @@ struct PlayControlCard2x4 {
         SymbolGlyph($r('sys.symbol.forward_end_fill'))
           .fontSize(30)
           .fontColor(['#E5FFFFFF'])
+          .symbolEffect(new ScaleSymbolEffect(EffectScope.WHOLE), this.nextTrigger)
           .onClick(() => {
+            this.nextTrigger++;
             ActionUtils.playByAction(this, PlayActionType.NEXT, this.formId);
           })
       }

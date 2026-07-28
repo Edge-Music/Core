@@ -113,11 +113,13 @@ export default class EntryAbility extends UIAbility {
     PreferencesCache.convertPlaylistData()
   }
 
-  onDestroy(): void {
+  async onDestroy(): Promise<void> {
     LogUtil.info(`[${TAG}]`, 'Ability onDestroy');
     PipManager.getInstance().setAutoStart(false)
     PreferencesCache.setUserPreference('Lyic_desktop','0')
-    FormUtils.updateCardPlayStatus(false);
+    // 先把卡片状态置为暂停并等待推送派发完成，再销毁播放器；
+    // 否则销毁/杀进程会与异步推送竞态，导致清后台后卡片仍显示播放态。
+    await FormUtils.updateCardPlayStatus(false);
     avPlayerManager.destroy()
     sensor.off(sensor.SensorId.BAROMETER);
     LogUtil.info(`[${TAG}]`, `avPlayer&avSession has been destroyed: ${avPlayerManager.avPlayer?.getState()}`);

@@ -30,57 +30,115 @@ struct PlayControlCardLargeLyrics {
   @LocalStorageProp('loaded') loaded: boolean = false;
   @LocalStorageProp('blurImg') blurImg: string = '';
   @LocalStorageProp('parsedLyrics') parsedLyrics: LyricsLineData[] = [];
-  @LocalStorageProp('currentLyricsIndex') currentLyricsIndex: number = 0;
+  @LocalStorageProp('currentLyricsIndex') @Watch('onLyricIndexChange') currentLyricsIndex: number = 0;
+
+  // 卡片（form widget）是受限 ArkUI 子集，不支持 Scroller / scrollToIndex / ScrollAlign /
+  // enableScrollInteraction。这里用 translate + animation 手动实现「逐行向上滑动」：
+  // 渲染整列歌词，整体 translate 上移「当前行 × 行高」，当前行自然落到视觉中段并高亮；
+  // .animation() 把 translate 变化插值成平滑动画。
+  // 行高（与下方 Text.lineHeight 对齐）
+  private readonly LINE_HEIGHT: number = 42;
+  @State lyricTranslateY: number = 0;
+  // 切歌按钮缩放动效 trigger：值变化即触发一次 ScaleSymbolEffect
+  @State prevTrigger: number = 0;
+  @State nextTrigger: number = 0;
 
   requestData() {
     ActionUtils.updateControlCardAction(this, this.formId);
   }
 
-  getLyricText(offset: number): string {
-    if (!this.parsedLyrics || this.parsedLyrics.length === 0) {
-      return offset === 0 ? (this.title ? `${this.title} - ${this.singer}` : '') : '';
+  onLyricIndexChange() {
+    if (this.currentLyricsIndex >= 0) {
+      // 每推进一行，整列上移一个行高，当前行落到高亮位
+      console.log(`zt Lyric parsedLyrics: ${JSON.stringify(this.parsedLyrics)}
+        ${JSON.stringify(this.currentLyricsIndex)}
+      `);
+      this.lyricTranslateY = -this.currentLyricsIndex * this.LINE_HEIGHT;
     }
-    const index = this.currentLyricsIndex + offset;
-    if (index < 0 || index >= this.parsedLyrics.length) {
-      return '';
-    }
-    return this.parsedLyrics[index]?.text || '';
+  }
+
+  // 分级字号：当前行最大，越远越小
+  private lineFontSize(index: number): number {
+    const d = Math.abs(index - this.currentLyricsIndex);
+    if (d === 0) return 18;
+    if (d === 1) return 15;
+    if (d === 2) return 15;
+    return 13;
+  }
+
+  // 分级透明度：当前行不透明，越远越淡
+  private lineOpacity(index: number): number {
+    const d = Math.abs(index - this.currentLyricsIndex);
+    if (d === 0) return 1;
+    if (d === 1) return 0.6;
+    if (d === 2) return 0.35;
+    return 0.18;
+  }
+
+  private lineColor(index: number): ResourceColor {
+    return index === this.currentLyricsIndex ? Color.White : '#B3FFFFFF';
   }
 
   build() {
     Column() {
       // 歌词区域（上方主体，layoutWeight 撑满剩余空间）
-      Column() {
-        Text(this.getLyricText(0))
-          .fontSize(24)
-          .fontWeight(700)
-          .fontColor(Color.White)
-          .lineHeight(28)
-          .maxLines(2)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      if (this.parsedLyrics.length === 0) {
+        Column() {
+          Text(this.title ? `${this.title} - ${this.singer}` : '')
+            .fontSize(24)
+            .fontWeight(700)
+            .fontColor(Color.White)
+            .lineHeight(28)
+            .maxLines(2)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .width('100%')
+            .textShadow({
+              radius: 8,
+              color: `#${this.accentColorHex}40`,
+              offsetX: 0,
+              offsetY: 0
+            })
+        }
+        .layoutWeight(1)
+        .width('100%')
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Start)
+        .padding({ left: 16, right: 16, bottom: 10 })
+      } else {
+        // 单层 Stack 裁剪窗。translateY = -currentLyricsIndex × 行高 把当前行顶到
+        // 裁剪窗上沿（y=0）：上一行被推到 y<0 裁掉，下一条在 y=行高 处露出。
+        // 不加顶部 padding（会吃掉窗口高度、只剩一行）；横向 padding 不影响行数。
+        Stack() {
+          Column() {
+            ForEach(this.parsedLyrics, (line: LyricsLineData, index: number) => {
+              Text(line.text)
+                .fontSize(this.lineFontSize(index))
+                .fontWeight(index === this.currentLyricsIndex ? 700 : 500)
+                .fontColor(this.lineColor(index))
+                .opacity(this.lineOpacity(index))
+                .lineHeight(this.LINE_HEIGHT)
+                .maxLines(1)
+                .textOverflow({ overflow: TextOverflow.Ellipsis })
+                .textAlign(TextAlign.Center)
+                .width('100%')
+                .textShadow(index === this.currentLyricsIndex ? {
+                  radius: 8,
+                  color: `#${this.accentColorHex}40`,
+                  offsetX: 0,
+                  offsetY: 0
+                } : { radius: 0, color: Color.Transparent, offsetX: 0, offsetY: 0 })
+            }, (line: LyricsLineData) => `${line.time}_${line.text}`)
+          }
           .width('100%')
-          .textShadow({
-            radius: 8,
-            color: `#${this.accentColorHex}40`,
-            offsetX: 0,
-            offsetY: 0
-          })
-
-        Text(this.getLyricText(1))
-          .fontSize(13)
-          .fontWeight(700)
-          .fontColor('#99FFFFFF')
-          .lineHeight(30)
-          .margin({ top: 12 })
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .width('100%')
+          .alignItems(HorizontalAlign.Center)
+          .translate({ y: this.lyricTranslateY })
+          .animation({ duration: 450, curve: Curve.EaseInOut })
+        }
+        .layoutWeight(1)
+        .width('100%')
+        .clip(true)
+        .padding({ left: 16, right: 16, bottom: 10 })
       }
-      .layoutWeight(1)
-      .width('100%')
-      .justifyContent(FlexAlign.Center)
-      .alignItems(HorizontalAlign.Start)
-      .padding({ left: 16, right: 16, bottom: 10 })
 
       // 底部控制栏
       Row() {
@@ -115,13 +173,15 @@ struct PlayControlCardLargeLyrics {
           .layoutWeight(1)
           .alignItems(HorizontalAlign.Start)
         }
-        .width('40%')
+        .width('60%')
 
         Row() {
           SymbolGlyph($r('sys.symbol.backward_end_fill'))
             .fontSize(24)
             .fontColor(['#E5FFFFFF'])
+            .symbolEffect(new ScaleSymbolEffect(EffectScope.WHOLE), this.prevTrigger)
             .onClick(() => {
+              this.prevTrigger++;
               ActionUtils.playByAction(this, PlayActionType.PREVIOUS, this.formId);
             })
 
@@ -141,7 +201,9 @@ struct PlayControlCardLargeLyrics {
           SymbolGlyph($r('sys.symbol.forward_end_fill'))
             .fontSize(24)
             .fontColor(['#E5FFFFFF'])
+            .symbolEffect(new ScaleSymbolEffect(EffectScope.WHOLE), this.nextTrigger)
             .onClick(() => {
+              this.nextTrigger++;
               ActionUtils.playByAction(this, PlayActionType.NEXT, this.formId);
             })
         }
