@@ -29,6 +29,11 @@ export class PlaylistManager {
   private _playMode: PlayMode = PlayMode.LOOP;
   private _rawPlaylist: Array<Song> = [];
   private _lastAction: PlayAction | null = null;
+  // 最近一次切歌请求的目标歌曲（同步更新），用于快速连切时计算下一首/上一首的基准，
+  // 避免依赖滞后的 AppStorage.current_playing_song 反查索引
+  private _targetSong: Song | null = null;
+  // 切歌请求序号：每次 playSong 自增，仅最新请求允许真正起播/写 UI 状态
+  private static playSeq: number = 0;
 
   private constructor() {
 
@@ -56,7 +61,17 @@ export class PlaylistManager {
       delayTime = 750
     }
 
+    // 同步记录本次请求：序号 + 目标歌曲（供 playNext/playPrevious 立即拿到新基准）
+    const seq = ++PlaylistManager.playSeq;
+    PlaylistManager.getInstance()._targetSong = song;
+
     setTimeout(async () => {
+      // 快速连切时只让最后一次请求生效，过期请求直接丢弃，
+      // 防止中间每一首都写一遍 current_playing_song 造成 UI 反复跳动
+      if (seq !== PlaylistManager.playSeq) {
+        LogUtil.info("PlaylistManager ", "playSong ", "drop stale request, seq ", seq.toString())
+        return
+      }
       try {
         // 获取当前播放的歌曲
         const currentSong = AppStorage.get<Song>("current_playing_song")
@@ -89,7 +104,7 @@ export class PlaylistManager {
           SongItem.sourceID =song.sourceID;
         }
         // 获取歌曲信息
-        EventHelper.postPlaySong([song, pause]) // 发送播放歌曲事件
+        EventHelper.postPlaySong([song, pause, seq]) // 发送播放歌曲事件（携带序号，供接收方丢弃过期结果）
       } catch (error) {
         LogUtil.error("AVPlayerManager ", "playSong ", "Error: ", error.message)
       }
@@ -293,7 +308,8 @@ export class PlaylistManager {
    */
   private getCurrentIndex(): number {
     const instance = PlaylistManager.getInstance();
-    const currentSong = AppStorage.get<Song>("current_playing_song");
+    // 优先以最近一次切歌请求的目标歌曲为基准，AppStorage 中的值在延迟起播期间是滞后的
+    const currentSong = instance._targetSong ?? AppStorage.get<Song>("current_playing_song");
     if (!currentSong && instance._playlist.length === 0) {
       return -2;
     } else if (!currentSong) {

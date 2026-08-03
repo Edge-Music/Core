@@ -238,14 +238,27 @@ const playSong = async (song: Song, path: string, cached: boolean, pause: boolea
   });
 }
 
+// 最近一次起播请求的序号（来自 PlaylistManager.playSeq，随事件携带）。
+// 加载链上的所有异步结果落地前都必须通过时效校验，丢弃过期请求的结果，
+// 防止快速切歌时晚到的旧数据覆盖 current_playing_song，造成歌名与实际播放不一致
+let latestPlaySeq = 0;
+
 // 让主线程代码好看一点，所以写在这里
-const defaultPlaySongCallback = async (data: [Song, boolean]) => {
+const defaultPlaySongCallback = async (data: [Song, boolean, number?]) => {
 
   const song = data[0];
   const pause = data[1]; // 是否暂停
+  const seq = data[2] !== undefined ? data[2] : latestPlaySeq + 1; // 未携带序号的旧调用方按顺序递增
+  latestPlaySeq = seq;
+  const isStale = (): boolean => seq !== latestPlaySeq;
   try {
     // 使用文件优先级判断逻辑
     const optimalFile = await getOptimalFilePath(song);
+
+    if (isStale()) {
+      LogUtil.info("EventHelper ", "defaultPlaySongCallback ", "drop stale request, seq ", seq.toString());
+      return;
+    }
 
     if (optimalFile) {
       // 找到了本地文件（缓存或下载）
@@ -287,7 +300,8 @@ const defaultPlaySongCallback = async (data: [Song, boolean]) => {
       await playSong(optimalFile.song, optimalFile.filePath, optimalFile.fileType !== 'none', pause);
       // 尝试访问一遍最新数据，但不缓存歌曲文件
       SourceAdapter.getSongDetail(optimalFile.song).then((latestSong) => {
-        if(latestSong != null){
+        // 晚到的旧请求结果直接丢弃，避免覆盖正在播放歌曲的信息
+        if (latestSong != null && !isStale()) {
           AppStorage.setOrCreate("current_playing_song", latestSong);
           PreferencesCache.lastSong(latestSong);
         }
@@ -301,6 +315,10 @@ const defaultPlaySongCallback = async (data: [Song, boolean]) => {
       LogUtil.info("EventHelper ", "defaultPlaySongCallback ", "No complete local file, playing by URL...");
 
       const detailed = await SourceAdapter.getSongDetail(song);
+      if (isStale()) {
+        LogUtil.info("EventHelper ", "defaultPlaySongCallback ", "drop stale song detail, seq ", seq.toString());
+        return;
+      }
       AppStorage.setOrCreate("current_playing_song", detailed);
       PreferencesCache.lastSong(detailed);
 
@@ -324,8 +342,8 @@ const defaultPlaySongCallback = async (data: [Song, boolean]) => {
 
 
 export class EventHelper {
-  public static subscribePlaySong(callback?: (data: [Song, boolean]) => void) {
-    EmitterUtil.onSubscribe<[Song, boolean]>("on_playing_song", (data) => {
+  public static subscribePlaySong(callback?: (data: [Song, boolean, number?]) => void) {
+    EmitterUtil.onSubscribe<[Song, boolean, number?]>("on_playing_song", (data) => {
       if (callback) {
         callback(data);
       } else {
@@ -334,7 +352,7 @@ export class EventHelper {
     });
   }
 
-  public static postPlaySong(data: [Song, boolean]) {
+  public static postPlaySong(data: [Song, boolean, number?]) {
     EmitterUtil.post("on_playing_song", data);
   }
 

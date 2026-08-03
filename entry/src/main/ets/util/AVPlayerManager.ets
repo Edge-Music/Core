@@ -15,7 +15,7 @@ import { window } from '@kit.ArkUI';
 import WindowUtil from './WindowUtil';
 import { commonEventManager,BusinessError } from '@kit.BasicServicesKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { notificationManager } from '@kit.NotificationKit';
+// import { notificationManager } from '@kit.NotificationKit';
 import { AudioRendererPlayer,
   DecodeAudioProgress,
   PcmDecoderTool, PcmStreamDecoder, PcmStreamInfo } from '@ospark/free-pcm';
@@ -942,6 +942,13 @@ class AVPlayerManager {
         return;
       }
 
+      // 幂等保护：正在播放时重复 play() 会重启 AudioRenderer 并重新从已被消费的
+      // 解码器拉流，导致无声卡死（如歌单中再次点击正在播放的歌曲）
+      if (player.getState() === audio.AudioState.STATE_RUNNING) {
+        LogUtil.info("AVPlayerManager", "play", "Already playing, ignoring play()");
+        return;
+      }
+
       if (fadeInOutEnabled === '1') {
         await this.fadeIn();
       } else {
@@ -981,172 +988,8 @@ class AVPlayerManager {
       if (PreferencesCache.statusBarLyricsSetting().open) {
         WindowUtil.createLyricsFloatWindow()
       }
-      let playing_mix: string =  PreferencesCache.getUserPreference('playing_mix','0')
-      // const player = await this.getAVPlayerInstance();
-      let playing_judge:boolean = player.getState() === audio.AudioState.STATE_RUNNING
-
-      if (playing_mix==='1') {
-        let audioManager = audio.getAudioManager();
-        let audioStreamManager = audioManager.getStreamManager();
-        try {
-          audioStreamManager.on('audioRendererChange', (changeInfoArray) => {
-            changeInfoArray.forEach((value)=>{
-              console.log('jizhishi0113'+JSON.stringify(value))
-            })
-
-            // 检查变化后的音频流数量
-            // AppStorage.setOrCreate('playing_judge',false)
-            if (changeInfoArray.length > 1&&AppStorage.get<boolean>('playing_judge')) {
-
-              {
-                let AppBundleName:string = 'zone.yby.seamusic_3' //TODO::这里包名记得与APP包名一致
-                let EventChangePlay:string = 'EdgeMusic_Playing' //公共事件名称
-                let wantAgentObj: WantAgent; // 用于保存创建成功的WantAgent对象，后续使用其完成触发的动作。
-                // 通过WantAgentInfo的operationType设置动作类型
-                let wantAgentInfo: wantAgent.WantAgentInfo = {
-                  wants: [
-                    {
-                      // deviceId: '',
-                      bundleName: AppBundleName, // 需要替换为对应的bundleName。
-                      abilityName: 'EntryAbility', // 需要替换为对应的abilityName。
-                      action: EventChangePlay,
-                      parameters: {
-                        "type":'Playing'
-                      }
-                    }
-                  ],
-                  actionType: wantAgent.OperationType.SEND_COMMON_EVENT,
-                  requestCode: 0,
-                  actionFlags: [wantAgent.WantAgentFlags.CONSTANT_FLAG]
-                };
-
-                wantAgent.getWantAgent(wantAgentInfo, (err: BusinessError, data: WantAgent) => {
-                  if (err) {
-                    hilog.error(0xFF00, TAG,
-                      `Failed to get want agent. Code is ${err.code}, message is ${err.message}`);
-                    return;
-                  }
-                  hilog.info(0xFF00, TAG, 'Succeeded in getting want agent.');
-                  wantAgentObj = data;
-                  let notificationRequest: notificationManager.NotificationRequest = {
-                    id: 11451419,
-                    groupName:'jizhishi',
-                    updateOnly:true,
-                    // notificationSlotType:notificationManager.SlotType.CONTENT_INFORMATION,
-                    content: {
-
-                      notificationContentType: notificationManager.ContentType.NOTIFICATION_CONTENT_BASIC_TEXT, // 普通文本类型通知
-                      normal: {
-                        title: "正在运行播放任务",
-                        text: "点击通知，在下方按钮下暂停音乐",
-                        // additionalText: "test_additionalText"
-                      }
-                    }
-                  ,
-                    actionButtons: [
-                      {
-                        title: '暂停',
-                        wantAgent: wantAgentObj
-                      }
-                    ]
-                  };
-                  notificationManager.publish(notificationRequest, (err: BusinessError) => {
-                    if (err) {
-                      hilog.error(0x0001, TAG, `Failed to publish notification. Code is ${err.code}, message is ${err.message}`);
-                      let notificationRequest: notificationManager.NotificationRequest = {
-                        id: 11451419,
-                        // groupName:'jizhishi',
-                        notificationSlotType:notificationManager.SlotType.SERVICE_INFORMATION,
-                        content: {
-
-                          notificationContentType: notificationManager.ContentType.NOTIFICATION_CONTENT_BASIC_TEXT, // 普通文本类型通知
-                          normal: {
-                            title: "正在运行播放任务",
-                            text: "点击通知，在下方按钮下暂停音乐",
-                            // additionalText: "test_additionalText"
-                          }
-                        }
-                      ,
-                        actionButtons: [
-                          {
-                            title: '暂停',
-                            wantAgent: wantAgentObj
-                          }
-                        ]
-                      };
-                      notificationManager.publish(notificationRequest, (err: BusinessError) => {
-                        if (err) {
-                          hilog.error(0x0001, TAG, `Failed to publish notification. Code is ${err.code}, message is ${err.message}`);
-                          return;
-                        }
-                        hilog.info(0x0001, TAG, 'Succeeded in publishing notification.');
-                      });
-                      // return;
-                    }
-                    hilog.info(0x0001, TAG, 'Succeeded in publishing notification.');
-                  });
 
 
-                  // ...
-                });
-                //事件订阅部分
-                let subscriberCustom: commonEventManager.CommonEventSubscriber | null = null;
-                let subscribeInfoCustom: commonEventManager.CommonEventSubscribeInfo = {
-                  events: [EventChangePlay], // 订阅的自定义事件名称
-                  publisherBundleName:AppBundleName //限制包名为本应用
-                  // 可选安全限制（二选一）：
-                  // publisherPermissions: ["permission.APPROVE_ORDER"], // 限制发布者权限
-                  // publisherBundleName: "com.example.sender" // 限制发布者包名
-                };
-
-                commonEventManager.createSubscriber(subscribeInfoCustom,
-                  (err: BusinessError, data: commonEventManager.CommonEventSubscriber) => {
-                    if (err) {
-                      hilog.error(0xFF00, TAG,
-                        `Failed to create subscriber. Code is ${err.code}, message is ${err.message}`);
-                      return;
-                    }
-                    hilog.info(0xFF00, TAG, 'Succeeded in creating subscriber.');
-                    subscriberCustom = data;
-                    if (subscriberCustom !== null) {
-
-                      commonEventManager.subscribe(subscriberCustom,
-                        (err: BusinessError, data: commonEventManager.CommonEventData) => {
-                          if (err) {
-                            hilog.error(0xFF00, TAG,
-                              `Failed to subscribe common event. Code is ${err.code}, message is ${err.message}`);
-                            return;
-                          }
-                          hilog.info(0xFF00, TAG, `Succeeded in subscribing, data is ${JSON.stringify(data)}`);
-                          AppStorage.setOrCreate('playing_judge',false)
-                          avPlayerManager.avPlayer?.pause().catch(()=>{
-                            avPlayerManager.avPlayer?.pause()
-                          })
-                          //暂停后关闭监听
-                          if (subscriberCustom !== null) {
-                            commonEventManager.unsubscribe(subscriberCustom, (err: BusinessError) => {
-                              if (err) {
-                                hilog.error(0xFF00, TAG,
-                                  `Failed to unsubscribe. code is ${err.code}, message is ${err.message}`);
-                              } else {
-                                hilog.info(0xFF00, TAG, `Succeeded in unsubscribing.`);
-                                subscriberCustom = null;
-                              }
-                            })
-                          }
-
-                        })
-                    } else {
-                      hilog.error(0xFF00, TAG, `Need create subscriber`);
-                    }
-                  })
-              }
-            }
-          });
-        } catch (error) {
-          // TODO: Implement error handling.
-        }
-      }
     } catch (error) {
       this.triggerError(error);
     }
@@ -1293,6 +1136,20 @@ class AVPlayerManager {
     const player = await this.getAVPlayerInstance();
 
     if (!this.prepared || !this.currentDecoder || !this.currentStreamInfo) {
+      return;
+    }
+
+    // 幂等保护：正在播放时不要重复 play()（会重启 renderer 并重新从已被消费的
+    // 解码器拉流导致卡死）；淡出定时器已在上面清除，这里只需把音量恢复到目标值
+    if (player.getState() === audio.AudioState.STATE_RUNNING) {
+      const maxVol = Number(PreferencesCache.getUserPreference('Volume', '100')) / 100;
+      this.desiredVolume = Math.max(0, Math.min(1, maxVol));
+      this.currentVolume = this.desiredVolume;
+      try {
+        await player.setVolume(this.desiredVolume)
+      } catch (e) {
+        // ignore
+      }
       return;
     }
 
