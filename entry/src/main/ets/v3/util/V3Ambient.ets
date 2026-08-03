@@ -7,9 +7,11 @@ import { http } from '@kit.NetworkKit'
 import { image } from '@kit.ImageKit'
 import { BusinessError } from '@kit.BasicServicesKit'
 import { deviceInfo } from '@kit.BasicServicesKit'
+import { ConfigurationConstant } from '@kit.AbilityKit'
 import { ColorExtractor, ExtractedColor } from '../../util/ColorExtractor'
 import { cover } from '../../util/AdapterHelper'
 import { PreferencesCache } from '../../util/PreferenceCache'
+import { ContextHelper } from '../../util/ContextHelper'
 import { V3Color, V3AmbientKey } from '../theme/Tokens'
 
 interface RGB {
@@ -60,7 +62,7 @@ export class V3Ambient {
           const accent: string = V3Ambient.pickAccent(colors)
           V3Ambient.apply(accent)
           // 跟随封面明度决定深/浅主题（设计规范 §2.3），但尊重用户手动覆盖
-          AppStorage.setOrCreate(V3AmbientKey.MODE, V3Ambient.resolveMode(V3Ambient.detectMode(colors)))
+          V3Ambient.applyMode(V3Ambient.resolveMode(V3Ambient.detectMode(colors)))
         }).catch(() => {
           V3Ambient.applyFallback()
         })
@@ -116,6 +118,19 @@ export class V3Ambient {
     }
   }
 
+  /** 写入主题模式，并同步应用级颜色模式（状态栏/导航栏/系统弹窗等随之切换深浅色） */
+  private static applyMode(mode: string): void {
+    AppStorage.setOrCreate(V3AmbientKey.MODE, mode)
+    try {
+      const appCtx = ContextHelper.getContext()?.getApplicationContext()
+      appCtx?.setColorMode(mode === 'light'
+        ? ConfigurationConstant.ColorMode.COLOR_MODE_LIGHT
+        : ConfigurationConstant.ColorMode.COLOR_MODE_DARK)
+    } catch (e) {
+      // context 未就绪时仅更新应用内主题，忽略应用级同步
+    }
+  }
+
   private static apply(accent: string): void {
     const rgb: RGB | null = V3Ambient.hexToRgb(accent)
     const glow: string = rgb ? `rgba(${rgb.r},${rgb.g},${rgb.b},0.60)` : V3Color.ACCENT_GLOW
@@ -126,7 +141,7 @@ export class V3Ambient {
   private static applyFallback(): void {
     AppStorage.setOrCreate(V3AmbientKey.ACCENT, V3Color.ACCENT_FALLBACK)
     AppStorage.setOrCreate(V3AmbientKey.GLOW, V3Color.ACCENT_GLOW)
-    AppStorage.setOrCreate(V3AmbientKey.MODE, V3Ambient.resolveMode('dark'))
+    V3Ambient.applyMode(V3Ambient.resolveMode('dark'))
   }
 
   /** 主题覆盖：v3_theme_override = 'auto'(跟随封面) | 'light' | 'dark' */
@@ -146,7 +161,7 @@ export class V3Ambient {
     AppStorage.setOrCreate('v3_theme_override', override)
     PreferencesCache.setUserPreference('v3_theme_override', override)
     if (override === 'light' || override === 'dark') {
-      AppStorage.setOrCreate(V3AmbientKey.MODE, override)
+      V3Ambient.applyMode(override)
     } else {
       // 跟随封面：清缓存重新取色
       V3Ambient.lastCover = ''
