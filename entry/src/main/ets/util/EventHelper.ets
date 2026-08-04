@@ -153,27 +153,34 @@ const handleSpecialUrl = async (url: string): Promise<boolean> => {
 // - To avoid double bandwidth, we play by URL directly when there is no complete local file.
 // - We still READ old cached/download files for compatibility.
 
-const defaultLoveSongCallback = (_assetId: string) => {
+const defaultLoveSongCallback = async (data?: boolean) => {
   const currentSong = AppStorage.get<Song>("current_playing_song");
   if (!currentSong) {
     LogUtil.warn("EventHelper ", "defaultLoveSongCallback", "No current playing song found");
     return;
   }
-  const like = currentSong.meta?.isFavorite
+  const currentLike: boolean = currentSong.meta?.isFavorite ?? false;
+  const next: boolean = data ?? !currentLike;
+
+  LogUtil.info("[FAV_DEBUG]", `defaultLoveSongCallback 触发: currentLike=${currentLike}, desiredState=${data}, next=${next}`);
+
   if (currentSong.meta) {
-    currentSong.meta.isFavorite = !like; // 切换喜欢状态
+    currentSong.meta.isFavorite = next;
   } else {
-    currentSong.meta = {
-      isFavorite: true,
-    };
+    currentSong.meta = { isFavorite: next };
   }
-  AppStorage.set("current_playing_song", currentSong); // 更新当前歌曲缓存
+  AppStorage.setOrCreate("current_playing_song", JSON.parse(JSON.stringify(currentSong)) as Song);
+  LogUtil.info("[FAV_DEBUG]", `AppStorage 已更新为 isFavorite=${next}`);
+
+  await FormUtils.updateCardCollectStatus();
+
   const session = avPlayerManager.getSession();
   if (session) {
     session.setAVPlaybackState({
-      isFavorite: !like // 切换喜欢状态
+      isFavorite: next
     })
   }
+  LogUtil.info("[FAV_DEBUG]",`AVplayer 已更新为 isFavorite=${next}`)
 };
 
 export function base64ToPixelMap(base64Str: string): image.PixelMap {
@@ -366,8 +373,8 @@ export class EventHelper {
     EmitterUtil.post("on_loop_mode", loopMode);
   }
 
-  public static subscribeFavoriteToggle(callback?: (data: string) => void) {
-    EmitterUtil.onSubscribe("on_favorite_toggle", (data: string) => {
+  public static subscribeFavoriteToggle(callback?: (data?: boolean) => void) {
+    EmitterUtil.onSubscribe("on_favorite_toggle", (data?: boolean) => {
       if (callback) {
         callback(data);
       } else {
@@ -419,7 +426,7 @@ export class EventHelper {
     EmitterUtil.post("on_init_data", data);
   }
 
-  public static postFavoriteToggle(data: string) {
+  public static postFavoriteToggle(data?: boolean) {
     EmitterUtil.post("on_favorite_toggle", data);
   }
 

@@ -230,16 +230,18 @@ export struct MultiFuncSubWindow {
 
   handleLongTap() {
     VibrationControl.handlePresetVibration(1)
-    if (this.song) {
-      SourceAdapter.likeSong(this.song, !this.isFavorite)
-    }
-    EventHelper.postFavoriteToggle("")
-    if(this.isFavorite) {
-      ToastUtil.showToast(`取消收藏当前歌曲`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/3 } })
-    } else {
-      ToastUtil.showToast(`收藏当前歌曲`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/3 } })
-    }
-
+    SourceAdapter.likeSong(this.song!, this.isFavorite).then((ok: boolean) => {
+      if (ok) {
+        EventHelper.postFavoriteToggle(this.isFavorite)
+        if(!this.isFavorite) {
+          ToastUtil.showToast(`取消收藏当前歌曲`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/3 } })
+        } else {
+          ToastUtil.showToast(`收藏当前歌曲`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/3 } })
+        }
+      }else{
+        ToastUtil.showToast(`操作失败`, { alignment: Alignment.Bottom, offset: { dx: 0, dy: -this.winHeight/3 } })
+      }
+    })
   }
 
   handleSwipeUp() {

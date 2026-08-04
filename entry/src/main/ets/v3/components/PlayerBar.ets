@@ -15,6 +15,7 @@ import { ToastUtil } from '@pura/harmony-utils'
 import { V3Color, V3Radius, V3Space, V3Theme } from '../theme/Tokens'
 import { ProgressTrack } from './ProgressTrack'
 import { deviceInfo } from '@kit.BasicServicesKit'
+import { EventHelper } from '../../util/EventHelper'
 
 @Component
 export struct PlayerBar {
@@ -67,6 +68,9 @@ export struct PlayerBar {
             return
           }
           SourceAdapter.likeSong(s, true).then((ok: boolean) => {
+            if (ok) {
+              EventHelper.postFavoriteToggle(true)
+            }
             ToastUtil.showShort(ok ? '已收藏到「我喜欢的音乐」' : '收藏失败，请稍后重试')
           })
         }

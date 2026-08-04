@@ -408,7 +408,7 @@ class AVPlayerManager {
       // 执行喜欢歌曲的逻辑
       const like = currentSong.meta?.isFavorite
       SourceAdapter.likeSong(currentSong, !like)
-      EventHelper.postFavoriteToggle(assetId)
+      EventHelper.postFavoriteToggle()
     })
   }
 

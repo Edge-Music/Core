@@ -12,6 +12,7 @@ import { SongDownloadManager } from '../../util/SongDownloadManager'
 import { PushPathHelper } from '../../util/PushPathHelper'
 import { ToastUtil } from '@pura/harmony-utils'
 import { DialogHelper } from '@pura/harmony-dialog'
+import { EventHelper } from '../../util/EventHelper'
 
 export class V3SongActions {
   /** 构造某首歌的操作菜单 */
@@ -34,6 +35,12 @@ export class V3SongActions {
             return
           }
           SourceAdapter.likeSong(song, true).then((ok: boolean) => {
+            if (ok) {
+              const cur: Song = AppStorage.get('current_playing_song') as Song;
+              if (cur && cur.id === song.id) {
+                EventHelper.postFavoriteToggle(true)
+              }
+            }
             ToastUtil.showShort(ok ? '已收藏到「我喜欢的音乐」' : '收藏失败，请稍后重试')
           })
         }
