@@ -20,6 +20,8 @@ const TAG = 'FormUtils';
 
 class FormUtils {
   private static context: Context | undefined;
+  // 缓存当前播放状态，用于新卡片添加时同步正确的播放/暂停状态
+  static currentPlayState: boolean = false;
 
   public async init(context: Context) {
     FormUtils.context = context;
@@ -38,6 +40,11 @@ class FormUtils {
     if (songItem) {
       SourceAdapter.likeSong(songItem, isCollected)
     }
+    // 同步系统播控中心的收藏图标
+    const session = avPlayerManager.getSession();
+    if (session) {
+      session.setAVPlaybackState({ isFavorite: isCollected })
+    }
     let formList: Array<FormInfo> = await FormRdbHelper.getInstance(FormUtils.context!).queryFormByName('PlayControlCard');
     formList.forEach(formInfo => {
       this.updateForm(formInfo.formId, updateData);
@@ -45,6 +52,8 @@ class FormUtils {
   }
 
   public async updateCardPlayStatus(isPlay: boolean) {
+    // 缓存当前播放状态，供新添加的卡片同步使用
+    FormUtils.currentPlayState = isPlay;
     class CardUpdateData {
       isPlay: boolean = isPlay;
     }
@@ -172,7 +181,7 @@ class FormUtils {
 
   public async updateMusicControlSingle( formId: string) {
     const player = await avPlayerManager.getAVPlayerInstance()
-    let isPlay = player.getState() !== audio.AudioState.STATE_RUNNING
+    let isPlay = player.getState() === audio.AudioState.STATE_RUNNING
     let songItem: Song = AppStorage.get('current_playing_song') as Song;
     LogUtil.info(`updateMusicControlSingle isPlay:${isPlay}, songItem:${JSON.stringify(songItem)}`);
     let formData = new FormControlData();
@@ -241,7 +250,9 @@ class FormUtils {
     LogUtil.info(TAG, `updateMusicControlCard formId:${formId},needUpdate:${needUpdate}`);
     let updateData: Record<string, boolean | string> = {
       'isNeedRequestUpdate': needUpdate,
-      'formId': formId
+      'formId': formId,
+      // 同步当前播放状态，避免新卡片先显示暂停再切回播放的闪烁
+      'isPlay': FormUtils.currentPlayState
     };
     this.updateForm(formId, updateData);
   }
