@@ -57,21 +57,24 @@ export struct PlayerBar {
         }
       },
       {
-        value: '收藏到喜欢',
+        value: (this.currentSong?.meta?.isFavorite ?? false) ? '取消收藏' : '收藏到喜欢',
         action: () => {
           const s: Song | null = this.currentSong
           if (!s) {
             return
           }
           if (!s.source) {
-            ToastUtil.showShort('无法收藏：该歌曲缺少数据源')
+            ToastUtil.showShort('无法操作：该歌曲缺少数据源')
             return
           }
-          SourceAdapter.likeSong(s, true).then((ok: boolean) => {
+          const want: boolean = !(s.meta?.isFavorite ?? false)
+          SourceAdapter.likeSong(s, want).then((ok: boolean) => {
             if (ok) {
-              EventHelper.postFavoriteToggle(true)
+              EventHelper.postFavoriteToggle(want)
             }
-            ToastUtil.showShort(ok ? '已收藏到「我喜欢的音乐」' : '收藏失败，请稍后重试')
+            ToastUtil.showShort(ok
+              ? (want ? '已收藏到「我喜欢的音乐」' : '已取消收藏')
+              : '操作失败，请稍后重试')
           })
         }
       },
