@@ -11,10 +11,11 @@ import { PlaylistManager } from '../../util/PlaylistManager'
 import { PushPathHelper } from '../../util/PushPathHelper'
 import { PreferencesCache } from '../../util/PreferenceCache'
 import { SourceAdapter } from '../../adapter'
+import { EventHelper } from '../../util/EventHelper'
 import { PlaylistCover } from '../components/PlaylistCover'
 import { V3Recommend, RecMode } from '../recommend/V3Recommend'
 import { LyricsLine } from '../../util/LyricsManager'
-import { ToastUtil } from '@pura/harmony-utils'
+import { LogUtil, ToastUtil } from '@pura/harmony-utils'
 import { AmbientBackground } from '../components/AmbientBackground'
 import { PlayerBar } from '../components/PlayerBar'
 import { QueueSheet } from '../components/QueueSheet'
@@ -131,6 +132,7 @@ export struct ImmersivePlayer {
   onSongChange(): void {
     V3Ambient.updateFromCover(this.song?.album?.cover)
     this.fav = this.song?.meta?.isFavorite ?? false
+    LogUtil.info("[FAV_DEBUG]",`onSongChange: ${this.fav}`)
     this.refreshNeighbors()
     this.maybeTopUp()
   }
@@ -156,6 +158,8 @@ export struct ImmersivePlayer {
       if (s.meta) {
         s.meta.isFavorite = next
       }
+      LogUtil.info("[FAV_DEBUG]",`toggleFav: ${this.fav}`)
+      EventHelper.postFavoriteToggle(this.fav)
       ToastUtil.showShort(next ? '已收藏到「我喜欢的音乐」' : '已取消收藏')
     }).catch(() => {
       this.fav = !next // 回滚

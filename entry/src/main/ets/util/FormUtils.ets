@@ -10,6 +10,7 @@ import { FormRdbHelper } from './FormRdbHelper';
 import ImageUtils from './ImageUtils';
 import { avPlayerManager } from './AVPlayerManager';
 import { SourceAdapter } from '../adapter';
+import { EventHelper } from './EventHelper';
 import { rpc } from '@kit.IPCKit';
 import { CollectAction, PlayActionType } from '../widget/model/FormCardConstant';
 import { PlaylistManager } from './PlaylistManager';
@@ -32,20 +33,21 @@ class FormUtils {
     return FormRdbHelper.getInstance(FormUtils.context!).insertForm(data);
   }
 
-  public async updateCardCollectStatus(isCollected: boolean) {
-    let updateData: Record<string, boolean | string> = {
-      'isCollected': isCollected
-    };
+  public async updateCardCollectStatus(isCollected?: boolean) {
     let songItem: Song = AppStorage.get('current_playing_song') as Song;
-    if (songItem) {
-      SourceAdapter.likeSong(songItem, isCollected)
-    }
-    // 同步系统播控中心的收藏图标
-    const session = avPlayerManager.getSession();
-    if (session) {
-      session.setAVPlaybackState({ isFavorite: isCollected })
+    let updateData: Record<string, boolean | string > = {
+      'isCollected': isCollected ?? songItem.meta?.isFavorite!
+    };
+    LogUtil.info("[FAV_DEBUG]", `updateCardCollectStatus: isCollected=${isCollected} song=${songItem}`);
+    if (songItem&&isCollected!==undefined) {
+      SourceAdapter.likeSong(songItem, isCollected).then((ok: boolean) => {
+        if (ok) {
+          EventHelper.postFavoriteToggle(isCollected)
+        }
+      })
     }
     let formList: Array<FormInfo> = await FormRdbHelper.getInstance(FormUtils.context!).queryFormByName('PlayControlCard');
+    LogUtil.info("[FAV_DEBUG]", `updateCardCollectStatus: 更新 ${formList.length} 张卡片 isCollected=${isCollected}`);
     formList.forEach(formInfo => {
       this.updateForm(formInfo.formId, updateData);
     });
