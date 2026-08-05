@@ -126,21 +126,42 @@ class FormUtils {
     formData.currentLyric = (AppStorage.get<string>('test_index') as string) || '';
     LogUtil.info(TAG, `updateMusicControlCards isPlay:${isPlay}, songItem:${JSON.stringify(songItem)}`);
     try {
-      let netFile = songItem?.album?.cover + "?param=512y512" ?? "";
+      const cover = songItem?.album?.cover ?? ''
+      const isLocal = cover.startsWith('file://')
+      let imageBuf: ArrayBuffer | null = null
+      if (cover) {
+        if (isLocal) {
+          // 本地文件：直接读取
+          const localPath = cover.replace('file://', '')
+          const f = fileIo.openSync(localPath, fileIo.OpenMode.READ_ONLY)
+          const st = fileIo.statSync(localPath)
+          imageBuf = new ArrayBuffer(st.size)
+          fileIo.readSync(f.fd, imageBuf)
+          fileIo.closeSync(f)
+        } else {
+          // 网络图片：HTTP 下载
+          const netFile = cover + "?param=512y512"
+          const data = await http.createHttp().request(netFile)
+          if (data?.responseCode === http.ResponseCode.OK) {
+            imageBuf = data.result as ArrayBuffer
+          }
+        }
+      }
+      if (!imageBuf) {
+        formList.forEach(formInfo => { this.updateForm(formInfo.formId, formData) })
+        return
+      }
       let tempDir = FormUtils.context!.getApplicationContext().tempDir;
       let fileName = 'file' + Date.now();
       let tmpFile = tempDir + '/' + fileName;
       let imgMap: Record<string, number> = {};
-      let httpRequest = http.createHttp()
-      let data = await httpRequest.request(netFile);
-      if (data?.responseCode == http.ResponseCode.OK) {
+      try {
+        let imgFile = fileIo.openSync(tmpFile, fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.CREATE);
+        imgMap[fileName] = imgFile.fd;
+        let blurFile: fileIo.File | null = null;
         try {
-          let imgFile = fileIo.openSync(tmpFile, fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.CREATE);
-          imgMap[fileName] = imgFile.fd;
-          let blurFile: fileIo.File | null = null;
-          try {
-            await fileIo.write(imgFile.fd, data.result as ArrayBuffer);
-            let imageDealData = await ImageUtils.getImageDealDataByArr(data.result as ArrayBuffer);
+          await fileIo.write(imgFile.fd, imageBuf);
+          let imageDealData = await ImageUtils.getImageDealDataByArr(imageBuf);
             formData.imageColor = imageDealData.imageColor;
             formData.imageColorHex = imageDealData.imageColorHex;
             formData.accentColorHex = imageDealData.accentColorHex;
@@ -175,11 +196,10 @@ class FormUtils {
         } catch (e) {
           LogUtil.error(TAG, `openSync failed: ${JSON.stringify(e as BusinessError)}`);
         }
+      } catch (e) {
+        LogUtil.error(TAG, `updateMusicControlCards failed: ${JSON.stringify(e as BusinessError)}`);
       }
-    } catch (e) {
-      LogUtil.error(TAG, ` failed: ${JSON.stringify(e as BusinessError)}`);
     }
-  }
 
   public async updateMusicControlSingle( formId: string) {
     const player = await avPlayerManager.getAVPlayerInstance()
@@ -195,21 +215,42 @@ class FormUtils {
     formData.isCollected = songItem?.meta?.isFavorite || false;
     formData.currentLyric = (AppStorage.get<string>('test_index') as string) || '';
     try {
-      let netFile = songItem?.album?.cover + "?param=512y512" ?? "";
+      const cover = songItem?.album?.cover ?? ''
+      const isLocal = cover.startsWith('file://')
+      let imageBuf: ArrayBuffer | null = null
+      if (cover) {
+        if (isLocal) {
+          // 本地文件：直接读取
+          const localPath = cover.replace('file://', '')
+          const f = fileIo.openSync(localPath, fileIo.OpenMode.READ_ONLY)
+          const st = fileIo.statSync(localPath)
+          imageBuf = new ArrayBuffer(st.size)
+          fileIo.readSync(f.fd, imageBuf)
+          fileIo.closeSync(f)
+        } else {
+          // 网络图片：HTTP 下载
+          const netFile = cover + "?param=512y512"
+          const data = await http.createHttp().request(netFile)
+          if (data?.responseCode === http.ResponseCode.OK) {
+            imageBuf = data.result as ArrayBuffer
+          }
+        }
+      }
+      if (!imageBuf) {
+        this.updateForm(formData.formId, formData)
+        return
+      }
       let tempDir = FormUtils.context!.getApplicationContext().tempDir;
       let fileName = 'file' + Date.now();
       let tmpFile = tempDir + '/' + fileName;
       let imgMap: Record<string, number> = {};
-      let httpRequest = http.createHttp()
-      let data = await httpRequest.request(netFile);
-      if (data?.responseCode == http.ResponseCode.OK) {
+      try {
+        let imgFile = fileIo.openSync(tmpFile, fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.CREATE);
+        imgMap[fileName] = imgFile.fd;
+        let blurFile: fileIo.File | null = null;
         try {
-          let imgFile = fileIo.openSync(tmpFile, fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.CREATE);
-          imgMap[fileName] = imgFile.fd;
-          let blurFile: fileIo.File | null = null;
-          try {
-            await fileIo.write(imgFile.fd, data.result as ArrayBuffer);
-            let imageDealData = await ImageUtils.getImageDealDataByArr(data.result as ArrayBuffer);
+          await fileIo.write(imgFile.fd, imageBuf);
+          let imageDealData = await ImageUtils.getImageDealDataByArr(imageBuf);
             formData.imageColor = imageDealData.imageColor;
             formData.imageColorHex = imageDealData.imageColorHex;
             formData.accentColorHex = imageDealData.accentColorHex;
@@ -242,11 +283,10 @@ class FormUtils {
         } catch (e) {
           LogUtil.error(TAG, `openSync failed: ${JSON.stringify(e as BusinessError)}`);
         }
+      } catch (e) {
+        LogUtil.error(TAG, `updateMusicControlSingle failed: ${JSON.stringify(e as BusinessError)}`);
       }
-    } catch (e) {
-      LogUtil.error(TAG, ` failed: ${JSON.stringify(e as BusinessError)}`);
     }
-  }
 
   public updateMusicControlCard(formId: string, needUpdate: boolean) {
     LogUtil.info(TAG, `updateMusicControlCard formId:${formId},needUpdate:${needUpdate}`);
