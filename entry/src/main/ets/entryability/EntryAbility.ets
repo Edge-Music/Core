@@ -8,6 +8,7 @@ import { ContextHelper } from '../util/ContextHelper';
 import { DownloadManager } from '../util/DownloadUtils';
 import { avPlayerManager } from '../util/AVPlayerManager';
 import { backgroundRunningManager } from '../util/BackgroundRunningManager';
+import { Song } from '../type/Adapter';
 import app from '@system.app';
 import FormUtils from '../util/FormUtils';
 import { CallMethod } from '../widget/model/FormCardConstant';
@@ -38,6 +39,9 @@ export default class EntryAbility extends UIAbility {
   //   console.log(`onConfigurationUpdate, config: ${JSON.stringify(newConfig)}`);
   // }
   async onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): Promise<void> {
+    this.callee.on(CallMethod.REQUEST_UPDATE_CARD, FormUtils.requestUpdatePlayCard);
+    this.callee.on(CallMethod.PLAY_BY_ACTION, FormUtils.playByActionCall);
+    this.callee.on(CallMethod.COLLECT_ACTION, FormUtils.collectActionCall);
     LogUtil.init(0x2003, 'Edge Music', true); // 初始化日志工具类
     AppUtil.init(this.context); // 初始化应用工具类
     LogUtil.info(`[${TAG}]`, 'Ability onCreate');
@@ -104,10 +108,6 @@ export default class EntryAbility extends UIAbility {
     EventHelper.subscribeFormJumpPage()
     await ImageKnife.getInstance().initFileCache(this.context, 256, 256 * 1024 * 1024)
     app.setImageRawDataCacheSize(100 * 1024 * 1024) // 设置解码前图片数据内存缓存上限为100MB
-    this.callee.on(CallMethod.REQUEST_UPDATE_CARD, FormUtils.requestUpdatePlayCard);
-    this.callee.on(CallMethod.PLAY_BY_ACTION, FormUtils.playByActionCall);
-    this.callee.on(CallMethod.COLLECT_ACTION, FormUtils.collectActionCall);
-
     SourceAdapter.getAllRecommend()
 
     PreferencesCache.convertPlaylistData()
