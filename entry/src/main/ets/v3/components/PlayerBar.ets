@@ -19,7 +19,9 @@ import { EventHelper } from '../../util/EventHelper'
 
 @Component
 export struct PlayerBar {
-  // 'phone'：上一首/播放/下一首 + 更多；'wide'：播放模式/上一首/播放/下一首/列表
+  // 'phone'：上一首/播放/下一首 + 更多；'wide'：播放模式/上一首/播放/下一首/列表；
+  // 'compact'：矮高度紧凑布局，仅核心播控（上一首/播放暂停/下一首，无进度条）；
+  // 'minimal'：同 wide 的完整按钮区但去掉进度条（中高度布局：进度让位给封面下歌名）
   @Prop variant: string = 'phone'
   // 列表/音效/定时回调（由 ImmersivePlayer 传入并弹对应 sheet）
   onList?: () => void
@@ -229,21 +231,81 @@ export struct PlayerBar {
     })
   }
 
-  build() {
-    Column() {
-      ProgressTrack({
-        currentTimeMs: this.currentTimeMs,
-        durationMs: this.durationMs,
-        mode: this.mode,
-        accent: this.accent,
-        glow: this.glow,
-        onSeek: (r: number) => {
-          this.commitSeek(r)
-        }
-      })
+  // 紧凑播放键（矮高度紧凑布局用）：样式同 PlayButton，尺寸 40
+  @Builder
+  CompactPlayButton() {
+    Stack() {
+      SymbolGlyph(this.isPlaying ? $r('sys.symbol.pause_fill') : $r('sys.symbol.play_fill'))
+        .fontSize(18)
+        .fontColor([V3Theme.playIcon(this.mode)])
+    }
+    .width(40)
+    .height(40)
+    .borderRadius(20)
+    .linearGradient({ angle: 160, colors: [[V3Theme.playGradStart(this.mode), 0.0], [V3Theme.playGradEnd(this.mode), 1.0]] })
+    .shadow({ radius: 16, color: 'rgba(201,154,87,0.42)', offsetX: 0, offsetY: 4 })
+    .scale({ x: this.playScale, y: this.playScale })
+    .onClick(() => {
+      this.toggle()
+    })
+    .onTouch((e: TouchEvent) => {
+      if (e.type === TouchType.Down) {
+        this.getUIContext().animateTo({ duration: 120, curve: Curve.EaseOut }, () => {
+          this.playScale = 0.9
+        })
+      } else if (e.type === TouchType.Up) {
+        this.getUIContext().animateTo({ duration: 120, curve: Curve.EaseOut }, () => {
+          this.playScale = 1
+        })
+      }
+    })
+  }
 
-      // 控制区（手机与宽屏一致：模式/上一首/播放/下一首/列表/更多）
-      Row({ space: this.variant === 'wide' ? 28 : 18 }) {
+  build() {
+    // 紧凑变体：只保留核心播控（上一首/播放暂停/下一首），供矮高度横排布局使用
+    if (this.variant === 'compact') {
+      Row({ space: 16 }) {
+        SymbolGlyph($r('sys.symbol.backward_end_fill'))
+          .fontSize(20)
+          .fontColor([V3Theme.tx1(this.mode)])
+          .onClick(() => {
+            this.prev()
+          })
+        this.CompactPlayButton()
+        SymbolGlyph($r('sys.symbol.forward_end_fill'))
+          .fontSize(20)
+          .fontColor([V3Theme.tx1(this.mode)])
+          .onClick(() => {
+            this.next()
+          })
+      }
+      .padding({ left: 14, right: 14, top: 8, bottom: 8 })
+      .backgroundBlurStyle(BlurStyle.BACKGROUND_THICK, {
+        colorMode: V3Theme.isLight(this.mode) ? ThemeColorMode.LIGHT : ThemeColorMode.DARK
+      })
+      .backgroundColor(V3Theme.glass1(this.mode))
+      .borderRadius(22)
+      .border({ width: 1, color: V3Theme.glassInner(this.mode) })
+    } else {
+    Column() {
+      // minimal 变体无进度条（中高度布局里进度让位给封面与歌名）
+      if (this.variant !== 'minimal') {
+        ProgressTrack({
+          currentTimeMs: this.currentTimeMs,
+          durationMs: this.durationMs,
+          mode: this.mode,
+          accent: this.accent,
+          glow: this.glow,
+          onSeek: (r: number) => {
+            this.commitSeek(r)
+          }
+        })
+      }
+
+      // 控制区（手机与宽屏一致：模式/上一首/播放/下一首/列表/更多）。
+      // SpaceBetween 让按钮随胶囊宽度自适应分布：宽则舒展、窄则收拢不溢出；
+      // 奇数个按钮时播放键始终居中
+      Row() {
         if (deviceInfo.sdkApiVersion >= 23){
           this.desktopLyrics()
         }
@@ -275,8 +337,8 @@ export struct PlayerBar {
           .bindMenu(this.moreMenu())
       }
       .width('100%')
-      .justifyContent(FlexAlign.Center)
-      .margin({ top: 14 })
+      .justifyContent(FlexAlign.SpaceBetween)
+      .margin({ top: this.variant === 'minimal' ? 0 : 14 })
     }
     .padding({ left: 18, right: 18, top: V3Space.M, bottom: 17 })
     .backgroundBlurStyle(BlurStyle.BACKGROUND_THICK, {
@@ -286,5 +348,6 @@ export struct PlayerBar {
     .borderRadius(V3Radius.CONTROL)
     .border({ width: 1, color: V3Theme.glassInner(this.mode) })
     .shadow({ radius: 40, color: V3Color.SHADOW_AMBIENT, offsetX: 0, offsetY: 8 })
+    }
   }
 }

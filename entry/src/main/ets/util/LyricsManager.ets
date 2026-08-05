@@ -38,6 +38,42 @@ class LyricsManager {
   private PRE_HIGHLIGHT_TIME: number = 0 // 提前切换时间
   private isInit: boolean = false
   private currentSongName: string = ''
+  /** seek 目标时间（毫秒）：>=0 表示有待追上的 seek，期间忽略位置回读，避免歌词先跳回旧行再跳 */
+  private pendingSeekTime: number = -1
+  /** pendingSeekTime 的设置时刻（超时兜底，防止 seek 失败后永远不恢复跟随） */
+  private pendingSeekAt: number = 0
+
+  /**
+   * 外部 seek（点歌词行/拖进度条/媒体会话）时调用：
+   * 立即把歌词索引乐观跳转到目标行（点击即刻滚动过去），
+   * 并在播放位置追上目标前忽略 500ms 轮询的旧位置回写
+   */
+  notifySeek(timeMs: number): void {
+    if (!this.isInit || this.parsedLyrics.length === 0) {
+      return
+    }
+    this.pendingSeekTime = timeMs
+    this.pendingSeekAt = Date.now()
+    // 与 updateCurrentLyric 相同的提前量口径，保证乐观索引与后续轮询结果一致
+    const adjustedTime: number = timeMs + this.PRE_HIGHLIGHT_TIME
+    let idx: number = 0
+    for (let i = 0; i < this.parsedLyrics.length; i++) {
+      if (adjustedTime >= this.parsedLyrics[i].time) {
+        idx = i
+      } else {
+        break
+      }
+    }
+    this.currentIndex = idx
+    this.lastIndex = idx
+    AppStorage.setOrCreate<number>('current_lyrics_index', idx)
+    const line: LyricsLine = this.parsedLyrics[idx]
+    if (line) {
+      AppStorage.setOrCreate<LyricsLine>('current_line_lyrics', line)
+      FormUtils.updateCardLyricsIndex(idx)
+      FormUtils.updateCardCurrentLyrics(line.text)
+    }
+  }
 
   async init(){
 
@@ -88,6 +124,7 @@ class LyricsManager {
     this.hasTranslation = false
     this.hasTransliteration = false
     this.isInit = false
+    this.pendingSeekTime = -1
   }
 
   async setLyricsInterval(){
@@ -268,6 +305,16 @@ class LyricsManager {
   }
 
   private updateCurrentLyric() {
+    // seek 后播放位置未追上目标前，不用旧位置回写索引（防止先跳回旧行再跳的诡异动画）；
+    // 超过 3s 未追上视为 seek 失败，恢复跟随
+    if (this.pendingSeekTime >= 0) {
+      const caughtUp: boolean = Math.abs(this.currentTimeMs - this.pendingSeekTime) <= 800
+      if (caughtUp || Date.now() - this.pendingSeekAt > 3000) {
+        this.pendingSeekTime = -1
+      } else {
+        return
+      }
+    }
     // 添加预判时间提前高亮
     const adjustedTime = this.currentTimeMs + this.PRE_HIGHLIGHT_TIME
 

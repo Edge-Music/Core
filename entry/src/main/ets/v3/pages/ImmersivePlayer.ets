@@ -25,7 +25,9 @@ import { ImmersiveMy } from './ImmersiveMy'
 import { V3Ambient } from '../util/V3Ambient'
 import { V3Color, V3Radius, V3Space, V3Theme } from '../theme/Tokens'
 import window from '@ohos.window'
-
+import { SplitPaneV1, SplitPaneV1Config } from '../components/SplitPaneV1'
+import { LyricsPortraitPanel } from '../components/LyricsPortraitPanel'
+import { LyricsView } from '../../component/ChainLyricsViewWrapper'
 @Component
 export struct ImmersivePlayer {
   @Consume('NavPathStack') pageStack: NavPathStack
@@ -70,7 +72,20 @@ export struct ImmersivePlayer {
   @State recMode: RecMode = 'default'
   // 后台续算中标志（避免重复触发）
   private toppingUp: boolean = false
-
+  /** V1 配置（传入 ） */
+  private v1Config: SplitPaneV1Config = this.buildV1Config();
+  private PlayerSwiperController: SwiperController = new SwiperController();
+  // 进入滑动分页（Swiper）模式时无分栏概念，自动退出分栏编辑态
+  @State @Watch('onSwiperModeChange') PlayerIsSwiper:boolean = false;
+  // 滑动分页当前页码（0=播放页 1=歌词页）：冻结离屏页的歌词动画，避免播放中白跑链式动画
+  @State PlayerSwipeIndex: number = 0;
+  // 分栏编辑模式：显示可拖拽分隔条，调整左右栏占比（PlayingSplitPane 顶栏开关控制）
+  @State PlayerPanelIsEdit:boolean = false;
+  @State PlayerPanelLeftColumnRatio:number = -1;
+  @State LeftPaneActualWidth:number = 150;
+  @State LeftPaneActualHeight:number = 0;
+  // 右栏（歌词）收起状态：仅分栏模式生效，滑动分页模式下由 Swiper 负责切换
+  @State rightPaneCollapsed: boolean = false
   private modeLabel(mode: RecMode): string {
     return mode === 'fresh' ? '新鲜' : (mode === 'familiar' ? '熟悉' : '默认')
   }
@@ -123,10 +138,18 @@ export struct ImmersivePlayer {
     V3Ambient.loadThemeOverride()
     V3Ambient.updateFromCover(this.song?.album?.cover)
     this.fav = this.song?.meta?.isFavorite ?? false
-    this.showSidebar = this.isWide()
+    this.showSidebar = this.sidebarEmbed()
+    // 首帧模式预判：SplitPaneV1 首次测量前 PlayerIsSwiper 默认 false，
+    // 窄屏（手机/窄自由窗口）会先按分栏渲染顶栏按钮等再闪切，用窗口宽度估算初值
+    // （侧栏 Embed 时占 320vp，面板宽 = 窗口宽 - 320；Overlay/无侧栏时面板宽 = 窗口宽）
+    if (this.winWidth > 0) {
+      const paneGuess: number = (this.sidebarEmbed() && this.showSidebar) ? this.winWidth - 320 : this.winWidth
+      this.PlayerIsSwiper = paneGuess < this.v1Config.collapseThreshold
+    }
     this.refreshNeighbors()
     // 后台预取三模式推荐（含榜单/推荐歌单混入），供点击秒切；容错不阻塞 UI
     V3Recommend.prefetchAll().catch(() => {})
+     this.PlayerPanelLeftColumnRatio = Number(PreferencesCache.getUserPreference('PlayerPanelLeftColumnRatio','-1'))
   }
 
   onSongChange(): void {
@@ -229,8 +252,103 @@ export struct ImmersivePlayer {
     return h > 0 ? h : 320
   }
 
+  /** 切换到滑动分页模式：分栏无分隔条，自动退出编辑态（入口按钮也已隐藏） */
+  private onSwiperModeChange(): void {
+    if (this.PlayerIsSwiper && this.PlayerPanelIsEdit) {
+      this.PlayerPanelIsEdit = false
+    }
+  }
+
+  /**
+   * 窄屏 PhoneLayout 中部是否容得下三行歌词块：
+   * 封面 0.42·avail + 固定开销（歌名/歌手/收藏 ~89 + 歌词块 114 + 顶栏 44 + 播控 ~131 + 上下边距 28），
+   * 放不下时歌词块居中溢出会被底部播控遮挡，应整体隐藏
+   */
+  private phoneCanFitLyrics(): boolean {
+    const avail: number = this.winHeight - this.topRect - this.bottomRect
+    const fixed: number = 406 + (this.freeWindowMode ? this.titleButtonRect.height : 0)
+    return avail <= 0 || avail * 0.58 >= fixed
+  }
+
+  /** 分栏配置：容器宽度低于 640vp 时双栏过于拥挤（左栏卡片流至少 ~560，歌词栏 ~300），降级为滑动分页 */
+  private buildV1Config(): SplitPaneV1Config {
+    const c: SplitPaneV1Config = new SplitPaneV1Config()
+    c.collapseThreshold = 640
+    // 滑动分页不显示指示点：手机上播放器/歌词两页语义明确，圆点反而多余
+    c.showIndicator = false
+    return c
+  }
+
+  /**
+   * 左栏纵向空间是否容得下小歌词块：
+   * 封面 320 + 标题/歌手 ~90 + 歌词块 84 + 播控 ~130 ≈ 620vp，不足则隐藏歌词块保住卡片流
+   */
+  private leftPaneCanFitLyrics(): boolean {
+    const avail: number = this.winHeight - this.topRect - this.bottomRect
+    return avail <= 0 || avail >= 620
+  }
+
+  /**
+   * 主封面尺寸随左栏宽度自适应：宽栏 320，窄栏按比例缩小（下限 160）。
+   * 修复窄栏下固定 320 封面整列被 displayPriority 裁掉、只剩播控的问题
+   */
+  private mainCoverSize(): number {
+    const w: number = this.LeftPaneActualWidth
+    if (w <= 0) {
+      return 320
+    }
+    return Math.max(160, Math.min(320, w * 0.62))
+  }
+
+  /** 两侧邻居封面：左栏够宽才显示（手机/窄栏下让位给主封面） */
+  private showSideCovers(): boolean {
+    return this.LeftPaneActualWidth <= 0 || this.LeftPaneActualWidth >= 560
+  }
+
+  /**
+   * 左栏高度分档（手机横屏/矮窗口自适应）：
+   * 0 = 正常纵向布局（≥480vp：封面+标题+播控完整放下）；
+   * 1 = 中高度（280~480：封面放到最大 + 歌名歌手排封面旁 + 播控条沉底）；
+   * 2 = 极矮（<280：小封面+歌名歌手+核心播控 单行横排）
+   */
+  private leftPaneHeightLevel(): number {
+    const h: number = this.LeftPaneActualHeight
+    if (h <= 0 || h >= 480) {
+      return 0
+    }
+    return h >= 280 ? 1 : 2
+  }
+
+  /** 中高度档封面尺寸：封面下歌名(~70)+无进度播控条(~90)+边距(~50)之外的余量全给封面，上限取宽度自适应值 */
+  private mediumCoverSize(): number {
+    const byHeight: number = this.LeftPaneActualHeight - 210
+    return Math.max(96, Math.min(this.mainCoverSize(), byHeight))
+  }
+
+  /** 中高度档的邻居封面尺寸：主封面的一半（64~150），宽度足够时（如手机横屏）展示上一首/下一首 */
+  private mediumSideCoverSize(): number {
+    return Math.max(64, Math.min(150, this.mediumCoverSize() * 0.5))
+  }
+
   private isWide(): boolean {
     return this.widthBp >= WidthBreakpoint.WIDTH_LG
+  }
+
+  /**
+   * 侧栏嵌入（Embed 并列）还是抽屉（Overlay 悬浮）：
+   * 嵌入会把内容区挤掉 320vp（sideBarWidth），只有剩余宽度仍够分栏（≥降级阈值）才嵌入；
+   * 否则悬浮覆盖——如手机/平板横屏 844vp：嵌入后仅剩 524vp，会把分栏挤成滑动分页，
+   * 而分栏编辑开关在侧栏里，展开侧栏反而永远无法调节分栏
+   */
+  private sidebarEmbed(): boolean {
+    if (!this.isWide()) {
+      return false
+    }
+    if (this.winWidth <= 0) {
+      // 宽度未知时保持原行为（宽屏嵌入）
+      return true
+    }
+    return this.winWidth - 320 >= this.v1Config.collapseThreshold
   }
 
   private artistNames(): string {
@@ -453,8 +571,8 @@ export struct ImmersivePlayer {
         .margin({ top: 26 })
         .alignItems(VerticalAlign.Bottom)
 
-        // 可点歌词行（当前句发光 + 加粗）
-        if (this.hasLyrics()) {
+        // 可点歌词行（当前句发光 + 加粗）；高度不足会被播控遮挡，整体隐藏
+        if (this.hasLyrics() && this.phoneCanFitLyrics()) {
           Column({ space: 7 }) {
             Text(this.lyricAt(-1))
               .fontSize(13.5)
@@ -767,7 +885,8 @@ export struct ImmersivePlayer {
 
   /** 从侧边栏打开歌单详情（入口更浅） */
   private openSidePlaylist(pl: Playlist): void {
-    if (!this.isWide()) {
+    // 抽屉（Overlay）侧栏选完即收起；Embed 并列侧栏保持展开
+    if (!this.sidebarEmbed()) {
       this.showSidebar = false
     }
     PushPathHelper.pushPath(this.pageStack, 'ImmersivePlaylist', async () => {
@@ -790,20 +909,415 @@ export struct ImmersivePlayer {
       .scale({ x: 0.9, y: 0.9 })
       .shadow({ radius: 50, color: 'rgba(0,0,0,0.7)', offsetX: 0, offsetY: 20 })
       .backgroundColor('rgba(255,255,255,0.05)')
+
+  }
+
+  // 中高度档邻居封面：尺寸随主封面一半（@Builder 仅支持单参数，尺寸内部自取）
+  @Builder
+  MediumSideCover(isNext: boolean) {
+    Image(cover(isNext ? this.nextCover : this.prevCover, 200))
+      .width(this.mediumSideCoverSize())
+      .height(this.mediumSideCoverSize())
+      .borderRadius(this.mediumSideCoverSize() * 0.133)
+      .objectFit(ImageFit.Cover)
+      .opacity(0.4)
+      .scale({ x: 0.9, y: 0.9 })
+      .shadow({ radius: 50, color: 'rgba(0,0,0,0.7)', offsetX: 0, offsetY: 20 })
+      .backgroundColor('rgba(255,255,255,0.05)')
   }
 
   private openSettings(): void {
     this.sheetShow = false
     this.pageStack.pushPath({ name: 'ImmersiveSettings' }, { animated: true })
   }
+  @Builder
+  PlayingSplitLeftPane(){
+    Column() {
+      if (this.PlayerPanelIsEdit) {
+        // 编辑态：歌曲信息页占位（退出编辑恢复播放卡片流）
+        this.EditPaneMask($r('sys.symbol.play_fill'), '歌曲信息页')
+      } else if (this.leftPaneHeightLevel() === 2) {
+        // 极矮（<280vp）：小封面 + 歌名(超长跑马灯)/歌手 + 核心播控 单行横排
+        Row({ space: 12 }) {
+          Image(cover(this.song?.album?.cover ?? '', 200))
+            .width(64)
+            .height(64)
+            .borderRadius(12)
+            .objectFit(ImageFit.Cover)
+          Column() {
+            Text(this.song?.name ?? '暂无播放')
+              .fontSize(16)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(V3Theme.tx1(this.mode))
+              .width('100%')
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.MARQUEE })
+            Text(this.artistNames())
+              .fontSize(12)
+              .fontColor(V3Theme.tx2(this.mode))
+              .width('100%')
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .margin({ top: 4 })
+          }
+          .layoutWeight(1)
+          .alignItems(HorizontalAlign.Start)
 
+          PlayerBar({ variant: 'compact', onList: () => { this.openSheet('queue') }, onEffects: () => { this.openSheet('effects') }, onTimer: () => { this.openSheet('timer') } })
+        }
+        .width('100%')
+        .padding({ left: 16, right: 16 })
+        .alignItems(VerticalAlign.Center)
+      } else if (this.leftPaneHeightLevel() === 1) {
+        // 中高度（280~480vp）：封面占最大位置，歌名歌手在封面下方居中，
+        // 播控条沉底并去掉进度条（进度让位给封面与歌名）；
+        // 宽度足够时（如手机横屏）封面两侧带上一首/下一首邻居封面，与常规卡片流一致
+        Blank()
+        Row({ space: 28 }) {
+          if (this.showSideCovers()) {
+            Column() {
+              this.MediumSideCover(false)
+            }.displayPriority(1)
+          }
+
+          Column() {
+            Stack({ alignContent: Alignment.BottomEnd }) {
+              Image(cover(this.song?.album?.cover ?? '', 500))
+                .width(this.mediumCoverSize())
+                .height(this.mediumCoverSize())
+                .borderRadius(V3Radius.CARD)
+                .objectFit(ImageFit.Cover)
+                .shadow({ radius: 60, color: 'rgba(0,0,0,0.6)', offsetX: 0, offsetY: 24 })
+              this.CoverBadge()
+            }
+            .translate({ x: this.cardDx })
+            .opacity(this.cardOpacity)
+
+            Text(this.song?.name ?? '暂无播放')
+              .fontSize(20)
+              .fontWeight(FontWeight.Medium)
+              .fontColor(V3Theme.tx1(this.mode))
+              .width('100%')
+              .textAlign(TextAlign.Center)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.MARQUEE })
+              .margin({ top: 18 })
+            Text(this.artistNames())
+              .fontSize(13)
+              .fontColor(V3Theme.tx2(this.mode))
+              .width('100%')
+              .textAlign(TextAlign.Center)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .margin({ top: 8 })
+          }
+          .alignItems(HorizontalAlign.Center)
+          // 显示邻居封面时固定宽度（同卡片流）：不固定会占满整行，displayPriority=1 的邻居封面会被挤掉；
+          // 不显示时保持整行宽，长歌名有完整跑马灯空间
+          .width(this.showSideCovers() ? this.mediumCoverSize() + 20 : '100%')
+          .displayPriority(5)
+
+          if (this.showSideCovers()) {
+            Column() {
+              this.MediumSideCover(true)
+            }.displayPriority(1)
+          }
+        }
+        .width('100%')
+        .padding({ left: 20, right: 20 })
+        .justifyContent(FlexAlign.Center)
+        .alignItems(VerticalAlign.Center)
+
+        Blank()
+        // 播控条沉底（minimal：无进度条）：宽度跟随栏宽自适应，上限 520
+        PlayerBar({ variant: 'minimal', onList: () => { this.openSheet('queue') }, onEffects: () => { this.openSheet('effects') }, onTimer: () => { this.openSheet('timer') } })
+          .width('92%')
+          .constraintSize({ maxWidth: 520 })
+          .margin({ bottom: 16 })
+      } else if (this.PlayerIsSwiper) {
+        // 滑动分页（手机竖屏）：左页与手机版 PhoneLayout 完全一致——
+        // 顶部数据源头像 + 沉浸大封面 + 歌名收藏 + 三行可点歌词 + 手机播控
+        this.PhoneLayout()
+      } else {
+      Blank()
+      // 卡片流（两侧邻居 + 居中当前卡，横滑动画）；
+      // 主封面/邻居封面随左栏实测宽度自适应，窄栏不再整列消失
+      Row({ space: 34 }) {
+        if (this.showSideCovers()) {
+          Column(){
+            this.SideCover(false)
+          }.displayPriority(1)
+        }
+
+        Column() {
+          Stack({ alignContent: Alignment.BottomEnd }) {
+            Image(cover(this.song?.album?.cover ?? '', 600))
+              .width(this.mainCoverSize())
+              .height(this.mainCoverSize())
+              .borderRadius(V3Radius.CARD)
+              .objectFit(ImageFit.Cover)
+              .shadow({ radius: 90, color: 'rgba(0,0,0,0.8)', offsetX: 0, offsetY: 44 })
+            Column()
+              .width(this.mainCoverSize())
+              .height(this.mainCoverSize())
+              .borderRadius(V3Radius.CARD)
+              .border({ width: 1, color: 'rgba(255,255,255,0.06)' })
+            this.CoverBadge()
+          }
+          .translate({ x: this.cardDx })
+          .opacity(this.cardOpacity)
+
+          Text(this.song?.name ?? '暂无播放')
+            .fontSize(this.mainCoverSize() >= 260 ? 30 : 22)
+            .fontWeight(FontWeight.Medium)
+            .fontColor(V3Theme.tx1(this.mode))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .margin({ top: 26 })
+          Text(this.artistNames())
+            .fontSize(15)
+            .fontColor(V3Theme.tx2(this.mode))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .margin({ top: 10 })
+        }
+        .width(this.mainCoverSize() + 20)
+        .displayPriority(5)
+        .alignItems(HorizontalAlign.Center)
+
+        if (this.showSideCovers()) {
+          Column(){
+            this.SideCover(true)
+          }.displayPriority(1)
+        }
+      }.width('100%')
+      .justifyContent(FlexAlign.Center)
+      .alignItems(VerticalAlign.Center)
+
+      // 歌词块：独立于卡片列、更宽、固定高度——换行也不挤压卡片流布局。
+      // 显示时机：右栏歌词已收起（无右栏可看歌词时内联兜底），
+      // 且左栏纵向空间足够时才显示，空间不足隐藏以保住卡片流与播控
+      if (this.hasLyrics() && this.rightPaneCollapsed && this.leftPaneCanFitLyrics()) {
+        Column({ space: 8 }) {
+          Text(this.lyricAt(0))
+            .fontSize(17)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(V3Theme.tx1(this.mode))
+            .textShadow({ radius: 20, color: this.glow, offsetX: 0, offsetY: 0 })
+            .width('100%')
+            .textAlign(TextAlign.Center)
+            .maxLines(2)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+          Text(this.lyricAt(1))
+            .fontSize(14)
+            .fontWeight(FontWeight.Regular)
+            .fontColor(V3Theme.tx2(this.mode))
+            .width('100%')
+            .textAlign(TextAlign.Center)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+        }
+        .width('62%')
+        .constraintSize({ maxWidth: 680 })
+        .height(84)
+        .margin({ top: 22 })
+        .justifyContent(FlexAlign.Center)
+        .alignItems(HorizontalAlign.Center)
+        .clip(true)
+        .onClick(() => {
+          this.openLyrics()
+        })
+      }
+
+      // 收窄居中播控：宽度跟随栏宽自适应，上限 520，窄栏不溢出
+      PlayerBar({ variant: 'wide', onList: () => { this.openSheet('queue') }, onEffects: () => { this.openSheet('effects') }, onTimer: () => { this.openSheet('timer') } })
+        .width('92%')
+        .constraintSize({ maxWidth: 520 })
+        .margin({ top: 30 })
+
+      Blank()
+      }
+    }
+    .layoutWeight(1)
+    .height('100%')
+    .justifyContent(FlexAlign.Center)
+    // 实测栏宽/栏高驱动封面与布局自适应（分栏拖拽、窗口缩放、收起展开都会变化）
+    .onAreaChange((_o: Area, n: Area) => {
+      const w: number = n.width as number
+      if (w > 0 && w !== this.LeftPaneActualWidth) {
+        this.LeftPaneActualWidth = w
+      }
+      const h: number = n.height as number
+      if (h > 0 && h !== this.LeftPaneActualHeight) {
+        this.LeftPaneActualHeight = h
+      }
+    })
+  }
+  // 复用工程封装的链式歌词组件（物理滚动 + 点击跳转 + 光感高亮发光）
+  // 发光色跟随封面光感 accent（this.glow），实现暖金发光
+  @Builder
+  Lyrics() {
+    LyricsView({
+      mode_judge: false,
+      glowColor: this.glow,
+      glowRadius: 22,
+      normalColor: V3Theme.isLight(this.mode) ? 'rgba(10,10,13,0.62)' : V3Theme.tx1(this.mode),
+      highlightColor: V3Theme.isLight(this.mode) ? '#6B4A1C' : '#FFFFFF',
+
+    })
+  }
+
+  /**
+   * 分栏编辑态的栏位占位：缩小一圈的圆角模糊卡片，标注栏位内容。
+   * 拖拽期间卸载真实内容（LyricsView 物理滚动在逐帧变宽下会渲染异常黑块），
+   * 占位卡片同时吞掉全部触摸，禁止栏内手势
+   */
+  @Builder
+  EditPaneMask(symbol: Resource, label: string) {
+    Column() {
+      Column({ space: 10 }) {
+        SymbolGlyph(symbol)
+          .fontSize(28)
+          .fontColor([V3Theme.tx3(this.mode)])
+        Text(label)
+          .fontSize(15)
+          .fontColor(V3Theme.tx2(this.mode))
+      }
+      .width('100%')
+      .height('100%')
+      .justifyContent(FlexAlign.Center)
+      .borderRadius(20)
+      .backgroundColor(V3Theme.glass1(this.mode))
+      .backgroundBlurStyle(BlurStyle.BACKGROUND_THICK, { colorMode: V3Theme.blurMode(this.mode) })
+      .border({ width: 1, color: V3Theme.glassBorder(this.mode) })
+    }
+    .width('100%')
+    .height('100%')
+    .padding(16)
+    .hitTestBehavior(HitTestMode.Block)
+  }
+
+  @Builder
+  PlayingSplitRightPane(){
+    if (this.PlayerPanelIsEdit) {
+      // 编辑态：歌词页占位（退出编辑恢复实时歌词）
+      this.EditPaneMask($r('sys.symbol.lyrics_square'), '歌词页')
+    } else if (this.PlayerIsSwiper) {
+      // 滑动分页右页：复用歌词页竖屏布局（紧凑头+滚动歌词+进度，无收起/横屏按钮）；
+      // topRect + 56 避让顶部悬浮的侧边栏开合按钮（44 高 + 上边距 12）；
+      // active 跟随页码：离屏时冻结歌词组件的切行动画
+      LyricsPortraitPanel({ topPadding: this.topRect + 56, active: this.PlayerSwipeIndex === 1 })
+    } else {
+      this.Lyrics()
+    }
+  }
+  @Builder
+  PlayingSplitPane(){
+    Stack({ alignContent: Alignment.Center }) {
+      SplitPaneV1({
+        swiperController:this.PlayerSwiperController,
+        isSwipeMode:this.PlayerIsSwiper,
+        config: this.v1Config,
+        isEditMode: this.PlayerPanelIsEdit,
+        // 受控占比：页面层持有，拖拽回调写入 @Trace 字段即自动持久化
+        ratio: this.PlayerPanelLeftColumnRatio,
+        rightCollapsed: this.rightPaneCollapsed,
+        onRatioChange: (ratio: number) => {
+          this.PlayerPanelLeftColumnRatio = ratio
+        },
+        onSwipeIndexChange: (index: number) => {
+          this.PlayerSwipeIndex = index
+        },
+        onDividerDragEnd: () => {
+          // 仅拖拽结束才落盘，拖拽中每帧写偏好会卡 UI 线程
+          PreferencesCache.setUserPreference('PlayerPanelLeftColumnRatio',String(this.PlayerPanelLeftColumnRatio))
+        },
+        // 必须 .bind(this)：SplitPaneV1 内部以自身为 this 调用 @BuilderParam，
+        // 不绑定会让 Builder 里的 this 指向子组件，嵌套 Builder/成员方法全部 undefined
+        leftContent: this.PlayingSplitLeftPane.bind(this),
+        rightContent: this.PlayingSplitRightPane.bind(this)
+      })
+
+      // 歌词栏收起/展开拉手：吸附右缘的竖向矩形 Tab（滑动分页模式下由滑动切换，无需此钮）
+      if (!this.PlayerIsSwiper) {
+        Row() {
+          Blank()
+          Column() {
+            SymbolGlyph(this.rightPaneCollapsed ? $r('sys.symbol.chevron_left') : $r('sys.symbol.chevron_right'))
+              .fontSize(16)
+              .fontColor([V3Theme.tx2(this.mode)])
+          }
+          .width(20)
+          .height(64)
+          .justifyContent(FlexAlign.Center)
+          .borderRadius({ topLeft: 10, bottomLeft: 10 })
+          .backgroundColor('rgba(255,255,255,0.10)')
+          .backgroundBlurStyle(BlurStyle.BACKGROUND_THIN, { colorMode: ThemeColorMode.LIGHT })
+          .border({ width: 1, color: 'rgba(255,255,255,0.20)' })
+          .onClick(() => {
+            this.getUIContext().animateTo({ duration: 280, curve: Curve.EaseInOut }, () => {
+              this.rightPaneCollapsed = !this.rightPaneCollapsed
+            })
+          })
+        }
+        .width('100%')
+        // 只让 Tab 拉手本身响应点击，Row 其余区域不拦截歌词/封面手势
+        .hitTestBehavior(HitTestMode.Transparent)
+      }
+
+      // 分栏编辑态底部悬浮条：提示 + 一键退出编辑（滑动分页模式无分隔条，不显示）
+      if (this.PlayerPanelIsEdit && !this.PlayerIsSwiper) {
+        Column() {
+          Blank()
+          Row({ space: 14 }) {
+            Text('分栏编辑中 · 拖动分隔条调整比例')
+              .fontSize(13)
+              .fontColor(V3Theme.tx2(this.mode))
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .layoutWeight(1)
+            Text('完成')
+              .fontSize(13)
+              .fontWeight(FontWeight.Medium)
+              .fontColor('#FFFFFF')
+              .padding({ left: 18, right: 18, top: 7, bottom: 7 })
+              .borderRadius(15)
+              .backgroundColor(V3Theme.accentFallback(this.mode))
+              .onClick(() => {
+                this.PlayerPanelIsEdit = false
+              })
+          }
+          .padding({ left: 18, right: 10, top: 9, bottom: 9 })
+          .borderRadius(24)
+          .backgroundColor(V3Theme.glass1(this.mode))
+          .backgroundBlurStyle(BlurStyle.BACKGROUND_THICK, { colorMode: V3Theme.blurMode(this.mode) })
+          .border({ width: 1, color: V3Theme.glassBorder(this.mode) })
+          .shadow({ radius: 30, color: V3Color.SHADOW_AMBIENT, offsetX: 0, offsetY: 8 })
+          .margin({ bottom: 24 })
+          .constraintSize({ maxWidth: 420 })
+        }
+        .width('100%')
+        .height('100%')
+        .alignItems(HorizontalAlign.Center)
+        .padding({ left: 24, right: 24 })
+        // 只让悬浮条本身响应点击，其余区域手势照常
+        .hitTestBehavior(HitTestMode.Transparent)
+      }
+    }
+    .width("100%")
+    .height("100%")
+
+  }
   @Builder
   WideMain() {
     Column() {
       Blank()
       // 卡片流（两侧邻居 + 居中当前卡，横滑动画）
       Row({ space: 34 }) {
-        this.SideCover(false)
+        Column(){
+          this.SideCover(false)
+        }.displayPriority(1)
+
         Column() {
           Stack({ alignContent: Alignment.BottomEnd }) {
             Image(cover(this.song?.album?.cover ?? '', 600))
@@ -837,10 +1351,13 @@ export struct ImmersivePlayer {
             .margin({ top: 10 })
         }
         .width(340)
+        .displayPriority(5)
         .alignItems(HorizontalAlign.Center)
 
-        this.SideCover(true)
-      }
+        Column(){
+          this.SideCover(true)
+        }.displayPriority(1)
+      }.width('100%')
       .justifyContent(FlexAlign.Center)
       .alignItems(VerticalAlign.Center)
 
@@ -903,6 +1420,34 @@ export struct ImmersivePlayer {
       //
       // }
       Blank()
+      // 分栏编辑开关：开启后显示可拖拽分隔条，调整左右栏占比（滑动分页模式无分栏，不显示）
+      if (!this.PlayerIsSwiper) {
+        Stack() {
+          SymbolGlyph($r('sys.symbol.rectangle_split_2x1'))
+            .fontColor([this.PlayerPanelIsEdit ? V3Theme.accentFallback(this.mode) : V3Theme.tx2(this.mode)])
+            .fontWeight(this.mouseHover == 'topBarSplitEdit' ? FontWeight.Bolder : FontWeight.Normal)
+        }
+        .width(this.titleButtonRect.height)
+        .height(this.titleButtonRect.height)
+        .onClick(() => {
+          this.PlayerPanelIsEdit = !this.PlayerPanelIsEdit
+          if (this.PlayerPanelIsEdit && this.rightPaneCollapsed) {
+            // 开启编辑时分隔条依附右栏，右栏收起则自动展开
+            this.getUIContext().animateTo({ duration: 280, curve: Curve.EaseInOut }, () => {
+              this.rightPaneCollapsed = false
+            })
+          }
+          ToastUtil.showShort(this.PlayerPanelIsEdit ? '分栏编辑已开启，拖动分隔条调整比例' : '分栏编辑已关闭')
+        })
+        .onHover((isHover) => {
+          if (isHover) {
+            this.mouseHover = 'topBarSplitEdit'
+          } else {
+            this.mouseHover = ''
+          }
+        })
+      }
+
       Stack() {
         SymbolGlyph($r('sys.symbol.magnifyingglass'))
           // .fontSize(20)
@@ -953,10 +1498,10 @@ export struct ImmersivePlayer {
     .height(this.titleButtonRect.height)
     .padding({ left: 16, right: this.titleButtonRect.width  })
   }
-  // 官方 SideBarContainer：宽屏 Embed（并列，可折叠），窄屏 Overlay（抽屉悬浮）
+  // 官方 SideBarContainer：够宽 Embed（并列，可折叠），不够宽 Overlay（抽屉悬浮，见 sidebarEmbed）
   @Builder
   Sidebarred() {
-    SideBarContainer(this.isWide() ? SideBarContainerType.Embed : SideBarContainerType.Overlay) {
+    SideBarContainer(this.sidebarEmbed() ? SideBarContainerType.Embed : SideBarContainerType.Overlay) {
       // 子1：侧边栏（模式 + 榜单 + 我的）
       Column() {
         this.WideSidebar()
@@ -966,13 +1511,14 @@ export struct ImmersivePlayer {
 
       // 子2：内容区
       Stack({ alignContent: Alignment.Bottom }) {
-        if (this.isWide()) {
-          this.WideMain()
-        } else {
-          this.PhoneLayout()
-        }
-        // 窄屏抽屉打开时的遮罩：点击空白关闭 + 冻结内容点击/滑动
-        if (!this.isWide() && this.showSidebar) {
+        // if (this.isWide()) {
+        //   this.WideMain()
+        // } else {
+        //   this.PhoneLayout()
+        // }
+        this.PlayingSplitPane()
+        // 抽屉（Overlay）侧栏打开时的遮罩：点击空白关闭 + 冻结内容点击/滑动
+        if (!this.sidebarEmbed() && this.showSidebar) {
           Column()
             .width('100%')
             .height('100%')
@@ -1039,6 +1585,31 @@ export struct ImmersivePlayer {
       // .position({ y: this.topRect + 12 })
     }else{
       Row({ space: 16 }) {
+        // 分栏编辑开关：仅分栏模式有意义（滑动分页无分栏概念，不显示）
+        if (!this.PlayerIsSwiper) {
+          Stack() {
+            SymbolGlyph($r('sys.symbol.rectangle_split_2x1'))
+              .fontSize(20)
+              .fontColor([this.PlayerPanelIsEdit ? V3Theme.accentFallback(this.mode) : V3Theme.tx2(this.mode)])
+          }
+          .width(44)
+          .height(44)
+          .borderRadius(22)
+          .backgroundColor('rgba(255,255,255,0.10)')
+          .backgroundBlurStyle(BlurStyle.BACKGROUND_THIN, { colorMode: ThemeColorMode.LIGHT })
+          .border({ width: 1, color: 'rgba(255,255,255,0.20)' })
+          .onClick(() => {
+            this.PlayerPanelIsEdit = !this.PlayerPanelIsEdit
+            if (this.PlayerPanelIsEdit && this.rightPaneCollapsed) {
+              // 开启编辑时分隔条依附右栏，右栏收起则自动展开
+              this.getUIContext().animateTo({ duration: 280, curve: Curve.EaseInOut }, () => {
+                this.rightPaneCollapsed = false
+              })
+            }
+            ToastUtil.showShort(this.PlayerPanelIsEdit ? '分栏编辑已开启，拖动分隔条调整比例' : '分栏编辑已关闭')
+          })
+        }
+
         Stack() {
           SymbolGlyph($r('sys.symbol.magnifyingglass'))
             .fontSize(20)
@@ -1130,8 +1701,13 @@ export struct ImmersivePlayer {
       .gesture(
         PanGesture({ direction: PanDirection.Horizontal, distance: 30 })
           .onActionUpdate((e: GestureEvent) => {
-            // 仅窄屏抽屉打开时冻结切歌滑动；宽屏侧边栏常驻展开不影响切歌
-            if (!this.isWide() && this.showSidebar) {
+            // 仅抽屉（Overlay）侧栏打开时冻结切歌滑动；Embed 并列侧栏常驻展开不影响切歌
+            if (!this.sidebarEmbed() && this.showSidebar) {
+              return
+            }
+            // 分栏编辑模式下冻结切歌滑动：与分隔条拖拽手势冲突，
+            // 拖分隔条会误触发切歌+光感重算，渲染风暴导致内容变黑/异常
+            if (this.PlayerPanelIsEdit) {
               return
             }
             // 跟手拖拽（带阻尼）
@@ -1139,7 +1715,11 @@ export struct ImmersivePlayer {
             this.cardOpacity = 1 - Math.min(0.4, Math.abs(e.offsetX) / 600)
           })
           .onActionEnd((e: GestureEvent) => {
-            if (!this.isWide() && this.showSidebar) {
+            if (!this.sidebarEmbed() && this.showSidebar) {
+              return
+            }
+            if (this.PlayerPanelIsEdit) {
+              // 编辑模式下未做跟手位移，直接返回（无需回弹）
               return
             }
             if (e.offsetX < -70) {

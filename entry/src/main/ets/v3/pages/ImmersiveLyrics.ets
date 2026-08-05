@@ -13,7 +13,7 @@ import { audio } from '@kit.AudioKit'
 import { window } from '@kit.ArkUI'
 import { ToastUtil } from '@pura/harmony-utils'
 import { AmbientBackground } from '../components/AmbientBackground'
-import { ProgressTrack } from '../components/ProgressTrack'
+import { LyricsPortraitPanel } from '../components/LyricsPortraitPanel'
 import { LyricsView } from '../../component/ChainLyricsViewWrapper'
 import { V3Color, V3Theme } from '../theme/Tokens'
 
@@ -31,43 +31,14 @@ export struct ImmersiveLyrics {
   @StorageProp('v3_theme_mode') mode: string = 'dark'
   @StorageLink('freeWindowMode') freeWindowMode:boolean = false
 
-  @State currentTimeMs: number = 0
-  @State durationMs: number = 0
   @State isPlaying: boolean = false
-  // 窄屏进度条自动隐藏（视频播控式：交互显示，静置数秒后隐藏，歌词更沉浸）
-  @State controlsVisible: boolean = true
 
   private timer: number = -1
-  private hideTimer: number = -1
   private player = avPlayerManager
   private wentLandscape: boolean = false
 
-  // 显示进度条并（重新）计时隐藏
-  private showControls(): void {
-    if (!this.controlsVisible) {
-      this.getUIContext().animateTo({ duration: 280, curve: Curve.EaseInOut }, () => {
-        this.controlsVisible = true
-      })
-    }
-    this.scheduleHide()
-  }
-
-  private scheduleHide(): void {
-    if (this.hideTimer !== -1) {
-      clearTimeout(this.hideTimer)
-      this.hideTimer = -1
-    }
-    this.hideTimer = setTimeout(() => {
-      this.getUIContext().animateTo({ duration: 280, curve: Curve.EaseInOut }, () => {
-        this.controlsVisible = false
-      })
-    }, 4000)
-  }
-
   aboutToAppear(): void {
     this.player.getAVPlayerInstance().then((p) => {
-      this.currentTimeMs = p.getCurrentPosition()
-      this.durationMs = p.getDurationMs()
       this.isPlaying = p.getState() === audio.AudioState.STATE_RUNNING
     })
     this.player.addListener('onPlay', () => {
@@ -76,23 +47,17 @@ export struct ImmersiveLyrics {
     this.player.addListener('onPause', () => {
       this.isPlaying = false
     })
+    // 竖屏布局的进度/定时已移入 LyricsPortraitPanel，这里仅需同步播放态（横屏播放键用）
     this.timer = setInterval(async () => {
       const p = await this.player.getAVPlayerInstance()
-      this.durationMs = p.getDurationMs()
-      this.currentTimeMs = p.getCurrentPosition()
+      this.isPlaying = p.getState() === audio.AudioState.STATE_RUNNING
     }, 500)
-    // 进入后先展示进度条，数秒后自动隐藏
-    this.scheduleHide()
   }
 
   aboutToDisappear(): void {
     if (this.timer !== -1) {
       clearInterval(this.timer)
       this.timer = -1
-    }
-    if (this.hideTimer !== -1) {
-      clearTimeout(this.hideTimer)
-      this.hideTimer = -1
     }
     // 退出歌词页（含返回键）时若曾切横屏，复位方向
     this.resetOrientation()
@@ -163,14 +128,6 @@ export struct ImmersiveLyrics {
     return s
   }
 
-  private commitSeek(r: number): void {
-    const clamped: number = r < 0 ? 0 : (r > 1 ? 1 : r)
-    if (this.durationMs > 0) {
-      this.player.seek(Math.floor(clamped * this.durationMs))
-      this.currentTimeMs = Math.floor(clamped * this.durationMs)
-    }
-  }
-
   private toggle(): void {
     if (this.isPlaying) {
       this.player.pause()
@@ -190,8 +147,8 @@ export struct ImmersiveLyrics {
       normalColor: V3Theme.isLight(this.mode) ? 'rgba(10,10,13,0.62)' : V3Theme.tx1(this.mode),
       highlightColor: V3Theme.isLight(this.mode) ? '#6B4A1C' : '#FFFFFF',
       screenOrientation: so,
+      // 竖屏的进度条唤出交互在 LyricsPortraitPanel 内；横屏摆件态无需响应
       onInteract: () => {
-        this.showControls()
       }
     })
   }
@@ -246,103 +203,13 @@ export struct ImmersiveLyrics {
     .padding({ left: 14, right: 14 })
   }
 
-  @Builder
-  Header() {
-    Row({ space: 15 }) {
-      Image(cover(this.song?.album?.cover ?? '', 200))
-        .width(62)
-        .height(62)
-        .borderRadius(14)
-        .objectFit(ImageFit.Cover)
-        .shadow({ radius: 20, color: 'rgba(0,0,0,0.6)', offsetX: 0, offsetY: 10 })
-      Column() {
-        Text(this.song?.name ?? '暂无播放')
-          .fontSize(19)
-          .fontWeight(FontWeight.Medium)
-          .fontColor(V3Theme.tx1(this.mode))
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-        Text(this.artistNames())
-          .fontSize(13)
-          .fontColor(V3Theme.tx2(this.mode))
-          .maxLines(1)
-          .textOverflow({ overflow: TextOverflow.Ellipsis })
-          .margin({ top: 5 })
-      }
-      .layoutWeight(1)
-      .alignItems(HorizontalAlign.Start)
-      this.PlayCircle(50)
-    }
-    .width('100%')
-    .padding({ left: 22, right: 22 })
-  }
-
-  @Builder
-  ProgressRow() {
-    Row() {
-      ProgressTrack({
-        currentTimeMs: this.currentTimeMs,
-        durationMs: this.durationMs,
-        mode: this.mode,
-        accent: this.accent,
-        glow: this.glow,
-        onSeek: (r: number) => {
-          this.commitSeek(r)
-        }
-      })
-    }
-    .width('100%')
-    .padding({ left: 22, right: 22 })
-  }
-
   // ========== 窄屏（手机）布局 ==========
   @Builder
   PhoneLayout() {
     Column() {
       this.TopControls()
-      Column() {
-        this.Header()
-        Row()
-          .width('100%')
-          .height(1)
-          .margin({ top: 20, left: 22, right: 22 })
-          .linearGradient({
-            angle: 90,
-            colors: [['rgba(255,255,255,0)', 0.0], ['rgba(255,255,255,0.14)', 0.3],
-              ['rgba(255,255,255,0.14)', 0.7], ['rgba(255,255,255,0)', 1.0]]
-          })
-      }
-      .margin({ top: 14 })
-
-      Stack() {
-        this.Lyrics('portrait')
-
-        // 进度条：静置数秒后收起（高度归零，歌词直接延伸到最底部，无避让更沉浸）
-        // 可见时底部避让系统手势条；隐藏时归零，歌词铺满到屏幕底缘
-        Stack() {
-          Column()
-            .width('100%')
-            .height('100%')
-            .linearGradientBlur(BlurStyle.COMPONENT_REGULAR,
-              { fractionStops: [[0.1, 0], [1, 1]], direction: GradientDirection.Bottom })
-
-          Column(){
-            this.ProgressRow()
-          }
-          .width('100%')
-          .height('100%')
-          .justifyContent(FlexAlign.Center)
-        }
-        .position({ x: 0, y: this.controlsVisible ? '90%' : '100%' })
-        .width('100%')
-        .height('10%')
-      }
-      .layoutWeight(1)
-      .width('100%')
-      // 点击歌词空白区域也可唤出进度条（点歌词行走 onInteract）
-      .onClick(() => {
-        this.showControls()
-      })
+      // 竖屏歌词内容（紧凑头 + 滚动歌词 + 自动隐藏进度条）与播放器 Swiper 右页共用
+      LyricsPortraitPanel()
     }
     .width('100%')
     .height('100%')

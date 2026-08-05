@@ -58,9 +58,15 @@ export struct LyricsView {
   @Prop screenOrientation: string = 'landscape'
   /** 用户交互（手动滚动 / 点击歌词行）回调，供外部显示播控/进度条等 */
   onInteract?: () => void
+  /**
+   * 是否处于可见/活动状态（默认 true）。
+   * 离屏时（如 Swiper 另一页）冻结索引同步：组件不会每次切行都跑链式动画；
+   * 重新可见时直接跳转到当前行（resetSignal 直跳，避免长距离链式补偿动画阻塞主线程、引发播放卡顿）
+   */
+  @Prop @Watch('onActiveChange') active: boolean = true
 
   // ==================== AppStorage 数据源 ====================
-  @StorageProp('current_parsed_lyrics') private parsedLyrics: AppLyricsLine[] = []
+  @StorageProp('current_parsed_lyrics') @Watch('onLyricsDataChange') private parsedLyrics: AppLyricsLine[] = []
   @StorageProp('current_lyrics_has_translation') private hasTranslation: boolean = false
   @StorageProp('current_lyrics_has_transliteration') private hasTransliteration: boolean = false
   @StorageLink('current_lyrics_index') @Watch('onLyricIndexChange') currentLyricsIndex: number = 0
@@ -84,6 +90,29 @@ export struct LyricsView {
   @State private lastStep: number = 0
   @State private isShow: boolean = false
 
+  // ==================== 窗口化 + 离屏冻结 ====================
+  // 歌词组件内部用 ForEach 一次性创建全部行并维护逐行位置状态，歌曲播到后段时
+  // 组件出现/切页要一次建几百行 + 长距离补偿动画，主线程长时间阻塞会把
+  // Free-PCM 的 writeData 回调（跑在主线程）饿死 → 播放卡顿。
+  // 这里只传当前行附近的窗口（60 行），把首屏行数和索引相关的工作量都限制住。
+  /** 歌词窗口大小（行） */
+  private static readonly WIN_SIZE: number = 60
+  /** 当前行在窗口中的目标偏移（上方保留 20 行） */
+  private static readonly WIN_ABOVE: number = 20
+  /** 搬窗滞回：当前行距窗口边缘小于该值才搬，避免每切一行都重建窗口 */
+  private static readonly WIN_HYSTERESIS: number = 8
+  /** 全量扩展：每块追加的行数与间隔——把全量重建摊成小碎块，避免一次性长阻塞饿死音频回调 */
+  private static readonly EXPAND_CHUNK: number = 80
+  private static readonly EXPAND_DELAY: number = 250
+  /** 转发给歌词组件的镜像索引（绝对索引）；离屏时冻结 */
+  @State private mirroredIndex: number = 0
+  /** 窗口起点（全量歌词中的绝对索引） */
+  @State private winStart: number = 0
+  /** 窗口化后的歌词（仅在搬窗/换歌时重算：build 里 slice 会产生新数组，每帧触发组件 onLyricsChange） */
+  @State private winLyrics: AppLyricsLine[] = []
+  /** 全量扩展定时器 */
+  private expandTimer: number = -1
+
   // 翻译按钮自动隐藏定时器
   private translateBtnTimeoutId: number = -1
 
@@ -103,12 +132,135 @@ export struct LyricsView {
     this.pendingNormalScale = this.lyricNormalScale
     this.pendingTranslationFontSize = this.lyricTranslationFontSize
     this.pendingTransliterationFontSize = this.lyricTransliterationFontSize
+    // 窗口定位到当前行附近，首屏只建窗口内的行
+    this.recomputeWindow(this.currentLyricsIndex)
+    this.mirroredIndex = this.currentLyricsIndex
+    // 挂载后直跳当前行：抑制组件从第 0 行到当前行的长距离链式补偿动画
+    setTimeout(() => {
+      this.resetSignal++
+    }, 60)
+    // 首屏稳定后分块扩展到全量歌词，保证手动滑动能看到整首
+    this.scheduleExpand()
+  }
+
+  aboutToDisappear() {
+    if (this.expandTimer !== -1) {
+      clearTimeout(this.expandTimer)
+      this.expandTimer = -1
+    }
+  }
+
+  /** 是否已扩到全量歌词 */
+  private isFullLyrics(): boolean {
+    const n: number = this.parsedLyrics?.length ?? 0
+    return n > 0 && this.winStart === 0 && this.winLyrics.length === n
+  }
+
+  /** 调度一次全量扩展（手动滑动中顺延，避免拖拽中途重建） */
+  private scheduleExpand(): void {
+    if (this.expandTimer !== -1) {
+      clearTimeout(this.expandTimer)
+    }
+    this.expandTimer = setTimeout(() => {
+      this.expandTimer = -1
+      if (this.isManualScroll) {
+        this.scheduleExpand()
+        return
+      }
+      this.expandStep()
+    }, LyricsView.EXPAND_DELAY) as number
+  }
+
+  /**
+   * 分块扩展一步：先向下 append（相对索引不变、无视觉跳动），
+   * 到底后再向上 prepend（组件按当前行重新居中），每块 EXPAND_CHUNK 行
+   */
+  private expandStep(): void {
+    const n: number = this.parsedLyrics?.length ?? 0
+    if (n === 0 || this.isFullLyrics()) {
+      return
+    }
+    const downRemaining: number = n - this.winStart - this.winLyrics.length
+    if (downRemaining > 0) {
+      const newLen: number = this.winLyrics.length + Math.min(downRemaining, LyricsView.EXPAND_CHUNK)
+      this.winLyrics = this.parsedLyrics.slice(this.winStart, this.winStart + newLen)
+      this.scheduleExpand()
+      return
+    }
+    if (this.winStart > 0) {
+      const shift: number = Math.min(this.winStart, LyricsView.EXPAND_CHUNK)
+      const newStart: number = this.winStart - shift
+      this.winLyrics = this.parsedLyrics.slice(newStart, newStart + shift + this.winLyrics.length)
+      this.winStart = newStart
+      this.scheduleExpand()
+    }
+  }
+
+  /** 按需搬窗：当前行接近窗口边缘才移动窗口（滞回 WIN_HYSTERESIS 行） */
+  private recomputeWindow(idx: number): void {
+    const n: number = this.parsedLyrics?.length ?? 0
+    // 已扩到全量：不再搬窗/收窄
+    if (this.isFullLyrics()) {
+      return
+    }
+    if (n <= LyricsView.WIN_SIZE) {
+      // 短歌词整量传入（与普通歌曲行为一致）
+      if (this.winLyrics.length !== n) {
+        this.winStart = 0
+        this.winLyrics = this.parsedLyrics.slice(0)
+      }
+      return
+    }
+    if (this.winLyrics.length > 0 &&
+      idx >= this.winStart + LyricsView.WIN_HYSTERESIS &&
+      idx <= this.winStart + this.winLyrics.length - LyricsView.WIN_HYSTERESIS) {
+      return
+    }
+    const start: number = Math.max(0, Math.min(idx - LyricsView.WIN_ABOVE, n - LyricsView.WIN_SIZE))
+    this.winStart = start
+    this.winLyrics = this.parsedLyrics.slice(start, start + LyricsView.WIN_SIZE)
+  }
+
+  /** 歌词数据变化（换歌）：重置窗口并定位到当前行，重新调度全量扩展 */
+  private onLyricsDataChange(): void {
+    if (this.expandTimer !== -1) {
+      clearTimeout(this.expandTimer)
+      this.expandTimer = -1
+    }
+    this.winStart = 0
+    this.winLyrics = []
+    this.recomputeWindow(this.currentLyricsIndex)
+    if (this.active) {
+      this.mirroredIndex = this.currentLyricsIndex
+    }
+    this.scheduleExpand()
+  }
+
+  /** 可见性变化：重新可见时同步到当前行并直跳（离屏期间冻结，不切行动画） */
+  private onActiveChange(): void {
+    if (this.active) {
+      this.recomputeWindow(this.currentLyricsIndex)
+      this.mirroredIndex = this.currentLyricsIndex
+      setTimeout(() => {
+        this.resetSignal++
+      }, 60)
+      // 尚未扩到全量时继续扩展
+      if (!this.isFullLyrics()) {
+        this.scheduleExpand()
+      }
+    }
   }
 
   // ==================== 监听器 ====================
-  // @Watch 回调会在索引变化时自动触发，用于调试
+  // 播放索引变化：离屏冻结（不搬窗、不同步）；手动滚动时不搬窗（避免打断浏览）
   private onLyricIndexChange(): void {
-    // 组件内部会自动处理索引变化
+    if (!this.active) {
+      return
+    }
+    this.mirroredIndex = this.currentLyricsIndex
+    if (!this.isManualScroll) {
+      this.recomputeWindow(this.currentLyricsIndex)
+    }
   }
 
   // ==================== 配置转换 ====================
@@ -161,14 +313,35 @@ export struct LyricsView {
   }
 
   // ==================== 事件处理 ====================
+  /** 时间戳为 0 的行数：>=2 说明是 作词/作曲 等元信息行块（源数据无时间被填了 0），不是真实歌词 */
+  private zeroTimeLineCount(): number {
+    let c: number = 0
+    for (const l of this.parsedLyrics) {
+      if (l.time === 0) {
+        c++
+        if (c >= 2) {
+          break
+        }
+      }
+    }
+    return c
+  }
+
   private handleLineClick(time: number, index: number) {
     this.onInteract?.()
+    // index 为窗口内相对索引，换算回全量歌词索引
+    const absIndex: number = this.winStart + index
+    const line: AppLyricsLine | undefined = this.parsedLyrics[absIndex]
+    // 无有效时间戳的行（元信息行/解析异常行）：提示无法跳转，不执行 seek，避免打断播放
+    if (!line || !Number.isFinite(line.time) || line.time < 0 ||
+      (line.time === 0 && this.zeroTimeLineCount() >= 2)) {
+      ToastUtil.showShort('该句歌词无法跳转')
+      return
+    }
     // 跳转播放
     avPlayerManager.seek(time)
     // 更新 PiP 歌词
-    if (this.parsedLyrics[index]) {
-      EventHelper.postPipLyric(this.parsedLyrics[index].text)
-    }
+    EventHelper.postPipLyric(line.text)
   }
 
   private handleHighlightChange(_index: number) {
@@ -227,8 +400,9 @@ export struct LyricsView {
     Stack({ alignContent: Alignment.Bottom }) {
       // 歌词组件
       BaseChainLyricsView({
-        lyrics: this.parsedLyrics as LyricLine[],
-        currentIndex: this.currentLyricsIndex,
+        // 窗口化歌词 + 窗口内相对索引：限制首屏建行数与索引相关工作量
+        lyrics: this.winLyrics as LyricLine[],
+        currentIndex: this.mirroredIndex - this.winStart,
         showTranslation: this.showTranslation,
         config: this.getConfig(),
         theme: this.getTheme(),

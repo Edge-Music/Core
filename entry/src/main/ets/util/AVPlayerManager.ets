@@ -1117,6 +1117,8 @@ class AVPlayerManager {
       if (!this.prepared) {
         return;
       }
+      // 先通知歌词管理器乐观跳转并暂停旧位置回写，再执行 seek（缓冲期间位置回读仍是旧值）
+      LyricsManager.notifySeek(position);
       await player.seekTo(position);
       this.updatePlaybackState(this.currentPlaybackState, position);
       this.triggerSeek(position);
