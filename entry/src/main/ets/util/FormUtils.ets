@@ -16,6 +16,7 @@ import { CollectAction, PlayActionType } from '../widget/model/FormCardConstant'
 import { PlaylistManager } from './PlaylistManager';
 import { LyricsLine } from './LyricsManager';
 import { audio } from '@kit.AudioKit';
+import { PreferencesCache } from './PreferenceCache';
 
 const TAG = 'FormUtils';
 
@@ -328,7 +329,11 @@ class FormUtils {
           avPlayerManager.pause()
           break;
         case PlayActionType.PLAY:
-          avPlayerManager.play()
+          const lastSong = PreferencesCache.lastSong();
+          if (lastSong) {
+            PlaylistManager.getInstance();
+            PlaylistManager.playSong(lastSong, false);
+          }
           break;
         case PlayActionType.PREVIOUS:
           const prevSong = PlaylistManager.playPrevious()
