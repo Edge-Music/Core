@@ -74,7 +74,7 @@ export struct ImmersivePlayer {
   private toppingUp: boolean = false
   /** V1 配置（传入 ） */
   private v1Config: SplitPaneV1Config = this.buildV1Config();
-  private PlayerSwiperController: SwiperController = new SwiperController();
+  @State PlayerSwiperIndex: number = 0;
   // 进入滑动分页（Swiper）模式时无分栏概念，自动退出分栏编辑态
   @State @Watch('onSwiperModeChange') PlayerIsSwiper:boolean = false;
   // 滑动分页当前页码（0=播放页 1=歌词页）：冻结离屏页的歌词动画，避免播放中白跑链式动画
@@ -432,7 +432,18 @@ export struct ImmersivePlayer {
   }
 
   private openLyrics(): void {
-    this.pageStack.pushPath({ name: 'ImmersiveLyrics' }, { animated: true })
+    // this.pageStack.pushPath({ name: 'ImmersiveLyrics' }, { animated: true })
+    if (this.PlayerIsSwiper) {
+      // this.PlayerSwiperController.showNext()
+      this.PlayerSwiperIndex = 1;
+    }else {
+      if (this.rightPaneCollapsed) {
+        this.getUIContext().animateTo({ duration: 280, curve: Curve.EaseInOut }, () => {
+          this.rightPaneCollapsed = false
+        })
+      }
+    }
+
   }
 
   // 统一弹层入口
@@ -1215,7 +1226,7 @@ export struct ImmersivePlayer {
   PlayingSplitPane(){
     Stack({ alignContent: Alignment.Center }) {
       SplitPaneV1({
-        swiperController:this.PlayerSwiperController,
+        currentIndex: $PlayerSwiperIndex,
         isSwipeMode:this.PlayerIsSwiper,
         config: this.v1Config,
         isEditMode: this.PlayerPanelIsEdit,

@@ -35,7 +35,16 @@ export struct SplitPaneV1 {
   /** 右栏内容（必传） */
   @BuilderParam rightContent: () => void = this.defaultContent;
   /** 滑动分页控制器 */
-  @Require swiperController: SwiperController = new SwiperController();
+  private   swiperController: SwiperController = new SwiperController();
+  @Link @Watch('oncurrentIndexChange')currentIndex:number
+  oncurrentIndexChange(changedPropertyName: string) {
+
+    if (this.currentIndex === 1) {
+      this.swiperController.showNext()
+      this.currentIndex = 0
+    }
+
+  }
   /** 配置项 */
   @Prop config: SplitPaneV1Config = new SplitPaneV1Config();
   /** 是否处于编辑模式（显示可拖拽分隔条） */
@@ -225,7 +234,7 @@ export struct SplitPaneV1 {
         }
       } else if (this.measured) {
         // ============ 滑动分页模式（类 Swiper） ============
-        Swiper() {
+        Swiper(this.swiperController) {
           Column() {
             this.leftContent();
           }
@@ -238,8 +247,15 @@ export struct SplitPaneV1 {
           .width('100%')
           .height('100%')
         }
+        .index(this.currentIndex)           // 绑定页码
+
+
         .loop(false)
         .onChange((index: number) => {
+          if (this.currentIndex ==1) {
+            this.currentIndex = 0         // 滑动时同步回父组件
+          }
+
           this.onSwipeIndexChange(index);
         })
         .indicator(
@@ -267,4 +283,6 @@ export struct SplitPaneV1 {
       this.handleAreaChange(newValue.width as number);
     })
   }
+
+
 }
