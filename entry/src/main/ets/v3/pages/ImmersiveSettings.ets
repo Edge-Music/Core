@@ -63,6 +63,8 @@ export struct ImmersiveSettings {
   @State pressureChange: boolean = false
   @State subWindowType: number = 2 // 0左手/1智感/2右手/3关闭
   @State desktopLyrics: boolean = false
+  // 时间屏保防烧屏压暗（3 分钟未操作自动压暗，轻触点亮；默认开启）
+  @State saverDim: boolean = true
 
   private sections: NavSection[] = [
     { key: 'general', title: '通用', icon: $r('sys.symbol.gearshape') },
@@ -92,6 +94,7 @@ export struct ImmersiveSettings {
     this.pressureChange = PreferencesCache.getUserPreference('pressure_change', '0') === '1'
     this.subWindowType = parseInt(PreferencesCache.getUserPreference('sub_window_show_type', '2'))
     this.desktopLyrics = PreferencesCache.getUserPreference('Lyic_desktop', '0') === '1'
+    this.saverDim = PreferencesCache.getUserPreference('v3_saver_dim', '1') === '1'
     try {
       const info = bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION)
       this.appVersion = info.versionName
@@ -508,6 +511,12 @@ export struct ImmersiveSettings {
         if (v) {
           ToastUtil.showShort('将在下次启动后生效')
         }
+      })
+
+      // 时间屏保防烧屏压暗（3 分钟未操作自动压暗，轻触点亮；默认开启）
+      this.ToggleRow('时间屏保防烧屏压暗', this.saverDim, true, (v: boolean) => {
+        this.saverDim = v
+        PreferencesCache.setUserPreference('v3_saver_dim', v ? '1' : '0')
       })
     }
     .width('100%')

@@ -59,6 +59,13 @@ export struct PlayerBar {
         }
       },
       {
+        value: '时间屏保',
+        action: () => {
+          // 经 AppStorage 通知播放页挂载屏保覆盖层（ImmersivePlayer 监听该键）
+          AppStorage.setOrCreate('v3_clock_saver', true)
+        }
+      },
+      {
         value: (this.currentSong?.meta?.isFavorite ?? false) ? '取消收藏' : '收藏到喜欢',
         action: () => {
           const s: Song | null = this.currentSong

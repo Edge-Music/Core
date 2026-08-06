@@ -28,6 +28,7 @@ import window from '@ohos.window'
 import { SplitPaneV1, SplitPaneV1Config } from '../components/SplitPaneV1'
 import { LyricsPortraitPanel } from '../components/LyricsPortraitPanel'
 import { LyricsView } from '../../component/ChainLyricsViewWrapper'
+import { ClockScreensaver } from '../components/ClockScreensaver'
 @Component
 export struct ImmersivePlayer {
   @Consume('NavPathStack') pageStack: NavPathStack
@@ -52,6 +53,10 @@ export struct ImmersivePlayer {
     height: 0
   };
   @StorageProp('v3_theme_mode') mode: string = 'dark'
+  // 时间屏保开关：PlayerBar「更多」菜单写入，覆盖层退出时清掉
+  @StorageLink('v3_clock_saver') @Watch('onClockSaverChange') clockSaverOn: boolean = false
+  // 时间屏保首次使用须知弹窗（确认后不再弹出）
+  @State showSaverNotice: boolean = false
   @State mouseHover:string = ''
   @State fav: boolean = false
   // 官方 SideBarContainer 的显隐（宽屏默认常驻展开，窄屏默认收起为抽屉）
@@ -256,6 +261,14 @@ export struct ImmersivePlayer {
   private onSwiperModeChange(): void {
     if (this.PlayerIsSwiper && this.PlayerPanelIsEdit) {
       this.PlayerPanelIsEdit = false
+    }
+  }
+
+  // 时间屏保开启拦截：首次使用先弹须知（确认「我已知悉」后才真正进入）
+  private onClockSaverChange(): void {
+    if (this.clockSaverOn && PreferencesCache.getUserPreference('v3_saver_notice', '0') !== '1') {
+      this.clockSaverOn = false
+      this.showSaverNotice = true
     }
   }
 
@@ -1213,6 +1226,9 @@ export struct ImmersivePlayer {
     if (this.PlayerPanelIsEdit) {
       // 编辑态：歌词页占位（退出编辑恢复实时歌词）
       this.EditPaneMask($r('sys.symbol.lyrics_square'), '歌词页')
+    } else if (this.clockSaverOn) {
+      // 时间屏保覆盖时卸载歌词组件：链式歌词的动画/布局开销大，屏保态无需渲染
+      Column()
     } else if (this.PlayerIsSwiper) {
       // 滑动分页右页：复用歌词页竖屏布局（紧凑头+滚动歌词+进度，无收起/横屏按钮）；
       // topRect + 56 避让顶部悬浮的侧边栏开合按钮（44 高 + 上边距 12）；
@@ -1703,6 +1719,21 @@ export struct ImmersivePlayer {
           // 悬浮玻璃开合按钮（始终在最上层）
           this.SidebarToggle()
 
+          // 时间屏保覆盖层：盖住侧栏/顶栏等全部内容，随分栏/滑动分页切换横竖布局
+          if (this.clockSaverOn) {
+            ClockScreensaver({
+              isSwiper: this.PlayerIsSwiper,
+              onExit: () => {
+                this.clockSaverOn = false
+              }
+            })
+          }
+
+          // 时间屏保首次使用须知（液态玻璃卡片，确认「我已知悉」后进入屏保）
+          if (this.showSaverNotice) {
+            this.SaverNoticeDialog()
+          }
+
 
 
       }
@@ -1712,6 +1743,10 @@ export struct ImmersivePlayer {
       .gesture(
         PanGesture({ direction: PanDirection.Horizontal, distance: 30 })
           .onActionUpdate((e: GestureEvent) => {
+            // 屏保期间冻结切歌滑动
+            if (this.clockSaverOn) {
+              return
+            }
             // 仅抽屉（Overlay）侧栏打开时冻结切歌滑动；Embed 并列侧栏常驻展开不影响切歌
             if (!this.sidebarEmbed() && this.showSidebar) {
               return
@@ -1726,6 +1761,9 @@ export struct ImmersivePlayer {
             this.cardOpacity = 1 - Math.min(0.4, Math.abs(e.offsetX) / 600)
           })
           .onActionEnd((e: GestureEvent) => {
+            if (this.clockSaverOn) {
+              return
+            }
             if (!this.sidebarEmbed() && this.showSidebar) {
               return
             }
@@ -1768,6 +1806,11 @@ export struct ImmersivePlayer {
       backgroundColor: Color.Transparent
     })
     .onBackPressed(() => {
+      // 屏保优先响应返回键：退出屏保而非页面
+      if (this.clockSaverOn) {
+        this.clockSaverOn = false
+        return true
+      }
       if(this.showSidebar) {
         this.getUIContext().animateTo({ duration: 320, curve: Curve.EaseInOut }, () => {
           this.showSidebar = false
@@ -1775,6 +1818,54 @@ export struct ImmersivePlayer {
         return true
       }
       return false
+    })
+  }
+
+  // 时间屏保首次使用须知：居中液态玻璃卡片 + 遮罩（模态，仅「我已知悉」可关闭）
+  @Builder
+  SaverNoticeDialog() {
+    Column() {
+      Column({ space: 18 }) {
+        Text('时间屏保')
+          .fontSize(17)
+          .fontWeight(FontWeight.Medium)
+          .fontColor(V3Theme.tx1(this.mode))
+          .width('100%')
+        Text('该功能需要屏幕常亮，实现某品牌设备和某机型类似的息屏播控，由于技术问题，请避免长时间使用此功能。')
+          .fontSize(14)
+          .fontColor(V3Theme.tx2(this.mode))
+          .lineHeight(22)
+          .width('100%')
+        Text('我已知悉')
+          .fontSize(15)
+          .fontWeight(FontWeight.Medium)
+          .fontColor('#FFFFFF')
+          .width('100%')
+          .textAlign(TextAlign.Center)
+          .padding({ top: 11, bottom: 11 })
+          .borderRadius(22)
+          .backgroundColor(V3Theme.accentFallback(this.mode))
+          .onClick(() => {
+            PreferencesCache.setUserPreference('v3_saver_notice', '1')
+            this.showSaverNotice = false
+            this.clockSaverOn = true
+          })
+      }
+      .width(320)
+      .padding({ left: 20, right: 20, top: 22, bottom: 20 })
+      .borderRadius(24)
+      .backgroundColor(V3Theme.glass1(this.mode))
+      .backgroundBlurStyle(BlurStyle.BACKGROUND_THICK, { colorMode: V3Theme.blurMode(this.mode) })
+      .border({ width: 1, color: V3Theme.glassBorder(this.mode) })
+      .shadow({ radius: 40, color: V3Color.SHADOW_AMBIENT, offsetX: 0, offsetY: 8 })
+    }
+    .width('100%')
+    .height('100%')
+    .justifyContent(FlexAlign.Center)
+    .backgroundColor('rgba(0,0,0,0.40)')
+    .transition(TransitionEffect.OPACITY.animation({ duration: 250, curve: Curve.EaseInOut }))
+    // 模态：吞掉遮罩上的点击，只能点「我已知悉」关闭
+    .onClick(() => {
     })
   }
 
