@@ -8,6 +8,14 @@ export  struct HandingCtrl{
   @Local isPlaying:boolean = false
   @Event on_Click: () => void = () => {}
   private playerManager = avPlayerManager;
+  // 必须持有同一个引用：removeListener 按引用相等过滤，
+  // 原先注册匿名函数、注销时又传新的空函数，等于从未摘除过监听
+  private handlePlay: () => void = () => {
+    this.isPlaying = true;
+  }
+  private handlePause: () => void = () => {
+    this.isPlaying = false;
+  }
   aboutToAppear(): void {
 
     this.playerManager.getAVPlayerInstance().then(player => {
@@ -15,17 +23,12 @@ export  struct HandingCtrl{
     });
 
     // 添加事件监听
-    this.playerManager.addListener('onPlay', () => {
-      this.isPlaying = true;
-    });
-
-    this.playerManager.addListener('onPause', () => {
-      this.isPlaying = false;
-    });
+    this.playerManager.addListener('onPlay', this.handlePlay);
+    this.playerManager.addListener('onPause', this.handlePause);
   }
   aboutToDisappear(): void {
-    this.playerManager.removeListener('onPlay',()=>{})
-    this.playerManager.removeListener('onPause',()=>{})
+    this.playerManager.removeListener('onPlay', this.handlePlay)
+    this.playerManager.removeListener('onPause', this.handlePause)
   }
   build() {
     Column({space:5}){

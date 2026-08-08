@@ -16,6 +16,7 @@ import { AmbientBackground } from '../components/AmbientBackground'
 import { LyricsPortraitPanel } from '../components/LyricsPortraitPanel'
 import { LyricsView } from '../../component/ChainLyricsViewWrapper'
 import { V3Color, V3Theme } from '../theme/Tokens'
+import WindowUtil from '../../util/WindowUtil'
 
 @Component
 export struct ImmersiveLyrics {
@@ -36,17 +37,20 @@ export struct ImmersiveLyrics {
   private timer: number = -1
   private player = avPlayerManager
   private wentLandscape: boolean = false
+  // 持有引用才能在销毁时摘除监听（AVPlayerManager 按引用相等过滤）
+  private handlePlay: () => void = () => {
+    this.isPlaying = true
+  }
+  private handlePause: () => void = () => {
+    this.isPlaying = false
+  }
 
   aboutToAppear(): void {
     this.player.getAVPlayerInstance().then((p) => {
       this.isPlaying = p.getState() === audio.AudioState.STATE_RUNNING
     })
-    this.player.addListener('onPlay', () => {
-      this.isPlaying = true
-    })
-    this.player.addListener('onPause', () => {
-      this.isPlaying = false
-    })
+    this.player.addListener('onPlay', this.handlePlay)
+    this.player.addListener('onPause', this.handlePause)
     // 竖屏布局的进度/定时已移入 LyricsPortraitPanel，这里仅需同步播放态（横屏播放键用）
     this.timer = setInterval(async () => {
       const p = await this.player.getAVPlayerInstance()
@@ -55,6 +59,8 @@ export struct ImmersiveLyrics {
   }
 
   aboutToDisappear(): void {
+    this.player.removeListener('onPlay', this.handlePlay)
+    this.player.removeListener('onPause', this.handlePause)
     if (this.timer !== -1) {
       clearInterval(this.timer)
       this.timer = -1
@@ -68,15 +74,22 @@ export struct ImmersiveLyrics {
   }
 
   private setLandscape(land: boolean): void {
+    // 同步置标记，保证紧接着退出页面时 resetOrientation 仍能复位方向
+    const prevWent: boolean = this.wentLandscape
     if (land) {
       this.wentLandscape = true
     }
-    const ctx: Context = this.getUIContext().getHostContext() as Context
-    window.getLastWindow(ctx).then((win: window.Window) => {
-      // 复位用 UNSPECIFIED 回到 module.json5 默认（auto_rotation_restricted），而非硬锁竖屏
-      win.setPreferredOrientation(land ? window.Orientation.LANDSCAPE : window.Orientation.UNSPECIFIED)
-    }).catch(() => {
-    })
+    // 必须显式操作主窗口：原先用 window.getLastWindow() 会在悬浮歌词窗 / 多功能
+    // 悬浮球窗存在时拿到子窗口，对子窗口设方向无效，表现为横屏按钮点了没反应。
+    // 复位用 UNSPECIFIED 回到 module.json5 默认（auto_rotation_restricted），而非硬锁竖屏
+    WindowUtil.setMainWindowOrientation(land ? window.Orientation.LANDSCAPE : window.Orientation.UNSPECIFIED)
+      .then((ok: boolean) => {
+        if (!ok) {
+          this.wentLandscape = prevWent
+          // 失败原先被 catch(() => {}) 静默吞掉，用户只看到"点了没用"
+          ToastUtil.showShort(land ? '切换横屏失败' : '恢复竖屏失败')
+        }
+      })
   }
 
   private resetOrientation(): void {

@@ -343,6 +343,31 @@ class WindowUtil {
     return resultWindow as window.Window
   }
 
+  /**
+   * 设置「主窗口」的屏幕方向。
+   *
+   * 不要用 window.getLastWindow()：本应用会创建悬浮歌词窗（SBLyrics）和多功能
+   * 悬浮球窗（MultiFuncSubWindow），getLastWindow 返回的是最后创建的那个窗口，
+   * 对子窗口设方向无效——表现为开了状态栏歌词后，横屏按钮点了没反应。
+   * @returns 是否成功下发
+   */
+  async setMainWindowOrientation(orientation: window.Orientation): Promise<boolean> {
+    const stage: window.WindowStage | undefined = this.windowStage ?? AppStorage.get('windowStage')
+    if (!stage) {
+      LogUtil.error(`[${TAG}]`, 'setMainWindowOrientation: windowStage unavailable')
+      return false
+    }
+    try {
+      const mainWindow = await stage.getMainWindow()
+      await mainWindow.setPreferredOrientation(orientation)
+      LogUtil.info(`[${TAG}]`, 'setMainWindowOrientation: ' + orientation + ' Succeeded.')
+      return true
+    } catch (err) {
+      LogUtil.error(`[${TAG}]`, 'setMainWindowOrientation failed. Cause: ' + JSON.stringify(err))
+      return false
+    }
+  }
+
   setScreenOrientation(window: window.Window, orientation: window.Orientation) {
     window.setPreferredOrientation(orientation).then(() => {
       LogUtil.info(`[${TAG}]`, 'setWindowOrientation: ' + orientation + ' Succeeded.')

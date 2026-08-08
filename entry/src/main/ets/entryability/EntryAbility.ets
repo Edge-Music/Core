@@ -144,10 +144,12 @@ export default class EntryAbility extends UIAbility {
   onForeground(): void {
     // Ability has brought to foreground
     LogUtil.info(`[${TAG}]`, 'Ability onForeground');
+    // 这里原先调的是 stopHoldingHand()：回到前台反而把智感握持监听注销了，
+    // 而重新注册只发生在 Index 首次挂载时，导致切一次后台回来握持就永久失效。
+    // 前台时应确保监听存在（startHoldingHand 内部幂等，重复调用不会叠加回调）。
     if (canIUse("SystemCapability.MultimodalAwareness.Motion")) {
-      // motion.off('holdingHandChanged');
-      import('../util/HoldHand').then((nv)=>{
-        nv.stopHoldingHand()
+      import('../util/HoldHand').then((nv) => {
+        nv.startHoldingHand()
       })
     }
   }
