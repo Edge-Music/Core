@@ -14,11 +14,11 @@
 
 /** V1 版本配置项（Props 接口定义） */
 export class SplitPaneV1Config {
-  /** 左栏最小宽度（vp），默认 120 */
+  /** 左栏最小宽度（vp），默认 190 */
   minLeftWidth: number = 190;
   /** 右栏最小宽度（vp），默认 120 */
   minRightWidth: number = 120;
-  /** 降级阈值（vp）：容器宽度小于该值时切换为滑动分页模式，默认 320 */
+  /** 降级阈值（vp）：容器宽度小于该值时切换为滑动分页模式，默认 325 */
   collapseThreshold: number = 325;
   /** 初始左栏宽度占比（0~1），默认 0.5 */
   initialRatio: number = 0.5;
@@ -124,7 +124,6 @@ export struct SplitPaneV1 {
     if (width <= 0) {
       return;
     }
-    console.log("jizhishitest1122" + String(width))
     const swipe: boolean = width < this.config.collapseThreshold;
     if (!this.measured) {
       // 首次测量：直接落定模式（不做切换动画），宽窗口落定分栏、窄窗口落定滑动分页

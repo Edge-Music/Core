@@ -41,6 +41,8 @@ export struct ClockScreensaver {
   @State currentTimeMs: number = 0
   @State durationMs: number = 0
   @State isPlaying: boolean = false
+  // 进度拖动中：期间冻结定时器回写，避免滑块被拉回
+  @State seeking: boolean = false
   @State fav: boolean = false
   @State playScale: number = 1
   // 横屏歌曲胶囊展开态
@@ -64,6 +66,13 @@ export struct ClockScreensaver {
   private timer: number = -1
   private player = avPlayerManager
   private keepScreenOnWindow: window.Window | null = null
+  // 持有回调引用才能在退出屏保时摘除，否则每次进出屏保都往播放器回调数组里累加一份
+  private handlePlay: () => void = () => {
+    this.isPlaying = true
+  }
+  private handlePause: () => void = () => {
+    this.isPlaying = false
+  }
 
   aboutToAppear(): void {
     // 加载横屏时钟字体（与 Playing4Landscape 同一套 yxs 字体族）
@@ -93,16 +102,15 @@ export struct ClockScreensaver {
       this.durationMs = p.getDurationMs()
       this.isPlaying = p.getState() === audio.AudioState.STATE_RUNNING
     })
-    this.player.addListener('onPlay', () => {
-      this.isPlaying = true
-    })
-    this.player.addListener('onPause', () => {
-      this.isPlaying = false
-    })
+    this.player.addListener('onPlay', this.handlePlay)
+    this.player.addListener('onPause', this.handlePause)
     this.timer = setInterval(async () => {
       const p = await this.player.getAVPlayerInstance()
       this.durationMs = p.getDurationMs()
-      this.currentTimeMs = p.getCurrentPosition()
+      // 拖动进度中不要回写，否则每 500ms 把滑块拉回播放器的旧位置，表现为拖不动
+      if (!this.seeking) {
+        this.currentTimeMs = p.getCurrentPosition()
+      }
     }, 500)
 
     // 屏保期间保持屏幕常亮
@@ -120,6 +128,8 @@ export struct ClockScreensaver {
   }
 
   aboutToDisappear(): void {
+    this.player.removeListener('onPlay', this.handlePlay)
+    this.player.removeListener('onPause', this.handlePause)
     if (this.timer !== -1) {
       clearInterval(this.timer)
       this.timer = -1
@@ -339,14 +349,15 @@ export struct ClockScreensaver {
         .selectedColor(V3Theme.tx2(this.mode))
         .trackColor(V3Theme.track(this.mode))
         .layoutWeight(1)
-        .onChange((value: number) => {
-          this.getUIContext()?.animateTo({ duration: 100, curve: Curve.EaseOut }, () => {
-            this.currentTimeMs = value
-          })
-        })
-        .onTouch((event: TouchEvent) => {
-          if (event.type === TouchType.Up) {
-            this.player.seek(this.currentTimeMs)
+        // 用 SliderChangeMode 区分拖动中/结束，比 onTouch(Up) 更准确：
+        // 点击轨道跳转不会产生 Touch.Up 序列，原写法会漏掉 seek
+        .onChange((value: number, mode: SliderChangeMode) => {
+          this.currentTimeMs = value
+          if (mode === SliderChangeMode.Begin || mode === SliderChangeMode.Moving) {
+            this.seeking = true
+          } else {
+            this.player.seek(value)
+            this.seeking = false
           }
         })
       Text(this.formatTime(this.durationMs))
@@ -373,7 +384,8 @@ export struct ClockScreensaver {
           .clip(true)
           .borderRadius(this.capsuleExpanded ? 12 : 9)
         Column() {
-          Text(this.song?.name + (this.capsuleExpanded ? `-${this.artistNames()}` : ''))
+          // 无歌曲时 song?.name 为 undefined，直接拼接会把 "undefined" 显示出来
+          Text((this.song?.name ?? '暂无播放') + (this.capsuleExpanded ? `-${this.artistNames()}` : ''))
             .fontColor(V3Theme.tx1(this.mode))
             .height(26)
             .maxLines(1)
@@ -516,8 +528,11 @@ export struct ClockScreensaver {
           .blockColor('rgba(164, 164, 164, 1.00)')
           .layoutWeight(1)
           .margin({ left: 12, right: 12 })
-          .onChange((value: number) => {
-            PreferencesCache.setUserPreference('FontSize4Theme3', String(Math.floor(value)))
+          // 仅在拖动结束时落盘：Moving 阶段每帧写偏好会造成持续磁盘 IO
+          .onChange((value: number, mode: SliderChangeMode) => {
+            if (mode === SliderChangeMode.End || mode === SliderChangeMode.Click) {
+              PreferencesCache.setUserPreference('FontSize4Theme3', String(Math.floor(value)))
+            }
           })
         Button('确定')
           .fontColor($r('sys.color.font'))

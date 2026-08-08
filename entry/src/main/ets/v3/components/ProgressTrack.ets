@@ -106,6 +106,10 @@ export struct ProgressTrack {
             this.dragRatio = this.ratio()
           })
           .onActionUpdate((e: GestureEvent) => {
+            // 多指抬起等场景下 fingerList 可能为空，直接取下标会崩
+            if (!e.fingerList || e.fingerList.length === 0) {
+              return
+            }
             const lx: number = e.fingerList[0].localX
             let r: number = lx / this.trackWidth
             r = r < 0 ? 0 : (r > 1 ? 1 : r)

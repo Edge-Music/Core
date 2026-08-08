@@ -116,6 +116,14 @@ export struct PlayerBar {
 
   private timer: number = -1
   private player = avPlayerManager
+  // 持有回调引用才能在销毁时摘除：AVPlayerManager 按引用相等过滤监听器，
+  // 传匿名函数会导致每次组件重建都往回调数组里累加一份并写入失效组件
+  private handlePlay: () => void = () => {
+    this.isPlaying = true
+  }
+  private handlePause: () => void = () => {
+    this.isPlaying = false
+  }
 
   aboutToAppear(): void {
     this.player.getAVPlayerInstance().then((p) => {
@@ -123,12 +131,8 @@ export struct PlayerBar {
       this.durationMs = p.getDurationMs()
       this.isPlaying = p.getState() === audio.AudioState.STATE_RUNNING
     })
-    this.player.addListener('onPlay', () => {
-      this.isPlaying = true
-    })
-    this.player.addListener('onPause', () => {
-      this.isPlaying = false
-    })
+    this.player.addListener('onPlay', this.handlePlay)
+    this.player.addListener('onPause', this.handlePause)
     this.timer = setInterval(async () => {
       const p = await this.player.getAVPlayerInstance()
       this.durationMs = p.getDurationMs()
@@ -141,6 +145,8 @@ export struct PlayerBar {
       clearInterval(this.timer)
       this.timer = -1
     }
+    this.player.removeListener('onPlay', this.handlePlay)
+    this.player.removeListener('onPause', this.handlePause)
   }
 
   private commitSeek(r: number): void {
