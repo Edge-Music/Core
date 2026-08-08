@@ -34,6 +34,12 @@ export class PlaylistManager {
   private _targetSong: Song | null = null;
   // 切歌请求序号：每次 playSong 自增，仅最新请求允许真正起播/写 UI 状态
   private static playSeq: number = 0;
+  // 切歌防抖：底层解码管线重建（关旧解码器 → 建新解码器 → 重建 renderer）代价高，
+  // 连点会让多次重建叠在一起把解码器打崩。首次点击立即起播保证跟手，
+  // 紧随其后的连点只保留最后一次；自动续播间隔远大于阈值，不受影响。
+  private static readonly SWITCH_DEBOUNCE_MS: number = 300;
+  private static switchTimer: number = -1;
+  private static lastDispatchTs: number = 0;
 
   private constructor() {
 
@@ -52,63 +58,88 @@ export class PlaylistManager {
     return PlaylistManager.instance
   }
 
-  public static async playSong(song: Song, pause = false) {
+  public static playSong(song: Song, pause = false) {
+    // 同步记录本次请求：序号 + 目标歌曲（供 playNext/playPrevious 立即拿到新基准）
+    const seq = ++PlaylistManager.playSeq;
+    PlaylistManager.getInstance()._targetSong = song;
+
     const fadeInOutEnabled = PreferencesCache.getUserPreference('fade_in_out', '0');
     let delayTime: number = 0
-    if(fadeInOutEnabled === '1') {
+    if (fadeInOutEnabled === '1') {
       avPlayerManager.pause()
       // 这里的延迟时间与淡入淡出的最大时间保持一致750ms
       delayTime = 750
     }
 
-    // 同步记录本次请求：序号 + 目标歌曲（供 playNext/playPrevious 立即拿到新基准）
-    const seq = ++PlaylistManager.playSeq;
-    PlaylistManager.getInstance()._targetSong = song;
+    // 覆盖上一次还未落地的请求，连点期间不重复重建解码管线
+    if (PlaylistManager.switchTimer !== -1) {
+      clearTimeout(PlaylistManager.switchTimer)
+      PlaylistManager.switchTimer = -1
+    }
 
-    setTimeout(async () => {
-      // 快速连切时只让最后一次请求生效，过期请求直接丢弃，
-      // 防止中间每一首都写一遍 current_playing_song 造成 UI 反复跳动
-      if (seq !== PlaylistManager.playSeq) {
-        LogUtil.info("PlaylistManager ", "playSong ", "drop stale request, seq ", seq.toString())
+    const sinceLast = Date.now() - PlaylistManager.lastDispatchTs
+    if (delayTime === 0 && sinceLast >= PlaylistManager.SWITCH_DEBOUNCE_MS) {
+      // 距上次起播已超过阈值（单次点击、自动续播）：立即执行，不引入额外延迟
+      PlaylistManager.dispatchPlay(song, pause, seq)
+      return
+    }
+
+    const wait = delayTime > 0 ? delayTime : (PlaylistManager.SWITCH_DEBOUNCE_MS - sinceLast)
+    PlaylistManager.switchTimer = setTimeout(() => {
+      PlaylistManager.switchTimer = -1
+      PlaylistManager.dispatchPlay(song, pause, seq)
+    }, wait)
+  }
+
+  /** 真正派发起播请求；仅由 playSong 的防抖逻辑调用 */
+  private static async dispatchPlay(song: Song, pause: boolean, seq: number) {
+    // 快速连切时只让最后一次请求生效，过期请求直接丢弃，
+    // 防止中间每一首都写一遍 current_playing_song 造成 UI 反复跳动
+    if (seq !== PlaylistManager.playSeq) {
+      LogUtil.info("PlaylistManager ", "playSong ", "drop stale request, seq ", seq.toString())
+      return
+    }
+    PlaylistManager.lastDispatchTs = Date.now()
+    try {
+      // 获取当前播放的歌曲
+      const currentSong = AppStorage.get<Song>("current_playing_song")
+      // 点击正在播放的歌曲时只需续播，无需重建管线。
+      // 但必须确认管线还能续播：单曲队列播完后 playNext 返回的仍是这首歌，
+      // 此时解码器已 EOS，只调 play() 会卡死在无声 + 进度 0:00 + 点播放无反应
+      if (currentSong && currentSong.id === song.id
+        && PlaylistManager.getPlayMode() !== PlayMode.SINGLE
+        && avPlayerManager.canResumeCurrent()) {
+        EventHelper.postSongState("PLAY")
+        await avPlayerManager.play()
         return
       }
-      try {
-        // 获取当前播放的歌曲
-        const currentSong = AppStorage.get<Song>("current_playing_song")
-        // 如果当前播放的歌曲和要播放的歌曲相同，则不做任何操作，且并不是单曲循环模式
-        if (currentSong && currentSong.id === song.id && PlaylistManager.getPlayMode() !== PlayMode.SINGLE) {
-          EventHelper.postSongState("PLAY")
-          await avPlayerManager.play()
-          return
-        }
-        LogUtil.info("PlaylistManager ", "playSong ", "song ", JSON.stringify(song))
-        AppStorage.setOrCreate("current_playing_song", song)
-        // 从song转换至SongV2
-        SongItem.id = song.id;
-        SongItem.name = song.name;
-        SongItem.artists =song.artists;
-        SongItem.album = song.album;
-        SongItem.duration = song.duration;
-        SongItem.privilege =song.privilege;
-        if (song.tns) {
-          SongItem.tns = song.tns;
-        }
-        if (song.meta) {
-          SongItem.meta =song.meta;
-
-        }
-        if (song.source) {
-          SongItem.source =song.source;
-        }
-        if (song.sourceID) {
-          SongItem.sourceID =song.sourceID;
-        }
-        // 获取歌曲信息
-        EventHelper.postPlaySong([song, pause, seq]) // 发送播放歌曲事件（携带序号，供接收方丢弃过期结果）
-      } catch (error) {
-        LogUtil.error("AVPlayerManager ", "playSong ", "Error: ", error.message)
+      LogUtil.info("PlaylistManager ", "playSong ", "song ", JSON.stringify(song))
+      AppStorage.setOrCreate("current_playing_song", song)
+      // 从song转换至SongV2
+      SongItem.id = song.id;
+      SongItem.name = song.name;
+      SongItem.artists =song.artists;
+      SongItem.album = song.album;
+      SongItem.duration = song.duration;
+      SongItem.privilege =song.privilege;
+      if (song.tns) {
+        SongItem.tns = song.tns;
       }
-    }, delayTime)
+      if (song.meta) {
+        SongItem.meta =song.meta;
+
+      }
+      if (song.source) {
+        SongItem.source =song.source;
+      }
+      if (song.sourceID) {
+        SongItem.sourceID =song.sourceID;
+      }
+      // 获取歌曲信息
+      EventHelper.postPlaySong([song, pause, seq]) // 发送播放歌曲事件（携带序号，供接收方丢弃过期结果）
+    } catch (error) {
+      LogUtil.error("AVPlayerManager ", "playSong ", "Error: ", error.message)
+    }
   }
 
   /**
@@ -194,10 +225,15 @@ export class PlaylistManager {
 
   /**
    * 播放下一首歌曲
-   * @param forceNext 是否强制播放下一首（忽略单曲循环模式）
+   *
+   * 默认按「用户主动切歌」语义：单曲循环下也真正跳到下一首——
+   * 点了下一首却在原地重播不符合任何用户预期。
+   * 原先的 forceNext 默认 false 且全部 12 个调用点都没传 true，
+   * 等于单曲循环模式下切歌按钮完全失效。
+   * @param respectSingleLoop 仅自动续播传 true：单曲循环下返回当前歌以便重播
    * @returns 下一首歌曲
    */
-  public static playNext(forceNext: boolean = false): Song | null {
+  public static playNext(respectSingleLoop: boolean = false): Song | null {
     const instance = PlaylistManager.getInstance();
     const currentIndex = instance.getCurrentIndex();
 
@@ -210,12 +246,12 @@ export class PlaylistManager {
     // 根据播放模式决定下一首歌曲
     switch (instance._playMode) {
       case PlayMode.SINGLE:
-        if (forceNext) {
-          // 强制下一首时，即使是单曲循环也继续
-          nextIndex = (currentIndex + 1) % instance._playlist.length;
-        } else {
-          // 单曲循环模式下继续播放当前歌曲
+        if (respectSingleLoop) {
+          // 自动续播：单曲循环模式下继续播放当前歌曲
           nextIndex = currentIndex;
+        } else {
+          // 用户主动切歌：即使单曲循环也跳到下一首
+          nextIndex = (currentIndex + 1) % instance._playlist.length;
         }
         break;
 
@@ -252,6 +288,8 @@ export class PlaylistManager {
 
   /**
    * 播放上一首歌曲
+   *
+   * 只有用户主动操作会调用，因此单曲循环下同样真正跳到上一首
    * @returns 上一首歌曲
    */
   public static playPrevious(): Song | null {
@@ -267,10 +305,6 @@ export class PlaylistManager {
     // 根据播放模式决定上一首歌曲
     switch (instance._playMode) {
       case PlayMode.SINGLE:
-        // 单曲循环模式下继续播放当前歌曲
-        prevIndex = currentIndex;
-        break;
-
       case PlayMode.RANDOM:
         // 随机模式下，向前移动一个位置
         prevIndex = (currentIndex - 1 + instance._playlist.length) % instance._playlist.length;

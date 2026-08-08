@@ -197,7 +197,8 @@ export function base64ToPixelMap(base64Str: string): image.PixelMap {
   return imageSource.createPixelMapSync(opts);
 }
 
-const playSong = async (song: Song, path: string, cached: boolean, pause: boolean) => {
+const playSong = async (song: Song, path: string, cached: boolean, pause: boolean,
+  isStale?: () => boolean) => {
   console.info(`[AVPlayerManager]`, `Playing song: ${song.name}, path: ${path}, cached: ${cached}, pause: ${pause}`);
 
   // 记录播放事件（只在非暂停状态下记录）
@@ -207,42 +208,48 @@ const playSong = async (song: Song, path: string, cached: boolean, pause: boolea
     });
   }
 
-  avPlayerManager.stop().then(async () => {
-    FormUtils.updateMusicControlCards(song, !pause)
-    let meteData: avSession.AVMetadata = {
-      assetId: `track-${song.id}-${song.source?.id}`,
-      duration: song.duration,
-      title: song.name,
-      mediaImage: cover(song.album.cover, 512) as string,
-      artist: song.artists.map(a => a.name).join("/"),
+  // 必须串行 await：早先这里用 stop().then(...) 且未把 promise 返回出去，
+  // 调用方的 await 会立即通过，快速切歌时多首歌的起播逻辑并发进入解码管线
+  await avPlayerManager.stop();
+
+  // 停止耗时期间可能又切了歌，过期请求不应继续起播
+  if (isStale && isStale()) {
+    LogUtil.info("EventHelper ", "playSong", "drop stale request before start");
+    return;
+  }
+
+  FormUtils.updateMusicControlCards(song, !pause)
+  let meteData: avSession.AVMetadata = {
+    assetId: `track-${song.id}-${song.source?.id}`,
+    duration: song.duration,
+    title: song.name,
+    mediaImage: cover(song.album.cover, 512) as string,
+    artist: song.artists.map(a => a.name).join("/"),
+  }
+  if (song.meta?.lyric?.normal) {
+    meteData.lyric = song.meta.lyric.normal;
+  }
+  // 如果cover并不是http(s)开头且是base64，则转化为 PixelMap
+  if (song.album.cover && song.album.cover.startsWith("data:image/")) {
+    try {
+      const pixelMap = base64ToPixelMap(song.album.cover);
+      meteData.mediaImage = pixelMap;
+    } catch (error) {
+      LogUtil.error("EventHelper ", "playSong", `Failed to convert cover to PixelMap: ${error.message}`);
     }
-    if (song.meta?.lyric?.normal) {
-      meteData.lyric = song.meta.lyric.normal;
-    }
-    // 如果cover并不是http(s)开头且是base64，则转化为 PixelMap
-    if (song.album.cover && song.album.cover.startsWith("data:image/")) {
-      try {
-        const pixelMap = base64ToPixelMap(song.album.cover);
-        meteData.mediaImage = pixelMap;
-      } catch (error) {
-        LogUtil.error("EventHelper ", "playSong", `Failed to convert cover to PixelMap: ${error.message}`);
-      }
-    }
-    if (path.startsWith('http://') || path.startsWith('https://')) {
-      await avPlayerManager.playByUrl(path, song.meta?.size, pause, meteData)
-      if (pause) {
-        await avPlayerManager.pauseWithoutFadeOut()
-      }
-    } else {
-      await avPlayerManager.playByPath(path, song.meta?.size, pause, meteData)
-    }
-    const session = avPlayerManager.getSession();
-    if (session) {
-      session.setAVPlaybackState({
-        isFavorite: song.meta?.isFavorite
-      })
-    }
-  });
+  }
+  // playByUrl / playByPath 内部已按 pause 决定起播或暂停，此处不再重复处理
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    await avPlayerManager.playByUrl(path, song.meta?.size, pause, meteData)
+  } else {
+    await avPlayerManager.playByPath(path, song.meta?.size, pause, meteData)
+  }
+  const session = avPlayerManager.getSession();
+  if (session) {
+    session.setAVPlaybackState({
+      isFavorite: song.meta?.isFavorite
+    })
+  }
 }
 
 // 最近一次起播请求的序号（来自 PlaylistManager.playSeq，随事件携带）。
@@ -256,6 +263,12 @@ const defaultPlaySongCallback = async (data: [Song, boolean, number?]) => {
   const song = data[0];
   const pause = data[1]; // 是否暂停
   const seq = data[2] !== undefined ? data[2] : latestPlaySeq + 1; // 未携带序号的旧调用方按顺序递增
+  // 乱序到达的旧请求直接丢弃：无条件赋值会把 latestPlaySeq 往回拉，
+  // 使后续真正过期的请求被误判为最新
+  if (seq < latestPlaySeq) {
+    LogUtil.info("EventHelper ", "defaultPlaySongCallback ", "drop out-of-order request, seq ", seq.toString());
+    return;
+  }
   latestPlaySeq = seq;
   const isStale = (): boolean => seq !== latestPlaySeq;
   try {
@@ -304,7 +317,7 @@ const defaultPlaySongCallback = async (data: [Song, boolean, number?]) => {
       // }, 10);
 
       PreferencesCache.lastSong(optimalFile.song);
-      await playSong(optimalFile.song, optimalFile.filePath, optimalFile.fileType !== 'none', pause);
+      await playSong(optimalFile.song, optimalFile.filePath, optimalFile.fileType !== 'none', pause, isStale);
       // 尝试访问一遍最新数据，但不缓存歌曲文件
       SourceAdapter.getSongDetail(optimalFile.song).then((latestSong) => {
         // 晚到的旧请求结果直接丢弃，避免覆盖正在播放歌曲的信息
@@ -340,7 +353,7 @@ const defaultPlaySongCallback = async (data: [Song, boolean, number?]) => {
         return;
       }
 
-      await playSong(detailed, url, false, pause);
+      await playSong(detailed, url, false, pause, isStale);
     }
   } catch (error) {
     LogUtil.error("EventHelper ", "defaultPlaySongCallback", error.message);

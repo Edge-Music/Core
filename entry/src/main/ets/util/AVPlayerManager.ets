@@ -4,7 +4,7 @@ import { audio } from '@kit.AudioKit';
 import { common, WantAgent, wantAgent } from '@kit.AbilityKit';
 import { fileIo as fs, ReadOptions } from '@kit.CoreFileKit';
 import { PlaylistManager } from './PlaylistManager';
-import { ClickUtil, LogUtil } from '@pura/harmony-utils';
+import { LogUtil } from '@pura/harmony-utils';
 import { EventHelper } from './EventHelper';
 import { PreferencesCache } from './PreferenceCache';
 import { SourceAdapter } from '../adapter';
@@ -66,6 +66,14 @@ class AVPlayerManager {
   // Sequence guard for async callbacks.
   private sourceSeq: number = 0;
 
+  // 管线重建串行锁：createStreamDecoder / close / renderer 重建都会动底层原生资源，
+  // 快速连切时若并发进入会同时存在多个解码线程，底层解码器随即失效（无声/崩溃）。
+  // 所有 prepareSource 请求排队执行，配合 sourceSeq 让排队中的过期请求直接出队。
+  private prepareChain: Promise<void> = Promise.resolve();
+
+  // play() 重入保护：AudioRendererPlayer.play() 会重建 renderer，并发调用会互相踩。
+  private playInFlight: boolean = false;
+
   // Ensure we don't double-bind renderer event listeners.
   private rendererListenersBound: boolean = false;
   audioManager = audio?.getAudioManager()
@@ -88,6 +96,8 @@ class AVPlayerManager {
     onDurationChange: []
   };
   private isPlayingBeforeInterrupt: boolean = false;
+  // 非强制打断导致的暂停标记（不受 renderer stateChange 影响），用于打断结束后恢复播放
+  private interruptPaused: boolean = false;
 
   // 淡入淡出相关属性
   private fadeTimer: number = -1;
@@ -372,22 +382,21 @@ class AVPlayerManager {
       this.seek(position);
     });
 
+    // 连点保护统一由 PlaylistManager.playSong 的防抖承担：
+    // 这里再套一层 leading throttle 会把 500ms 内的后续点击整个丢弃，
+    // 表现为播控中心连点五次只跳一首
     this.avSession.on('playNext', () => {
-      ClickUtil.throttle(async () => {
-        const nextSong = PlaylistManager.playNext()
-        if (nextSong) {
-          PlaylistManager.playSong(nextSong)
-        }
-      }, 500)
+      const nextSong = PlaylistManager.playNext()
+      if (nextSong) {
+        PlaylistManager.playSong(nextSong)
+      }
     })
 
     this.avSession.on('playPrevious', () => {
-      ClickUtil.throttle(async () => {
-        const prevSong = PlaylistManager.playPrevious()
-        if (prevSong) {
-          PlaylistManager.playSong(prevSong)
-        }
-      }, 500)
+      const prevSong = PlaylistManager.playPrevious()
+      if (prevSong) {
+        PlaylistManager.playSong(prevSong)
+      }
     })
 
     this.avSession.on('setLoopMode', () => {
@@ -453,6 +462,12 @@ class AVPlayerManager {
 
     this.rendererListenersBound = true;
 
+    // 同一个 renderer 上的监听注册全部收敛到这里：
+    // resume() 不会重建 renderer，若在 play() 中每次都注册，暂停/恢复一次就多一份回调，
+    // 回调里还会写 AVSession 状态，累积后表现为越用越卡、状态错乱
+    this.setupAudioInterrupt(renderer);
+    this.setupAudioRenderer(renderer);
+
     // renderer.on('audioOutputDeviceChangeWithInfo', async (info: audio.AudioStreamDeviceChangeInfo) => {
     //   switch (info.changeReason) {
     //     case audio.AudioStreamDeviceChangeReason.REASON_OLD_DEVICE_UNAVAILABLE:
@@ -514,14 +529,18 @@ class AVPlayerManager {
             break;
         }
       } else {
-        // 非强制打断
+        // 非强制打断：系统不会替应用停流，必须自己暂停 renderer。
+        // 原来只调 stop()（仅同步状态、不动音频），结果是 UI 显示已暂停但声音还在放
         switch (interruptEvent.hintType) {
           case audio.InterruptHint.INTERRUPT_HINT_PAUSE:
-            await this.stop();
-            EventHelper.postSongState('PAUSE');
+            // 用独立标记记录"因打断而暂停"：isPlayingBeforeInterrupt 会被
+            // renderer 的 stateChange('paused') 异步清零，不能用它判断是否该恢复
+            this.interruptPaused = this.isPlayingBeforeInterrupt;
+            await this.pauseWithoutFadeOut();
             break;
           case audio.InterruptHint.INTERRUPT_HINT_RESUME:
-            if (this.isPlayingBeforeInterrupt) {
+            if (this.interruptPaused) {
+              this.interruptPaused = false;
               await this.play();
             }
             break;
@@ -564,10 +583,7 @@ class AVPlayerManager {
     }
   }
 
-  async setupAudioRenderer() {
-    const player = this.avPlayer?.getRenderer()
-    if (!player) return;
-
+  private setupAudioRenderer(player: audio.AudioRenderer) {
     player.on('stateChange', async (state: audio.AudioState) => {
 
       const stateStr = this.mapAudioState(state)
@@ -696,7 +712,31 @@ class AVPlayerManager {
     }
   }
 
+  // 关闭解码器并等待其解码线程真正退出。
+  // close() 只是发出退出信号，线程是异步收尾的；不等它退出就创建下一个解码器，
+  // 会出现两个解码线程争用同一套底层资源，表现为切歌后无声或解码器报错。
+  private async closeDecoderAndWaitExit(decoder: PcmStreamDecoder) {
+    try {
+      decoder.close();
+    } catch (e) {
+      // ignore
+    }
+    try {
+      await Promise.race([
+        decoder.done,
+        // ready 未完成就被关闭时 done 可能永不 resolve，用超时兜底避免卡住整条队列
+        new Promise<void>((resolve) => setTimeout(resolve, 300))
+      ]);
+    } catch (e) {
+      // done reject 同样视为已退出
+    }
+  }
+
   private async cleanupCurrentPipeline() {
+    // 先摘引用：等待期间到达的回调不应再拿到这个即将销毁的解码器
+    const decoder = this.currentDecoder;
+    this.currentDecoder = null;
+
     // Stop playback first.
     if (this.avPlayer) {
       try {
@@ -707,15 +747,10 @@ class AVPlayerManager {
     }
 
     // Stop decoding.
-    if (this.currentDecoder) {
-      try {
-        this.currentDecoder.close();
-      } catch (e) {
-        // ignore
-      }
+    if (decoder) {
+      await this.closeDecoderAndWaitExit(decoder);
     }
 
-    this.currentDecoder = null;
     this.currentStreamInfo = null;
     this.prepared = false;
     this.rendererListenersBound = false;
@@ -730,12 +765,32 @@ class AVPlayerManager {
     }
   }
 
-  private async prepareSource(source: string, metadata?: avSession.AVMetadata) {
+  /** @returns 本次请求是否真正建立了管线（false 表示已被更新的切歌请求取代） */
+  private prepareSource(source: string, metadata?: avSession.AVMetadata): Promise<boolean> {
+    // 同步抢占序号：后到的请求立刻让先到的请求失效，哪怕后者还阻塞在 await 里。
+    // 必须在任何 await 之前完成，否则并发请求会各自拿到相同的"最新"序号。
+    const seq = ++this.sourceSeq;
+
+    // 排队执行，保证同一时刻只有一条管线在重建
+    const run = this.prepareChain.then(() => this.doPrepareSource(source, seq, metadata));
+    // 链上的失败不应阻断后续请求
+    this.prepareChain = run.then(() => {}).catch(() => {});
+    return run;
+  }
+
+  private async doPrepareSource(source: string, seq: number,
+    metadata?: avSession.AVMetadata): Promise<boolean> {
+    // 排队期间已被更新的请求取代，无需再建管线
+    if (seq !== this.sourceSeq) {
+      LogUtil.info(TAG, 'doPrepareSource', `drop queued stale request, seq ${seq}`);
+      return false;
+    }
+
     await this.getAVPlayerInstance();
     await this.cleanupCurrentPipeline();
-
-    this.sourceSeq++;
-    const seq = this.sourceSeq;
+    if (seq !== this.sourceSeq) {
+      return false;
+    }
 
     this.currentSource = source;
     this.triggerStateChange('initialized');
@@ -766,10 +821,29 @@ class AVPlayerManager {
     );
 
     this.currentDecoder = decoder;
-    const info = await decoder.ready;
-    if (this.sourceSeq !== seq) {
-      return;
+
+    let info: PcmStreamInfo;
+    try {
+      info = await decoder.ready;
+    } catch (e) {
+      // ready 失败（资源不存在/格式不支持）时解码线程可能已启动，必须回收
+      if (this.currentDecoder === decoder) {
+        this.currentDecoder = null;
+      }
+      await this.closeDecoderAndWaitExit(decoder);
+      throw e as Error;
     }
+
+    if (this.sourceSeq !== seq) {
+      // 过期请求：必须关闭本次创建的解码器。
+      // 漏关会留下持续解码的僵尸线程，连续快切会累积多个，直到底层解码器失效。
+      if (this.currentDecoder === decoder) {
+        this.currentDecoder = null;
+      }
+      await this.closeDecoderAndWaitExit(decoder);
+      return false;
+    }
+
     this.currentStreamInfo = info;
     this.prepared = true;
     this.decodeDone = false;
@@ -805,6 +879,8 @@ class AVPlayerManager {
         }
         this.triggerError(e);
       });
+
+    return true;
   }
 
   private startCompletionWatchdog() {
@@ -813,9 +889,9 @@ class AVPlayerManager {
     }
 
     // Polling is used to avoid relying on renderer-specific completion events.
+    // 注意：这里每 200ms 触发一次并贯穿整首歌，不要在其中做 info 级日志——
+    // 原实现每首歌会打出上千条日志，明显拖慢 UI 线程并淹没其它日志
     this.completionTimer = setInterval(async () => {
-      // 打印这些状态
-      LogUtil.info(`[${TAG}]`, `completionFired: ${this.completionFired} , decodeDone: ${this.decodeDone}, currentPlaybackState: ${this.currentPlaybackState}`)
       if (this.completionFired) {
         return;
       }
@@ -831,8 +907,6 @@ class AVPlayerManager {
       const dur = this.currentStreamInfo?.durationMs ?? 0;
       const pos = this.avPlayer.getCurrentPosition();
       const now = new Date().getTime();
-
-      LogUtil.info(`[${TAG}]`, `dur: ${dur} , pos: ${pos} , now: ${now} , lastPositionUpdateTs: ${this.lastPositionUpdateTs}`)
 
       // If duration is known, completion is based on internal buffer clock.
       if (dur > 0 && pos >= Math.max(0, dur - 50)) {
@@ -861,9 +935,11 @@ class AVPlayerManager {
 
       LyricsManager.reset()
 
-      const nextSong = PlaylistManager.playNext()
+      // 自动续播必须尊重单曲循环：传 true 让单曲循环返回当前歌重播
+      const nextSong = PlaylistManager.playNext(true)
       if (nextSong) {
-        await this.cleanupCurrentPipeline();
+        // 管线清理交给 prepareSource 串行链统一处理：在这里额外 cleanup 会与
+        // 新起播的管线重建并发，反而制造竞态
         PlaylistManager.playSong(nextSong)
         return;
       }
@@ -883,7 +959,11 @@ class AVPlayerManager {
       // - local file path
       // - http/https URL
       // NOTE: The legacy AVPlayer dataSrc streaming mode is not used here.
-      await this.prepareSource(path, metadata);
+      const ready = await this.prepareSource(path, metadata);
+      // 本次请求已被更新的切歌取代，不要再起播——否则会与新管线抢 renderer
+      if (!ready) {
+        return;
+      }
 
       if (pause) {
         await this.pauseWithoutFadeOut();
@@ -897,7 +977,10 @@ class AVPlayerManager {
 
   async playByUrl(url: string, size?: number, pause?: boolean, metadata?: avSession.AVMetadata) {
     try {
-      await this.prepareSource(url, metadata);
+      const ready = await this.prepareSource(url, metadata);
+      if (!ready) {
+        return;
+      }
       if (pause) {
         await this.pauseWithoutFadeOut();
       } else {
@@ -928,6 +1011,13 @@ class AVPlayerManager {
   }
 
   async play() {
+    // 重入保护：UI、AVSession、自动续播可能同时触发 play()，
+    // 两次并发进入时状态判断都还没变成 RUNNING，会重复重建 renderer 导致无声
+    if (this.playInFlight) {
+      LogUtil.info(TAG, 'play', 'play() already in flight, ignoring');
+      return;
+    }
+    this.playInFlight = true;
     try {
       await this.setAudioSession()
       AppStorage.setOrCreate('playing_judge',true)
@@ -935,9 +1025,17 @@ class AVPlayerManager {
       const fadeInOutEnabled = PreferencesCache.getUserPreference('fade_in_out', '0');
       LogUtil.info("AVPlayerManager", "play", "Playing the song with fadeInOutEnabled: " + fadeInOutEnabled);
 
-      if (!this.prepared || !this.currentDecoder || !this.currentStreamInfo) {
-        // 打印这些状态
-        LogUtil.info("AVPlayerManager", "play", "prepared: " + this.prepared + ", currentDecoder: " + this.currentDecoder + ", currentStreamInfo: " + this.currentStreamInfo);
+      // 已播完：解码器是一次性的，resume 拿不到数据。
+      // 必须重建管线，否则播完后点播放键毫无反应（单曲队列必然走到这里）
+      if (this.completionFired || !this.prepared || !this.currentDecoder || !this.currentStreamInfo) {
+        const cur = AppStorage.get<Song>('current_playing_song');
+        if (cur) {
+          LogUtil.info(TAG, 'play', 'pipeline exhausted, restarting current song');
+          // 释放重入锁再交给起播链，否则重建过程中的 play() 会被自身挡掉
+          this.playInFlight = false;
+          PlaylistManager.playSong(cur);
+          return;
+        }
         LogUtil.warn(TAG, 'play', 'No prepared source/decoder, ignoring play()');
         return;
       }
@@ -959,6 +1057,7 @@ class AVPlayerManager {
           await player.play(this.currentDecoder, this.currentStreamInfo);
         }
 
+        // renderer 相关监听统一在此绑定（内部已做幂等，resume 不会重复注册）
         this.bindRendererListeners();
 
         // Track playback-side progress (internal buffer clock).
@@ -968,8 +1067,6 @@ class AVPlayerManager {
         })
 
         // Apply app volume AFTER renderer exists.
-        await this.setupAudioInterrupt(this.avPlayer?.getRenderer()!)
-        await this.setupAudioRenderer()
         await this.initAppVolume()
         await this.applyDesiredVolumeIfReady()
 
@@ -992,6 +1089,8 @@ class AVPlayerManager {
 
     } catch (error) {
       this.triggerError(error);
+    } finally {
+      this.playInFlight = false;
     }
   }
 
@@ -1024,7 +1123,7 @@ class AVPlayerManager {
     }
   }
 
-  private async setupAudioInterrupt(player: audio.AudioRenderer) {
+  private setupAudioInterrupt(player: audio.AudioRenderer) {
     // 设置焦点模式为共享模式
     player.setInterruptMode(audio.InterruptMode.SHARE_MODE);
 
@@ -1337,6 +1436,27 @@ class AVPlayerManager {
         LogUtil.warn(TAG, `setDrcParams failed: ${e}`);
       }
     }
+  }
+
+  /**
+   * 当前管线是否还能直接续播（而不需要重建解码管线）。
+   *
+   * 解码器是一次性的拉流对象：播完（EOS）后再 resume/play 拿不到任何数据。
+   * 队列只有一首歌时，播完后 playNext 会返回同一首，若上层因"歌曲 id 相同"
+   * 就只调 play()，就会卡在无声、进度 0:00、点播放无反应的状态。
+   */
+  canResumeCurrent(): boolean {
+    if (!this.prepared || !this.currentDecoder || !this.currentStreamInfo) {
+      return false;
+    }
+    if (this.completionFired) {
+      return false;
+    }
+    // 解码线程已退出的解码器同样无法续播
+    if (this.currentDecoder.isAlive && !this.currentDecoder.isAlive()) {
+      return false;
+    }
+    return true;
   }
 
   // 获取当前解码器（供外部调用）
