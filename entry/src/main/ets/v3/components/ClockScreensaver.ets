@@ -6,7 +6,7 @@
  *  - 滑动分页（竖屏）：锁屏样式——大时钟 + 日期 + 玻璃播放卡
  *    （封面/歌名/当前歌词/进度/播控）。
  * 退出逻辑：下滑退出（带跟手位移/回弹）；长按时钟弹出字体/字号设置面板。
- * 屏保期间保持屏幕常亮（setWindowKeepScreenOn），退出后恢复。
+ * 屏保期间保持屏幕常亮（setWindowKeepScreenOn）并隐藏状态栏（沉浸式），退出后均恢复。
  */
 import { avPlayerManager } from '../../util/AVPlayerManager'
 import { PlaylistManager, PlayMode } from '../../util/PlaylistManager'
@@ -15,6 +15,7 @@ import { cover } from '../../util/AdapterHelper'
 import { SourceAdapter } from '../../adapter'
 import { EventHelper } from '../../util/EventHelper'
 import { PreferencesCache } from '../../util/PreferenceCache'
+import WindowUtil from '../../util/WindowUtil'
 import { LyricsLine } from '../../util/LyricsManager'
 import { audio } from '@kit.AudioKit'
 import { window } from '@kit.ArkUI'
@@ -65,7 +66,9 @@ export struct ClockScreensaver {
 
   private timer: number = -1
   private player = avPlayerManager
-  private keepScreenOnWindow: window.Window | null = null
+  private saverWindow: window.Window | null = null
+  // 屏保是否已退出
+  private disposed: boolean = false
   // 持有回调引用才能在退出屏保时摘除，否则每次进出屏保都往播放器回调数组里累加一份
   private handlePlay: () => void = () => {
     this.isPlaying = true
@@ -113,21 +116,28 @@ export struct ClockScreensaver {
       }
     }, 500)
 
-    // 屏保期间保持屏幕常亮
+    // 屏保期间保持屏幕常亮 + 隐藏状态栏（沉浸式屏保）
     try {
       const stage = AppStorage.get('windowStage') as window.WindowStage
       stage.getMainWindow().then((win: window.Window) => {
-        this.keepScreenOnWindow = win
+        this.saverWindow = win
         win.setWindowKeepScreenOn(true)
+        // 屏保已退出则不再隐藏状态栏（避免退出后才异步隐藏导致泄漏）
+        if (this.disposed) {
+          return
+        }
+        // 隐藏状态栏（沉浸式屏保）；canIUse/废弃API/错误处理已封装在 WindowUtil
+        WindowUtil.setStatusBarVisible(win, false)
       })
     } catch (e) {
-      // 无法设置常亮时不影响屏保主功能
+      // 无法设置常亮/隐藏状态栏时不影响屏保主功能
     }
 
     ToastUtil.showShort('下滑退出屏保，长按时钟设置字体')
   }
 
   aboutToDisappear(): void {
+    this.disposed = true
     this.player.removeListener('onPlay', this.handlePlay)
     this.player.removeListener('onPause', this.handlePause)
     if (this.timer !== -1) {
@@ -139,7 +149,11 @@ export struct ClockScreensaver {
       this.dimTimer = -1
     }
     try {
-      this.keepScreenOnWindow?.setWindowKeepScreenOn(false)
+      this.saverWindow?.setWindowKeepScreenOn(false)
+      // 恢复状态栏显示（若进入屏保时未拿到窗口则 saverWindow 为 null，状态栏本就未隐藏，无需恢复）
+      if (this.saverWindow) {
+        WindowUtil.setStatusBarVisible(this.saverWindow, true)
+      }
     } catch (e) {
       // ignore
     }

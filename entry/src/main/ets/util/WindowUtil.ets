@@ -183,6 +183,22 @@ class WindowUtil {
     });
   }
 
+  /**
+   * 设置主窗口状态栏显隐。
+   * - visible=false 隐藏状态栏（沉浸式屏保等场景，仅隐藏状态栏、保留导航栏/手势条）
+   * - visible=true  恢复状态栏显示
+   */
+  setStatusBarVisible(windowClass: window.Window, visible: boolean): void {
+    if (!canIUse('SystemCapability.Window.SessionManager')) {
+      return
+    }
+    windowClass.setSpecificSystemBarEnabled('status', visible, true).then(() => {
+      LogUtil.info(`[${TAG}]`, `setStatusBarVisible: status bar ${visible ? 'shown' : 'hidden'}.`)
+    }).catch((err: BusinessError) => {
+      LogUtil.error(`[${TAG}]`, `setStatusBarVisible(${visible}) failed. Cause code: ${err.code}, message: ${err.message}`)
+    })
+  }
+
   setWindowScreenOn(windowStage: window.WindowStage, isKeepScreenOn: boolean){
     windowStage.getMainWindow().then((windowClass) => {
       try {
