@@ -12,6 +12,8 @@ import {
   EqPresetItem,
   DrcPresetItem
 } from '../../util/AudioEffectManager'
+import { avPlayerManager } from '../../util/AVPlayerManager'
+import { PreferencesCache } from '../../util/PreferenceCache'
 
 @Component
 export struct EffectsSheet {
@@ -24,6 +26,8 @@ export struct EffectsSheet {
   @State private balance: number = 0
   @State private drcEnabled: boolean = false
   @State private drcPreset: string = 'Default'
+  // 应用内音量（0~100，对应 avPlayer.setVolume 的 0.0~1.0）
+  @State private volume: number = 100
 
   aboutToAppear(): void {
     this.eqEnabled = AudioEffectManager.isEqEnabled()
@@ -32,6 +36,7 @@ export struct EffectsSheet {
     this.balance = AudioEffectManager.getBalance()
     this.drcEnabled = AudioEffectManager.isDrcEnabled()
     this.drcPreset = AudioEffectManager.getDrcPresetId()
+    this.volume = Number(PreferencesCache.getUserPreference('Volume', '100'))
   }
 
   private refreshEq(): void {
@@ -220,6 +225,42 @@ export struct EffectsSheet {
     return this.balance < 0 ? `左 ${pct}%` : `右 ${pct}%`
   }
 
+  // ================= 应用内音量 =================
+  @Builder
+  VolumeContent() {
+    Column({ space: 6 }) {
+      Row() {
+        Text('0')
+          .fontSize(12)
+          .fontColor(V3Theme.tx2(this.mode))
+        Blank()
+        Text(`${Math.round(this.volume)}%`)
+          .fontSize(12)
+          .fontColor(V3Theme.accentFallback(this.mode))
+        Blank()
+        Text('100')
+          .fontSize(12)
+          .fontColor(V3Theme.tx2(this.mode))
+      }
+      .width('100%')
+      Slider({ value: this.volume, min: 0, max: 100, step: 1 })
+        .blockColor('#FFFFFF')
+        .selectedColor(V3Theme.accentFallback(this.mode))
+        .trackColor(V3Theme.track(this.mode))
+        .trackThickness(4)
+        .width('100%')
+        .onChange((v: number, mode: SliderChangeMode) => {
+          this.volume = v
+          avPlayerManager.avPlayer?.setVolume(v / 100)
+          // 仅在拖动结束/点击时落盘，避免拖动过程中持续磁盘 IO（同 ClockScreensaver 字号滑杆）
+          if (mode === SliderChangeMode.End || mode === SliderChangeMode.Click) {
+            PreferencesCache.setUserPreference('Volume', v.toString())
+          }
+        })
+    }
+    .width('100%')
+  }
+
   // ================= DRC =================
   @Builder
   DrcContent() {
@@ -287,6 +328,35 @@ export struct EffectsSheet {
             }
             .width('100%')
             this.BalanceContent()
+          }
+          .width('100%')
+          .padding(18)
+          .borderRadius(24)
+          .backgroundColor(V3Theme.glass1(this.mode))
+          .border({ width: 1, color: V3Theme.glassBorder(this.mode) })
+
+          // 应用内音量（无开关，常驻，复位到 100）
+          Column({ space: 14 }) {
+            Row() {
+              Text('应用内音量')
+                .fontSize(16)
+                .fontWeight(FontWeight.Medium)
+                .fontColor(V3Theme.tx1(this.mode))
+              Blank()
+              Text('复位')
+                .fontSize(13)
+                .fontColor(V3Theme.tx3(this.mode))
+                .padding({ left: 12, right: 12, top: 6, bottom: 6 })
+                .borderRadius(14)
+                .backgroundColor(V3Theme.glass2(this.mode))
+                .onClick(() => {
+                  this.volume = 100
+                  avPlayerManager.avPlayer?.setVolume(1)
+                  PreferencesCache.setUserPreference('Volume', '100')
+                })
+            }
+            .width('100%')
+            this.VolumeContent()
           }
           .width('100%')
           .padding(18)
