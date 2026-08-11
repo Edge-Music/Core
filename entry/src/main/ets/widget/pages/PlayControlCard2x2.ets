@@ -1,9 +1,9 @@
 import ActionUtils from '../model/ActionUtils';
 import { CollectAction, PlayActionType } from '../model/FormCardConstant';
 
-const SingerAlignRules: Record<string, Record<string, string | VerticalAlign | HorizontalAlign>> = {
-  'top': { 'anchor': 'musicTitle', 'align': VerticalAlign.Bottom },
-  'left': { 'anchor': 'musicCover', 'align': HorizontalAlign.End }
+const CoverAlignRules: Record<string, Record<string, string | VerticalAlign | HorizontalAlign>> = {
+  'top': { 'anchor': '__container__', 'align': VerticalAlign.Top },
+  'left': { 'anchor': '__container__', 'align': HorizontalAlign.Start }
 };
 
 const CollectAlignRules: Record<string, Record<string, string | VerticalAlign | HorizontalAlign>> = {
@@ -11,13 +11,19 @@ const CollectAlignRules: Record<string, Record<string, string | VerticalAlign | 
   'right': { 'anchor': '__container__', 'align': HorizontalAlign.End }
 };
 
-const CoverAlignRules: Record<string, Record<string, string | VerticalAlign | HorizontalAlign>> = {
-  'top': { 'anchor': 'singerText', 'align': VerticalAlign.Bottom }
+const TitleAlignRules: Record<string, Record<string, string | VerticalAlign | HorizontalAlign>> = {
+  'top': { 'anchor': 'musicCover', 'align': VerticalAlign.Bottom },
+  'left': { 'anchor': '__container__', 'align': HorizontalAlign.Start }
+};
+
+const SingerAlignRules: Record<string, Record<string, string | VerticalAlign | HorizontalAlign>> = {
+  'top': { 'anchor': 'musicTitle', 'align': VerticalAlign.Bottom },
+  'left': { 'anchor': '__container__', 'align': HorizontalAlign.Start }
 };
 
 const PlayAlignRules: Record<string, Record<string, string | VerticalAlign | HorizontalAlign>> = {
   'bottom': { 'anchor': '__container__', 'align': VerticalAlign.Bottom },
-  'right': { 'anchor': '__container__', 'align': HorizontalAlign.End }
+  'left': { 'anchor': '__container__', 'align': HorizontalAlign.Start }
 };
 
 let storageUpdateCall = new LocalStorage();
@@ -50,36 +56,24 @@ struct PlayControlCard2x2 {
 
   build() {
     RelativeContainer() {
-      Text(this.title)
-        .fontSize(14)
-        .fontWeight(700)
-        .width('85%')
-        .fontColor(Color.White)
-        .textOverflow({ overflow: TextOverflow.Ellipsis })
-        .maxLines(1)
-        .id('musicTitle')
-        .textOverflow({overflow: TextOverflow.Ellipsis})
-        .width(100)
-        .textShadow({
-          radius: 6,
-          color: 'rgba(255,255,255,0.25)',
+      // 封面（上方；方形，占左侧约一半，右侧空间留给收藏）
+      Image(this.loaded ? 'memory://' + this.imgName : $r('app.media.default_cover'))
+        .width('46%')
+        .aspectRatio(1)
+        .borderRadius(10)
+        .objectFit(ImageFit.Cover)
+        .alignRules(CoverAlignRules)
+        .id('musicCover')
+        .shadow({
+          radius: 12,
+          color: 'rgba(0,0,0,0.4)',
           offsetX: 0,
-          offsetY: 0
+          offsetY: 4
         })
 
-      Text(this.singer)
-        .fontSize(12)
-        .fontColor('#99FFFFFF')
-        .fontWeight(500)
-        .maxLines(1)
-        .alignRules(SingerAlignRules)
-        .margin({ top: 2 })
-        .id('singerText')
-        .textOverflow({overflow: TextOverflow.Ellipsis})
-        .width(100)
-
+      // 收藏（封面右侧，右上角）
       SymbolGlyph(this.isCollected ? $r('sys.symbol.heart_fill') : $r('sys.symbol.heart'))
-        .fontSize(24)
+        .fontSize(20)
         .symbolEffect(new ReplaceSymbolEffect(EffectScope.WHOLE), true)
         .fontColor(['#E5FFFFFF'])
         .alignRules(CollectAlignRules)
@@ -91,20 +85,37 @@ struct PlayControlCard2x2 {
           }
         })
 
-      Image(this.loaded ? 'memory://' + this.imgName: $r('app.media.default_cover'))
-        .height('50%')
-        .width('50%')
-        .borderRadius(8)
-        .alignRules(CoverAlignRules)
-        .margin({ top: 2 })
-        .shadow({
-          radius: 12,
-          color: 'rgba(0,0,0,0.4)',
+      // 歌名（封面下，占满宽度）
+      Text(this.title)
+        .fontSize(14)
+        .fontWeight(700)
+        .fontColor(Color.White)
+        .maxLines(1)
+        .alignRules(TitleAlignRules)
+        .id('musicTitle')
+        .margin({ top: 8 })
+        .width('100%')
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+        .textShadow({
+          radius: 6,
+          color: 'rgba(255,255,255,0.25)',
           offsetX: 0,
-          offsetY: 4
+          offsetY: 0
         })
 
+      // 歌手（歌名下）
+      Text(this.singer)
+        .fontSize(12)
+        .fontColor('#99FFFFFF')
+        .fontWeight(500)
+        .maxLines(1)
+        .alignRules(SingerAlignRules)
+        .margin({ top: 4 })
+        .id('singerText')
+        .width('100%')
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
 
+      // 播控（固定底部，不变）
       Row() {
         SymbolGlyph($r('sys.symbol.backward_end_fill'))
           .fontSize(28)
