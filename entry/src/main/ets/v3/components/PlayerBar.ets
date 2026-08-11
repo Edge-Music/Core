@@ -16,6 +16,7 @@ import { V3Color, V3Radius, V3Space, V3Theme } from '../theme/Tokens'
 import { ProgressTrack } from './ProgressTrack'
 import { deviceInfo } from '@kit.BasicServicesKit'
 import { EventHelper } from '../../util/EventHelper'
+import { avSession } from '@kit.AVSessionKit'
 
 @Component
 export struct PlayerBar {
@@ -113,6 +114,7 @@ export struct PlayerBar {
   @State durationMs: number = 0
   @State isPlaying: boolean = false
   @State playScale: number = 1
+  @State desktopStatus: boolean = false
 
   private timer: number = -1
   private player = avPlayerManager
@@ -138,6 +140,16 @@ export struct PlayerBar {
       this.durationMs = p.getDurationMs()
       this.currentTimeMs = p.getCurrentPosition()
     }, 500)
+    if (avPlayerManager.avSession !== undefined) {
+      (avPlayerManager.avSession as avSession.AVSession).onDesktopLyricStateChanged((state: avSession.DesktopLyricState) => {
+        console.info(`desktop lyric isLocked : ${state.isLocked}`);
+      })
+    }
+    if (avPlayerManager.avSession !== undefined) {
+      (avPlayerManager.avSession as avSession.AVSession).onDesktopLyricVisibilityChanged((visible: boolean) => {
+          this.desktopStatus = visible
+      });
+    }
   }
 
   aboutToDisappear(): void {
@@ -147,6 +159,9 @@ export struct PlayerBar {
     }
     this.player.removeListener('onPlay', this.handlePlay)
     this.player.removeListener('onPause', this.handlePause)
+    if (avPlayerManager.avSession !== undefined) {
+      (avPlayerManager.avSession as avSession.AVSession).offDesktopLyricVisibilityChanged();
+    }
   }
 
   private commitSeek(r: number): void {
@@ -200,7 +215,9 @@ export struct PlayerBar {
   @Builder
   desktopLyrics(){
     Stack(){
-      SymbolGlyph($r('sys.symbol.lyrics_square')).fontSize(20).fontColor([V3Theme.tx3(this.mode)])
+      SymbolGlyph($r('sys.symbol.lyrics_square'))
+        .fontSize(20)
+        .fontColor(this.desktopStatus ? [V3Theme.accentFallback(this.mode)] : [V3Theme.tx3(this.mode)])
     }
     .width(28)
     .height(28)
