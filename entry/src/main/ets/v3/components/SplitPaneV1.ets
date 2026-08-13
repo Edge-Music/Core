@@ -36,15 +36,9 @@ export struct SplitPaneV1 {
   @BuilderParam rightContent: () => void = this.defaultContent;
   /** 滑动分页控制器 */
   private   swiperController: SwiperController = new SwiperController();
-  @Link @Watch('oncurrentIndexChange')currentIndex:number
-  oncurrentIndexChange(changedPropertyName: string) {
-
-    if (this.currentIndex === 1) {
-      this.swiperController.showNext()
-      this.currentIndex = 0
-    }
-
-  }
+  // 与 Swiper.index 双向绑定（$$）：用户滑动会同步回该变量，父组件改它也会切页；
+  // 切勿再重置为固定值，否则父组件任一状态刷新（如切歌）都会把 Swiper 拉回第 0 页
+  @Link currentIndex:number
   /** 配置项 */
   @Prop config: SplitPaneV1Config = new SplitPaneV1Config();
   /** 是否处于编辑模式（显示可拖拽分隔条） */
@@ -246,15 +240,11 @@ export struct SplitPaneV1 {
           .width('100%')
           .height('100%')
         }
-        .index(this.currentIndex)           // 绑定页码
+        .index($$this.currentIndex)     // $$ 双向绑定：滑动切页回写变量，重渲染时页码与显示一致不跳变
 
 
         .loop(false)
         .onChange((index: number) => {
-          if (this.currentIndex ==1) {
-            this.currentIndex = 0         // 滑动时同步回父组件
-          }
-
           this.onSwipeIndexChange(index);
         })
         .indicator(
