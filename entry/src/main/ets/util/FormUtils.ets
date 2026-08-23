@@ -4,7 +4,7 @@ import { formBindingData, formProvider } from '@kit.FormKit';
 import { http } from '@kit.NetworkKit';
 import { FormControlData } from '../viewmodel/FormData';
 import { Song } from '../type/Adapter';
-import { LogUtil } from '@pura/harmony-utils';
+import { LogUtil } from '../logger/Logger';
 import { FormInfo } from '../viewmodel/FormData';
 import { FormRdbHelper } from './FormRdbHelper';
 import ImageUtils from './ImageUtils';

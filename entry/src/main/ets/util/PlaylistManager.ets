@@ -3,7 +3,7 @@ import { Song, SongV2 } from "../type/Adapter";
 import { avSession } from "@kit.AVSessionKit";
 import { EventHelper } from "./EventHelper";
 import { avPlayerManager } from "./AVPlayerManager";
-import { LogUtil } from "@pura/harmony-utils";
+import { LogUtil } from '../logger/Logger';
 import { PreferencesCache } from "./PreferenceCache";
 import { AppStorageV2 } from "@kit.ArkUI";
 

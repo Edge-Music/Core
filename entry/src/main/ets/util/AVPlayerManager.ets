@@ -4,7 +4,7 @@ import { audio } from '@kit.AudioKit';
 import { common, WantAgent, wantAgent } from '@kit.AbilityKit';
 import { fileIo as fs, ReadOptions } from '@kit.CoreFileKit';
 import { PlaylistManager } from './PlaylistManager';
-import { LogUtil } from '@pura/harmony-utils';
+import { LogUtil } from '../logger/Logger';
 import { EventHelper } from './EventHelper';
 import { PreferencesCache } from './PreferenceCache';
 import { SourceAdapter } from '../adapter';
@@ -14,7 +14,7 @@ import { JSON } from '@kit.ArkTS';
 import { window } from '@kit.ArkUI';
 import WindowUtil from './WindowUtil';
 import { commonEventManager,BusinessError } from '@kit.BasicServicesKit';
-import { hilog } from '@kit.PerformanceAnalysisKit';
+import { hilog } from '../logger/Logger'
 // import { notificationManager } from '@kit.NotificationKit';
 import { AudioRendererPlayer,
   DecodeAudioProgress,
@@ -62,6 +62,9 @@ class AVPlayerManager {
   private lastPositionMs: number = 0;
   private lastPositionUpdateTs: number = 0;
   private completionFired: boolean = false;
+  // 提前 EOS 恢复计数（坏帧/流中断会让解码器在歌曲中途就报 done）：
+  // 每首歌最多原地重建恢复 2 次，仍失败才按播完切歌
+  private eosRecoveryCount: number = 0;
 
   // Sequence guard for async callbacks.
   private sourceSeq: number = 0;
@@ -274,7 +277,8 @@ class AVPlayerManager {
     callbacks.forEach(callback => {
       callback(error);
     });
-    LogUtil.error('[AVPlayerManager]', JSON.stringify(error));
+    // Error 直接 JSON.stringify 会丢失 message/stack 变成 {}，日志需显式取字段
+    LogUtil.error('[AVPlayerManager]', `triggerError: ${error?.message ?? error}\n${error?.stack ?? ''}`);
   }
 
   private triggerCompleted() {
@@ -792,6 +796,10 @@ class AVPlayerManager {
       return false;
     }
 
+    // 换歌（新音源）时清零提前 EOS 的恢复计数；同一音源的重建（恢复）不清零
+    if (source !== this.currentSource) {
+      this.eosRecoveryCount = 0;
+    }
     this.currentSource = source;
     this.triggerStateChange('initialized');
 
@@ -904,28 +912,55 @@ class AVPlayerManager {
         return;
       }
 
-      const dur = this.currentStreamInfo?.durationMs ?? 0;
-      const pos = this.avPlayer.getCurrentPosition();
       const now = new Date().getTime();
+      const stallMs = this.lastPositionUpdateTs > 0 ? now - this.lastPositionUpdateTs : 0;
 
-      // If duration is known, completion is based on internal buffer clock.
-      if (dur > 0 && pos >= Math.max(0, dur - 50)) {
-        await this.handleCompletedInternal();
+      // 完成判定统一以 decodeDone（解码线程真实到达流末尾）为前置：
+      // 1) 流媒体的 durationMs 常是按码率/长度的估算值，偏小时旧的
+      //    pos >= dur-50 判定会在真实结尾之前就切歌，切掉尾部；
+      // 2) 网络卡顿造成的欠载暂停同样表现为"位置停滞"，无此前置会被
+      //    误判为播放完成而跳下一首（播放到一半莫名切歌的主要来源）。
+      // decodeDone 后消费时钟停滞 = 渲染器已把缓冲排空，此时切歌不会丢声音。
+      if (!this.decodeDone || stallMs < 500) {
         return;
       }
-
-      // If duration unknown: assume complete when position stops advancing for a while.
-      if (this.lastPositionUpdateTs > 0 && (now - this.lastPositionUpdateTs) > 1000) {
-        const state = this.avPlayer.getState();
-        if (state !== audio.AudioState.STATE_RUNNING) {
-          await this.handleCompletedInternal();
-        }
-      }
+      await this.handleCompletedInternal();
     }, 200);
   }
 
   private async handleCompletedInternal() {
-    LogUtil.info(`[${TAG}]`, `handleCompletedInternal`);
+    const dur = this.currentStreamInfo?.durationMs ?? 0;
+    const pos = this.avPlayer?.getCurrentPosition() ?? -1;
+    // 提前 EOS 保护：位置离声明时长还很远就收到完成信号，说明解码器因坏帧/流中断
+    // 提前到达 EOS（坏帧在 seek 落点上尤其常见）。此时不能切歌——原地重建管线并
+    // seek 回断点续播；每首歌最多恢复 2 次，仍失败才按播完处理，避免死循环。
+    if (dur > 0 && pos >= 0 && pos < dur - 2000 && this.currentSource.length > 0 &&
+      this.eosRecoveryCount < 2) {
+      this.eosRecoveryCount++;
+      LogUtil.error(`[${TAG}]`, `premature EOS detected: pos=${pos}ms dur=${dur}ms gap=${dur - pos}ms, ` +
+        `rebuilding pipeline to resume (attempt ${this.eosRecoveryCount}/2), src=${this.currentSource}`);
+      try {
+        const resumeAt = Math.min(pos + 500, dur - 100); // 越过坏帧：从断点后 500ms 续播
+        const ready = await this.prepareSource(this.currentSource, this.cachedAvMetadata ?? undefined);
+        if (ready) {
+          await this.play();
+          await this.seek(resumeAt);
+          return;
+        }
+        // 被更新的起播请求取代，直接交给新请求，不再走完成逻辑
+        return;
+      } catch (e) {
+        LogUtil.error(`[${TAG}]`, `premature EOS recovery failed: ${(e as Error)?.message ?? e}`);
+        // 恢复失败，落到下方正常完成逻辑切歌
+      }
+    }
+    // 异常早切监控：正常播完时 pos 应贴近 dur；差值过大说明是误判/异常触发的切歌
+    if (dur > 0 && pos >= 0 && pos < dur - 1000) {
+      LogUtil.error(`[${TAG}]`, `ABNORMAL early song switch: pos=${pos}ms dur=${dur}ms gap=${dur - pos}ms ` +
+        `decodeDone=${this.decodeDone} src=${this.currentSource}`);
+    } else {
+      LogUtil.info(`[${TAG}]`, `handleCompletedInternal pos=${pos} dur=${dur} decodeDone=${this.decodeDone}`);
+    }
     try {
       // Prevent re-entry.
       if (this.completionFired) {
@@ -1061,9 +1096,13 @@ class AVPlayerManager {
         this.bindRendererListeners();
 
         // Track playback-side progress (internal buffer clock).
+        // 只有位置真的前进才刷新时间戳：watchdog 靠"位置停滞"判定排空完成，
+        // 无条件刷新会让停滞检测永远失效（回调定时触发不代表位置在变）
         player.setOnTimeUpdate((posMs: number) => {
-          this.lastPositionMs = posMs;
-          this.lastPositionUpdateTs = new Date().getTime();
+          if (posMs !== this.lastPositionMs) {
+            this.lastPositionMs = posMs;
+            this.lastPositionUpdateTs = new Date().getTime();
+          }
         })
 
         // Apply app volume AFTER renderer exists.
@@ -1261,10 +1300,12 @@ class AVPlayerManager {
       await player.play(this.currentDecoder, this.currentStreamInfo);
     }
 
-    // Track playback-side progress.
+    // Track playback-side progress（仅在位置前进时刷新时间戳，理由同上处注释）
     player.setOnTimeUpdate((posMs: number) => {
-      this.lastPositionMs = posMs;
-      this.lastPositionUpdateTs = new Date().getTime();
+      if (posMs !== this.lastPositionMs) {
+        this.lastPositionMs = posMs;
+        this.lastPositionUpdateTs = new Date().getTime();
+      }
     })
 
     // Apply initial volume after renderer exists.

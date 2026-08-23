@@ -1,5 +1,6 @@
 import { Artist, ID, Playlist, Song, SourceConfig } from "../type/Adapter";
-import { AppUtil, LogUtil, PreferencesUtil, ToastUtil } from '@pura/harmony-utils';
+import { AppUtil, PreferencesUtil, ToastUtil } from '@pura/harmony-utils';
+import { LogUtil } from '../logger/Logger';
 import { display, window } from "@kit.ArkUI";
 import WindowUtil from "./WindowUtil";
 

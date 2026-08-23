@@ -5,11 +5,6 @@ export enum FormCarAction {
   ROUTER = 'router'
 }
 
-export enum FormCardName {
-  CONTROL_2X2 = 'PlayControlCard2x2',
-  CONTROL_2X4 = 'PlayControlCard2x4',
-}
-
 export enum PlayActionType {
   PAUSE = '0',
   PLAY = '1',

@@ -1,4 +1,4 @@
-import { hilog } from '@kit.PerformanceAnalysisKit';
+import { hilog } from '../logger/Logger'
 import { BackupExtensionAbility, BundleVersion } from '@kit.CoreFileKit';
 
 export default class EntryBackupAbility extends BackupExtensionAbility {

@@ -1,6 +1,6 @@
 import { Context, wantAgent } from "@kit.AbilityKit"
 import { backgroundTaskManager } from "@kit.BackgroundTasksKit"
-import { LogUtil } from "@pura/harmony-utils";
+import { LogUtil } from '../logger/Logger';
 
 const TAG = 'BackgroundRunningManager';
 

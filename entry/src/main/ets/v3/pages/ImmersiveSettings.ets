@@ -17,7 +17,9 @@ import { V3Ambient } from '../util/V3Ambient'
 import { V3Color, V3Radius, V3Space, V3Theme } from '../theme/Tokens'
 import { PipManager } from '../../util/PipManager'
 import WindowUtil from '../../util/WindowUtil'
-import { LogUtil, ToastUtil, WantUtil } from '@pura/harmony-utils'
+import { ToastUtil, WantUtil } from '@pura/harmony-utils';
+import { Log, LogUtil } from '../../logger/Logger';
+import { picker } from '@kit.CoreFileKit'
 import { BusinessError } from '@kit.BasicServicesKit'
 import { bundleManager, common } from '@kit.AbilityKit'
 
@@ -577,6 +579,14 @@ export struct ImmersiveSettings {
           ToastUtil.showShort('暂无请求缓存')
         }
       })
+      this.ActionRow('导出运行日志', true, () => {
+        this.exportLogs()
+      })
+      this.ActionRow('清除全部日志', true, () => {
+        Log.clearAllLogs().then(() => {
+          ToastUtil.showShort('日志已清除')
+        })
+      })
     }
     .width('100%')
     .borderRadius(V3Radius.CHIP)
@@ -754,6 +764,26 @@ export struct ImmersiveSettings {
     .border({ width: 1, color: V3Theme.glassBorder(this.mode) })
     .shadow({ radius: 18, color: V3Theme.cardShadow(this.mode), offsetX: 0, offsetY: 5 })
     .clip(true)
+  }
+
+  /** 导出运行日志：沙箱打包 zip 后拉起文件保存控件选择导出位置 */
+  private async exportLogs(): Promise<void> {
+    try {
+      const zipPath = await Log.exportLogs()
+      const zipName = zipPath.substring(zipPath.lastIndexOf('/') + 1)
+      const saveOptions = new picker.DocumentSaveOptions()
+      saveOptions.newFileNames = [zipName]
+      const context = this.getUIContext().getHostContext() as common.UIAbilityContext
+      const docPicker = new picker.DocumentViewPicker(context)
+      const uris = await docPicker.save(saveOptions)
+      if (uris.length === 0) {
+        return
+      }
+      await Log.copyExportedZipToUri(zipPath, uris[0])
+      ToastUtil.showShort('日志已导出到所选位置')
+    } catch (e) {
+      ToastUtil.showShort('导出失败')
+    }
   }
 
   private openWeb(url: string): void {

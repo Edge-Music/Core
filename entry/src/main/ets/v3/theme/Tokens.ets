@@ -16,12 +16,6 @@ export class V3Radius {
   static readonly AVATAR: number = 22    // 头像/圆形按钮
 }
 
-// ============ 模糊 ============
-export class V3Blur {
-  static readonly SURFACE: number = 28   // 主浮层
-  static readonly AMBIENT: number = 44   // 背景环境层
-}
-
 // ============ 间距 ============
 export class V3Space {
   static readonly XS: number = 4
@@ -29,13 +23,6 @@ export class V3Space {
   static readonly M: number = 16
   static readonly L: number = 24
   static readonly XL: number = 32
-}
-
-// ============ 动效 ============
-export class V3Motion {
-  static readonly STANDARD_DURATION: number = 320
-  static readonly LIQUID_DURATION: number = 480
-  static readonly AMBIENT_DURATION: number = 500  // 光感取色过渡
 }
 
 // ============ 深色主题色彩（liquid glass 表现最强） ============

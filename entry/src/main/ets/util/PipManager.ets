@@ -8,7 +8,7 @@ import { Song } from "../type/Adapter";
 import { cover } from './AdapterHelper';
 import { PreferencesCache } from './PreferenceCache';
 import { EventHelper } from './EventHelper';
-import { LogUtil } from '@pura/harmony-utils';
+import { LogUtil } from '../logger/Logger';
 import { media } from '@kit.MediaKit';
 import { audio } from '@kit.AudioKit';
 

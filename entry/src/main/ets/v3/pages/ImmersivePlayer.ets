@@ -15,7 +15,8 @@ import { EventHelper } from '../../util/EventHelper'
 import { PlaylistCover } from '../components/PlaylistCover'
 import { V3Recommend, RecMode } from '../recommend/V3Recommend'
 import { LyricsLine } from '../../util/LyricsManager'
-import { LogUtil, ToastUtil } from '@pura/harmony-utils'
+import { ToastUtil } from '@pura/harmony-utils';
+import { LogUtil } from '../../logger/Logger';
 import { AmbientBackground } from '../components/AmbientBackground'
 import { PlayerBar } from '../components/PlayerBar'
 import { QueueSheet } from '../components/QueueSheet'
