@@ -5,13 +5,13 @@
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "certpath": "C:\\Users\\xianb\\.ohos\\config\\default_Core3d0_5N23FGuonUkDaQa6gAnCi8-HkSzPYgqlQ3sg_O_6z20=.cer",
+          "certpath": "C:\\Users\\10423\\.ohos\\config\\default_MusicEnjoy_V4b1o9o10L55ZBLJ1lK0rpcgdrLxySZ-rpTUIvf7cOo=.cer",
           "keyAlias": "debugKey",
-          "keyPassword": "0000001B6BB4410E2AE9359AFAC1BDDF3AD69F4FCD4814464637D149EB9E46161DCA46382B01FD94F72124",
-          "profile": "C:\\Users\\xianb\\.ohos\\config\\default_Core3d0_5N23FGuonUkDaQa6gAnCi8-HkSzPYgqlQ3sg_O_6z20=.p7b",
+          "keyPassword": "0000001B0E58832995C77161D2B0AD3E2F2D804564A86BBF836D8A307300EC009F9289A93D565870B2F3D6",
+          "profile": "C:\\Users\\10423\\.ohos\\config\\default_MusicEnjoy_V4b1o9o10L55ZBLJ1lK0rpcgdrLxySZ-rpTUIvf7cOo=.p7b",
           "signAlg": "SHA256withECDSA",
-          "storeFile": "C:\\Users\\xianb\\.ohos\\config\\default_Core3d0_5N23FGuonUkDaQa6gAnCi8-HkSzPYgqlQ3sg_O_6z20=.p12",
-          "storePassword": "0000001BFB7A15DED0BA79B1C7BC182B11194D5D9214610AA20B035619F1BBCC24CD6B14ED8FE383C75F4C"
+          "storeFile": "C:\\Users\\10423\\.ohos\\config\\default_MusicEnjoy_V4b1o9o10L55ZBLJ1lK0rpcgdrLxySZ-rpTUIvf7cOo=.p12",
+          "storePassword": "0000001BB7DD12B703F854D8179E5DB8C288A4A910B57F7F0C2FDB477BEA154E9BFC4517BC39E84BC5A5CC"
         }
       }
     ],
