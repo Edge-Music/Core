@@ -1,5 +1,5 @@
 import { display, window } from "@kit.ArkUI"
-import { LogUtil } from "@pura/harmony-utils";
+import { LogUtil } from '../logger/Logger';
 import { PreferencesCache, SBLyricsPre } from "../util/PreferenceCache";
 import { resourceManager } from "@kit.LocalizationKit";
 import WindowUtil from "../util/WindowUtil";

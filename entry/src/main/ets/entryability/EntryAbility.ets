@@ -1,6 +1,7 @@
 import { AbilityConstant, Configuration, UIAbility, Want } from '@kit.AbilityKit';
 import { window } from '@kit.ArkUI';
-import { AppUtil, CrashUtil, LogUtil } from '@pura/harmony-utils';
+import { AppUtil } from '@pura/harmony-utils';
+import { Log, LogUtil } from '../logger/Logger';
 import { ImageKnife } from '@ohos/imageknife';
 import { SongCacheManager } from '../util/SongCacheManager';
 import { EventHelper } from '../util/EventHelper';
@@ -19,7 +20,6 @@ import { PipManager } from '../util/PipManager';
 import { PreferencesCache } from '../util/PreferenceCache';
 import ResourceManager from '../util/ResourceManager';
 import { SourceAdapter } from '../adapter';
-import { ExceptionInfo } from '@pura/harmony-utils/src/main/ets/entity/ExceptionInfo';
 import { sensor } from '@kit.SensorServiceKit';
 import json from '@ohos.util.json';
 
@@ -39,6 +39,7 @@ export default class EntryAbility extends UIAbility {
   //   console.log(`onConfigurationUpdate, config: ${JSON.stringify(newConfig)}`);
   // }
   async onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): Promise<void> {
+    Log.init(this.context); // 初始化日志模块（落盘+崩溃订阅），须最先
     this.callee.on(CallMethod.REQUEST_UPDATE_CARD, FormUtils.requestUpdatePlayCard);
     this.callee.on(CallMethod.PLAY_BY_ACTION, FormUtils.playByActionCall);
     this.callee.on(CallMethod.COLLECT_ACTION, FormUtils.collectActionCall);
@@ -63,9 +64,6 @@ export default class EntryAbility extends UIAbility {
     AppStorage.setOrCreate('cacheDir_jzs',this.context.cacheDir)
     SongCacheManager.initialize() // 初始化歌曲缓存管理器
     SongDownloadManager.init(this.context) // 初始化歌曲下载管理器
-    CrashUtil.onHandled((errMsg: ExceptionInfo) => {
-      LogUtil.error(`[${TAG}]`, `ExceptionInfo: ${JSON.stringify(errMsg)}`)
-    }); // 注册错误处理
     ContextHelper.init(this.context) // 初始化上下文工具类
     DownloadManager.init(this.context) // 初始化下载工具类
     ResourceManager.init(this.context)
@@ -114,6 +112,7 @@ export default class EntryAbility extends UIAbility {
   }
 
   async onDestroy(): Promise<void> {
+    Log.markCleanExit(); // 正常退出标记，供下次启动判定是否异常退出
     LogUtil.info(`[${TAG}]`, 'Ability onDestroy');
     PipManager.getInstance().setAutoStart(false)
     PreferencesCache.setUserPreference('Lyic_desktop','0')
@@ -127,6 +126,8 @@ export default class EntryAbility extends UIAbility {
 
   async onWindowStageCreate(windowStage: window.WindowStage): Promise<void> {
     LogUtil.info(`[${TAG}]`, 'Ability onWindowStageCreate');
+    // 崩溃复盘改为首页半模态弹窗（见 Index.ets），这里始终正常初始化主窗口，
+    // 避免整页替换导致 WindowUtil 的窗口属性/监听/PiP 初始化被跳过
     WindowUtil.loadContent(windowStage, this.page);
   }
 

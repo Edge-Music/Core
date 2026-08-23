@@ -1,4 +1,5 @@
-import { LogUtil, PreferencesUtil } from '@pura/harmony-utils';
+import { PreferencesUtil } from '@pura/harmony-utils';
+import { LogUtil } from '../logger/Logger';
 import { Song } from '../type/Adapter';
 import fs from '@ohos.file.fs';
 import { PreferencesCache } from './PreferenceCache';

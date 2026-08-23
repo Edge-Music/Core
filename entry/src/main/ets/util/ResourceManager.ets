@@ -1,7 +1,7 @@
 import { BusinessError } from "@kit.BasicServicesKit";
 import { common } from "@kit.AbilityKit";
 import { resourceManager } from "@kit.LocalizationKit";
-import { LogUtil } from "@pura/harmony-utils";
+import { LogUtil } from '../logger/Logger';
 import { image } from "@kit.ImageKit";
 
 const TAG = 'ResourceManager'

@@ -1,5 +1,6 @@
 import { curves, window } from "@kit.ArkUI"
-import { LogUtil, ToastUtil } from "@pura/harmony-utils"
+import { ToastUtil } from '@pura/harmony-utils';
+import { LogUtil } from '../logger/Logger';
 import { SourceAdapter } from "../adapter"
 import { Song } from "../type/Adapter"
 import { avPlayerManager } from "../util/AVPlayerManager"

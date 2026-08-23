@@ -1,4 +1,5 @@
-import { LogUtil, PreferencesUtil } from '@pura/harmony-utils';
+import { PreferencesUtil } from '@pura/harmony-utils';
+import { LogUtil } from '../logger/Logger';
 import { PreferencesCache } from './PreferenceCache';
 
 export class ResponseCacheUtil {

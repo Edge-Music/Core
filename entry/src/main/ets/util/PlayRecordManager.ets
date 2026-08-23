@@ -1,4 +1,5 @@
-import { LogUtil, PreferencesUtil } from '@pura/harmony-utils';
+import { PreferencesUtil } from '@pura/harmony-utils';
+import { LogUtil } from '../logger/Logger';
 import { Song } from '../type/Adapter';
 import { PlayRecord, PlayRecordJSON, TimeSlotStats, ArtistStats } from '../model/PlayRecord';
 

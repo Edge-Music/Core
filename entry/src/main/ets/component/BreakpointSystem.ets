@@ -2,29 +2,7 @@ import mediaQuery from '@ohos.mediaquery';
 import { BreakpointConstants } from '../constants/BreakpointConstants';
 import { deviceInfo } from '@kit.BasicServicesKit';
 import { display } from '@kit.ArkUI';
-import { LogUtil } from '@pura/harmony-utils';
-
-declare interface BreakPointTypeOption<T> {
-  sm?: T
-  md?: T
-  lg?: T
-}
-
-/**
- * 媒体查询（mediaquery）
- * 响应式设计的核心
- */
-export class BreakPointType<T> {
-  options: BreakPointTypeOption<T>
-
-  constructor(option: BreakPointTypeOption<T>) {
-    this.options = option
-  }
-
-  getValue(currentBreakPoint: string): T {
-    return Object(this.options)[currentBreakPoint] as T
-  }
-}
+import { LogUtil } from '../logger/Logger';
 
 const TAG = 'BreakpointSystem'
 

@@ -2,10 +2,6 @@ export type ID = number | string;
 
 export type Bitrate = number;
 
-export interface BaseMeta {
-  source: SourceConfig | LocalSourceConfig;
-}
-
 export interface Privilege {
   // 是否可播放
   playable: boolean;
@@ -157,17 +153,6 @@ export interface Lyric {
   translation?: string;
 }
 
-export enum SearchType {
-  // 歌曲
-  SONG = 'song',
-  // 歌单
-  PLAYLIST = 'playlist',
-  // 歌手
-  ARTIST = 'artist',
-  // 专辑
-  ALBUM = 'album'
-}
-
 export interface SearchResult {
   // 歌曲列表
   songs?: Song[];
@@ -203,25 +188,6 @@ export interface SourceConfig {
 
   // 数据源登录凭证
   auth?: Auth;
-}
-
-export interface LocalAuth {
-  username: string;
-  password: string;
-}
-
-export interface LocalSourceConfig {
-  // 数据源名称
-  name: string;
-
-  // 数据源地址
-  url: string;
-
-  // 数据源描述
-  description?: string;
-
-  // 数据源登录凭证
-  auth?: LocalAuth;
 }
 
 @ObservedV2

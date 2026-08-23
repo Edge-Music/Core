@@ -1,6 +1,6 @@
 import { formBindingData, FormExtensionAbility, formInfo } from '@kit.FormKit';
 import { Want } from '@kit.AbilityKit';
-import { LogUtil } from '@pura/harmony-utils'
+import { LogUtil } from '../logger/Logger';
 import { FormInfo } from '../viewmodel/FormData';
 import { FormRdbHelper } from '../util/FormRdbHelper';
 import FormUtils from '../util/FormUtils';

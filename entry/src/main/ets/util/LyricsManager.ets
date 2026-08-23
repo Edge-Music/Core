@@ -1,4 +1,4 @@
-import { LogUtil } from "@pura/harmony-utils";
+import { LogUtil } from '../logger/Logger';
 import { Song } from "../type/Adapter";
 import { avPlayerManager } from "./AVPlayerManager";
 import { EventHelper } from "./EventHelper";

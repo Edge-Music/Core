@@ -1,5 +1,5 @@
 import { relationalStore } from '@kit.ArkData';
-import { LogUtil } from '@pura/harmony-utils';
+import { LogUtil } from '../logger/Logger';
 import { FormInfo } from '../viewmodel/FormData';
 import { RdbUtils } from './RdbUtils';
 

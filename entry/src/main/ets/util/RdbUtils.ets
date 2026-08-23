@@ -1,6 +1,6 @@
 import { relationalStore } from '@kit.ArkData';
 import { BusinessError } from '@kit.BasicServicesKit';
-import { LogUtil } from '@pura/harmony-utils';
+import { LogUtil } from '../logger/Logger';
 
 const TAG = 'RdbUtils';
 

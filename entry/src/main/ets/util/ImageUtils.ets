@@ -1,6 +1,6 @@
 import { image } from '@kit.ImageKit';
 import { effectKit } from '@kit.ArkGraphics2D';
-import { LogUtil } from '@pura/harmony-utils';
+import { LogUtil } from '../logger/Logger';
 import { http } from '@kit.NetworkKit'
 import { fileIo } from '@kit.CoreFileKit';
 import { ColorExtractor, ExtractedColor } from './ColorExtractor';

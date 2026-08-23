@@ -1,4 +1,5 @@
-import { EmitterUtil, LogUtil, ToastUtil, WantUtil } from '@pura/harmony-utils';
+import { EmitterUtil, ToastUtil, WantUtil } from '@pura/harmony-utils';
+import { LogUtil } from '../logger/Logger';
 import { Song, SongV2 } from '../type/Adapter';
 import { avSession } from '@kit.AVSessionKit';
 import { SongCacheItem, SongCacheManager } from './SongCacheManager';

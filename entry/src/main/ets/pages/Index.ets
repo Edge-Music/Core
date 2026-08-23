@@ -6,7 +6,8 @@ import { SourceAdapter } from '../adapter'
 import { BusinessError, deviceInfo } from '@kit.BasicServicesKit'
 import { PipManager } from '../util/PipManager'
 import { avPlayerManager } from '../util/AVPlayerManager'
-import { LogUtil, ToastUtil, WantUtil } from '@pura/harmony-utils'
+import { ToastUtil, WantUtil } from '@pura/harmony-utils';
+import { Log, LogUtil } from '../logger/Logger';
 import { common } from '@kit.AbilityKit'
 import { ImmersivePlayer } from '../v3/pages/ImmersivePlayer'
 import { ImmersiveLyrics } from '../v3/pages/ImmersiveLyrics'
@@ -19,10 +20,11 @@ import { ImmersiveDownload } from '../v3/pages/ImmersiveDownload'
 import { ImmersiveAggregation } from '../v3/pages/ImmersiveAggregation'
 import LyricsManager from '../util/LyricsManager'
 import { EventHelper } from '../util/EventHelper'
+import { CrashReportSheet } from '../component/CrashReportSheet'
 // import { motion } from '@kit.MultimodalAwarenessKit'
 import { sensor } from '@kit.SensorServiceKit'
 import { notificationManager } from '@kit.NotificationKit'
-import { hilog } from '@kit.PerformanceAnalysisKit'
+import { hilog } from '../logger/Logger'
 import { audio } from '@kit.AudioKit'
 
 // import { sensor } from '@kit.SensorServiceKit'
@@ -134,6 +136,9 @@ struct PrivacyPolicyDialog {
 @Component
 struct Index {
   @Provide('NavPathStack') pageStack: NavPathStack = new NavPathStack()
+  // 崩溃复盘半模态：仅当 hiAppEvent 捕获到真实 APP_CRASH（有 pending.flag）时才弹出；
+  // 强杀/指令结束进程没有 crash 记录，不会误弹
+  @State crashSheetShow: boolean = false
   private breakpointSystem: BreakpointSystem = new BreakpointSystem()
 
   // 3.0 根级关键初始化（原在旧 Index_page.onWillAppear + @StorageLink 播种，换首屏后迁到此处）
@@ -187,6 +192,15 @@ struct Index {
   }
 
   @Builder
+  CrashReportSheetContent() {
+    CrashReportSheet({
+      onClose: () => {
+        this.crashSheetShow = false
+      }
+    })
+  }
+
+  @Builder
   PageMap(name: string) {
     if (name === 'ImmersivePlayer') {
       ImmersivePlayer()
@@ -212,6 +226,9 @@ struct Index {
   aboutToAppear(): void {
     // 3.0：首屏即沉浸播放页（设计规范 §0/§3）
     this.rootInit()
+    if (Log.hasPendingCrash()) {
+      this.crashSheetShow = true
+    }
     this.pageStack.replacePath({ name: 'ImmersivePlayer' })
     let pressure_change_judge = PreferencesCache.getUserPreference('pressure_change', '0')
     if (pressure_change_judge === '1') {
@@ -368,6 +385,13 @@ struct Index {
     .navDestination(this.PageMap)
     .hideNavBar(true)
     .mode(NavigationMode.Stack)
+    .bindSheet($$this.crashSheetShow, this.CrashReportSheetContent(), {
+      detents: [SheetSize.MEDIUM, SheetSize.LARGE],
+      showClose: false,
+      onDisappear: () => {
+        Log.consumePendingCrash()
+      }
+    })
   }
 }
 

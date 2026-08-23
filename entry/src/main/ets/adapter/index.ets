@@ -1,5 +1,6 @@
 import axios, { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "@ohos/axios"
-import { AppUtil, LogUtil } from "@pura/harmony-utils";
+import { AppUtil } from '@pura/harmony-utils';
+import { LogUtil } from '../logger/Logger';
 import { Album, Artist, Bitrate, ID, Playlist, SearchResult, Song, SourceConfig, User } from "../type/Adapter"
 import { PreferencesCache } from "../util/PreferenceCache";
 import { ResponseCacheUtil } from "../util/ResponseCacheUtil";
