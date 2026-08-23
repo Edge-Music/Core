@@ -203,6 +203,9 @@ export interface SourceConfig {
 
   // 数据源登录凭证
   auth?: Auth;
+
+  // 最后更新时间（毫秒时间戳，云同步增量合并依据）
+  updatedAt?: number;
 }
 
 export interface LocalAuth {

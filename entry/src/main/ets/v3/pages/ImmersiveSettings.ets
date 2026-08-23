@@ -711,6 +711,26 @@ export struct ImmersiveSettings {
       })
 
       Row() {
+        SymbolGlyph($r('sys.symbol.cloud_and_arrow_up'))
+          .fontSize(18)
+          .fontColor([V3Theme.accentFallback(this.mode)])
+          .margin({ right: 10 })
+        Text('云端同步')
+          .fontSize(15)
+          .fontColor(V3Theme.tx1(this.mode))
+          .layoutWeight(1)
+        SymbolGlyph($r('sys.symbol.chevron_right'))
+          .fontSize(16)
+          .fontColor([V3Theme.tx3(this.mode)])
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, top: 13, bottom: 13 })
+      .border({ width: { top: 1 }, color: V3Theme.hairline(this.mode) })
+      .onClick(() => {
+        this.pageStack.pushPath({ name: 'ImmersiveCloudSync' }, { animated: true })
+      })
+
+      Row() {
         SymbolGlyph($r('sys.symbol.plus'))
           .fontSize(18)
           .fontColor([V3Theme.accentFallback(this.mode)])

@@ -17,6 +17,8 @@ import { ImmersivePlaylist } from '../v3/pages/ImmersivePlaylist'
 import { ImmersiveStatistics } from '../v3/pages/ImmersiveStatistics'
 import { ImmersiveDownload } from '../v3/pages/ImmersiveDownload'
 import { ImmersiveAggregation } from '../v3/pages/ImmersiveAggregation'
+import { ImmersiveCloudSync } from '../v3/pages/ImmersiveCloudSync'
+import { CloudSyncManager } from '../util/CloudSyncManager'
 import LyricsManager from '../util/LyricsManager'
 import { EventHelper } from '../util/EventHelper'
 // import { motion } from '@kit.MultimodalAwarenessKit'
@@ -33,6 +35,11 @@ import { audio } from '@kit.AudioKit'
 const COLUMNS_TEMPLATE_LG = '1fr 1fr 1fr 1fr' // 宽屏4列（1×4布局）
 const COLUMNS_TEMPLATE_SM = '1fr 1fr' // 窄屏2列（2×2布局）
 const TAG = 'Index'
+
+// 云端导入页跳转参数
+interface CloudImportParam {
+  mode: string
+}
 
 // 隐私协议弹窗组件
 @CustomDialog
@@ -206,13 +213,40 @@ struct Index {
       ImmersiveDownload()
     } else if (name === 'ImmersiveAggregation') {
       ImmersiveAggregation()
+    } else if (name === 'ImmersiveCloudSync') {
+      ImmersiveCloudSync()
     }
+  }
+
+  /**
+   * 云端导入引导：本地无数据源时，主动触发一次云同步并等待云端文件元数据下行
+   * （重装/新设备上元数据需要系统同步，单次立即检查大概率看不到），
+   * 发现云端存在同步文件则跳转导入页（每次冷启动仅一次）。
+   */
+  private checkCloudImport(): void {
+    if (AppStorage.get('cloud_import_checked') === true) {
+      return
+    }
+    AppStorage.setOrCreate('cloud_import_checked', true)
+    if (PreferencesCache.getUserDataSource().length > 0 || !CloudSyncManager.isSupported()) {
+      return
+    }
+    CloudSyncManager.waitForCloudFile(4, 2500).then((found: boolean) => {
+      if (found && PreferencesCache.getUserDataSource().length === 0) {
+        const param: CloudImportParam = { mode: 'import' }
+        const info: NavPathInfo = { name: 'ImmersiveCloudSync', param: param }
+        this.pageStack.pushPath(info, { animated: true })
+      }
+    }).catch((e: Error) => {
+      LogUtil.warn(`[${TAG}]`, `checkCloudImport failed: ${JSON.stringify(e)}`)
+    })
   }
 
   aboutToAppear(): void {
     // 3.0：首屏即沉浸播放页（设计规范 §0/§3）
     this.rootInit()
     this.pageStack.replacePath({ name: 'ImmersivePlayer' })
+    this.checkCloudImport()
     let pressure_change_judge = PreferencesCache.getUserPreference('pressure_change', '0')
     if (pressure_change_judge === '1') {
       try {

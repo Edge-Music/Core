@@ -116,6 +116,7 @@ export class PreferencesCache {
    * 添加用户数据源
    */
   static addUserDataSource(sourceConfig: SourceConfig): void {
+    sourceConfig.updatedAt = Date.now();
     const sourceList = PreferencesCache.getUserDataSource();
     sourceList.push(sourceConfig);
     PreferencesCache.setUserDataSource(sourceList);
@@ -125,6 +126,7 @@ export class PreferencesCache {
    * 更新指定用户数据源
    */
   static updateUserDataSource(sourceConfig: SourceConfig): void {
+    sourceConfig.updatedAt = Date.now();
     const sourceList = PreferencesCache.getUserDataSource();
     const index = sourceList.findIndex(item => item.id === sourceConfig.id);
     if (index !== -1) {
