@@ -9,6 +9,12 @@
       "tablet",
       "2in1"
     ],
+    "metadata": [
+      {
+        "name": "ohos.arkui.UIMaterial.state",
+        "value": "enable"
+      }
+    ],
     "routerMap": "$profile:route_map",
     "deliveryWithInstall": true,
     "installationFree": false,
