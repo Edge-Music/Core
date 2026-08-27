@@ -226,6 +226,9 @@ export struct PlayerBar {
         avPlayerManager.avSession?.isDesktopLyricVisible().then((visible: boolean) => {
           console.info(`isDesktopLyricVisible: ${visible}`);
           avPlayerManager.avSession?.setDesktopLyricVisible(!visible);
+          if(visible) {
+            avPlayerManager.avSession?.setDesktopLyricState({ isLocked: false })
+          }
         })
       }
 
